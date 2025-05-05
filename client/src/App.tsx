@@ -1,0 +1,130 @@
+import React, { useEffect } from "react";
+import { Switch, Route, Router, useLocation } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider, useAuth } from "@/providers/auth-provider";
+
+import LoginPage from "@/pages/login";
+import DashboardPage from "@/pages/dashboard";
+import StoresPage from "@/pages/stores";
+import AnalyticsPage from "@/pages/analytics";
+import InventoryPage from "@/pages/inventory";
+import UsersPage from "@/pages/users";
+import SettingsPage from "@/pages/settings";
+import PosPage from "@/pages/pos";
+import NotFound from "@/pages/not-found";
+
+// Protected route component
+function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: any) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Use effect for navigation after component mounts
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!isLoading && !isAuthenticated) {
+      setLocation("/login");
+      return;
+    }
+
+    // Check for admin access if required
+    if (!isLoading && isAuthenticated && adminOnly && user?.role !== "admin") {
+      setLocation("/dashboard");
+      return;
+    }
+  }, [isAuthenticated, isLoading, user, adminOnly, setLocation]);
+
+  // Handle loading state
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  // Don't render during redirects
+  if (!isAuthenticated || (adminOnly && user?.role !== "admin")) {
+    return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
+  }
+
+  // Render component if authorized
+  return <Component {...rest} />;
+}
+
+function DefaultRoute() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  
+  // Use effect hook to handle navigation after render
+  useEffect(() => {
+    if (!user) {
+      setLocation("/login");
+      return;
+    }
+    
+    if (user.role === "cashier") {
+      setLocation("/pos");
+    } else {
+      setLocation("/dashboard");
+    }
+  }, [user, setLocation]);
+  
+  // Return a loading indicator while redirecting
+  return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
+}
+
+function DashboardRoute() {
+  return <ProtectedRoute component={DashboardPage} />;
+}
+
+function StoresRoute() {
+  return <ProtectedRoute component={StoresPage} />;
+}
+
+function AnalyticsRoute() {
+  return <ProtectedRoute component={AnalyticsPage} />;
+}
+
+function InventoryRoute() {
+  return <ProtectedRoute component={InventoryPage} />;
+}
+
+function UsersRoute() {
+  return <ProtectedRoute component={UsersPage} adminOnly={true} />;
+}
+
+function SettingsRoute() {
+  return <ProtectedRoute component={SettingsPage} />;
+}
+
+function PosRoute() {
+  return <ProtectedRoute component={PosPage} />;
+}
+
+function AppRoutes() {
+  return (
+    <Switch>
+      <Route path="/login" component={LoginPage} />
+      <Route path="/dashboard" component={DashboardRoute} />
+      <Route path="/stores" component={StoresRoute} />
+      <Route path="/analytics" component={AnalyticsRoute} />
+      <Route path="/inventory" component={InventoryRoute} />
+      <Route path="/users" component={UsersRoute} />
+      <Route path="/settings" component={SettingsRoute} />
+      <Route path="/pos" component={PosRoute} />
+      <Route path="/" component={DefaultRoute} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppRoutes />
+        <Toaster />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
