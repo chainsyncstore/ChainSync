@@ -67,6 +67,8 @@ export function AiAssistant() {
     // Ensure conversationData and messages exist with proper type checks
     const messages = Array.isArray(conversationData?.messages) ? conversationData.messages : [];
     
+    // The backend now always returns at least a welcome message
+    // This is just a fallback in case no messages are returned
     if (messages.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-48 text-center p-4">
@@ -121,14 +123,23 @@ export function AiAssistant() {
   return (
     <Card className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden h-full flex flex-col">
       <CardHeader className="p-4 border-b border-neutral-200 bg-primary-50">
-        <div className="flex items-center">
-          <div className="p-2 bg-primary rounded-full mr-3">
-            <LightbulbIcon className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="p-2 bg-primary rounded-full mr-3">
+              <LightbulbIcon className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-neutral-800">Dialogflow Assistant</h2>
+              <p className="text-sm text-neutral-500">Powered by Google Dialogflow</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-medium text-neutral-800">Dialogflow Assistant</h2>
-            <p className="text-sm text-neutral-500">Powered by Google Dialogflow</p>
+          <div className="flex items-center bg-amber-100 text-amber-700 text-xs rounded px-2 py-1">
+            <AlertTriangleIcon className="w-3 h-3 mr-1" />
+            DEMO MODE
           </div>
+        </div>
+        <div className="mt-2 text-xs text-neutral-500 bg-white p-2 rounded border border-neutral-200">
+          <p>This assistant is running in demo mode with mock responses. For full functionality, add <span className="font-mono bg-neutral-100 px-1 rounded">GOOGLE_APPLICATION_CREDENTIALS</span> and <span className="font-mono bg-neutral-100 px-1 rounded">DIALOGFLOW_PROJECT_ID</span> to your environment.</p>
         </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto p-4 bg-neutral-50">

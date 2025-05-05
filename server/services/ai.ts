@@ -20,10 +20,12 @@ export async function getAIResponse(userId: number, userMessage: string): Promis
       throw new Error("User not found");
     }
     
-    // Enrich Dialogflow with business data
+    // Enrich Dialogflow with business data (when Dialogflow is available)
     await enrichDialogflowWithBusinessData(userId);
     
-    // Get response from Dialogflow
+    // Get response from Dialogflow (with fallback to mock responses)
+    // Note: Empty messages will return a welcome message
+    // First-time visitors get a welcome message through the conversation endpoint
     const aiResponse = await getDialogflowResponse(userId, userMessage);
     
     return aiResponse || "I'm sorry, I couldn't process your request at this time.";

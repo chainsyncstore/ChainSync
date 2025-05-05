@@ -140,9 +140,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get yesterday's sales data for comparison
       const yesterdaySales = await storage.getDailySalesData(storeId, 2);
-      const yesterdaySalesFiltered = yesterdaySales.filter(
-        data => new Date(data.date).getDate() === yesterday.getDate()
-      );
+      // Safely filter the sales data based on date
+      const yesterdaySalesFiltered = yesterdaySales.filter(data => {
+        // First ensure data.date exists
+        if (!data.date) return false;
+        
+        try {
+          // Parse the date, whether it's a string or Date object
+          const dateObj = typeof data.date === 'string' 
+            ? new Date(data.date) 
+            : (data.date instanceof Date ? data.date : null);
+            
+          // If we got a valid date, compare it
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            return dateObj.getDate() === yesterday.getDate();
+          }
+        } catch (e) {
+          console.error("Error parsing date:", e);
+        }
+        
+        return false;
+      });
       const yesterdaySalesTotal = yesterdaySalesFiltered.reduce((sum, data) => sum + Number(data.totalSales), 0);
       const yesterdayTransactions = yesterdaySalesFiltered.reduce((sum, data) => sum + Number(data.transactionCount), 0);
       
