@@ -148,41 +148,42 @@ export default function AnalyticsPage() {
     queryKey: ['/api/dashboard/recent-transactions', { limit: 10, storeId: transactionStoreId }],
   });
 
-  // Prepare data for sales by category chart
-  const salesByCategoryData = [
-    { name: 'Produce', value: 24000 },
-    { name: 'Dairy', value: 18000 },
-    { name: 'Bakery', value: 12000 },
-    { name: 'Meat & Seafood', value: 27000 },
-    { name: 'Beverages', value: 15000 },
-    { name: 'Snacks', value: 9000 },
-    { name: 'Canned Goods', value: 6000 },
-  ];
-
-  // Prepare data for payment methods chart
-  const paymentMethodsData = [
-    { name: 'Credit Card', value: 65 },
-    { name: 'Cash', value: 25 },
-    { name: 'Mobile Payment', value: 10 },
-  ];
-
-  // Process data for hourly sales chart
-  const hourlySalesData = [
-    { hour: '8 AM', sales: 1200 },
-    { hour: '9 AM', sales: 1800 },
-    { hour: '10 AM', sales: 2400 },
-    { hour: '11 AM', sales: 2800 },
-    { hour: '12 PM', sales: 3600 },
-    { hour: '1 PM', sales: 3200 },
-    { hour: '2 PM', sales: 2700 },
-    { hour: '3 PM', sales: 2900 },
-    { hour: '4 PM', sales: 3100 },
-    { hour: '5 PM', sales: 3800 },
-    { hour: '6 PM', sales: 4200 },
-    { hour: '7 PM', sales: 3600 },
-    { hour: '8 PM', sales: 2800 },
-    { hour: '9 PM', sales: 1900 },
-  ];
+  // Define interfaces for category and payment method data
+  interface CategorySalesData {
+    name: string;
+    value: number;
+  }
+  
+  interface PaymentMethodData {
+    name: string;
+    value: number;
+  }
+  
+  interface HourlySalesData {
+    hour: string;
+    sales: number;
+  }
+  
+  // Sales by category - will be fetched from API in future
+  const { data: salesByCategoryData = [] } = useQuery<CategorySalesData[]>({
+    queryKey: ['/api/analytics/sales-by-category', { storeId: transactionStoreId, days: timeRange }],
+    enabled: false, // Disabled until API endpoint is available
+    placeholderData: [] // Empty array as placeholder
+  });
+  
+  // Payment methods - will be fetched from API in future
+  const { data: paymentMethodsData = [] } = useQuery<PaymentMethodData[]>({
+    queryKey: ['/api/analytics/payment-methods', { storeId: transactionStoreId, days: timeRange }],
+    enabled: false, // Disabled until API endpoint is available
+    placeholderData: [] // Empty array as placeholder
+  });
+  
+  // Hourly sales - will be fetched from API in future
+  const { data: hourlySalesData = [] } = useQuery<HourlySalesData[]>({
+    queryKey: ['/api/analytics/hourly-sales', { storeId: transactionStoreId, days: timeRange }],
+    enabled: false, // Disabled until API endpoint is available
+    placeholderData: [] // Empty array as placeholder
+  });
 
   return (
     <AppShell>
@@ -278,9 +279,11 @@ export default function AnalyticsPage() {
                 <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(124568.80)}</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(performanceData?.storeComparison?.reduce((sum, store) => sum + parseFloat(store.totalSales), 0) || 0)}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+8.2%</span> from previous period
+                  <span className="text-green-500">Updated in real-time</span>
                 </p>
               </CardContent>
             </Card>
@@ -290,9 +293,11 @@ export default function AnalyticsPage() {
                 <CardTitle className="text-sm font-medium">Transactions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatNumber(1247)}</div>
+                <div className="text-2xl font-bold">
+                  {formatNumber(performanceData?.storeComparison?.reduce((sum, store) => sum + store.transactionCount, 0) || 0)}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+5.3%</span> from previous period
+                  <span className="text-green-500">Updated in real-time</span>
                 </p>
               </CardContent>
             </Card>
@@ -302,9 +307,14 @@ export default function AnalyticsPage() {
                 <CardTitle className="text-sm font-medium">Average Sale</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(99.89)}</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(
+                    performanceData?.storeComparison?.reduce((sum, store) => sum + parseFloat(store.totalSales), 0) /
+                    (performanceData?.storeComparison?.reduce((sum, store) => sum + store.transactionCount, 0) || 1) || 0
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+2.7%</span> from previous period
+                  <span className="text-green-500">Updated in real-time</span>
                 </p>
               </CardContent>
             </Card>
@@ -456,15 +466,7 @@ export default function AnalyticsPage() {
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={[
-                      { category: 'Produce', turnover: 12.4 },
-                      { category: 'Dairy', turnover: 10.2 },
-                      { category: 'Bakery', turnover: 15.7 },
-                      { category: 'Meat & Seafood', turnover: 8.3 },
-                      { category: 'Beverages', turnover: 6.5 },
-                      { category: 'Snacks', turnover: 9.8 },
-                      { category: 'Canned Goods', turnover: 5.2 },
-                    ]}
+                    data={[]} // Will be populated from API when inventory turnover endpoint is available
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -489,13 +491,11 @@ export default function AnalyticsPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       layout="vertical"
-                      data={[
-                        { product: 'Organic Bananas', current: 5, minimum: 10 },
-                        { product: 'Whole Milk 1gal', current: 8, minimum: 15 },
-                        { product: 'Ground Beef 1lb', current: 4, minimum: 10 },
-                        { product: 'Yogurt', current: 7, minimum: 12 },
-                        { product: 'Canned Soup', current: 6, minimum: 15 },
-                      ]}
+                      data={lowStockItems?.map(item => ({
+                        product: item.product?.name || 'Unknown',
+                        current: item.quantity,
+                        minimum: item.product?.minimumStockLevel || 10
+                      })) || []}
                       margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
