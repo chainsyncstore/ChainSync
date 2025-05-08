@@ -23,11 +23,27 @@ import { Link } from 'wouter';
 import { useAuth } from '@/providers/auth-provider';
 import { formatNumber } from '@/lib/utils';
 
+interface LowStockItem {
+  id: number;
+  quantity: number;
+  minimumLevel: number;
+  product: {
+    id: number;
+    name: string;
+    barcode: string;
+  };
+  store: {
+    id: number;
+    name: string;
+  };
+}
+
 export function LowStockAlerts() {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   
-  const { data, isLoading } = useQuery({
-    queryKey: ['/api/inventory/low-stock'],
+  const { data, isLoading } = useQuery<LowStockItem[]>({
+    queryKey: ['/api/inventory/low-stock', { storeId: !isAdmin ? user?.storeId : undefined }],
     refetchInterval: 60000, // Refetch every minute to keep alerts current
   });
 
@@ -58,7 +74,7 @@ export function LowStockAlerts() {
     );
   }
 
-  if (!data || data.length === 0) {
+  if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -100,7 +116,8 @@ export function LowStockAlerts() {
           Low Stock Alerts
         </CardTitle>
         <CardDescription>
-          {data.length} {data.length === 1 ? 'product needs' : 'products need'} attention
+          {data.length} {data.length === 1 ? 'product needs' : 'products need'} attention 
+          {!isAdmin && user?.storeId ? ' in your store' : ''}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -116,7 +133,7 @@ export function LowStockAlerts() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item: any) => (
+              {Array.isArray(data) && data.map((item: LowStockItem) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">
                     {item.product.name}

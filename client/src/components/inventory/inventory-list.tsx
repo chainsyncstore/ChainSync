@@ -33,7 +33,12 @@ export function InventoryList() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all_categories');
-  const [storeId, setStoreId] = useState<string>(user?.storeId?.toString() || '');
+  // Force store ID for manager/cashier roles, allow selection for admin
+  const [storeId, setStoreId] = useState<string>(
+    user?.role !== 'admin' && user?.storeId 
+      ? user.storeId.toString() 
+      : ''
+  );
   
   // Fetch inventory data
   const { data: inventoryData, isLoading: isLoadingInventory, refetch } = useQuery({
@@ -119,7 +124,10 @@ export function InventoryList() {
       <CardHeader className="pb-2">
         <CardTitle>Inventory Management</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Manage your product inventory across all stores
+          {user?.role === 'admin' 
+            ? 'Manage your product inventory across all stores' 
+            : `Manage inventory for ${storesData?.find((s: any) => s.id === parseInt(storeId))?.name || 'your store'}`
+          }
         </p>
       </CardHeader>
       <CardContent>
