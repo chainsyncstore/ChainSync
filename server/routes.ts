@@ -125,7 +125,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get(`${apiPrefix}/dashboard/quick-stats`, isAuthenticated, async (req, res) => {
     try {
-      const { storeId } = req.session;
+      const { storeId, userRole } = req.session;
+      
+      // For non-admin users, ensure they can only see their own store's data
+      const isAdminUser = userRole === 'admin';
+      // For managers and cashiers, they must have a storeId assigned
+      if (!isAdminUser && !storeId) {
+        return res.status(403).json({ message: "Access forbidden - no store assigned" });
+      }
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -204,7 +211,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get time period from query params, default to 7 days
       const days = parseInt(req.query.days as string) || 7;
       
-      // Get sales comparison data
+      const { userRole, storeId } = req.session;
+      
+      // For non-admin users, only show their specific store data
+      if (userRole !== 'admin' && storeId) {
+        // For managers and cashiers, show only their store data
+        const storeData = await storage.getDailySalesData(storeId, days);
+        const storeInfo = await storage.getStoreById(storeId);
+        
+        if (!storeInfo) {
+          return res.status(404).json({ message: "Store not found" });
+        }
+        
+        // Create a single-store performance object
+        const singleStorePerformance = [{
+          storeId: storeInfo.id,
+          storeName: storeInfo.name,
+          totalSales: storeData.reduce((sum, day) => sum + parseFloat(String(day.totalSales)), 0).toFixed(2),
+          transactionCount: storeData.reduce((sum, day) => sum + (typeof day.transactionCount === 'number' ? day.transactionCount : 0), 0)
+        }];
+        
+        // Format the data for the chart - only including this store
+        const formattedData = {
+          storeComparison: singleStorePerformance,
+          dailySales: storeData
+        };
+        
+        return res.status(200).json(formattedData);
+      }
+      
+      // For admins, show all stores
       const storePerformance = await storage.getStoreSalesComparison(days);
       
       // Get daily sales data for each store
@@ -225,10 +261,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get(`${apiPrefix}/dashboard/recent-transactions`, isAuthenticated, async (req, res) => {
     try {
-      const { storeId } = req.session;
+      const { storeId, userRole } = req.session;
       const limit = parseInt(req.query.limit as string) || 5;
       
-      const transactions = await storage.getRecentTransactions(limit, storeId);
+      // For non-admin users, enforce using their assigned store
+      const targetStoreId = userRole !== 'admin' ? storeId : undefined;
+      
+      // Get transactions - passing storeId will filter to just that store
+      // For admin users with no storeId specified, it will return transactions across all stores
+      const transactions = await storage.getRecentTransactions(limit, targetStoreId);
       
       return res.status(200).json(transactions);
     } catch (error) {

@@ -16,6 +16,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { useAuth } from '@/providers/auth-provider';
 
 interface StorePerformanceData {
   storeComparison: Array<{
@@ -43,6 +44,8 @@ const CHART_COLORS = [
 ];
 
 export function SalesChart() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [timeRange, setTimeRange] = useState('7');
   
   const { data, isLoading } = useQuery<StorePerformanceData>({
@@ -107,8 +110,15 @@ export function SalesChart() {
       <CardHeader className="p-6 border-b border-neutral-200">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-medium text-neutral-800">Store Performance</CardTitle>
-            <p className="text-sm text-neutral-500 mt-1">Daily sales comparison across all stores</p>
+            <CardTitle className="text-lg font-medium text-neutral-800">
+              {isAdmin ? 'Store Performance' : 'Store Sales Performance'}
+            </CardTitle>
+            <p className="text-sm text-neutral-500 mt-1">
+              {isAdmin 
+                ? 'Daily sales comparison across all stores' 
+                : `Daily sales performance for ${data?.storeComparison[0]?.storeName || 'your store'}`
+              }
+            </p>
           </div>
           <div className="flex items-center space-x-2">
             <Select defaultValue={timeRange} onValueChange={setTimeRange}>
@@ -141,18 +151,24 @@ export function SalesChart() {
               <XAxis dataKey="date" />
               <YAxis tickFormatter={(value) => `$${value.toLocaleString()}`} />
               <Tooltip 
-                formatter={(value, name) => {
+                formatter={(value, name: any) => {
                   // Extract store ID from name (e.g., "store1" -> 1)
-                  const storeId = parseInt(name.replace('store', ''));
-                  const storeName = processedDailyData.find(item => item[`storeName${storeId}`])?.[`storeName${storeId}`] || name;
-                  return [formatCurrency(value as number), storeName];
+                  if (typeof name === 'string' && name.startsWith('store')) {
+                    const storeId = parseInt(name.replace('store', ''));
+                    const storeName = processedDailyData.find(item => item[`storeName${storeId}`])?.[`storeName${storeId}`] || name;
+                    return [formatCurrency(value as number), storeName];
+                  }
+                  return [formatCurrency(value as number), name];
                 }}
               />
               <Legend 
-                formatter={(value) => {
+                formatter={(value: any) => {
                   // Extract store ID from value (e.g., "store1" -> 1)
-                  const storeId = parseInt(value.replace('store', ''));
-                  return processedDailyData.find(item => item[`storeName${storeId}`])?.[`storeName${storeId}`] || value;
+                  if (typeof value === 'string' && value.startsWith('store')) {
+                    const storeId = parseInt(value.replace('store', ''));
+                    return processedDailyData.find(item => item[`storeName${storeId}`])?.[`storeName${storeId}`] || value;
+                  }
+                  return value;
                 }}
               />
               {storeIds.map((storeId, index) => (
