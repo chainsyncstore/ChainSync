@@ -42,13 +42,13 @@ export default function DashboardPage() {
 
       {/* Main Content Section */}
       <div className="grid grid-cols-12 gap-6">
-        {/* Store Performance */}
-        <div className="col-span-12 lg:col-span-8">
+        {/* Store Performance - hidden on mobile, visible on desktop */}
+        <div className="hidden md:block col-span-12 lg:col-span-8">
           <StorePerformance />
         </div>
 
-        {/* AI Assistant Panel */}
-        <div className="col-span-12 lg:col-span-4">
+        {/* AI Assistant Panel - full width on mobile, partial on desktop */}
+        <div className="col-span-12 lg:col-span-4 md:col-span-4">
           <AiAssistant />
         </div>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/auth-provider';
+import { StorePerformance } from '@/components/dashboard/store-performance';
 import { 
   Card, 
   CardContent, 
@@ -282,6 +283,11 @@ export default function AnalyticsPage() {
         </TabsList>
         
         <TabsContent value="sales" className="space-y-4">
+          {/* Store Performance - Visible on both mobile and desktop */}
+          <div className="col-span-12">
+            <StorePerformance />
+          </div>
+          
           {/* Sales Overview */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
