@@ -29,6 +29,39 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
+interface Product {
+  id: number;
+  name: string;
+  barcode: string;
+  category: {
+    id: number;
+    name: string;
+  };
+}
+
+interface InventoryItem {
+  id: number;
+  quantity: number;
+  minimumLevel: number;
+  product: Product;
+  store: {
+    id: number;
+    name: string;
+  };
+}
+
+interface Store {
+  id: number;
+  name: string;
+  address: string;
+  isActive: boolean;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
 export function InventoryList() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,40 +74,44 @@ export function InventoryList() {
   );
   
   // Fetch inventory data
-  const { data: inventoryData, isLoading: isLoadingInventory, refetch } = useQuery({
+  const { data: inventoryData, isLoading: isLoadingInventory, refetch } = useQuery<InventoryItem[]>({
     queryKey: ['/api/inventory', { storeId: storeId ? parseInt(storeId) : undefined }],
   });
   
   // Fetch all stores (for admin dropdown)
-  const { data: storesData, isLoading: isLoadingStores } = useQuery({
+  const { data: storesData, isLoading: isLoadingStores } = useQuery<Store[]>({
     queryKey: ['/api/stores'],
     enabled: user?.role === 'admin',
   });
   
   // Fetch all categories for filtering
-  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
+  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery<Category[]>({
     queryKey: ['/api/products/categories'],
   });
   
   // Filter data based on search term and category
-  const filteredInventory = inventoryData?.filter((item: any) => {
-    // Search filter
-    const matchesSearch = searchTerm === '' || 
-      item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.product.barcode.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Category filter
-    const matchesCategory = categoryFilter === 'all_categories' || 
-      item.product.category.id === parseInt(categoryFilter);
-    
-    return matchesSearch && matchesCategory;
-  });
+  const filteredInventory = Array.isArray(inventoryData) 
+    ? inventoryData.filter((item: InventoryItem) => {
+        // Search filter
+        const matchesSearch = searchTerm === '' || 
+          item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.product.barcode.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Category filter
+        const matchesCategory = categoryFilter === 'all_categories' || 
+          item.product.category.id === parseInt(categoryFilter);
+        
+        return matchesSearch && matchesCategory;
+      })
+    : [];
 
   // Get unique categories from inventory data if API categories not available
-  const uniqueCategories = categoriesData || (inventoryData ? 
-    [...new Map(inventoryData.map((item: any) => 
-      [item.product.category.id, item.product.category]
-    )).values()] : []);
+  const uniqueCategories = Array.isArray(categoriesData) ? categoriesData : 
+    (Array.isArray(inventoryData) ? 
+      Array.from(new Map(
+        inventoryData.map(item => [item.product.category.id, item.product.category])
+      ).values()) 
+      : []);
 
   if (isLoadingInventory) {
     return (
@@ -126,7 +163,11 @@ export function InventoryList() {
         <p className="text-sm text-muted-foreground">
           {user?.role === 'admin' 
             ? 'Manage your product inventory across all stores' 
-            : `Manage inventory for ${storesData?.find((s: any) => s.id === parseInt(storeId))?.name || 'your store'}`
+            : `Manage inventory for ${
+                Array.isArray(storesData) 
+                  ? storesData.find((s) => s.id === parseInt(storeId))?.name || 'your store'
+                  : 'your store'
+              }`
           }
         </p>
       </CardHeader>
@@ -154,7 +195,7 @@ export function InventoryList() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all_categories">All Categories</SelectItem>
-              {uniqueCategories.map((category: any) => (
+              {uniqueCategories.map((category: Category) => (
                 <SelectItem key={category.id} value={category.id.toString()}>
                   {category.name}
                 </SelectItem>
@@ -172,7 +213,7 @@ export function InventoryList() {
                 <SelectValue placeholder="Select store" />
               </SelectTrigger>
               <SelectContent>
-                {storesData?.map((store: any) => (
+                {Array.isArray(storesData) && storesData.map((store: Store) => (
                   <SelectItem key={store.id} value={store.id.toString()}>
                     {store.name}
                   </SelectItem>
@@ -208,7 +249,7 @@ export function InventoryList() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredInventory?.map((item: any) => (
+                filteredInventory?.map((item: InventoryItem) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">
                       <div>
