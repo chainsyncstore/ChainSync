@@ -19,14 +19,37 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/providers/auth-provider';
 
 interface RecentTransactionsProps {
   limit?: number;
 }
 
+interface Transaction {
+  id: number;
+  transactionId: string;
+  total: number;
+  createdAt: string;
+  status: string;
+  isOfflineTransaction: boolean;
+  syncedAt?: string;
+  items: Array<any>;
+  store: {
+    id: number;
+    name: string;
+  };
+  cashier: {
+    id: number;
+    fullName: string;
+  };
+}
+
 export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['/api/dashboard/recent-transactions', { limit }],
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
+  const { data, isLoading } = useQuery<Transaction[]>({
+    queryKey: ['/api/dashboard/recent-transactions', { limit, storeId: !isAdmin ? user?.storeId : undefined }],
   });
 
   if (isLoading) {
@@ -107,7 +130,12 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg font-medium text-neutral-800">Recent Transactions</CardTitle>
-            <p className="text-sm text-neutral-500 mt-1">Latest transactions across all stores</p>
+            <p className="text-sm text-neutral-500 mt-1">
+              {isAdmin 
+                ? 'Latest transactions across all stores' 
+                : `Latest transactions for ${user?.storeId ? 'your store' : 'your stores'}`
+              }
+            </p>
           </div>
           <Link href="/analytics" className="text-sm text-primary-500 font-medium hover:text-primary-600">
             View All
@@ -128,7 +156,7 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
             </TableRow>
           </TableHeader>
           <TableBody className="bg-white divide-y divide-neutral-200">
-            {data?.map((transaction: any) => {
+            {data && data.length > 0 ? data.map((transaction) => {
               const itemCount = transaction.items.length;
               
               return (
@@ -172,7 +200,13 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
                   </TableCell>
                 </TableRow>
               );
-            })}
+            }) : (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-4 text-neutral-500">
+                  No transactions found
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
