@@ -102,12 +102,7 @@ export default function AnalyticsPage() {
 
   // Fetch store performance data
   const { data: performanceData, isLoading: isLoadingPerformance } = useQuery<PerformanceData>({
-    queryKey: ['/api/dashboard/store-performance', { days: timeRange }],
-    // Default empty structures to prevent undefined errors
-    placeholderData: {
-      storeComparison: [],
-      dailySales: []
-    }
+    queryKey: ['/api/dashboard/store-performance', { days: timeRange }]
   });
 
   interface Transaction {
@@ -185,22 +180,19 @@ export default function AnalyticsPage() {
   // Sales by category - will be fetched from API in future
   const { data: salesByCategoryData = [] } = useQuery<CategorySalesData[]>({
     queryKey: ['/api/analytics/sales-by-category', { storeId: transactionStoreId, days: timeRange }],
-    enabled: false, // Disabled until API endpoint is available
-    placeholderData: [] // Empty array as placeholder
+    enabled: false // Disabled until API endpoint is available
   });
   
   // Payment methods - will be fetched from API in future
   const { data: paymentMethodsData = [] } = useQuery<PaymentMethodData[]>({
     queryKey: ['/api/analytics/payment-methods', { storeId: transactionStoreId, days: timeRange }],
-    enabled: false, // Disabled until API endpoint is available
-    placeholderData: [] // Empty array as placeholder
+    enabled: false // Disabled until API endpoint is available
   });
   
   // Hourly sales - will be fetched from API in future
   const { data: hourlySalesData = [] } = useQuery<HourlySalesData[]>({
     queryKey: ['/api/analytics/hourly-sales', { storeId: transactionStoreId, days: timeRange }],
-    enabled: false, // Disabled until API endpoint is available
-    placeholderData: [] // Empty array as placeholder
+    enabled: false // Disabled until API endpoint is available
   });
 
   return (
