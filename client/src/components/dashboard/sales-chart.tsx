@@ -185,32 +185,16 @@ export function SalesChart() {
         </div>
       </CardContent>
       <div className="border-t border-neutral-200 px-6 py-3">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {/* Replace with exact locations as specified */}
-          <div className="text-center p-2">
-            <div className="font-medium text-neutral-800">Westside</div>
-            <div className="text-sm text-neutral-500">Mall</div>
-          </div>
-          <div className="text-center p-2">
-            <div className="font-medium text-neutral-800">Downtown</div>
-            <div className="text-sm text-neutral-500">Store</div>
-          </div>
-          <div className="text-center p-2">
-            <div className="font-medium text-neutral-800">Northside</div>
-            <div className="text-sm text-neutral-500">Plaza</div>
-          </div>
-          <div className="text-center p-2">
-            <div className="font-medium text-neutral-800">Harbor</div>
-            <div className="text-sm text-neutral-500">Point</div>
-          </div>
-          <div className="text-center p-2">
-            <div className="font-medium text-neutral-800">Southside</div>
-            <div className="text-sm text-neutral-500">Center</div>
-          </div>
-          <div className="text-center p-2">
-            <div className="font-medium text-neutral-800">Eastend</div>
-            <div className="text-sm text-neutral-500">Market</div>
-          </div>
+        <div className="flex flex-wrap gap-4">
+          {data?.storeComparison.map((store, index) => (
+            <div className="flex items-center" key={store.storeId}>
+              <div 
+                className="w-3 h-3 rounded-full mr-2" 
+                style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+              ></div>
+              <span className="text-sm text-neutral-600">{store.storeName}</span>
+            </div>
+          ))}
         </div>
       </div>
     </Card>
