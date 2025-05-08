@@ -13,6 +13,7 @@ import InventoryPage from "@/pages/inventory";
 import UsersPage from "@/pages/users";
 import SettingsPage from "@/pages/settings";
 import PosPage from "@/pages/pos";
+import LandingPage from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
 // Protected route component
@@ -22,9 +23,9 @@ function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: an
 
   // Use effect for navigation after component mounts
   useEffect(() => {
-    // Redirect to login if not authenticated
+    // Redirect to landing page if not authenticated
     if (!isLoading && !isAuthenticated) {
-      setLocation("/login");
+      setLocation("/");
       return;
     }
 
@@ -50,22 +51,25 @@ function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: an
 }
 
 function DefaultRoute() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   
   // Use effect hook to handle navigation after render
   useEffect(() => {
-    if (!user) {
-      setLocation("/login");
-      return;
+    // If user is authenticated, redirect based on role
+    if (isAuthenticated && user) {
+      if (user.role === "cashier") {
+        setLocation("/pos");
+      } else {
+        setLocation("/dashboard");
+      }
     }
-    
-    if (user.role === "cashier") {
-      setLocation("/pos");
-    } else {
-      setLocation("/dashboard");
-    }
-  }, [user, setLocation]);
+  }, [user, isAuthenticated, setLocation]);
+  
+  // If not authenticated, show the landing page
+  if (!isAuthenticated) {
+    return <LandingPage />;
+  }
   
   // Return a loading indicator while redirecting
   return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
