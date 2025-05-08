@@ -70,14 +70,12 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
         )}
       >
         <div className="p-4 border-b border-primary-600">
-          <div className="flex items-center space-x-2">
-            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="white"/>
-              <path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="white"/>
-              <path d="M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z" fill="white"/>
-            </svg>
-            <h1 className="text-xl font-bold">ChainSync</h1>
-          </div>
+          <ChainSyncLogo 
+            className="w-8 h-8" 
+            textClassName="ml-2 text-xl font-bold"
+            iconColor="white"
+            textColor="white"
+          />
         </div>
 
         <ScrollArea className="flex-1">
