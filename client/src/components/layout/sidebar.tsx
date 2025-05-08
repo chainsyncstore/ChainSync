@@ -12,6 +12,7 @@ import {
   Settings,
   ShoppingCart
 } from 'lucide-react';
+import { ChainSyncLogo } from '@/components/ui/chain-sync-logo';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { useMobile } from '@/hooks/use-mobile';
