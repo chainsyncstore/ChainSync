@@ -174,13 +174,13 @@ export function QuickStats({ storeId }: QuickStatsProps) {
                 <p className="text-sm font-medium text-neutral-500">Low Stock Items</p>
                 <p className="text-2xl font-bold mt-1">{statsData.lowStockCount}</p>
               </div>
-              <div className="p-3 bg-amber-100 rounded-full">
-                <Package className="w-6 h-6 text-amber-500" />
+              <div className="p-3 bg-red-100 rounded-full">
+                <Package className="w-6 h-6 text-red-500" />
               </div>
             </div>
             <div className="mt-4 flex items-center">
               {statsData.lowStockChange > 0 ? (
-                <span className="text-amber-500 text-sm font-medium flex items-center">
+                <span className="text-red-500 text-sm font-medium flex items-center">
                   <TrendingUp className="w-4 h-4 mr-1" />
                   +{statsData.lowStockChange}
                 </span>
