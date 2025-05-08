@@ -147,6 +147,11 @@ export default function AnalyticsPage() {
   const { data: transactionsData = [] } = useQuery<Transaction[]>({
     queryKey: ['/api/dashboard/recent-transactions', { limit: 10, storeId: transactionStoreId }],
   });
+  
+  // Fetch low stock items for the inventory section
+  const { data: lowStockItems = [] } = useQuery<any[]>({
+    queryKey: ['/api/inventory/low-stock', { storeId: transactionStoreId }],
+  });
 
   // Define interfaces for category and payment method data
   interface CategorySalesData {
@@ -309,8 +314,10 @@ export default function AnalyticsPage() {
               <CardContent>
                 <div className="text-2xl font-bold">
                   {formatCurrency(
-                    performanceData?.storeComparison?.reduce((sum, store) => sum + parseFloat(store.totalSales), 0) /
-                    (performanceData?.storeComparison?.reduce((sum, store) => sum + store.transactionCount, 0) || 1) || 0
+                    (performanceData?.storeComparison && performanceData.storeComparison.length > 0)
+                      ? performanceData.storeComparison.reduce((sum, store) => sum + parseFloat(store.totalSales), 0) /
+                        (performanceData.storeComparison.reduce((sum, store) => sum + store.transactionCount, 0) || 1)
+                      : 0
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -520,14 +527,7 @@ export default function AnalyticsPage() {
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={[
-                        { timeframe: 'Expired', count: 3 },
-                        { timeframe: '< 1 Day', count: 5 },
-                        { timeframe: '1-3 Days', count: 12 },
-                        { timeframe: '4-7 Days', count: 24 },
-                        { timeframe: '8-14 Days', count: 35 },
-                        { timeframe: '15+ Days', count: 120 },
-                      ]}
+                      data={[]} // Will be populated from API when expiry tracking endpoint is available
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -550,9 +550,9 @@ export default function AnalyticsPage() {
                 <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">5,847</div>
+                <div className="text-2xl font-bold">--</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+12.5%</span> from previous period
+                  <span className="text-muted">Customer data will be available when integrated</span>
                 </p>
               </CardContent>
             </Card>
@@ -562,9 +562,9 @@ export default function AnalyticsPage() {
                 <CardTitle className="text-sm font-medium">Average Basket Size</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(42.35)}</div>
+                <div className="text-2xl font-bold">--</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+3.8%</span> from previous period
+                  <span className="text-muted">Customer data will be available when integrated</span>
                 </p>
               </CardContent>
             </Card>
@@ -574,9 +574,9 @@ export default function AnalyticsPage() {
                 <CardTitle className="text-sm font-medium">Repeat Purchase Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">68%</div>
+                <div className="text-2xl font-bold">--</div>
                 <p className="text-xs text-muted-foreground">
-                  <span className="text-green-500">+5.2%</span> from previous period
+                  <span className="text-muted">Customer data will be available when integrated</span>
                 </p>
               </CardContent>
             </Card>
@@ -592,13 +592,7 @@ export default function AnalyticsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={[
-                        { frequency: 'Daily', percentage: 15 },
-                        { frequency: 'Weekly', percentage: 35 },
-                        { frequency: 'Bi-weekly', percentage: 25 },
-                        { frequency: 'Monthly', percentage: 15 },
-                        { frequency: 'Less often', percentage: 10 },
-                      ]}
+                      data={[]} // Will be populated from API when customer tracking is available
                       cx="50%"
                       cy="50%"
                       labelLine={false}
