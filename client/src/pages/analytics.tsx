@@ -148,8 +148,21 @@ export default function AnalyticsPage() {
     queryKey: ['/api/dashboard/recent-transactions', { limit: 10, storeId: transactionStoreId }],
   });
   
+  // Define interface for low stock items
+  interface LowStockItem {
+    id: number;
+    storeId: number;
+    productId: number;
+    quantity: number;
+    product?: {
+      id: number;
+      name: string;
+      minimumStockLevel: number;
+    };
+  }
+
   // Fetch low stock items for the inventory section
-  const { data: lowStockItems = [] } = useQuery<any[]>({
+  const { data: lowStockItems = [] } = useQuery<LowStockItem[]>({
     queryKey: ['/api/inventory/low-stock', { storeId: transactionStoreId }],
   });
 
@@ -285,7 +298,11 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(performanceData?.storeComparison?.reduce((sum, store) => sum + parseFloat(store.totalSales), 0) || 0)}
+                  {formatCurrency(
+                    (performanceData?.storeComparison && performanceData.storeComparison.length > 0)
+                      ? performanceData.storeComparison.reduce((sum, store) => sum + parseFloat(store.totalSales), 0)
+                      : 0
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   <span className="text-green-500">Updated in real-time</span>
@@ -299,7 +316,11 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatNumber(performanceData?.storeComparison?.reduce((sum, store) => sum + store.transactionCount, 0) || 0)}
+                  {formatNumber(
+                    (performanceData?.storeComparison && performanceData.storeComparison.length > 0)
+                      ? performanceData.storeComparison.reduce((sum, store) => sum + store.transactionCount, 0)
+                      : 0
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   <span className="text-green-500">Updated in real-time</span>
@@ -377,7 +398,7 @@ export default function AnalyticsPage() {
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={hourlySalesData}
+                      data={[]} // Will be populated from API when hourly sales endpoint is available
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -412,11 +433,10 @@ export default function AnalyticsPage() {
                         fill="#8884d8"
                         dataKey="value"
                         nameKey="name"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => 
+                          name && percent ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
                       >
-                        {salesByCategoryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
+                        {/* Cells will be added when real data is available */}
                       </Pie>
                       <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, "Sales"]} />
                       <Legend />
@@ -444,11 +464,10 @@ export default function AnalyticsPage() {
                         fill="#8884d8"
                         dataKey="value"
                         nameKey="name"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => 
+                          name && percent ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
                       >
-                        {paymentMethodsData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
+                        {/* Cells will be added when real data is available */}
                       </Pie>
                       <Tooltip formatter={(value) => [`${Number(value).toFixed(0)}%`, "Percentage"]} />
                       <Legend />
@@ -498,7 +517,7 @@ export default function AnalyticsPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       layout="vertical"
-                      data={lowStockItems?.map(item => ({
+                      data={lowStockItems?.map((item: LowStockItem) => ({
                         product: item.product?.name || 'Unknown',
                         current: item.quantity,
                         minimum: item.product?.minimumStockLevel || 10
@@ -600,11 +619,10 @@ export default function AnalyticsPage() {
                       fill="#8884d8"
                       dataKey="percentage"
                       nameKey="frequency"
-                      label={({ frequency, percent }) => `${frequency}: ${(percent * 100).toFixed(0)}%`}
+                      label={({ frequency, percent }) => 
+                        frequency && percent ? `${frequency}: ${(percent * 100).toFixed(0)}%` : ''}
                     >
-                      {paymentMethodsData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
+                      {/* Cells will be added when real data is available */}
                     </Pie>
                     <Tooltip formatter={(value) => [`${value}%`, "Percentage"]} />
                     <Legend />
