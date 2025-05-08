@@ -64,24 +64,88 @@ export default function AnalyticsPage() {
   });
   const [timeRange, setTimeRange] = useState('7');
   const [activeTab, setActiveTab] = useState('sales');
+  // For non-admin users, force their assigned store ID
+  const isAdmin = user?.role === 'admin';
   const [selectedStore, setSelectedStore] = useState<string>(
-    user?.storeId ? user.storeId.toString() : 'all'
+    !isAdmin && user?.storeId 
+      ? user.storeId.toString() 
+      : 'all'
   );
 
+  interface Store {
+    id: number;
+    name: string;
+    address: string;
+    isActive: boolean;
+  }
+  
+  interface PerformanceData {
+    storeComparison: Array<{
+      storeId: number;
+      storeName: string;
+      totalSales: string;
+      transactionCount: number;
+    }>;
+    dailySales: Array<{
+      date: string;
+      storeId: number;
+      totalSales: string;
+      transactionCount: number;
+    }>;
+  }
+  
   // Fetch stores data (for dropdown)
-  const { data: storesData } = useQuery({
+  const { data: storesData = [] } = useQuery<Store[]>({
     queryKey: ['/api/stores'],
     enabled: user?.role === 'admin'
   });
 
   // Fetch store performance data
-  const { data: performanceData, isLoading: isLoadingPerformance } = useQuery({
+  const { data: performanceData, isLoading: isLoadingPerformance } = useQuery<PerformanceData>({
     queryKey: ['/api/dashboard/store-performance', { days: timeRange }],
+    // Default empty structures to prevent undefined errors
+    placeholderData: {
+      storeComparison: [],
+      dailySales: []
+    }
   });
 
+  interface Transaction {
+    id: number;
+    transactionId: string;
+    total: number;
+    createdAt: string;
+    status: string;
+    isOfflineTransaction: boolean;
+    syncedAt?: string;
+    items: Array<{
+      id: number;
+      quantity: number;
+      unitPrice: number;
+      product: {
+        id: number;
+        name: string;
+        barcode: string;
+      };
+    }>;
+    store: {
+      id: number;
+      name: string;
+    };
+    cashier: {
+      id: number;
+      fullName: string;
+    };
+  }
+  
   // Fetch transactions data with pagination
-  const { data: transactionsData } = useQuery({
-    queryKey: ['/api/dashboard/recent-transactions', { limit: 10, storeId: selectedStore !== 'all' ? parseInt(selectedStore) : undefined }],
+  // For non-admin users, always use their assigned store
+  const transactionStoreId = !isAdmin && user?.storeId 
+    ? user.storeId 
+    : (selectedStore !== 'all' ? parseInt(selectedStore) : undefined);
+    
+  const { data: transactionsData = [] } = useQuery<Transaction[]>({
+    queryKey: ['/api/dashboard/recent-transactions', { limit: 10, storeId: transactionStoreId }],
   });
 
   // Prepare data for sales by category chart
@@ -139,7 +203,7 @@ export default function AnalyticsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Stores</SelectItem>
-                {storesData?.map((store: any) => (
+                {storesData?.map((store: Store) => (
                   <SelectItem key={store.id} value={store.id.toString()}>
                     {store.name}
                   </SelectItem>
