@@ -158,7 +158,7 @@ export const storage = {
       const payments = await db.select()
         .from(schema.referralPayments)
         .where(eq(schema.referralPayments.affiliateId, affiliateId))
-        .orderBy(schema.referralPayments.createdAt, "desc");
+        .orderBy(desc(schema.referralPayments.createdAt));
       
       return payments;
     } catch (error) {
@@ -536,12 +536,15 @@ export const storage = {
   async getStoreTransactions(storeId: number, startDate?: Date, endDate?: Date, page = 1, limit = 20) {
     let query = eq(schema.transactions.storeId, storeId);
     
+    // Add date filters if provided
     if (startDate) {
-      query = and(query, gte(schema.transactions.createdAt, startDate));
+      const startFilter = gte(schema.transactions.createdAt, startDate);
+      query = and(query, startFilter);
     }
     
     if (endDate) {
-      query = and(query, lte(schema.transactions.createdAt, endDate));
+      const endFilter = lte(schema.transactions.createdAt, endDate);
+      query = and(query, endFilter);
     }
     
     return await db.query.transactions.findMany({
@@ -567,12 +570,15 @@ export const storage = {
       query = eq(schema.transactions.storeId, storeId);
     }
     
+    // Add date filters if provided
     if (startDate) {
-      query = query ? and(query, gte(schema.transactions.createdAt, startDate)) : gte(schema.transactions.createdAt, startDate);
+      const startFilter = gte(schema.transactions.createdAt, startDate);
+      query = query ? and(query, startFilter) : startFilter;
     }
     
     if (endDate) {
-      query = query ? and(query, lte(schema.transactions.createdAt, endDate)) : lte(schema.transactions.createdAt, endDate);
+      const endFilter = lte(schema.transactions.createdAt, endDate);
+      query = query ? and(query, endFilter) : endFilter;
     }
     
     const result = await db
@@ -616,10 +622,13 @@ export const storage = {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     
-    let query = gte(schema.transactions.createdAt, startDate);
-    if (storeId) {
-      query = and(query, eq(schema.transactions.storeId, storeId));
-    }
+    // Always filter by date range
+    const baseQuery = gte(schema.transactions.createdAt, startDate);
+    
+    // Add store filter if specified
+    const query = storeId 
+      ? and(baseQuery, eq(schema.transactions.storeId, storeId))
+      : baseQuery;
     
     const transactions = await db
       .select({

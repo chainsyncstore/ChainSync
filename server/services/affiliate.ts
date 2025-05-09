@@ -252,21 +252,20 @@ export async function processAffiliateCommission(userId: number, paymentAmount: 
  */
 export async function processAffiliatePayout(affiliateId?: number): Promise<schema.ReferralPayment[]> {
   try {
-    // Get affiliates with pending earnings
-    let baseQuery = gte(schema.affiliates.pendingEarnings, "100");
+    // Build the where clause
+    const baseQuery = gte(schema.affiliates.pendingEarnings, "100");
+    const whereClause = affiliateId 
+      ? and(baseQuery, eq(schema.affiliates.id, affiliateId)) 
+      : baseQuery;
     
-    if (affiliateId) {
-      baseQuery = and(baseQuery, eq(schema.affiliates.id, affiliateId));
-    }
-    
-    const query = db.select()
+    // Get eligible affiliates
+    const eligibleAffiliates = await db.select()
       .from(schema.affiliates)
-      .where(baseQuery);
+      .where(whereClause);
     
-    const affiliates = await query;
     const payments: schema.ReferralPayment[] = [];
     
-    for (const affiliate of affiliates) {
+    for (const affiliate of eligibleAffiliates) {
       // Skip if no payment details
       if (!affiliate.accountNumber || !affiliate.bankCode) {
         console.log(`Skipping payout for affiliate ${affiliate.id} - missing bank details`);
