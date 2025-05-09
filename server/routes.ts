@@ -959,6 +959,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ----------- Payment Routes -----------
+  
+  // Initialize subscription payment
+  app.post(`${apiPrefix}/payments/initialize`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { email, amount, plan, referralCode, country } = req.body;
+      
+      if (!email || !amount || !plan) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Initialize payment with the appropriate provider
+      const payment = await paymentService.initializeSubscription(
+        userId,
+        email,
+        parseFloat(amount),
+        plan,
+        referralCode,
+        country
+      );
+      
+      return res.status(200).json(payment);
+    } catch (error) {
+      console.error("Payment initialization error:", error);
+      const message = error instanceof Error ? error.message : "Failed to initialize payment";
+      return res.status(500).json({ message });
+    }
+  });
+  
+  // Verify payment
+  app.get(`${apiPrefix}/payments/verify/:reference/:provider`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { reference, provider } = req.params;
+      
+      if (!reference || !provider) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+      
+      // Verify payment with the appropriate provider
+      const verification = await paymentService.verifyPayment(reference, provider);
+      
+      // Process subscription if payment was successful
+      if (verification.status === 'success') {
+        const planId = verification.metadata?.plan || 'basic';
+        const amount = verification.amount;
+        
+        // Process the subscription
+        const subscription = await paymentService.processSubscriptionPayment(
+          userId,
+          planId,
+          amount,
+          reference,
+          provider
+        );
+        
+        return res.status(200).json({
+          success: true,
+          subscription
+        });
+      }
+      
+      return res.status(200).json({
+        success: false,
+        status: verification.status,
+        message: verification.status === 'pending' 
+          ? "Payment is still being processed" 
+          : "Payment failed"
+      });
+    } catch (error) {
+      console.error("Payment verification error:", error);
+      const message = error instanceof Error ? error.message : "Failed to verify payment";
+      return res.status(500).json({ message });
+    }
+  });
+  
+  // Get user's subscription
+  app.get(`${apiPrefix}/subscriptions/current`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get current subscription
+      const subscription = await storage.getSubscriptionByUserId(userId);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "No active subscription found" });
+      }
+      
+      return res.status(200).json(subscription);
+    } catch (error) {
+      console.error("Get subscription error:", error);
+      return res.status(500).json({ message: "Failed to retrieve subscription" });
+    }
+  });
+  
   app.post(`${apiPrefix}/subscriptions/process-payout`, isAdmin, async (req, res) => {
     try {
       const { affiliateId } = req.body;
@@ -1157,6 +1267,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Paystack webhook error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
+  });
+  
+  app.post(`${apiPrefix}/webhooks/flutterwave`, async (req, res) => {
+    try {
+      const signature = req.headers['verif-hash'] as string;
+      const payload = JSON.stringify(req.body);
+      
+      if (!signature) {
+        return res.status(400).json({ message: "Missing signature header" });
+      }
+      
+      // Process webhook
+      const success = await webhookService.handleFlutterwaveWebhook(signature, payload);
+      
+      if (success) {
+        return res.status(200).json({ message: "Webhook processed successfully" });
+      } else {
+        return res.status(400).json({ message: "Failed to process webhook" });
+      }
+    } catch (error) {
+      console.error("Flutterwave webhook error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Payment simulation route for development without payment gateways
+  app.get('/payment-simulation', (req, res) => {
+    const { reference, amount, plan } = req.query;
+    
+    // Render a simple form to simulate payment success or failure
+    res.send(`
+      <html>
+        <head>
+          <title>Payment Simulation</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+            h1 { color: #0066cc; }
+            .details { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+            .btn { display: inline-block; padding: 10px 20px; margin-right: 10px; text-decoration: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+            .btn-success { background: #4CAF50; color: white; border: none; }
+            .btn-failure { background: #f44336; color: white; border: none; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Payment Simulation</h1>
+            <p>In a real environment, users would be redirected to the payment gateway. This is a simulation for development.</p>
+            
+            <div class="details">
+              <h3>Payment Details</h3>
+              <p><strong>Reference:</strong> ${reference || 'Not provided'}</p>
+              <p><strong>Amount:</strong> ${amount || '0'}</p>
+              <p><strong>Plan:</strong> ${plan || 'Not specified'}</p>
+            </div>
+            
+            <h3>Select Payment Outcome</h3>
+            <a href="/api/payments/verify/${reference}/simulation?status=success" class="btn btn-success">Success</a>
+            <a href="/api/payments/verify/${reference}/simulation?status=failed" class="btn btn-failure">Failure</a>
+          </div>
+        </body>
+      </html>
+    `);
   });
   
   app.post(`${apiPrefix}/webhooks/flutterwave`, async (req, res) => {
