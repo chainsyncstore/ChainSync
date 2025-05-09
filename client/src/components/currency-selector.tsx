@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -6,12 +6,17 @@ import {
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { currencies, CurrencyCode } from '@/lib/utils';
+import { currencies, CurrencyCode, formatCurrency } from '@/lib/utils';
 import { useCurrency } from '@/providers/currency-provider';
 
-export function CurrencySelector() {
+const CurrencySelector = () => {
   const { currency, setCurrency, currencySymbol } = useCurrency();
-
+  
+  // Use a memoized callback to prevent unnecessary re-renders
+  const handleCurrencyChange = useCallback((code: CurrencyCode) => {
+    setCurrency(code);
+  }, [setCurrency]);
+  
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -25,7 +30,7 @@ export function CurrencySelector() {
           <DropdownMenuItem 
             key={code}
             className={currency === code ? "bg-primary/10" : ""}
-            onClick={() => setCurrency(code as CurrencyCode)}
+            onClick={() => handleCurrencyChange(code as CurrencyCode)}
           >
             <span className="mr-2">{info.symbol}</span>
             <span>{info.name}</span>
@@ -34,4 +39,6 @@ export function CurrencySelector() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+};
+
+export { CurrencySelector };

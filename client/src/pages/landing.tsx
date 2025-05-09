@@ -11,21 +11,32 @@ import { CurrencySelector } from '@/components/currency-selector';
 export default function LandingPage() {
   const { currency, currencySymbol } = useCurrency();
   
-  // Define pricing constants based on the default NGN pricing
-  const pricingBasic = currency === 'NGN' ? 20000 : 
-                       currency === 'USD' ? 20 : 
-                       currency === 'EUR' ? 18 : 
-                       currency === 'GBP' ? 16 : 20000;
+  // Define pricing constants based on the currency - using useMemo to optimize performance
+  const pricingData = React.useMemo(() => {
+    // Basic plan pricing 
+    const basic = currency === 'NGN' ? 20000 : 
+                  currency === 'USD' ? 20 : 
+                  currency === 'EUR' ? 18 : 
+                  currency === 'GBP' ? 16 : 20000;
+    
+    // Pro plan pricing
+    const pro = currency === 'NGN' ? 100000 : 
+                currency === 'USD' ? 100 : 
+                currency === 'EUR' ? 90 : 
+                currency === 'GBP' ? 80 : 100000;
+    
+    // Additional stores cost
+    const additionalStores = currency === 'NGN' ? 50000 : 
+                            currency === 'USD' ? 50 : 
+                            currency === 'EUR' ? 45 : 
+                            currency === 'GBP' ? 40 : 50000;
+                            
+    return { basic, pro, additionalStores };
+  }, [currency]);
   
-  const pricingPro = currency === 'NGN' ? 100000 : 
-                     currency === 'USD' ? 100 : 
-                     currency === 'EUR' ? 90 : 
-                     currency === 'GBP' ? 80 : 100000;
-  
-  const additionalStoresCost = currency === 'NGN' ? 50000 : 
-                              currency === 'USD' ? 50 : 
-                              currency === 'EUR' ? 45 : 
-                              currency === 'GBP' ? 40 : 50000;
+  const pricingBasic = pricingData.basic;
+  const pricingPro = pricingData.pro;
+  const additionalStoresCost = pricingData.additionalStores;
   
   return (
     <div className="flex flex-col min-h-screen bg-white w-full">
