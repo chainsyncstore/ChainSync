@@ -255,6 +255,10 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-start">
                     <Check className="mr-2 h-5 w-5 text-green-500 flex-shrink-0" />
+                    <span>AI assistant with basic features</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Check className="mr-2 h-5 w-5 text-green-500 flex-shrink-0" />
                     <span>3 user accounts</span>
                   </li>
                 </ul>
