@@ -933,8 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password,
         email,
         fullName,
-        role: 'admin', // New users are admins of their own chain
-        status: 'active'
+        role: 'admin' // New users are admins of their own chain
       };
       
       const newUser = await storage.createUser(userData);

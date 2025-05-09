@@ -172,7 +172,7 @@ export default function AffiliatePage() {
         <AffiliateDashboard />
 
         {/* Return to main app link for existing users */}
-        {user?.role !== 'affiliate' && user?.role !== undefined && (
+        {user?.role && user?.role !== 'affiliate' && (
           <div className="mt-8">
             <Button 
               variant="outline" 

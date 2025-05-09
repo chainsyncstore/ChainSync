@@ -248,8 +248,8 @@ export const userInsertSchema = createInsertSchema(users, {
   fullName: (schema) => schema.min(2, "Full name must be at least 2 characters"),
   email: (schema) => schema.email("Must provide a valid email"),
   password: (schema) => schema.min(6, "Password must be at least 6 characters"),
-  role: (schema) => schema.refine(val => ['cashier', 'manager', 'admin'].includes(val), {
-    message: "Role must be one of: cashier, manager, admin"
+  role: (schema) => schema.refine(val => ['cashier', 'manager', 'admin', 'affiliate'].includes(val), {
+    message: "Role must be one of: cashier, manager, admin, affiliate"
   }),
 });
 
