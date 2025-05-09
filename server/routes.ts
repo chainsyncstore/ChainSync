@@ -78,6 +78,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.post(`${apiPrefix}/auth/signup`, async (req, res) => {
+    try {
+      const { username, password, email, fullName, role, becomeAffiliate } = req.body;
+      
+      if (!username || !password || !email || !fullName) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Check if username is already taken
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ message: "Username already exists" });
+      }
+      
+      // Use affiliate role if specified, otherwise default to regular user
+      const userRole = role === 'affiliate' ? 'affiliate' : 'user';
+      
+      // Create the user
+      const userData: schema.UserInsert = {
+        username,
+        password,
+        email,
+        fullName,
+        role: userRole,
+        status: 'active'
+      };
+      
+      const newUser = await storage.createUser(userData);
+      
+      // Auto-register as affiliate if flag is set
+      if (becomeAffiliate) {
+        try {
+          const { registerAffiliate } = await import('./services/affiliate');
+          await registerAffiliate(newUser.id);
+        } catch (affiliateError) {
+          console.error("Error registering affiliate:", affiliateError);
+          // We continue anyway since the user is created
+        }
+      }
+      
+      // Set session data - auto-login
+      req.session.userId = newUser.id;
+      req.session.userRole = newUser.role;
+      req.session.storeId = newUser.storeId || undefined;
+      req.session.fullName = newUser.fullName;
+      
+      // Return the new user (without password)
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      return res.status(201).json({
+        id: newUser.id,
+        username: newUser.username,
+        fullName: newUser.fullName,
+        email: newUser.email,
+        role: newUser.role,
+        storeId: newUser.storeId,
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      return res.status(500).json({ message: "Failed to create account" });
+    }
+  });
+  
   app.post(`${apiPrefix}/auth/logout`, (req, res) => {
     req.session.destroy((err) => {
       if (err) {
