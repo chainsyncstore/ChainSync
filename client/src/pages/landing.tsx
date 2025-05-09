@@ -4,9 +4,29 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Check, ShieldCheck, CreditCard, Calendar, Store, LineChart, BarChart, Brain, ArrowRight, Package, Database, Send, Zap } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import { useCurrency } from '@/providers/currency-provider';
+import { CurrencySelector } from '@/components/currency-selector';
 
 export default function LandingPage() {
+  const { currency, currencySymbol } = useCurrency();
+  
+  // Define pricing constants based on the default NGN pricing
+  const pricingBasic = currency === 'NGN' ? 20000 : 
+                       currency === 'USD' ? 40 : 
+                       currency === 'EUR' ? 35 : 
+                       currency === 'GBP' ? 30 : 20000;
+  
+  const pricingPro = currency === 'NGN' ? 50000 : 
+                     currency === 'USD' ? 100 : 
+                     currency === 'EUR' ? 85 : 
+                     currency === 'GBP' ? 75 : 50000;
+  
+  const additionalStoresCost = currency === 'NGN' ? 20000 : 
+                              currency === 'USD' ? 40 : 
+                              currency === 'EUR' ? 35 : 
+                              currency === 'GBP' ? 30 : 20000;
+  
   return (
     <div className="flex flex-col min-h-screen bg-white w-full">
       {/* Sticky Header */}
@@ -26,6 +46,7 @@ export default function LandingPage() {
             <a href="#faq" className="text-sm font-medium text-neutral-600 hover:text-primary">FAQ</a>
           </div>
           <div className="flex items-center space-x-4">
+            <CurrencySelector />
             <Link href="/login">
               <Button variant="outline" size="sm">Login</Button>
             </Link>
@@ -201,7 +222,11 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent className="flex-1">
                 <div className="mt-4 flex items-baseline">
-                  <span className="text-3xl font-bold">₦20K</span>
+                  <span className="text-3xl font-bold">
+                    {currency === 'NGN' 
+                      ? `₦${pricingBasic/1000}K` 
+                      : formatCurrency(pricingBasic)}
+                  </span>
                   <span className="ml-1 text-neutral-500">/month</span>
                 </div>
                 <ul className="mt-6 space-y-4">
@@ -239,7 +264,11 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent className="flex-1">
                 <div className="mt-4 flex items-baseline">
-                  <span className="text-3xl font-bold">₦50K</span>
+                  <span className="text-3xl font-bold">
+                    {currency === 'NGN' 
+                      ? `₦${pricingPro/1000}K` 
+                      : formatCurrency(pricingPro)}
+                  </span>
                   <span className="ml-1 text-neutral-500">/month</span>
                 </div>
                 <ul className="mt-6 space-y-4">
@@ -281,7 +310,9 @@ export default function LandingPage() {
                   <span className="text-3xl font-bold">Custom</span>
                 </div>
                 <p className="mt-2 text-sm text-neutral-500">
-                  10+ stores (+₦20K per 10 additional)
+                  10+ stores ({currency === 'NGN' 
+                    ? `+₦${additionalStoresCost/1000}K per 10 additional` 
+                    : `+${formatCurrency(additionalStoresCost)} per 10 additional`})
                 </p>
                 <ul className="mt-6 space-y-4">
                   <li className="flex items-start">
