@@ -16,6 +16,7 @@ import SettingsPage from "@/pages/settings";
 import PosPage from "@/pages/pos";
 import LandingPage from "@/pages/landing";
 import NotFound from "@/pages/not-found";
+import PaymentTestingPage from "@/pages/payment-testing";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: any) {
@@ -114,6 +115,10 @@ function SignupRoute() {
   return <SignupPage />;
 }
 
+function PaymentTestingRoute() {
+  return <ProtectedRoute component={PaymentTestingPage} adminOnly={true} />;
+}
+
 function AppRoutes() {
   return (
     <Switch>
@@ -127,6 +132,7 @@ function AppRoutes() {
       <Route path="/settings" component={SettingsRoute} />
       <Route path="/pos" component={PosRoute} />
       <Route path="/affiliates" component={AffiliatesRoute} />
+      <Route path="/payment-testing" component={PaymentTestingRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
     </Switch>

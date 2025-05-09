@@ -1009,7 +1009,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing required parameters" });
       }
       
-      // Verify payment with the appropriate provider
+      // Special case for simulation
+      if (provider === 'simulation') {
+        const status = req.query.status as string || 'success';
+        
+        if (status === 'success') {
+          // Create a mock subscription for successful payment
+          const planId = req.query.plan as string || 'basic';
+          const amount = parseFloat(req.query.amount as string || '20000');
+          
+          // Process the subscription
+          const subscription = await paymentService.processSubscriptionPayment(
+            userId,
+            planId,
+            amount,
+            reference,
+            'simulation'
+          );
+          
+          return res.status(200).json({
+            success: true,
+            subscription,
+            message: "Payment simulation successful"
+          });
+        } else {
+          return res.status(200).json({
+            success: false,
+            status: 'failed',
+            message: "Payment simulation failed"
+          });
+        }
+      }
+      
+      // Normal path - verify payment with the appropriate provider
       const verification = await paymentService.verifyPayment(reference, provider);
       
       // Process subscription if payment was successful
@@ -1324,12 +1356,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </div>
             
             <h3>Select Payment Outcome</h3>
-            <a href="/api/payments/verify/${reference}/simulation?status=success" class="btn btn-success">Success</a>
-            <a href="/api/payments/verify/${reference}/simulation?status=failed" class="btn btn-failure">Failure</a>
+            <form action="/api/payments/verify/${reference}/simulation" method="get">
+              <input type="hidden" name="status" value="success">
+              <input type="hidden" name="plan" value="${plan || 'basic'}">
+              <input type="hidden" name="amount" value="${amount || '20000'}">
+              <button type="submit" class="btn btn-success">Success</button>
+            </form>
+            <form action="/api/payments/verify/${reference}/simulation" method="get" style="margin-top: 10px;">
+              <input type="hidden" name="status" value="failed">
+              <button type="submit" class="btn btn-failure">Failure</button>
+            </form>
           </div>
         </body>
       </html>
     `);
+  });
+  
+  // Route to handle simulated payment verification
+  app.get(`${apiPrefix}/payments/simulate-verify/:reference`, (req, res) => {
+    const { reference } = req.params;
+    const { status } = req.query;
+    const redirectUrl = '/api/payments/verify/' + reference + '/simulation';
+    
+    // Handle the simulation results by redirecting to the verification endpoint
+    res.redirect(redirectUrl);
   });
   
   app.post(`${apiPrefix}/webhooks/flutterwave`, async (req, res) => {
