@@ -1,8 +1,17 @@
 import Paystack from 'paystack-node';
 import Flutterwave from 'flutterwave-node-v3';
-import { db } from '../db';
+import { db } from '../../db';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
+
+// Type declaration for modules without types
+declare module 'paystack-node';
+declare module 'flutterwave-node-v3';
+
+// Type safety for error handling
+interface ErrorWithMessage {
+  message: string;
+}
 
 // Initialize payment providers
 const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -61,7 +70,8 @@ export async function initializeSubscription(
     try {
       const { applyReferralDiscount } = await import('./affiliate');
       const discountResult = await applyReferralDiscount(userId, referralCode, amount);
-      if (discountResult.discountApplied) {
+      // If discount amount > 0, it means discount was applied
+      if (discountResult.discountAmount > 0) {
         discountedAmount = discountResult.discountedAmount;
       }
     } catch (error) {
@@ -135,9 +145,10 @@ export async function initializeSubscription(
       reference,
       provider: 'simulation'
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`Payment initialization error with ${provider}:`, error);
-    throw new Error(`Failed to initialize payment: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to initialize payment: ${errorMessage}`);
   }
 }
 
@@ -181,7 +192,7 @@ export async function verifyPayment(reference: string, provider: string): Promis
       amount: 0, // Would come from the actual transaction in real implementation
       metadata: { reference }
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`Payment verification error with ${provider}:`, error);
     return { status: 'failed', amount: 0, metadata: {} };
   }

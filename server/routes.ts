@@ -9,9 +9,10 @@ import * as schema from "@shared/schema";
 import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from "./middleware/auth";
 import { getAIResponse } from "./services/ai";
 
-// Import affiliate services
+// Import services
 import * as affiliateService from './services/affiliate';
 import * as webhookService from './services/webhooks';
+import * as paymentService from './services/payment';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up session middleware
