@@ -178,6 +178,28 @@ export async function verifyPayment(reference: string, provider: string): Promis
   metadata: any;
 }> {
   try {
+    // Special handling for simulation mode
+    if (provider === 'simulation') {
+      const status = reference.includes('fail') ? 'failed' : 'success';
+      
+      // Extract plan and amount from reference if available
+      const matches = reference.match(/plan_([a-z]+)_(\d+)/i);
+      const plan = matches ? matches[1] : 'basic';
+      const amount = matches ? parseInt(matches[2], 10) : 20000;
+      
+      console.log(`Simulation payment verification: ${reference}, Status: ${status}`);
+      
+      return {
+        status: status as 'success' | 'failed',
+        amount: amount,
+        metadata: {
+          plan,
+          reference,
+          simulation: true
+        }
+      };
+    }
+    
     if (provider === 'paystack' && paystack) {
       const response = await paystack.verifyTransaction({ reference });
       
@@ -203,11 +225,15 @@ export async function verifyPayment(reference: string, provider: string): Promis
       return { status: 'failed', amount: 0, metadata: {} };
     }
     
-    // Simulation mode for development without API keys
+    // Fallback simulation mode for development without API keys
     return {
       status: 'success',
-      amount: 0, // Would come from the actual transaction in real implementation
-      metadata: { reference }
+      amount: 20000, // Default to ₦20,000 for basic plan
+      metadata: { 
+        plan: 'basic',
+        reference,
+        simulation: true
+      }
     };
   } catch (error: unknown) {
     console.error(`Payment verification error with ${provider}:`, error);

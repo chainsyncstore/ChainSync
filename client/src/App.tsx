@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { Switch, Route, Router, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -107,12 +107,20 @@ function PosRoute() {
 
 function AffiliatesRoute() {
   const AffiliatePage = React.lazy(() => import('./pages/affiliates'));
-  return <AffiliatePage />;
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <AffiliatePage />
+    </Suspense>
+  );
 }
 
 function SignupRoute() {
   const SignupPage = React.lazy(() => import('./pages/signup'));
-  return <SignupPage />;
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <SignupPage />
+    </Suspense>
+  );
 }
 
 function PaymentTestingRoute() {
