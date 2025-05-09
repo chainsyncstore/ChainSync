@@ -28,6 +28,10 @@ try {
     console.log('Paystack initialized successfully');
   } else {
     console.log('Paystack credentials not found. Payments will be simulated.');
+    // Log the environment variables (but not their values) to help with debugging
+    console.log('Available Paystack-related environment variables:');
+    console.log('PAYSTACK_PUBLIC_KEY:', paystackPublicKey ? 'defined' : 'undefined');
+    console.log('PAYSTACK_SECRET_KEY:', paystackSecretKey ? 'defined' : 'undefined');
   }
 } catch (err) {
   console.error('Error initializing Paystack:', err);
@@ -41,6 +45,10 @@ try {
     console.log('Flutterwave initialized successfully');
   } else {
     console.log('Flutterwave credentials not found. Payments will be simulated.');
+    // Log the environment variables (but not their values) to help with debugging
+    console.log('Available Flutterwave-related environment variables:');
+    console.log('FLUTTERWAVE_PUBLIC_KEY:', flutterwavePublicKey ? 'defined' : 'undefined');
+    console.log('FLUTTERWAVE_SECRET_KEY:', flutterwaveSecretKey ? 'defined' : 'undefined');
   }
 } catch (err) {
   console.error('Error initializing Flutterwave:', err);
