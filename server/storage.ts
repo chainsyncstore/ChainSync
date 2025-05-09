@@ -4,6 +4,195 @@ import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not } from "driz
 import * as bcrypt from "bcrypt";
 
 export const storage = {
+  // ----------- Affiliate Methods -----------
+  
+  async getAffiliateByUserId(userId: number) {
+    try {
+      const [affiliate] = await db.select()
+        .from(schema.affiliates)
+        .where(eq(schema.affiliates.userId, userId))
+        .limit(1);
+      
+      return affiliate || null;
+    } catch (error) {
+      console.error("Error getting affiliate by user ID:", error);
+      throw error;
+    }
+  },
+  
+  async getAffiliateByCode(code: string) {
+    try {
+      const [affiliate] = await db.select()
+        .from(schema.affiliates)
+        .where(eq(schema.affiliates.code, code))
+        .limit(1);
+      
+      return affiliate || null;
+    } catch (error) {
+      console.error("Error getting affiliate by code:", error);
+      throw error;
+    }
+  },
+  
+  async createAffiliate(data: schema.AffiliateInsert) {
+    try {
+      const [affiliate] = await db.insert(schema.affiliates)
+        .values(data)
+        .returning();
+      
+      return affiliate;
+    } catch (error) {
+      console.error("Error creating affiliate:", error);
+      throw error;
+    }
+  },
+  
+  async updateAffiliate(affiliateId: number, data: Partial<schema.AffiliateInsert>) {
+    try {
+      const [updatedAffiliate] = await db.update(schema.affiliates)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.affiliates.id, affiliateId))
+        .returning();
+      
+      return updatedAffiliate;
+    } catch (error) {
+      console.error("Error updating affiliate:", error);
+      throw error;
+    }
+  },
+  
+  async getReferralsByAffiliateId(affiliateId: number) {
+    try {
+      const referrals = await db.select({
+        id: schema.referrals.id,
+        status: schema.referrals.status,
+        signupDate: schema.referrals.signupDate,
+        activationDate: schema.referrals.activationDate,
+        expiryDate: schema.referrals.expiryDate,
+        username: schema.users.username,
+        fullName: schema.users.fullName
+      })
+      .from(schema.referrals)
+      .leftJoin(schema.users, eq(schema.referrals.referredUserId, schema.users.id))
+      .where(eq(schema.referrals.affiliateId, affiliateId))
+      .orderBy(schema.referrals.signupDate, "desc");
+      
+      return referrals;
+    } catch (error) {
+      console.error("Error getting referrals by affiliate ID:", error);
+      throw error;
+    }
+  },
+  
+  async createReferral(data: schema.ReferralInsert) {
+    try {
+      const [referral] = await db.insert(schema.referrals)
+        .values(data)
+        .returning();
+      
+      return referral;
+    } catch (error) {
+      console.error("Error creating referral:", error);
+      throw error;
+    }
+  },
+  
+  async updateReferral(referralId: number, data: Partial<schema.ReferralInsert>) {
+    try {
+      const [updatedReferral] = await db.update(schema.referrals)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.referrals.id, referralId))
+        .returning();
+      
+      return updatedReferral;
+    } catch (error) {
+      console.error("Error updating referral:", error);
+      throw error;
+    }
+  },
+  
+  async getSubscriptionByUserId(userId: number) {
+    try {
+      const [subscription] = await db.select()
+        .from(schema.subscriptions)
+        .where(eq(schema.subscriptions.userId, userId))
+        .orderBy(schema.subscriptions.createdAt, "desc")
+        .limit(1);
+      
+      return subscription || null;
+    } catch (error) {
+      console.error("Error getting subscription by user ID:", error);
+      throw error;
+    }
+  },
+  
+  async createSubscription(data: schema.SubscriptionInsert) {
+    try {
+      const [subscription] = await db.insert(schema.subscriptions)
+        .values(data)
+        .returning();
+      
+      return subscription;
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      throw error;
+    }
+  },
+  
+  async updateSubscription(subscriptionId: number, data: Partial<schema.SubscriptionInsert>) {
+    try {
+      const [updatedSubscription] = await db.update(schema.subscriptions)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.subscriptions.id, subscriptionId))
+        .returning();
+      
+      return updatedSubscription;
+    } catch (error) {
+      console.error("Error updating subscription:", error);
+      throw error;
+    }
+  },
+  
+  async getReferralPaymentsByAffiliateId(affiliateId: number) {
+    try {
+      const payments = await db.select()
+        .from(schema.referralPayments)
+        .where(eq(schema.referralPayments.affiliateId, affiliateId))
+        .orderBy(schema.referralPayments.createdAt, "desc");
+      
+      return payments;
+    } catch (error) {
+      console.error("Error getting referral payments by affiliate ID:", error);
+      throw error;
+    }
+  },
+  
+  async createReferralPayment(data: schema.ReferralPaymentInsert) {
+    try {
+      const [payment] = await db.insert(schema.referralPayments)
+        .values(data)
+        .returning();
+      
+      return payment;
+    } catch (error) {
+      console.error("Error creating referral payment:", error);
+      throw error;
+    }
+  },
+  
+  async updateReferralPayment(paymentId: number, data: Partial<schema.ReferralPaymentInsert>) {
+    try {
+      const [updatedPayment] = await db.update(schema.referralPayments)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.referralPayments.id, paymentId))
+        .returning();
+      
+      return updatedPayment;
+    } catch (error) {
+      console.error("Error updating referral payment:", error);
+      throw error;
+    }
+  },
   // --------- Users ---------
   async getUserById(userId: number) {
     return await db.query.users.findFirst({

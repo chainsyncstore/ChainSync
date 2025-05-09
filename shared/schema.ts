@@ -344,7 +344,112 @@ export type TransactionInsert = z.infer<typeof transactionInsertSchema>;
 export type TransactionItem = typeof transactionItems.$inferSelect;
 export type TransactionItemInsert = z.infer<typeof transactionItemInsertSchema>;
 
+// Affiliate Program Schema
+export const affiliates = pgTable("affiliates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  code: text("code").notNull().unique(),
+  totalReferrals: integer("total_referrals").default(0).notNull(),
+  totalEarnings: decimal("total_earnings", { precision: 10, scale: 2 }).default("0").notNull(),
+  pendingEarnings: decimal("pending_earnings", { precision: 10, scale: 2 }).default("0").notNull(),
+  bankName: text("bank_name"),
+  accountNumber: text("account_number"),
+  accountName: text("account_name"),
+  bankCode: text("bank_code"),
+  paymentMethod: text("payment_method").default("paystack"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const affiliatesRelations = relations(affiliates, ({ one }) => ({
+  user: one(users, { fields: [affiliates.userId], references: [users.id] })
+}));
+
+export const referrals = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  affiliateId: integer("affiliate_id").references(() => affiliates.id).notNull(),
+  referredUserId: integer("referred_user_id").references(() => users.id).notNull(),
+  status: text("status").default("pending").notNull(), // pending, active, completed, cancelled
+  discountApplied: boolean("discount_applied").default(false).notNull(),
+  commissionPaid: boolean("commission_paid").default(false).notNull(),
+  signupDate: timestamp("signup_date").defaultNow().notNull(),
+  activationDate: timestamp("activation_date"),
+  expiryDate: timestamp("expiry_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const referralsRelations = relations(referrals, ({ one }) => ({
+  affiliate: one(affiliates, { fields: [referrals.affiliateId], references: [affiliates.id] }),
+  referredUser: one(users, { fields: [referrals.referredUserId], references: [users.id] })
+}));
+
+export const referralPayments = pgTable("referral_payments", {
+  id: serial("id").primaryKey(),
+  affiliateId: integer("affiliate_id").references(() => affiliates.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("NGN").notNull(),
+  status: text("status").default("pending").notNull(), // pending, completed, failed
+  paymentMethod: text("payment_method").default("paystack").notNull(),
+  transactionReference: text("transaction_reference"),
+  paymentDate: timestamp("payment_date"),
+  metadata: text("metadata"), // JSON string with additional data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const referralPaymentsRelations = relations(referralPayments, ({ one }) => ({
+  affiliate: one(affiliates, { fields: [referralPayments.affiliateId], references: [affiliates.id] })
+}));
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  plan: text("plan").notNull(), // basic, pro, enterprise
+  status: text("status").default("active").notNull(), // active, cancelled, expired
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("NGN").notNull(),
+  referralCode: text("referral_code"),
+  discountApplied: boolean("discount_applied").default(false).notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+  startDate: timestamp("start_date").defaultNow().notNull(),
+  endDate: timestamp("end_date").notNull(),
+  autoRenew: boolean("auto_renew").default(true).notNull(),
+  paymentProvider: text("payment_provider").default("paystack").notNull(),
+  paymentReference: text("payment_reference"),
+  metadata: text("metadata"), // JSON string with additional data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, { fields: [subscriptions.userId], references: [users.id] })
+}));
+
+// Create insert schemas for the new tables
+export const affiliateInsertSchema = createInsertSchema(affiliates, {
+  code: (schema) => schema.min(6, "Referral code must be at least 6 characters")
+});
+
+export const referralInsertSchema = createInsertSchema(referrals);
+
+export const referralPaymentInsertSchema = createInsertSchema(referralPayments);
+
+export const subscriptionInsertSchema = createInsertSchema(subscriptions);
+
 export type AiConversation = typeof aiConversations.$inferSelect;
 export type AiConversationInsert = typeof aiConversations.$inferInsert;
+
+export type Affiliate = typeof affiliates.$inferSelect;
+export type AffiliateInsert = z.infer<typeof affiliateInsertSchema>;
+
+export type Referral = typeof referrals.$inferSelect;
+export type ReferralInsert = z.infer<typeof referralInsertSchema>;
+
+export type ReferralPayment = typeof referralPayments.$inferSelect;
+export type ReferralPaymentInsert = z.infer<typeof referralPaymentInsertSchema>;
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type SubscriptionInsert = z.infer<typeof subscriptionInsertSchema>;
 
 export type LoginData = z.infer<typeof loginSchema>;

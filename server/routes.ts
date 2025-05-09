@@ -670,6 +670,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ----------- Webhook Routes -----------
+
+  app.post(`${apiPrefix}/webhooks/paystack`, async (req, res) => {
+    try {
+      const signature = req.headers['x-paystack-signature'] as string;
+      const rawPayload = JSON.stringify(req.body);
+      
+      // Process the webhook
+      const { handlePaystackWebhook } = await import('./services/webhooks');
+      const success = await handlePaystackWebhook(signature, rawPayload);
+      
+      if (success) {
+        return res.status(200).json({ message: "Webhook processed successfully" });
+      } else {
+        return res.status(400).json({ message: "Failed to process webhook" });
+      }
+    } catch (error) {
+      console.error("Paystack webhook error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post(`${apiPrefix}/webhooks/flutterwave`, async (req, res) => {
+    try {
+      const signature = req.headers['verif-hash'] as string;
+      const rawPayload = JSON.stringify(req.body);
+      
+      // Process the webhook
+      const { handleFlutterwaveWebhook } = await import('./services/webhooks');
+      const success = await handleFlutterwaveWebhook(signature, rawPayload);
+      
+      if (success) {
+        return res.status(200).json({ message: "Webhook processed successfully" });
+      } else {
+        return res.status(400).json({ message: "Failed to process webhook" });
+      }
+    } catch (error) {
+      console.error("Flutterwave webhook error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // ----------- Affiliate Routes -----------
+  
+  app.post(`${apiPrefix}/affiliates/register`, isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.session;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Register the user as an affiliate
+      const { registerAffiliate } = await import('./services/affiliate');
+      const affiliate = await registerAffiliate(userId, req.body);
+      
+      return res.status(201).json(affiliate);
+    } catch (error) {
+      console.error("Affiliate registration error:", error);
+      return res.status(500).json({ message: "Failed to register as affiliate" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/dashboard`, isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.session;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get affiliate dashboard stats
+      const { getAffiliateDashboardStats } = await import('./services/affiliate');
+      const stats = await getAffiliateDashboardStats(userId);
+      
+      return res.status(200).json(stats);
+    } catch (error) {
+      console.error("Affiliate dashboard error:", error);
+      
+      // Check if error is "User is not an affiliate"
+      if (error instanceof Error && error.message === "User is not an affiliate") {
+        return res.status(404).json({ message: "User is not an affiliate" });
+      }
+      
+      return res.status(500).json({ message: "Failed to get affiliate dashboard" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/referrals`, isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.session;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get affiliate referrals
+      const { getAffiliateReferrals } = await import('./services/affiliate');
+      const referrals = await getAffiliateReferrals(userId);
+      
+      return res.status(200).json(referrals);
+    } catch (error) {
+      console.error("Affiliate referrals error:", error);
+      return res.status(500).json({ message: "Failed to get affiliate referrals" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/payments`, isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.session;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get affiliate payments
+      const { getAffiliatePayments } = await import('./services/affiliate');
+      const payments = await getAffiliatePayments(userId);
+      
+      return res.status(200).json(payments);
+    } catch (error) {
+      console.error("Affiliate payments error:", error);
+      return res.status(500).json({ message: "Failed to get affiliate payments" });
+    }
+  });
+  
+  app.post(`${apiPrefix}/affiliates/bank-details`, isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.session;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Update affiliate bank details
+      const { updateAffiliateBankDetails } = await import('./services/affiliate');
+      const affiliate = await updateAffiliateBankDetails(userId, req.body);
+      
+      if (!affiliate) {
+        return res.status(404).json({ message: "User is not an affiliate" });
+      }
+      
+      return res.status(200).json(affiliate);
+    } catch (error) {
+      console.error("Update affiliate bank details error:", error);
+      return res.status(500).json({ message: "Failed to update bank details" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/track-click`, async (req, res) => {
+    try {
+      const { code, source } = req.query as { code: string, source?: string };
+      
+      if (!code) {
+        return res.status(400).json({ message: "Referral code is required" });
+      }
+      
+      // Track the click
+      const { trackAffiliateClick } = await import('./services/affiliate');
+      await trackAffiliateClick(code, source);
+      
+      // Return a transparent 1x1 GIF to avoid CORS issues
+      const transparentGif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+      res.setHeader('Content-Type', 'image/gif');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.end(transparentGif);
+    } catch (error) {
+      console.error("Track affiliate click error:", error);
+      
+      // Still return a successful response with the transparent GIF
+      const transparentGif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+      res.setHeader('Content-Type', 'image/gif');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.end(transparentGif);
+    }
+  });
+  
+  app.post(`${apiPrefix}/subscriptions/signup`, async (req, res) => {
+    try {
+      const { username, password, email, fullName, plan, referralCode } = req.body;
+      
+      if (!username || !password || !email || !fullName || !plan) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Check if username is already taken
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ message: "Username already exists" });
+      }
+      
+      // Create the user
+      const userData: schema.UserInsert = {
+        username,
+        password,
+        email,
+        fullName,
+        role: 'admin', // New users are admins of their own chain
+        status: 'active'
+      };
+      
+      const newUser = await storage.createUser(userData);
+      
+      // If there's a referral code, track the referral
+      if (referralCode) {
+        // Import the affiliate service
+        const { trackReferral } = await import('./services/affiliate');
+        await trackReferral(referralCode, newUser.id);
+      }
+      
+      // Return the new user (without password)
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      return res.status(201).json({
+        user: userWithoutPassword,
+        referralApplied: !!referralCode
+      });
+    } catch (error) {
+      console.error("Subscription signup error:", error);
+      return res.status(500).json({ message: "Failed to create subscription" });
+    }
+  });
+  
+  app.post(`${apiPrefix}/subscriptions/process-payout`, isAdmin, async (req, res) => {
+    try {
+      const { affiliateId } = req.body;
+      
+      // Process the payout
+      const { processAffiliatePayout } = await import('./services/affiliate');
+      const payments = await processAffiliatePayout(affiliateId);
+      
+      return res.status(200).json(payments);
+    } catch (error) {
+      console.error("Process affiliate payout error:", error);
+      return res.status(500).json({ message: "Failed to process affiliate payout" });
+    }
+  });
+  
   app.get(`${apiPrefix}/ai/conversation`, isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
