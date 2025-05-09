@@ -253,13 +253,15 @@ export async function processAffiliateCommission(userId: number, paymentAmount: 
 export async function processAffiliatePayout(affiliateId?: number): Promise<schema.ReferralPayment[]> {
   try {
     // Get affiliates with pending earnings
-    let query = db.select()
-      .from(schema.affiliates)
-      .where(gte(schema.affiliates.pendingEarnings, "100"));
+    let baseQuery = gte(schema.affiliates.pendingEarnings, "100");
     
     if (affiliateId) {
-      query = query.where(eq(schema.affiliates.id, affiliateId));
+      baseQuery = and(baseQuery, eq(schema.affiliates.id, affiliateId));
     }
+    
+    const query = db.select()
+      .from(schema.affiliates)
+      .where(baseQuery);
     
     const affiliates = await query;
     const payments: schema.ReferralPayment[] = [];
@@ -466,7 +468,7 @@ export async function getAffiliatePayments(userId: number): Promise<schema.Refer
     const payments = await db.select()
       .from(schema.referralPayments)
       .where(eq(schema.referralPayments.affiliateId, affiliate.id))
-      .orderBy(schema.referralPayments.createdAt, "desc");
+      .orderBy(desc(schema.referralPayments.createdAt));
     
     return payments;
   } catch (error) {

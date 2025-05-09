@@ -75,7 +75,7 @@ export const storage = {
       .from(schema.referrals)
       .leftJoin(schema.users, eq(schema.referrals.referredUserId, schema.users.id))
       .where(eq(schema.referrals.affiliateId, affiliateId))
-      .orderBy(schema.referrals.signupDate, "desc");
+      .orderBy(desc(schema.referrals.signupDate));
       
       return referrals;
     } catch (error) {
@@ -116,7 +116,7 @@ export const storage = {
       const [subscription] = await db.select()
         .from(schema.subscriptions)
         .where(eq(schema.subscriptions.userId, userId))
-        .orderBy(schema.subscriptions.createdAt, "desc")
+        .orderBy(desc(schema.subscriptions.createdAt))
         .limit(1);
       
       return subscription || null;
