@@ -297,7 +297,7 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-start">
                     <Check className="mr-2 h-5 w-5 text-green-500 flex-shrink-0" />
-                    <span>AI-powered inventory optimization</span>
+                    <span>Advanced AI with inventory optimization</span>
                   </li>
                   <li className="flex items-start">
                     <Check className="mr-2 h-5 w-5 text-green-500 flex-shrink-0" />
