@@ -252,8 +252,10 @@ export async function processAffiliateCommission(userId: number, paymentAmount: 
  */
 export async function processAffiliatePayout(affiliateId?: number): Promise<schema.ReferralPayment[]> {
   try {
-    // Build the where clause
+    // Build the where clause - always filter by pending earnings
     const baseQuery = gte(schema.affiliates.pendingEarnings, "100");
+    
+    // If affiliateId is provided, add it to the filter
     const whereClause = affiliateId 
       ? and(baseQuery, eq(schema.affiliates.id, affiliateId)) 
       : baseQuery;

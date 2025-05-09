@@ -534,21 +534,20 @@ export const storage = {
   },
 
   async getStoreTransactions(storeId: number, startDate?: Date, endDate?: Date, page = 1, limit = 20) {
-    let query = eq(schema.transactions.storeId, storeId);
+    // Start with store filter as the base query
+    let whereClause = eq(schema.transactions.storeId, storeId);
     
-    // Add date filters if provided
+    // Apply date filters if provided
     if (startDate) {
-      const startFilter = gte(schema.transactions.createdAt, startDate);
-      query = and(query, startFilter);
+      whereClause = and(whereClause, gte(schema.transactions.createdAt, startDate));
     }
     
     if (endDate) {
-      const endFilter = lte(schema.transactions.createdAt, endDate);
-      query = and(query, endFilter);
+      whereClause = and(whereClause, lte(schema.transactions.createdAt, endDate));
     }
     
     return await db.query.transactions.findMany({
-      where: query,
+      where: whereClause,
       with: {
         cashier: true,
         items: {
