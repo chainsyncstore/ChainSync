@@ -5,16 +5,49 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const formatCurrency = (value: number | string | null | undefined) => {
-  if (value === null || value === undefined) return "$0.00";
+// Currency configuration
+export type CurrencyCode = 'NGN' | 'USD' | 'EUR' | 'GBP';
+
+interface CurrencyInfo {
+  code: CurrencyCode;
+  symbol: string;
+  locale: string;
+  name: string;
+}
+
+export const currencies: Record<CurrencyCode, CurrencyInfo> = {
+  NGN: { code: 'NGN', symbol: '₦', locale: 'en-NG', name: 'Nigerian Naira' },
+  USD: { code: 'USD', symbol: '$', locale: 'en-US', name: 'US Dollar' },
+  EUR: { code: 'EUR', symbol: '€', locale: 'en-EU', name: 'Euro' },
+  GBP: { code: 'GBP', symbol: '£', locale: 'en-GB', name: 'British Pound' },
+};
+
+// Default to NGN as the primary currency
+let currentCurrency: CurrencyCode = 'NGN';
+
+export const getCurrentCurrency = (): CurrencyCode => {
+  return currentCurrency;
+};
+
+export const setCurrentCurrency = (currency: CurrencyCode): void => {
+  currentCurrency = currency;
+};
+
+export const formatCurrency = (
+  value: number | string | null | undefined, 
+  currencyCode?: CurrencyCode
+) => {
+  if (value === null || value === undefined) return `${currencies[currentCurrency].symbol}0.00`;
   
   const numberValue = typeof value === "string" ? parseFloat(value) : value;
   
-  if (isNaN(numberValue)) return "$0.00";
+  if (isNaN(numberValue)) return `${currencies[currentCurrency].symbol}0.00`;
   
-  return new Intl.NumberFormat("en-US", {
+  const currency = currencyCode ? currencies[currencyCode] : currencies[currentCurrency];
+  
+  return new Intl.NumberFormat(currency.locale, {
     style: "currency",
-    currency: "USD",
+    currency: currency.code,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(numberValue);
