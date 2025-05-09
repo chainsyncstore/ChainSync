@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { useOfflineMode } from '@/hooks/use-offline-mode';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { PosTerminal } from '@/components/pos/pos-terminal';
@@ -10,10 +10,22 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function PosPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { isOnline, offlineTransactions, clearSyncedTransactions } = useOfflineMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Fetch store data
+  const { data: storeData } = useQuery({
+    queryKey: ['/api/stores', user?.storeId],
+    queryFn: async () => {
+      if (!user?.storeId) return null;
+      const res = await fetch(`/api/stores/${user.storeId}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!user?.storeId && isOnline,
+  });
   
   // Mutation for syncing offline transactions
   const syncMutation = useMutation({
@@ -107,12 +119,18 @@ export default function PosPage() {
             {/* User info */}
             <div className="text-sm">
               <span className="font-medium">{user?.fullName}</span>
-              <span className="text-neutral-500 ml-2">({user?.store?.name || 'No Store'})</span>
+              <span className="text-neutral-500 ml-2">
+                ({storeData ? storeData.name : `Store ID: ${user?.storeId || 'None'}`})
+              </span>
             </div>
             
             {/* Logout button */}
-            <Button variant="outline" size="sm" asChild>
-              <a href="/login">Logout</a>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => logout()}
+            >
+              Logout
             </Button>
           </div>
         </div>
