@@ -10,7 +10,8 @@ import {
   Package, 
   Users, 
   Settings,
-  ShoppingCart
+  ShoppingCart,
+  Share2
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -88,14 +89,25 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
             
             <nav>
               {role === 'cashier' ? (
-                <NavItem 
-                  href="/pos" 
-                  icon={<ShoppingCart className="w-5 h-5" />} 
-                  active={location === '/pos'} 
-                  onClick={isMobile ? onClose : undefined}
-                >
-                  Point of Sale
-                </NavItem>
+                <>
+                  <NavItem 
+                    href="/pos" 
+                    icon={<ShoppingCart className="w-5 h-5" />} 
+                    active={location === '/pos'} 
+                    onClick={isMobile ? onClose : undefined}
+                  >
+                    Point of Sale
+                  </NavItem>
+                  
+                  <NavItem 
+                    href="/affiliates" 
+                    icon={<Share2 className="w-5 h-5" />} 
+                    active={location === '/affiliates'} 
+                    onClick={isMobile ? onClose : undefined}
+                  >
+                    Affiliate Program
+                  </NavItem>
+                </>
               ) : (
                 <>
                   <NavItem 
@@ -144,6 +156,15 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                       Users
                     </NavItem>
                   )}
+                  
+                  <NavItem 
+                    href="/affiliates" 
+                    icon={<Share2 className="w-5 h-5" />} 
+                    active={location === '/affiliates'} 
+                    onClick={isMobile ? onClose : undefined}
+                  >
+                    Affiliate Program
+                  </NavItem>
                   
                   <NavItem 
                     href="/settings" 

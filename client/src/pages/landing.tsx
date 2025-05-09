@@ -606,6 +606,14 @@ export default function LandingPage() {
                   role-based access controls. Enterprise plans offer advanced user management features including detailed permission settings.
                 </AccordionContent>
               </AccordionItem>
+              <AccordionItem value="item-7">
+                <AccordionTrigger>Do you have an affiliate program?</AccordionTrigger>
+                <AccordionContent>
+                  Yes! Our affiliate program lets you earn 10% commission on all referred subscriptions for 12 months. 
+                  Your referrals also receive a 10% discount for their first year. Sign up for an account and visit the 
+                  Affiliate Program section to get your unique referral link and start earning.
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           </div>
         </div>
@@ -678,6 +686,9 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a href="#pricing" className="text-sm text-neutral-500 hover:text-primary">Pricing</a>
+                </li>
+                <li>
+                  <a href="#faq" className="text-sm text-neutral-500 hover:text-primary">Affiliate Program</a>
                 </li>
                 <li>
                   <a href="#" className="text-sm text-neutral-500 hover:text-primary">API</a>
