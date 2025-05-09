@@ -8,10 +8,10 @@ import { cn } from '@/lib/utils';
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-white w-full">
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 w-full border-b border-neutral-100 bg-white/80 backdrop-blur-sm">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container mx-auto max-w-screen-xl px-4 flex h-16 items-center justify-between">
           <div className="flex items-center space-x-2">
             <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="currentColor"/>
@@ -38,7 +38,7 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-neutral-50">
-        <div className="container grid gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+        <div className="container mx-auto max-w-screen-xl grid gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-12 xl:gap-16">
           <div className="flex flex-col justify-center space-y-6">
             <div className="space-y-3">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-700">
@@ -86,7 +86,7 @@ export default function LandingPage() {
 
       {/* Key Features */}
       <section id="features" className="w-full py-12 md:py-24 bg-white">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">
@@ -179,7 +179,7 @@ export default function LandingPage() {
 
       {/* Pricing Table */}
       <section id="pricing" className="w-full py-12 md:py-24 bg-neutral-50">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">
@@ -320,7 +320,7 @@ export default function LandingPage() {
 
       {/* Free Trial Section */}
       <section id="trial" className="w-full py-12 md:py-24 bg-white">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:gap-16">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
@@ -413,7 +413,7 @@ export default function LandingPage() {
 
       {/* Payment Methods */}
       <section className="w-full py-12 md:py-16 bg-neutral-50">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-2xl font-bold tracking-tighter md:text-3xl">
@@ -502,7 +502,7 @@ export default function LandingPage() {
 
       {/* FAQs */}
       <section id="faq" className="w-full py-12 md:py-24 bg-white">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">
@@ -565,7 +565,7 @@ export default function LandingPage() {
 
       {/* CTA Banner */}
       <section className="w-full py-12 md:py-24 bg-primary text-white">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
@@ -587,7 +587,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="w-full py-12 md:py-16 border-t">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             <div className="flex flex-col space-y-4">
               <div className="flex items-center space-x-2">
