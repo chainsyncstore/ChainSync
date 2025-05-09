@@ -116,6 +116,8 @@ export default function AffiliatePage() {
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormValues) => {
       const { confirmPassword, ...signupData } = data;
+      
+      // First attempt signup
       const response = await apiRequest('POST', '/api/auth/signup', {
         ...signupData,
         role: "affiliate", // Special role for affiliate-only users
@@ -126,6 +128,7 @@ export default function AffiliatePage() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Registration failed');
       }
+      
       return response.json();
     },
     onSuccess: (data) => {
