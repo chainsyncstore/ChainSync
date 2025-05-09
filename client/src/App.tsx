@@ -104,10 +104,20 @@ function PosRoute() {
   return <ProtectedRoute component={PosPage} />;
 }
 
+function AffiliatesRoute() {
+  return <ProtectedRoute component={React.lazy(() => import('./pages/affiliates'))} />;
+}
+
+function SignupRoute() {
+  const SignupPage = React.lazy(() => import('./pages/signup'));
+  return <SignupPage />;
+}
+
 function AppRoutes() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/signup" component={SignupRoute} />
       <Route path="/dashboard" component={DashboardRoute} />
       <Route path="/stores" component={StoresRoute} />
       <Route path="/analytics" component={AnalyticsRoute} />
@@ -115,6 +125,7 @@ function AppRoutes() {
       <Route path="/users" component={UsersRoute} />
       <Route path="/settings" component={SettingsRoute} />
       <Route path="/pos" component={PosRoute} />
+      <Route path="/affiliates" component={AffiliatesRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
     </Switch>
