@@ -1,6 +1,6 @@
 import { storage } from "../storage";
 import * as schema from "@shared/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { db } from "../../db";
 import Flutterwave from "flutterwave-node-v3";
@@ -253,12 +253,12 @@ export async function processAffiliateCommission(userId: number, paymentAmount: 
 export async function processAffiliatePayout(affiliateId?: number): Promise<schema.ReferralPayment[]> {
   try {
     // Get affiliates with pending earnings
-    const query = db.select()
+    let query = db.select()
       .from(schema.affiliates)
       .where(gte(schema.affiliates.pendingEarnings, "100"));
     
     if (affiliateId) {
-      query.where(eq(schema.affiliates.id, affiliateId));
+      query = query.where(eq(schema.affiliates.id, affiliateId));
     }
     
     const affiliates = await query;
@@ -395,7 +395,7 @@ export async function getAffiliateDashboardStats(userId: number): Promise<{
           eq(schema.referralPayments.status, "completed")
         )
       )
-      .orderBy(schema.referralPayments.paymentDate, "desc")
+      .orderBy(desc(schema.referralPayments.paymentDate))
       .limit(1);
     
     return {
@@ -444,7 +444,7 @@ export async function getAffiliateReferrals(userId: number): Promise<any[]> {
     .from(schema.referrals)
     .leftJoin(schema.users, eq(schema.referrals.referredUserId, schema.users.id))
     .where(eq(schema.referrals.affiliateId, affiliate.id))
-    .orderBy(schema.referrals.signupDate, "desc");
+    .orderBy(desc(schema.referrals.signupDate));
     
     return referrals;
   } catch (error) {
