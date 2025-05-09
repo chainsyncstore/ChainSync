@@ -688,7 +688,7 @@ export default function LandingPage() {
                   <a href="#pricing" className="text-sm text-neutral-500 hover:text-primary">Pricing</a>
                 </li>
                 <li>
-                  <a href="#faq" className="text-sm text-neutral-500 hover:text-primary">Affiliate Program</a>
+                  <Link href="/affiliates" className="text-sm text-neutral-500 hover:text-primary">Affiliate Program</Link>
                 </li>
                 <li>
                   <a href="#" className="text-sm text-neutral-500 hover:text-primary">API</a>

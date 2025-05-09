@@ -105,7 +105,8 @@ function PosRoute() {
 }
 
 function AffiliatesRoute() {
-  return <ProtectedRoute component={React.lazy(() => import('./pages/affiliates'))} />;
+  const AffiliatePage = React.lazy(() => import('./pages/affiliates'));
+  return <AffiliatePage />;
 }
 
 function SignupRoute() {
