@@ -13,19 +13,19 @@ export default function LandingPage() {
   
   // Define pricing constants based on the default NGN pricing
   const pricingBasic = currency === 'NGN' ? 20000 : 
-                       currency === 'USD' ? 40 : 
-                       currency === 'EUR' ? 35 : 
-                       currency === 'GBP' ? 30 : 20000;
+                       currency === 'USD' ? 20 : 
+                       currency === 'EUR' ? 18 : 
+                       currency === 'GBP' ? 16 : 20000;
   
-  const pricingPro = currency === 'NGN' ? 50000 : 
+  const pricingPro = currency === 'NGN' ? 100000 : 
                      currency === 'USD' ? 100 : 
-                     currency === 'EUR' ? 85 : 
-                     currency === 'GBP' ? 75 : 50000;
+                     currency === 'EUR' ? 90 : 
+                     currency === 'GBP' ? 80 : 100000;
   
-  const additionalStoresCost = currency === 'NGN' ? 20000 : 
-                              currency === 'USD' ? 40 : 
-                              currency === 'EUR' ? 35 : 
-                              currency === 'GBP' ? 30 : 20000;
+  const additionalStoresCost = currency === 'NGN' ? 50000 : 
+                              currency === 'USD' ? 50 : 
+                              currency === 'EUR' ? 45 : 
+                              currency === 'GBP' ? 40 : 50000;
   
   return (
     <div className="flex flex-col min-h-screen bg-white w-full">
@@ -340,10 +340,12 @@ export default function LandingPage() {
               </CardFooter>
             </Card>
           </div>
-          <div className="mt-8 text-center text-neutral-600">
-            <p className="flex items-center justify-center font-medium">
+          <div className="mt-8 text-center">
+            <p className="flex items-center justify-center font-medium text-primary">
               <Calendar className="mr-2 h-5 w-5 text-primary" />
-              Save 15% with annual billing
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-700 font-bold">
+                15% discount for annual billing
+              </span>
             </p>
           </div>
         </div>
