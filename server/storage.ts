@@ -1,6 +1,6 @@
 import { db } from "@db";
 import * as schema from "@shared/schema";
-import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not } from "drizzle-orm";
+import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 
 export const storage = {

@@ -68,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect based on user role
       if (user.role === 'cashier') {
         setLocation('/pos');
+      } else if (user.role === 'affiliate') {
+        setLocation('/affiliates');
       } else {
         setLocation('/dashboard');
       }
