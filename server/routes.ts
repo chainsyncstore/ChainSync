@@ -9,6 +9,10 @@ import * as schema from "@shared/schema";
 import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from "./middleware/auth";
 import { getAIResponse } from "./services/ai";
 
+// Import affiliate services
+import * as affiliateService from './services/affiliate';
+import * as webhookService from './services/webhooks';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up session middleware
   app.use(
@@ -908,6 +912,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ----------- Affiliate Program Routes -----------
+
+  app.post(`${apiPrefix}/affiliates/register`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Register user as an affiliate
+      const affiliate = await affiliateService.registerAffiliate(userId);
+      
+      return res.status(201).json(affiliate);
+    } catch (error) {
+      console.error("Affiliate registration error:", error);
+      return res.status(500).json({ message: "Failed to register as affiliate" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/dashboard`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get affiliate dashboard data
+      const dashboardStats = await affiliateService.getAffiliateDashboardStats(userId);
+      
+      return res.status(200).json(dashboardStats);
+    } catch (error) {
+      console.error("Affiliate dashboard error:", error);
+      return res.status(500).json({ message: "Failed to load affiliate dashboard" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/referrals`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get affiliate referrals
+      const referrals = await affiliateService.getAffiliateReferrals(userId);
+      
+      return res.status(200).json(referrals);
+    } catch (error) {
+      console.error("Affiliate referrals error:", error);
+      return res.status(500).json({ message: "Failed to load referrals" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/payments`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get affiliate payments
+      const payments = await affiliateService.getAffiliatePayments(userId);
+      
+      return res.status(200).json(payments);
+    } catch (error) {
+      console.error("Affiliate payments error:", error);
+      return res.status(500).json({ message: "Failed to load payments" });
+    }
+  });
+  
+  app.post(`${apiPrefix}/affiliates/bank-details`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { bankName, accountNumber, accountName, bankCode, paymentMethod } = req.body;
+      
+      // Update bank details
+      const result = await affiliateService.updateAffiliateBankDetails(
+        userId,
+        { bankName, accountNumber, accountName, bankCode, paymentMethod }
+      );
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error("Update bank details error:", error);
+      return res.status(500).json({ message: "Failed to update bank details" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/verify`, async (req, res) => {
+    try {
+      const referralCode = req.query.code as string;
+      
+      if (!referralCode) {
+        return res.status(400).json({ 
+          isValid: false,
+          message: "No referral code provided" 
+        });
+      }
+      
+      // Verify the referral code
+      const affiliate = await affiliateService.getAffiliateByCode(referralCode);
+      
+      if (!affiliate) {
+        return res.status(200).json({ 
+          isValid: false,
+          message: "Invalid referral code" 
+        });
+      }
+      
+      // Get the affiliate's user details to show the name
+      const user = await storage.getUserById(affiliate.userId);
+      
+      return res.status(200).json({
+        isValid: true,
+        affiliateName: user?.fullName || "Partner",
+        discount: 10, // 10% discount
+        duration: 12  // 12 months
+      });
+    } catch (error) {
+      console.error("Verify referral error:", error);
+      return res.status(500).json({ 
+        isValid: false,
+        message: "Failed to verify referral code" 
+      });
+    }
+  });
+  
+  app.get(`${apiPrefix}/affiliates/track-click`, async (req, res) => {
+    try {
+      const referralCode = req.query.code as string;
+      const source = req.query.source as string;
+      
+      if (!referralCode) {
+        // Return a transparent 1x1 pixel GIF
+        res.set('Content-Type', 'image/gif');
+        return res.send(Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64'));
+      }
+      
+      // Track the click
+      await affiliateService.trackAffiliateClick(referralCode, source);
+      
+      // Return a transparent 1x1 pixel GIF
+      res.set('Content-Type', 'image/gif');
+      return res.send(Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64'));
+    } catch (error) {
+      console.error("Track affiliate click error:", error);
+      // Still return an image to avoid errors
+      res.set('Content-Type', 'image/gif');
+      return res.send(Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64'));
+    }
+  });
+  
+  // Payment Webhooks for Paystack and Flutterwave
+  app.post(`${apiPrefix}/webhooks/paystack`, async (req, res) => {
+    try {
+      const signature = req.headers['x-paystack-signature'] as string;
+      const payload = JSON.stringify(req.body);
+      
+      if (!signature) {
+        return res.status(400).json({ message: "Missing signature header" });
+      }
+      
+      // Process webhook
+      const success = await webhookService.handlePaystackWebhook(signature, payload);
+      
+      if (success) {
+        return res.status(200).json({ message: "Webhook processed successfully" });
+      } else {
+        return res.status(400).json({ message: "Failed to process webhook" });
+      }
+    } catch (error) {
+      console.error("Paystack webhook error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post(`${apiPrefix}/webhooks/flutterwave`, async (req, res) => {
+    try {
+      const signature = req.headers['verif-hash'] as string;
+      const payload = JSON.stringify(req.body);
+      
+      if (!signature) {
+        return res.status(400).json({ message: "Missing signature header" });
+      }
+      
+      // Process webhook
+      const success = await webhookService.handleFlutterwaveWebhook(signature, payload);
+      
+      if (success) {
+        return res.status(200).json({ message: "Webhook processed successfully" });
+      } else {
+        return res.status(400).json({ message: "Failed to process webhook" });
+      }
+    } catch (error) {
+      console.error("Flutterwave webhook error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.get(`${apiPrefix}/ai/conversation`, isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;

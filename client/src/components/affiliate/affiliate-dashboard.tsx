@@ -115,7 +115,7 @@ export function AffiliateDashboard() {
     isLoading: isReferralsLoading
   } = useQuery<Referral[]>({
     queryKey: ['/api/affiliates/referrals'],
-    enabled: !!user && dashboardData?.affiliate?.id > 0,
+    enabled: !!user && !!dashboardData?.affiliate && (dashboardData.affiliate.id > 0),
     refetchOnWindowFocus: false,
   });
   
@@ -125,7 +125,7 @@ export function AffiliateDashboard() {
     isLoading: isPaymentsLoading
   } = useQuery<Payment[]>({
     queryKey: ['/api/affiliates/payments'],
-    enabled: !!user && dashboardData?.affiliate?.id > 0,
+    enabled: !!user && !!dashboardData?.affiliate && (dashboardData.affiliate.id > 0),
     refetchOnWindowFocus: false,
   });
   
