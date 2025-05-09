@@ -4,14 +4,15 @@ import { db } from '../../db';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-// Type declaration for modules without types
-declare module 'paystack-node';
-declare module 'flutterwave-node-v3';
-
 // Type safety for error handling
 interface ErrorWithMessage {
   message: string;
 }
+
+// Type declaration for modules without types
+// This is a simpler approach that avoids augmentation issues
+type PaystackClient = any;
+type FlutterwaveClient = any;
 
 // Initialize payment providers
 const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -20,21 +21,29 @@ const flutterwaveSecretKey = process.env.FLUTTERWAVE_SECRET_KEY;
 const flutterwavePublicKey = process.env.FLUTTERWAVE_PUBLIC_KEY;
 
 // Initialize Paystack
-let paystack: any = null;
-if (paystackSecretKey) {
-  paystack = new Paystack(paystackSecretKey);
-  console.log('Paystack initialized successfully');
-} else {
-  console.log('Paystack credentials not found. Payments will be simulated.');
+let paystack: PaystackClient = null;
+try {
+  if (paystackSecretKey) {
+    paystack = new Paystack(paystackSecretKey);
+    console.log('Paystack initialized successfully');
+  } else {
+    console.log('Paystack credentials not found. Payments will be simulated.');
+  }
+} catch (err) {
+  console.error('Error initializing Paystack:', err);
 }
 
 // Initialize Flutterwave
-let flutterwave: any = null;
-if (flutterwaveSecretKey && flutterwavePublicKey) {
-  flutterwave = new Flutterwave(flutterwavePublicKey, flutterwaveSecretKey);
-  console.log('Flutterwave initialized successfully');
-} else {
-  console.log('Flutterwave credentials not found. Payments will be simulated.');
+let flutterwave: FlutterwaveClient = null;
+try {
+  if (flutterwaveSecretKey && flutterwavePublicKey) {
+    flutterwave = new Flutterwave(flutterwavePublicKey, flutterwaveSecretKey);
+    console.log('Flutterwave initialized successfully');
+  } else {
+    console.log('Flutterwave credentials not found. Payments will be simulated.');
+  }
+} catch (err) {
+  console.error('Error initializing Flutterwave:', err);
 }
 
 /**
@@ -210,7 +219,7 @@ export async function processSubscriptionPayment(
 ): Promise<schema.Subscription> {
   try {
     // Get plan details
-    const planTiers = {
+    const planTiers: {[key: string]: {name: string, storeLimit: number, features: string[]}} = {
       'basic': {
         name: 'Basic Plan',
         storeLimit: 1,
@@ -228,6 +237,7 @@ export async function processSubscriptionPayment(
       }
     };
     
+    // Default to basic plan if invalid plan provided
     const plan = planTiers[planId] || planTiers.basic;
     
     // Calculate next billing date (1 month from now)
@@ -239,16 +249,19 @@ export async function processSubscriptionPayment(
     const subscriptionData: schema.SubscriptionInsert = {
       userId,
       plan: planId,
-      amount: amount.toString(),
+      amount: amount.toString(), // Convert to string for decimal column
       status: 'active',
       paymentReference: reference,
       paymentProvider: provider,
       startDate,
       endDate,
-      storeLimit: plan.storeLimit,
-      features: JSON.stringify(plan.features),
-      isAnnual: false,
-      autoRenew: true
+      autoRenew: true,
+      // Store plan features and store limit in metadata as JSON
+      metadata: JSON.stringify({
+        storeLimit: plan.storeLimit,
+        features: plan.features,
+        isAnnual: false
+      })
     };
     
     // Find existing subscription to update or create new one
@@ -287,8 +300,9 @@ export async function processSubscriptionPayment(
     }
     
     return subscription;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error processing subscription payment:', error);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to process subscription payment: ${errorMessage}`);
   }
 }
