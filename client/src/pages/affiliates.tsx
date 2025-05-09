@@ -93,7 +93,10 @@ export default function AffiliatePage() {
       return response.json();
     },
     onSuccess: (data) => {
-      login(data);
+      // Call login with username and password from form data
+      const formData = loginForm.getValues();
+      login(formData.username, formData.password);
+      
       toast({
         title: "Login successful!",
         description: "Welcome to the ChainSync Affiliate Program",
@@ -126,7 +129,10 @@ export default function AffiliatePage() {
       return response.json();
     },
     onSuccess: (data) => {
-      login(data);
+      // Call login with username and password from form data
+      const formData = signupForm.getValues();
+      login(formData.username, formData.password);
+      
       toast({
         title: "Registration successful!",
         description: "Welcome to the ChainSync Affiliate Program",
@@ -166,7 +172,7 @@ export default function AffiliatePage() {
         <AffiliateDashboard />
 
         {/* Return to main app link for existing users */}
-        {user?.role !== 'affiliate' && (
+        {user?.role !== 'affiliate' && user?.role !== undefined && (
           <div className="mt-8">
             <Button 
               variant="outline" 

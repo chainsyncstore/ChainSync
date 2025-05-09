@@ -101,8 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password,
         email,
         fullName,
-        role: userRole,
-        status: 'active'
+        role: userRole
       };
       
       const newUser = await storage.createUser(userData);
