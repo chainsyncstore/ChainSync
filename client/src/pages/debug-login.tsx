@@ -4,15 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function DebugLoginPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const { user, isAuthenticated } = useAuth();
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin123');
+  const { user, isAuthenticated, login } = useAuth();
 
   const handleDebugLogin = async () => {
     try {
       setStatus('loading');
+      setError(null);
       const response = await fetch('/api/auth/debug-login', {
         method: 'GET',
         headers: {
@@ -39,6 +45,23 @@ export default function DebugLoginPage() {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     }
   };
+  
+  const handleManualLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setStatus('loading');
+      setError(null);
+      await login(username, password);
+      setStatus('success');
+      
+      // Navigate to dashboard
+      window.location.href = '/dashboard';
+    } catch (err) {
+      console.error('Manual login failed:', err);
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
@@ -46,7 +69,7 @@ export default function DebugLoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Debug Login</CardTitle>
           <CardDescription>
-            Use this page to automatically login as admin user
+            Authentication testing page
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -69,13 +92,54 @@ export default function DebugLoginPage() {
               </Button>
             </div>
           ) : (
-            <Button
-              onClick={handleDebugLogin}
-              className="w-full"
-              disabled={status === 'loading'}
-            >
-              {status === 'loading' ? 'Logging in...' : 'Login as Admin'}
-            </Button>
+            <Tabs defaultValue="auto" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="auto">One-Click Login</TabsTrigger>
+                <TabsTrigger value="manual">Manual Login</TabsTrigger>
+              </TabsList>
+              <TabsContent value="auto" className="space-y-4">
+                <div className="text-center text-sm text-muted-foreground mb-4">
+                  Click the button below to automatically login as an admin user
+                </div>
+                <Button
+                  onClick={handleDebugLogin}
+                  className="w-full"
+                  disabled={status === 'loading'}
+                >
+                  {status === 'loading' ? 'Logging in...' : 'Login as Admin'}
+                </Button>
+              </TabsContent>
+              <TabsContent value="manual" className="space-y-4">
+                <form onSubmit={handleManualLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={status === 'loading'}
+                  >
+                    {status === 'loading' ? 'Logging in...' : 'Login'}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
       </Card>

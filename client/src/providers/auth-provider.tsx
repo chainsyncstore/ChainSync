@@ -36,22 +36,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        console.log('Checking authentication status...');
         const res = await fetch('/api/auth/me', {
+          method: 'GET',
           credentials: 'include',
           headers: {
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
           }
         });
 
+        console.log('Auth check response status:', res.status);
+        console.log('Auth check response headers:', {
+          'content-type': res.headers.get('content-type'),
+          'set-cookie': res.headers.get('set-cookie')
+        });
+        
         if (res.ok) {
           const data = await res.json();
+          console.log('Auth check response data:', data);
           if (data.authenticated && data.user) {
+            console.log('User is authenticated:', data.user);
             setUser(data.user);
+          } else {
+            console.log('Data format unexpected:', data);
+            setUser(null);
           }
         } else {
           // Handle unauthenticated state explicitly
+          const errorText = await res.text();
+          console.log('Not authenticated, response:', errorText);
           setUser(null);
-          console.log('Not authenticated');
         }
       } catch (err) {
         console.error('Auth check failed:', err);
@@ -76,7 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify({ username, password }),
         credentials: 'include'
@@ -88,15 +104,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'set-cookie': res.headers.get('set-cookie')
       });
       
+      // Try to get the response text first before parsing as JSON
+      const responseText = await res.text();
+      console.log('Raw login response:', responseText);
+      
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: 'Login failed' }));
-        console.error('Login error data:', errorData);
-        throw new Error(errorData.message || 'Invalid username or password');
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || 'Invalid username or password';
+          console.error('Login error data:', errorData);
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
       
-      const data = await res.json();
-      console.log('Login response data:', data);
-      setUser(data);
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Login response data:', data);
+        setUser(data);
+      } catch (parseError) {
+        console.error('Failed to parse login response as JSON:', parseError);
+        throw new Error('Received invalid response from server');
+      }
       
       // Redirect based on user role
       if (data.role === 'cashier') {
