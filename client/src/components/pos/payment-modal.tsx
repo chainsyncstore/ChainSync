@@ -32,6 +32,8 @@ export function PaymentModal({
   paymentMethod,
   setPaymentMethod,
   isProcessing,
+  loyaltyId,
+  setLoyaltyId,
 }: PaymentModalProps) {
   const [cashAmount, setCashAmount] = useState<string>(total.toFixed(2));
   
@@ -65,6 +67,16 @@ export function PaymentModal({
           <div className="text-center bg-muted/30 p-4 rounded-md">
             <div className="text-sm text-muted-foreground">Amount Due</div>
             <div className="text-3xl font-bold">{formatCurrency(total)}</div>
+          </div>
+          
+          <div className="space-y-3">
+            <Label htmlFor="loyalty-id">Loyalty ID (Optional)</Label>
+            <Input
+              id="loyalty-id"
+              placeholder="Enter loyalty ID"
+              value={loyaltyId}
+              onChange={(e) => setLoyaltyId(e.target.value)}
+            />
           </div>
           
           <RadioGroup

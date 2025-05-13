@@ -282,6 +282,8 @@ export function PosTerminal() {
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
           isProcessing={createTransactionMutation.isPending}
+          loyaltyId={loyaltyId}
+          setLoyaltyId={setLoyaltyId}
         />
       )}
       
