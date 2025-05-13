@@ -500,9 +500,9 @@ function basicValidateLoyaltyData(
 }
 
 // Validate and clean inventory data
-export function validateInventoryData(
+export async function validateInventoryData(
   data: any[]
-): ImportResult {
+): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -511,6 +511,26 @@ export function validateInventoryData(
     mappedData: [],
     missingFields: []
   };
+  
+  // Perform basic validation
+  basicValidateInventoryData(data, result);
+  
+  // Try AI-powered validation enhancement if available
+  try {
+    await enhanceValidationWithAI(result, 'inventory');
+  } catch (error) {
+    console.log("Error enhancing validation with AI:", error);
+    // Continue with basic validation results if AI enhancement fails
+  }
+  
+  return result;
+}
+
+// Basic inventory data validation
+function basicValidateInventoryData(
+  data: any[],
+  result: ImportResult
+): void {
   
   const processedBarcodes = new Set<string>();
   
