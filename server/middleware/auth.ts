@@ -59,23 +59,38 @@ export const hasStoreAccess = (storeIdParam = 'storeId') => {
 };
 
 export const validateSession = async (req: Request, res: Response, next: NextFunction) => {
+  console.log(`Validating session for ${req.path} with session ID:`, req.sessionID);
+  console.log('Session data:', req.session);
+  console.log('Cookies received:', req.headers.cookie);
+  
   if (req.session.userId) {
     try {
+      console.log(`User ID found in session: ${req.session.userId}, validating user exists...`);
       // Verify user still exists and is valid
       const user = await db.query.users.findFirst({
         where: eq(schema.users.id, req.session.userId)
       });
       
       if (!user) {
+        console.log(`No user found for ID: ${req.session.userId}, destroying session`);
         // User no longer exists, destroy session
         req.session.destroy((err) => {
           if (err) console.error('Error destroying session:', err);
+          else console.log('Session destroyed successfully');
         });
+        
+        if (req.path.startsWith('/api/auth/me')) {
+          return next(); // Continue to auth/me handler for proper error response
+        }
+        
         return res.status(401).json({ message: 'Session expired. Please log in again.' });
       }
+      console.log(`User validated successfully: ${user.username} (${user.role})`);
     } catch (error) {
       console.error('Error validating session:', error);
     }
+  } else {
+    console.log('No userId in session, authentication will be required for protected routes');
   }
   
   next();
