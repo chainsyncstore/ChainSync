@@ -830,13 +830,13 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         } else {
           // Create inventory record if it doesn't exist
           await db.insert(schema.inventory).values({
-            store_id: storeId,
-            product_id: existingProduct.id,
+            storeId: storeId,
+            productId: existingProduct.id,
             quantity: row.quantity,
-            minimum_level: row.minimumLevel || 10,
-            batch_number: row.batchNumber || null,
-            expiry_date: row.expiryDate ? new Date(row.expiryDate) : null,
-            last_stock_update: new Date()
+            minimumLevel: row.minimumLevel || 10,
+            batchNumber: row.batchNumber || null,
+            expiryDate: row.expiryDate ? new Date(row.expiryDate) : null,
+            lastStockUpdate: new Date()
           });
         }
       } else {
@@ -855,13 +855,13 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         
         // Create inventory record
         await db.insert(schema.inventory).values({
-          store_id: storeId,
-          product_id: newProduct.id,
+          storeId: storeId,
+          productId: newProduct.id,
           quantity: row.quantity,
-          minimum_level: row.minimumLevel || 10,
-          batch_number: row.batchNumber || null,
-          expiry_date: row.expiryDate ? new Date(row.expiryDate) : null,
-          last_stock_update: new Date()
+          minimumLevel: row.minimumLevel || 10,
+          batchNumber: row.batchNumber || null,
+          expiryDate: row.expiryDate ? new Date(row.expiryDate) : null,
+          lastStockUpdate: new Date()
         });
       }
       
