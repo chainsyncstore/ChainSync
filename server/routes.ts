@@ -262,25 +262,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const apiPrefix = "/api";
   
   // Authentication endpoints
-  app.get(`${apiPrefix}/auth/me`, (req, res) => {
-    if (req.session && req.session.userId) {
-      return res.json({
-        authenticated: true,
-        userId: req.session.userId,
-        storeId: req.session.storeId,
-        role: req.session.role
-      });
-    }
-    return res.status(401).json({
-      authenticated: false,
-      message: "Not authenticated"
-    });
-  });
 
   // ----------- Authentication Routes -----------
 
   // Endpoint to check if user is authenticated
   app.get(`${apiPrefix}/auth/me`, async (req, res) => {
+    console.log("Session in /auth/me:", req.session);
     if (!req.session.userId) {
       return res.status(401).json({
         authenticated: false,
@@ -347,6 +334,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userRole = user.role;
       req.session.storeId = user.storeId || undefined;
       req.session.fullName = user.fullName;
+      
+      console.log("Session data set:", {
+        userId: req.session.userId,
+        userRole: req.session.userRole,
+        storeId: req.session.storeId,
+        fullName: req.session.fullName
+      });
       
       return res.status(200).json({
         id: user.id,
