@@ -232,6 +232,7 @@ export const transactionItems = pgTable("transaction_items", {
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  returnedQuantity: integer("returned_quantity").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -399,20 +400,21 @@ export const returnReasons = pgTable("return_reasons", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Product returns table
-export const returns = pgTable("returns", {
+// Product returns table - Note: This table is actually called 'refunds' in the database
+export const returns = pgTable("refunds", {
   id: serial("id").primaryKey(),
-  returnId: text("return_id").notNull().unique(), // unique return reference (e.g., RET-12345)
-  originalTransactionId: integer("original_transaction_id").references(() => transactions.id).notNull(),
+  refundId: text("refund_id").notNull().unique(), // a readable ID (e.g., RET-12345)
+  transactionId: integer("transaction_id").references(() => transactions.id).notNull(),
   storeId: integer("store_id").references(() => stores.id).notNull(),
-  processedBy: integer("processed_by").references(() => users.id).notNull(), // User who processed the return
-  customerId: integer("customer_id").references(() => customers.id),
-  returnDate: timestamp("return_date").defaultNow().notNull(),
-  totalRefundAmount: decimal("total_refund_amount", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").default("completed").notNull(), // 'processing', 'completed', 'cancelled'
-  notes: text("notes"),
+  processedById: integer("processed_by_id").references(() => users.id).notNull(),
+  reason: text("reason"),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  refundMethod: text("refund_method").notNull(), // cash, credit_card, store_credit
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const returnsRelations = relations(returns, ({ one, many }) => ({
@@ -421,15 +423,11 @@ export const returnsRelations = relations(returns, ({ one, many }) => ({
     references: [stores.id],
   }),
   processor: one(users, {
-    fields: [returns.processedBy],
+    fields: [returns.processedById],
     references: [users.id],
   }),
-  customer: one(customers, {
-    fields: [returns.customerId],
-    references: [customers.id],
-  }),
-  originalTransaction: one(transactions, {
-    fields: [returns.originalTransactionId],
+  transaction: one(transactions, {
+    fields: [returns.transactionId],
     references: [transactions.id], 
   }),
   items: many(returnItems),
