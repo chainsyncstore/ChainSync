@@ -272,6 +272,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const apiPrefix = "/api";
   
   // Authentication endpoints
+  
+  // Debug endpoint to auto-login (REMOVE IN PRODUCTION)
+  app.get(`${apiPrefix}/auth/debug-login`, async (req, res) => {
+    try {
+      const username = "admin"; // Default admin user from seed data
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Debug user not found" });
+      }
+      
+      // Set session data
+      req.session.userId = user.id;
+      req.session.userRole = user.role;
+      req.session.storeId = user.storeId || undefined;
+      req.session.fullName = user.fullName;
+      
+      console.log("DEBUG: Session data set for auto-login:", {
+        userId: req.session.userId,
+        userRole: req.session.userRole,
+        storeId: req.session.storeId,
+        fullName: req.session.fullName
+      });
+      
+      // Save the session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+          return res.status(500).json({ message: "Failed to save session" });
+        }
+        
+        console.log("DEBUG: Session saved successfully");
+        return res.status(200).json({
+          message: "Debug login successful",
+          user: {
+            id: user.id,
+            username: user.username,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            storeId: user.storeId
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Debug login error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   // ----------- Authentication Routes -----------
 

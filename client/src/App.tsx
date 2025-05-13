@@ -19,6 +19,7 @@ import NotFound from "@/pages/not-found";
 import PaymentTestingPage from "@/pages/payment-testing";
 import LoyaltyPage from "@/pages/loyalty";
 import ImportPage from "@/pages/import";
+import DebugLoginPage from "@/pages/debug-login";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
