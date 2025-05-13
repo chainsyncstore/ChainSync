@@ -708,39 +708,77 @@ export const storage = {
   },
 
   async getTransactionById(id: number) {
-    return await db.query.transactions.findFirst({
-      where: eq(schema.transactions.id, id),
-      with: {
-        store: true,
-        cashier: true,
-        items: {
-          with: {
-            product: true
+    try {
+      return await db.query.transactions.findFirst({
+        where: eq(schema.transactions.id, id),
+        with: {
+          store: true,
+          cashier: true,
+          items: {
+            with: {
+              product: {
+                columns: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  categoryId: true,
+                  barcode: true,
+                  description: true,
+                  cost: true,
+                  imageUrl: true,
+                  isActive: true,
+                  createdAt: true,
+                  updatedAt: true
+                }
+              }
+            }
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error("Error fetching transaction by ID:", error);
+      return null; // Return null instead of failing
+    }
   },
 
   async getRecentTransactions(limit = 5, storeId?: number) {
-    const query = storeId 
-      ? eq(schema.transactions.storeId, storeId)
-      : undefined;
-    
-    return await db.query.transactions.findMany({
-      where: query,
-      with: {
-        store: true,
-        cashier: true,
-        items: {
-          with: {
-            product: true
+    try {
+      const query = storeId 
+        ? eq(schema.transactions.storeId, storeId)
+        : undefined;
+      
+      return await db.query.transactions.findMany({
+        where: query,
+        with: {
+          store: true,
+          cashier: true,
+          items: {
+            with: {
+              product: {
+                columns: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  categoryId: true,
+                  barcode: true,
+                  description: true,
+                  cost: true,
+                  imageUrl: true,
+                  isActive: true,
+                  createdAt: true,
+                  updatedAt: true
+                }
+              }
+            }
           }
-        }
-      },
-      orderBy: [desc(schema.transactions.createdAt)],
-      limit
-    });
+        },
+        orderBy: [desc(schema.transactions.createdAt)],
+        limit
+      });
+    } catch (error) {
+      console.error("Error fetching recent transactions:", error);
+      return []; // Return empty array instead of failing
+    }
   },
 
   async getStoreTransactions(storeId: number, startDate?: Date, endDate?: Date, page = 1, limit = 20) {
