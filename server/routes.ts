@@ -31,10 +31,26 @@ import { db } from "@db";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up session middleware
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || "dev-secret-key",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      },
+    })
+  );
+  
+  // Apply session validation middleware
+  app.use(validateSession);
+  
   // Loyalty API Routes
   app.get('/api/loyalty/members', isAuthenticated, hasStoreAccess, async (req, res) => {
     try {
-      const storeId = req.query.storeId ? parseInt(req.query.storeId as string) : (req.user?.storeId || 0);
+      const storeId = req.query.storeId ? parseInt(req.query.storeId as string) : (req.session.storeId || 0);
       
       if (!storeId) {
         return res.status(400).json({ message: "Store ID is required" });
@@ -160,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Customer is not associated with a store" });
       }
       
-      const member = await loyaltyService.enrollCustomer(customerId, customer.storeId, req.user.id);
+      const member = await loyaltyService.enrollCustomer(customerId, customer.storeId, req.session.userId);
       
       res.json(member);
     } catch (error) {
@@ -228,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         memberId,
         rewardId,
         transactionId,
-        req.user.id
+        req.session.userId
       );
       
       if (!result.success) {
@@ -241,24 +257,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-  // Set up session middleware
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "dev-secret-key",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      },
-    })
-  );
-  
-  // Apply session validation middleware
-  app.use(validateSession);
 
   // Define API routes
   const apiPrefix = "/api";
+  
+  // Authentication endpoints
+  app.get(`${apiPrefix}/auth/me`, (req, res) => {
+    if (req.session && req.session.userId) {
+      return res.json({
+        authenticated: true,
+        userId: req.session.userId,
+        storeId: req.session.storeId,
+        role: req.session.role
+      });
+    }
+    return res.status(401).json({
+      authenticated: false,
+      message: "Not authenticated"
+    });
+  });
 
   // ----------- Authentication Routes -----------
 
