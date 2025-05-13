@@ -19,6 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  signup?: (userData: any) => Promise<void>; // Optional as we implement it later
   error: string | null;
 }
 
@@ -37,6 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch('/api/auth/me', {
           credentials: 'include',
+          headers: {
+            'Accept': 'application/json'
+          }
         });
 
         if (res.ok) {
@@ -44,9 +48,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (data.authenticated && data.user) {
             setUser(data.user);
           }
+        } else {
+          // Handle unauthenticated state explicitly
+          setUser(null);
+          console.log('Not authenticated');
         }
       } catch (err) {
         console.error('Auth check failed:', err);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -61,21 +70,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const res = await apiRequest('POST', '/api/auth/login', { username, password });
-      const user = await res.json();
-      setUser(user);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Login failed' }));
+        throw new Error(errorData.message || 'Invalid username or password');
+      }
+      
+      const data = await res.json();
+      console.log('Login response:', data);
+      setUser(data);
       
       // Redirect based on user role
-      if (user.role === 'cashier') {
+      if (data.role === 'cashier') {
         setLocation('/pos');
-      } else if (user.role === 'affiliate') {
+      } else if (data.role === 'affiliate') {
         setLocation('/affiliates');
       } else {
         setLocation('/dashboard');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login failed:', err);
-      setError('Invalid username or password');
+      setError(err.message || 'Invalid username or password');
       throw err;
     } finally {
       setIsLoading(false);
@@ -87,12 +111,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      await apiRequest('POST', '/api/auth/logout');
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Logout failed' }));
+        throw new Error(errorData.message || 'Logout failed');
+      }
+      
       setUser(null);
       setLocation('/login');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Logout failed:', err);
-      setError('Logout failed. Please try again.');
+      setError(err.message || 'Logout failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
