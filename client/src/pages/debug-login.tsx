@@ -68,8 +68,8 @@ export default function DebugLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 fixed inset-0 z-50 overflow-auto">
-      <Card className="w-full max-w-md mx-auto">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 fixed inset-0 z-50 overflow-auto" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: '#f9fafb' }}>
+      <Card className="w-full max-w-md mx-auto" style={{ position: 'relative', zIndex: 10000 }}>
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Debug Login</CardTitle>
           <CardDescription>
@@ -96,54 +96,57 @@ export default function DebugLoginPage() {
               </Button>
             </div>
           ) : (
-            <Tabs defaultValue="auto" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="auto">One-Click Login</TabsTrigger>
-                <TabsTrigger value="manual">Manual Login</TabsTrigger>
-              </TabsList>
-              <TabsContent value="auto" className="space-y-4">
-                <div className="text-center text-sm text-muted-foreground mb-4">
-                  Click the button below to automatically login as an admin user
+            <div className="space-y-6">
+              <Button
+                onClick={handleDebugLogin}
+                className="w-full bg-primary hover:bg-primary/90"
+                disabled={status === 'loading'}
+              >
+                {status === 'loading' ? 'Logging in...' : 'One-Click Login (Admin)'}
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
                 </div>
-                <Button
-                  onClick={handleDebugLogin}
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or Login Manually
+                  </span>
+                </div>
+              </div>
+              
+              <form onSubmit={handleManualLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    autoComplete="username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
                   className="w-full"
                   disabled={status === 'loading'}
                 >
-                  {status === 'loading' ? 'Logging in...' : 'Login as Admin'}
+                  {status === 'loading' ? 'Logging in...' : 'Login'}
                 </Button>
-              </TabsContent>
-              <TabsContent value="manual" className="space-y-4">
-                <form onSubmit={handleManualLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={status === 'loading'}
-                  >
-                    {status === 'loading' ? 'Logging in...' : 'Login'}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+              </form>
+            </div>
           )}
         </CardContent>
       </Card>
