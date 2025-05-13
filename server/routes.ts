@@ -261,6 +261,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const apiPrefix = "/api";
 
   // ----------- Authentication Routes -----------
+
+  // Endpoint to check if user is authenticated
+  app.get(`${apiPrefix}/auth/me`, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({
+        authenticated: false,
+        message: "Not authenticated"
+      });
+    }
+
+    try {
+      const user = await storage.getUserById(req.session.userId);
+      
+      if (!user) {
+        req.session.destroy((err) => {
+          if (err) console.error("Error destroying invalid session:", err);
+        });
+        return res.status(401).json({
+          authenticated: false,
+          message: "User not found"
+        });
+      }
+      
+      return res.status(200).json({
+        authenticated: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          storeId: user.storeId
+        }
+      });
+    } catch (error) {
+      console.error("Auth check error:", error);
+      return res.status(500).json({
+        authenticated: false,
+        message: "Internal server error"
+      });
+    }
+  });
   
   app.post(`${apiPrefix}/auth/login`, async (req, res) => {
     try {
