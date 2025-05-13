@@ -374,6 +374,15 @@ export const authResponseSchema = z.object({
 // Type exports
 export type User = typeof users.$inferSelect;
 export type UserInsert = z.infer<typeof userInsertSchema>;
+
+export const passwordResetTokenInsertSchema = createInsertSchema(passwordResetTokens, {
+  token: (schema) => schema.min(1, "Token is required"),
+  userId: (schema) => schema.positive("User ID must be positive"),
+});
+
+export const passwordResetTokenSchema = createSelectSchema(passwordResetTokens);
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type PasswordResetTokenInsert = z.infer<typeof passwordResetTokenInsertSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 
 export type Store = typeof stores.$inferSelect;

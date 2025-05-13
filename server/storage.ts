@@ -2,6 +2,7 @@ import { db } from "@db";
 import * as schema from "@shared/schema";
 import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL, inArray, asc } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
+import crypto from "crypto";
 
 export const storage = {
   // --------- Loyalty Program ---------
@@ -426,6 +427,63 @@ export const storage = {
       .returning();
       
     return updatedUser;
+  },
+
+  // Password reset functionality
+  async createPasswordResetToken(userId: number, expiresInHours = 1): Promise<schema.PasswordResetToken> {
+    // Generate a random token
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    // Calculate expiration date (default 1 hour from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHours);
+    
+    // Insert token into database
+    const [passwordResetToken] = await db.insert(schema.passwordResetTokens)
+      .values({
+        userId,
+        token,
+        expiresAt,
+        used: false
+      })
+      .returning();
+    
+    return passwordResetToken;
+  },
+  
+  async getPasswordResetToken(token: string): Promise<schema.PasswordResetToken | null> {
+    const resetToken = await db.query.passwordResetTokens.findFirst({
+      where: eq(schema.passwordResetTokens.token, token)
+    });
+    
+    return resetToken || null;
+  },
+  
+  async markPasswordResetTokenAsUsed(token: string): Promise<void> {
+    await db.update(schema.passwordResetTokens)
+      .set({ used: true })
+      .where(eq(schema.passwordResetTokens.token, token));
+  },
+  
+  async isPasswordResetTokenValid(token: string): Promise<boolean> {
+    const resetToken = await this.getPasswordResetToken(token);
+    
+    if (!resetToken) {
+      return false;
+    }
+    
+    // Check if token is expired
+    const now = new Date();
+    if (resetToken.expiresAt < now) {
+      return false;
+    }
+    
+    // Check if token has been used
+    if (resetToken.used) {
+      return false;
+    }
+    
+    return true;
   },
 
   // --------- Stores ---------
