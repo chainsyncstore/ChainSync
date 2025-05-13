@@ -3,7 +3,21 @@ import { useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { AuthResponse, User } from '@shared/schema';
+import type { AuthResponse } from '@shared/schema';
+
+// Define User interface for the auth context
+// We remove password for security reasons
+export interface User {
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  role: 'admin' | 'manager' | 'cashier' | 'affiliate';
+  storeId?: number;
+  lastLogin?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // Define login credentials type
 export interface LoginCredentials {
@@ -47,8 +61,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchInterval: false,
   });
 
-  // Extract user from auth data
-  const user = authData?.authenticated && authData?.user ? authData.user : null;
+  // Extract and convert user from auth data
+  const user: User | null = (() => {
+    if (authData?.authenticated && authData?.user) {
+      // Get role and ensure it's one of our valid types
+      const role = authData.user.role as string;
+      const validRole = ['admin', 'manager', 'cashier', 'affiliate'].includes(role) 
+          ? role as 'admin' | 'manager' | 'cashier' | 'affiliate'
+          : 'cashier'; // Default role as fallback
+
+      // Convert possibly null values to undefined
+      const storeId = authData.user.storeId === null ? undefined : authData.user.storeId;
+      const lastLogin = authData.user.lastLogin === null ? undefined : authData.user.lastLogin;
+      
+      return {
+        id: authData.user.id,
+        username: authData.user.username,
+        fullName: authData.user.fullName,
+        email: authData.user.email,
+        role: validRole,
+        storeId,
+        lastLogin,
+        createdAt: authData.user.createdAt,
+        updatedAt: authData.user.updatedAt
+      };
+    }
+    return null;
+  })();
+  
   const isAuthenticated = !!user;
   
   // Login mutation
@@ -69,7 +109,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.message || 'Authentication failed');
       }
       
-      return data.user;
+      // Transform the user data to match our User interface
+      const user = data.user;
+      
+      // Get role and ensure it's one of our valid types
+      const role = user.role as string;
+      const validRole = ['admin', 'manager', 'cashier', 'affiliate'].includes(role) 
+          ? role as 'admin' | 'manager' | 'cashier' | 'affiliate'
+          : 'cashier'; // Default role as fallback
+
+      // Convert possibly null values to undefined
+      const storeId = user.storeId === null ? undefined : user.storeId;
+      const lastLogin = user.lastLogin === null ? undefined : user.lastLogin;
+      
+      // Return properly typed user object
+      return {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        role: validRole,
+        storeId,
+        lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
     },
     onSuccess: (userData) => {
       // Invalidate and refetch auth query
@@ -145,7 +209,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async (): Promise<User | null> => {
     const result = await refetchAuth();
     const data = result.data;
-    return data?.authenticated && data?.user ? data.user : null;
+    
+    if (data?.authenticated && data?.user) {
+      // Get role and ensure it's one of our valid types
+      const role = data.user.role as string;
+      const validRole = ['admin', 'manager', 'cashier', 'affiliate'].includes(role) 
+          ? role as 'admin' | 'manager' | 'cashier' | 'affiliate'
+          : 'cashier'; // Default role as fallback
+
+      // Convert possibly null values to undefined
+      const storeId = data.user.storeId === null ? undefined : data.user.storeId;
+      const lastLogin = data.user.lastLogin === null ? undefined : data.user.lastLogin;
+      
+      // Type conversion to match our User interface
+      const user: User = {
+        id: data.user.id,
+        username: data.user.username,
+        fullName: data.user.fullName,
+        email: data.user.email,
+        role: validRole,
+        storeId,
+        lastLogin,
+        createdAt: data.user.createdAt,
+        updatedAt: data.user.updatedAt
+      };
+      return user;
+    }
+    
+    return null;
   };
 
   return (

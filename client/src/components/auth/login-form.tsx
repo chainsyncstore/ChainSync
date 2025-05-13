@@ -44,6 +44,7 @@ export function LoginForm() {
       const credentials: LoginCredentials = {
         username: values.username,
         password: values.password,
+        rememberMe: values.rememberMe,
       };
       
       // Call login function from auth provider
@@ -63,7 +64,7 @@ export function LoginForm() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Login to ChainSync</CardTitle>
         <CardDescription>
-          Enter your credentials to access your account
+          Enter your credentials to access your account. You can use the "Remember Me" option to stay logged in on this device.
         </CardDescription>
       </CardHeader>
       <CardContent>
