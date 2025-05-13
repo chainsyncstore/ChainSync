@@ -14,6 +14,8 @@ import * as affiliateService from './services/affiliate';
 import * as webhookService from './services/webhooks';
 import * as paymentService from './services/payment';
 
+import * as loyaltyService from "./services/loyalty";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up session middleware
   app.use(
@@ -1479,6 +1481,352 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: error.message });
       }
       return res.status(500).json({ error: 'Failed to create return reason' });
+    }
+  });
+
+  // ========= Loyalty Program API Routes =========
+  
+  // Customer enrollment in loyalty program
+  app.post(`${apiPrefix}/loyalty/enroll`, isAuthenticated, async (req, res) => {
+    try {
+      const { customerId } = req.body;
+      
+      if (!customerId) {
+        return res.status(400).json({ error: 'Customer ID is required' });
+      }
+      
+      // Get the user's store ID (cashiers are assigned to stores)
+      const userId = req.session.userId;
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+      
+      // Find customer to verify they exist
+      const customer = await storage.getCustomerById(customerId);
+      if (!customer) {
+        return res.status(404).json({ error: 'Customer not found' });
+      }
+      
+      // Use customer's store ID if available, otherwise use user's assigned store
+      const storeId = customer.storeId || user.storeId;
+      
+      if (!storeId) {
+        return res.status(400).json({ error: 'No store associated with this customer or user' });
+      }
+      
+      // Check if customer is already enrolled
+      const existingMember = await storage.getLoyaltyMemberByCustomerId(customerId);
+      
+      if (existingMember) {
+        return res.json({ 
+          success: true, 
+          member: existingMember,
+          message: 'Customer is already enrolled in the loyalty program'
+        });
+      }
+      
+      // Enroll customer
+      const member = await loyaltyService.enrollCustomer(customerId, storeId, userId);
+      
+      res.json({ 
+        success: true, 
+        member,
+        message: 'Customer successfully enrolled in loyalty program'
+      });
+    } catch (error) {
+      console.error('Error enrolling customer in loyalty program:', error);
+      res.status(500).json({ error: 'Failed to enroll customer in loyalty program' });
+    }
+  });
+  
+  // Get loyalty member details
+  app.get(`${apiPrefix}/loyalty/member/:id`, isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      let member;
+      
+      // Check if ID is numeric (member ID) or string (loyalty ID)
+      if (/^\d+$/.test(id)) {
+        member = await storage.getLoyaltyMemberById(parseInt(id));
+      } else {
+        member = await storage.getLoyaltyMemberByLoyaltyId(id);
+      }
+      
+      if (!member) {
+        return res.status(404).json({ error: 'Loyalty member not found' });
+      }
+      
+      res.json(member);
+    } catch (error) {
+      console.error('Error fetching loyalty member:', error);
+      res.status(500).json({ error: 'Failed to fetch loyalty member' });
+    }
+  });
+  
+  // Get loyalty member by customer ID
+  app.get(`${apiPrefix}/loyalty/customer/:customerId`, isAuthenticated, async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      
+      const member = await storage.getLoyaltyMemberByCustomerId(parseInt(customerId));
+      
+      if (!member) {
+        return res.status(404).json({ error: 'Customer is not enrolled in loyalty program' });
+      }
+      
+      res.json(member);
+    } catch (error) {
+      console.error('Error fetching loyalty member by customer ID:', error);
+      res.status(500).json({ error: 'Failed to fetch loyalty member' });
+    }
+  });
+  
+  // Get loyalty member activity history
+  app.get(`${apiPrefix}/loyalty/member/:id/activity`, isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      let memberId: number;
+      
+      // Check if ID is numeric (member ID) or string (loyalty ID)
+      if (/^\d+$/.test(id)) {
+        memberId = parseInt(id);
+      } else {
+        const member = await storage.getLoyaltyMemberByLoyaltyId(id);
+        if (!member) {
+          return res.status(404).json({ error: 'Loyalty member not found' });
+        }
+        memberId = member.id;
+      }
+      
+      const transactions = await storage.getLoyaltyTransactions(memberId, limit, offset);
+      
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error fetching loyalty transactions:', error);
+      res.status(500).json({ error: 'Failed to fetch loyalty transactions' });
+    }
+  });
+  
+  // Get available rewards for a loyalty member
+  app.get(`${apiPrefix}/loyalty/member/:id/rewards`, isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      let memberId: number;
+      
+      // Check if ID is numeric (member ID) or string (loyalty ID)
+      if (/^\d+$/.test(id)) {
+        memberId = parseInt(id);
+      } else {
+        const member = await storage.getLoyaltyMemberByLoyaltyId(id);
+        if (!member) {
+          return res.status(404).json({ error: 'Loyalty member not found' });
+        }
+        memberId = member.id;
+      }
+      
+      const rewards = await loyaltyService.getAvailableRewards(memberId);
+      
+      res.json(rewards);
+    } catch (error) {
+      console.error('Error fetching available rewards:', error);
+      res.status(500).json({ error: 'Failed to fetch available rewards' });
+    }
+  });
+  
+  // Apply reward to transaction
+  app.post(`${apiPrefix}/loyalty/apply-reward`, isAuthenticated, async (req, res) => {
+    try {
+      const { memberId, rewardId, transactionId } = req.body;
+      
+      if (!memberId || !rewardId || !transactionId) {
+        return res.status(400).json({ error: 'Member ID, reward ID, and transaction ID are required' });
+      }
+      
+      const userId = req.session.userId;
+      
+      const result = await loyaltyService.applyReward(
+        parseInt(memberId),
+        parseInt(rewardId),
+        parseInt(transactionId),
+        userId
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.message || 'Failed to apply reward' });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error applying reward:', error);
+      res.status(500).json({ error: 'Failed to apply reward' });
+    }
+  });
+  
+  // Calculate points for a transaction
+  app.post(`${apiPrefix}/loyalty/calculate-points`, isAuthenticated, async (req, res) => {
+    try {
+      const { subtotal, storeId, items } = req.body;
+      
+      if (!subtotal || !storeId) {
+        return res.status(400).json({ error: 'Subtotal and store ID are required' });
+      }
+      
+      const points = await loyaltyService.calculatePointsForTransaction(
+        subtotal,
+        parseInt(storeId),
+        items || []
+      );
+      
+      res.json({ points });
+    } catch (error) {
+      console.error('Error calculating points:', error);
+      res.status(500).json({ error: 'Failed to calculate points' });
+    }
+  });
+  
+  // Record points earned for a transaction
+  app.post(`${apiPrefix}/loyalty/record-points`, isAuthenticated, async (req, res) => {
+    try {
+      const { transactionId, memberId, points } = req.body;
+      
+      if (!transactionId || !memberId || points === undefined) {
+        return res.status(400).json({ error: 'Transaction ID, member ID, and points are required' });
+      }
+      
+      const userId = req.session.userId;
+      
+      const result = await loyaltyService.recordPointsEarned(
+        parseInt(transactionId),
+        parseInt(memberId),
+        parseInt(points),
+        userId
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ error: 'Failed to record points' });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error recording points:', error);
+      res.status(500).json({ error: 'Failed to record points' });
+    }
+  });
+  
+  // Get loyalty program for store
+  app.get(`${apiPrefix}/loyalty/program/:storeId`, isAuthenticated, async (req, res) => {
+    try {
+      const { storeId } = req.params;
+      
+      const program = await storage.getLoyaltyProgram(parseInt(storeId));
+      
+      if (!program) {
+        return res.status(404).json({ error: 'No active loyalty program found for this store' });
+      }
+      
+      res.json(program);
+    } catch (error) {
+      console.error('Error fetching loyalty program:', error);
+      res.status(500).json({ error: 'Failed to fetch loyalty program' });
+    }
+  });
+  
+  // Create or update loyalty program
+  app.post(`${apiPrefix}/loyalty/program`, isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { storeId, name, pointsPerAmount, expiryMonths, active } = req.body;
+      
+      if (!storeId) {
+        return res.status(400).json({ error: 'Store ID is required' });
+      }
+      
+      const program = await loyaltyService.upsertLoyaltyProgram(parseInt(storeId), {
+        name,
+        pointsPerAmount,
+        expiryMonths: expiryMonths ? parseInt(expiryMonths) : undefined,
+        active
+      });
+      
+      res.json({ success: true, program });
+    } catch (error) {
+      console.error('Error creating/updating loyalty program:', error);
+      res.status(500).json({ error: 'Failed to create/update loyalty program' });
+    }
+  });
+  
+  // Create loyalty tier
+  app.post(`${apiPrefix}/loyalty/tier`, isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { programId, name, requiredPoints, pointMultiplier, active } = req.body;
+      
+      if (!programId || !name || !requiredPoints) {
+        return res.status(400).json({ error: 'Program ID, name, and required points are required' });
+      }
+      
+      const tier = await loyaltyService.createLoyaltyTier({
+        programId: parseInt(programId),
+        name,
+        requiredPoints,
+        pointMultiplier,
+        active: active !== undefined ? active : true
+      });
+      
+      res.json({ success: true, tier });
+    } catch (error) {
+      console.error('Error creating loyalty tier:', error);
+      res.status(500).json({ error: 'Failed to create loyalty tier' });
+    }
+  });
+  
+  // Create loyalty reward
+  app.post(`${apiPrefix}/loyalty/reward`, isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { 
+        programId, name, description, pointsCost, 
+        discountValue, discountType, productId, active,
+        startDate, endDate
+      } = req.body;
+      
+      if (!programId || !name || !pointsCost) {
+        return res.status(400).json({ error: 'Program ID, name, and points cost are required' });
+      }
+      
+      const reward = await loyaltyService.createLoyaltyReward({
+        programId: parseInt(programId),
+        name,
+        description,
+        pointsCost,
+        discountValue,
+        discountType,
+        productId: productId ? parseInt(productId) : undefined,
+        active: active !== undefined ? active : true,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined
+      });
+      
+      res.json({ success: true, reward });
+    } catch (error) {
+      console.error('Error creating loyalty reward:', error);
+      res.status(500).json({ error: 'Failed to create loyalty reward' });
+    }
+  });
+  
+  // Get loyalty analytics
+  app.get(`${apiPrefix}/loyalty/analytics/:storeId`, isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { storeId } = req.params;
+      
+      const analytics = await loyaltyService.getLoyaltyAnalytics(parseInt(storeId));
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error('Error fetching loyalty analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch loyalty analytics' });
     }
   });
 

@@ -2,7 +2,18 @@ import { db } from "@db";
 import * as schema from "@shared/schema";
 import { eq, and, gt, lt, desc, sql, asc } from "drizzle-orm";
 import { storage } from "../storage";
-import { generateRandomString } from "./utils";
+// Helper function to generate random strings
+function generateRandomString(length: number): string {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  const charactersLength = characters.length;
+  
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  
+  return result;
+}
 
 /**
  * Generate a unique loyalty ID for a new member
