@@ -223,10 +223,11 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                   )}
                   
                   <NavItem 
-                    href="/affiliates" 
+                    href="/" 
                     icon={<Share2 className="w-5 h-5" />} 
-                    active={location === '/affiliates'} 
+                    active={false} 
                     onClick={isMobile ? onClose : undefined}
+                    external={true}
                   >
                     Affiliate Program
                   </NavItem>
