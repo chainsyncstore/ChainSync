@@ -533,43 +533,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post(`${apiPrefix}/auth/signup`, async (req, res) => {
+  app.post(`${apiPrefix}/auth/register`, async (req, res) => {
+    // Set the response content type to application/json
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    
     try {
-      const { username, password, email, fullName, role, becomeAffiliate } = req.body;
-      
-      if (!username || !password || !email || !fullName) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
+      // Validate the request body
+      const userData = schema.userInsertSchema.parse(req.body);
       
       // Check if username is already taken
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(409).json({ message: "Username already exists" });
+      const existingUserByUsername = await storage.getUserByUsername(userData.username);
+      if (existingUserByUsername) {
+        return res.status(409).json({ 
+          authenticated: false,
+          message: "Username already exists" 
+        });
       }
       
-      // Use affiliate role if specified, otherwise default to regular user
-      const userRole = role === 'affiliate' ? 'affiliate' : 'user';
+      // Check if email is already taken
+      if (userData.email) {
+        const existingUserByEmail = await storage.getUserByEmail(userData.email);
+        if (existingUserByEmail) {
+          return res.status(409).json({ 
+            authenticated: false,
+            message: "Email already in use" 
+          });
+        }
+      }
       
       // Create the user
-      const userData: schema.UserInsert = {
-        username,
-        password,
-        email,
-        fullName,
-        role: userRole
-      };
-      
       const newUser = await storage.createUser(userData);
       
-      // Auto-register as affiliate if flag is set
-      if (becomeAffiliate) {
-        try {
-          const { registerAffiliate } = await import('./services/affiliate');
-          await registerAffiliate(newUser.id);
-        } catch (affiliateError) {
-          console.error("Error registering affiliate:", affiliateError);
-          // We continue anyway since the user is created
-        }
+      // Regenerate session to prevent session fixation attack
+      const regenerateSession = () => {
+        return new Promise<void>((resolve, reject) => {
+          req.session.regenerate((err) => {
+            if (err) {
+              console.error("Error regenerating session:", err);
+              reject(err);
+            } else {
+              console.log("Session regenerated successfully");
+              resolve();
+            }
+          });
+        });
+      };
+      
+      try {
+        await regenerateSession();
+      } catch (sessionError) {
+        console.error("Failed to regenerate session:", sessionError);
+        return res.status(500).json({ 
+          authenticated: false,
+          message: "Session error" 
+        });
       }
       
       // Set session data - auto-login
@@ -578,20 +596,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.storeId = newUser.storeId || undefined;
       req.session.fullName = newUser.fullName;
       
-      // Return the new user (without password)
-      const { password: _, ...userWithoutPassword } = newUser;
+      // Save the session explicitly
+      const saveSessionPromise = () => {
+        return new Promise((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error("Error saving session:", err);
+              reject(err);
+            } else {
+              console.log("Session saved successfully");
+              resolve(true);
+            }
+          });
+        });
+      };
       
+      try {
+        await saveSessionPromise();
+      } catch (sessionError) {
+        console.error("Failed to save session:", sessionError);
+        return res.status(500).json({ 
+          authenticated: false,
+          message: "Session error" 
+        });
+      }
+      
+      // Return the user in the same format as our auth responses
       return res.status(201).json({
-        id: newUser.id,
-        username: newUser.username,
-        fullName: newUser.fullName,
-        email: newUser.email,
-        role: newUser.role,
-        storeId: newUser.storeId,
+        authenticated: true,
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          fullName: newUser.fullName,
+          email: newUser.email,
+          role: newUser.role,
+          storeId: newUser.storeId,
+          lastLogin: newUser.lastLogin,
+          createdAt: newUser.createdAt,
+          updatedAt: newUser.updatedAt
+        }
       });
     } catch (error) {
-      console.error("Signup error:", error);
-      return res.status(500).json({ message: "Failed to create account" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          authenticated: false,
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      
+      console.error("Registration error:", error);
+      return res.status(500).json({ 
+        authenticated: false,
+        message: "Failed to create account" 
+      });
     }
   });
   

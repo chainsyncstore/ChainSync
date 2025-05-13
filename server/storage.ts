@@ -359,6 +359,12 @@ export const storage = {
       where: eq(schema.users.username, username)
     });
   },
+  
+  async getUserByEmail(email: string) {
+    return await db.query.users.findFirst({
+      where: eq(schema.users.email, email)
+    });
+  },
 
   async validateUserCredentials(username: string, password: string) {
     const user = await this.getUserByUsername(username);
