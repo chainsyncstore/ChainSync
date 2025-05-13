@@ -310,9 +310,9 @@ export default function LandingPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <a href="#trial" className="w-full">
+                <Link href="/signup" className="w-full">
                   <Button className="w-full">Start Free Trial</Button>
-                </a>
+                </Link>
               </CardFooter>
             </Card>
             <Card className="flex flex-col">
