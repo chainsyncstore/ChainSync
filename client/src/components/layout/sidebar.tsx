@@ -13,7 +13,8 @@ import {
   ShoppingCart,
   Share2,
   RotateCcw,
-  Award
+  Award,
+  FileInput
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -174,6 +175,17 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                   >
                     Loyalty Program
                   </NavItem>
+                  
+                  {(role === 'admin' || role === 'manager') && (
+                    <NavItem 
+                      href="/import" 
+                      icon={<FileInput className="w-5 h-5" />} 
+                      active={location === '/import'} 
+                      onClick={isMobile ? onClose : undefined}
+                    >
+                      Import Data
+                    </NavItem>
+                  )}
                   
                   {role === 'admin' && (
                     <NavItem 
