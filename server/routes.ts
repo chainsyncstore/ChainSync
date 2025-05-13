@@ -331,6 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Set the response content type to application/json
     res.setHeader('Content-Type', 'application/json');
     console.log("Session in /auth/me:", req.session);
+    console.log("Cookies:", req.headers.cookie);
     if (!req.session.userId) {
       return res.status(401).json({
         authenticated: false,
@@ -374,6 +375,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(`${apiPrefix}/auth/login`, async (req, res) => {
     // Set the response content type to application/json
     res.setHeader('Content-Type', 'application/json');
+    console.log("Login request headers:", {
+      cookie: req.headers.cookie,
+      "content-type": req.headers["content-type"]
+    });
     try {
       console.log("Login attempt for:", req.body.username);
       const loginData = schema.loginSchema.parse(req.body);
@@ -407,14 +412,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName: req.session.fullName
       });
       
-      // Save the session explicitly
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error saving session:", err);
-        } else {
-          console.log("Session saved successfully");
-        }
-      });
+      // Save the session explicitly using a promise for better error handling
+      const saveSessionPromise = () => {
+        return new Promise((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error("Error saving session:", err);
+              reject(err);
+            } else {
+              console.log("Session saved successfully");
+              resolve(true);
+            }
+          });
+        });
+      };
+      
+      try {
+        await saveSessionPromise();
+      } catch (sessionError) {
+        console.error("Failed to save session:", sessionError);
+        return res.status(500).json({ message: "Session error" });
+      }
       
       return res.status(200).json({
         id: user.id,

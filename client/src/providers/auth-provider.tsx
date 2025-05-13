@@ -70,6 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
+      console.log('Login request for:', username);
+      
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -80,13 +82,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include'
       });
       
+      console.log('Login response status:', res.status);
+      console.log('Login response headers:', {
+        'content-type': res.headers.get('content-type'),
+        'set-cookie': res.headers.get('set-cookie')
+      });
+      
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: 'Login failed' }));
+        console.error('Login error data:', errorData);
         throw new Error(errorData.message || 'Invalid username or password');
       }
       
       const data = await res.json();
-      console.log('Login response:', data);
+      console.log('Login response data:', data);
       setUser(data);
       
       // Redirect based on user role
