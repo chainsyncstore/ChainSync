@@ -2,10 +2,12 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
 import session from "express-session";
+import pgSession from "connect-pg-simple";
 import { z } from "zod";
 import { ZodError } from "zod-validation-error";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
+import { pool } from "@db";
 import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from "./middleware/auth";
 import { getAIResponse } from "./services/ai";
 import multer from "multer";
@@ -31,9 +33,17 @@ import { db } from "@db";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up PostgreSQL session store
+  const PostgresStore = pgSession(session);
+  
   // Set up session middleware
   app.use(
     session({
+      store: new PostgresStore({
+        pool,
+        createTableIfMissing: true,
+        tableName: 'session'
+      }),
       secret: process.env.SESSION_SECRET || "dev-secret-key",
       resave: false,
       saveUninitialized: false,
@@ -340,6 +350,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userRole: req.session.userRole,
         storeId: req.session.storeId,
         fullName: req.session.fullName
+      });
+      
+      // Save the session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+        } else {
+          console.log("Session saved successfully");
+        }
       });
       
       return res.status(200).json({
