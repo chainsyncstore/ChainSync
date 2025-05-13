@@ -188,13 +188,13 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
                     {transaction.store.name}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                    {transaction.cashier.fullName}
+                    {transaction.cashier?.fullName || transaction.cashier?.username || 'Unknown'}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
                     {itemCount}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">
-                    {formatCurrency(transaction.total)}
+                    {formatCurrency(typeof transaction.total === 'string' ? parseFloat(transaction.total) : transaction.total)}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
                     {formatTime(transaction.createdAt)}
@@ -208,7 +208,7 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
                       <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">
                         Pending
                       </Badge>
-                    ) : transaction.isOfflineTransaction && !transaction.syncedAt ? (
+                    ) : transaction.isOfflineTransaction && !transaction.syncedAt && !transaction.synced_at ? (
                       <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">
                         Syncing...
                       </Badge>
