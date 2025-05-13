@@ -241,7 +241,7 @@ export function PosTerminal() {
       <div className="lg:w-7/12 space-y-4">
         {/* Offline mode alert */}
         {!isOnline && (
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <Alert className="bg-amber-50 border-amber-200">
             <WifiOff className="h-4 w-4 text-amber-600" />
             <AlertTitle className="text-amber-600">Offline Mode Active</AlertTitle>
             <AlertDescription className="text-amber-700">

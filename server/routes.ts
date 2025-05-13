@@ -862,6 +862,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (loyaltyMember) {
           loyaltyMemberId = loyaltyMember.id;
         }
+        // Remove the loyaltyId property as it's not in the database schema
+        delete transactionData.loyaltyId;
       }
       
       // Validate transaction data

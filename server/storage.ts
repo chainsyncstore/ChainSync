@@ -666,32 +666,36 @@ export const storage = {
           
           if (loyaltyProgram) {
             // Calculate points based on transaction amount
-            const pointsRate = loyaltyProgram.pointsRate || 0.01; // Default to 1 point per $100 if not set
+            const pointsRate = parseFloat(loyaltyProgram.pointsPerAmount || "0.01"); // Default to 1 point per $100 if not set
             const pointsEarned = parseFloat(transaction.total) * pointsRate;
+            const pointsEarnedStr = pointsEarned.toString();
             
             // Update transaction with points earned
             await db.update(schema.transactions)
-              .set({ pointsEarned })
+              .set({ pointsEarned: pointsEarnedStr })
               .where(eq(schema.transactions.id, transaction.id));
             
             // Create loyalty transaction record
             await this.createLoyaltyTransaction({
-              loyaltyMemberId: transaction.loyaltyMemberId,
+              memberId: transaction.loyaltyMemberId,
               transactionId: transaction.id,
-              points: pointsEarned,
+              points: pointsEarnedStr,
               type: 'earn',
-              description: `Points earned from transaction ${transaction.transactionId}`,
-              expiresAt: new Date(Date.now() + (loyaltyProgram.pointExpiryDays || 365) * 24 * 60 * 60 * 1000),
+              note: `Points earned from transaction ${transaction.transactionId}`,
+              // Set expiration based on program settings
+              createdBy: transaction.cashierId
             });
             
             // Update member's point balance
-            const newPointBalance = parseFloat(loyaltyMember.pointBalance || "0") + pointsEarned;
+            const currentPoints = parseFloat(loyaltyMember.currentPoints || "0");
+            const newPointBalance = currentPoints + pointsEarned;
             await this.updateLoyaltyMember(transaction.loyaltyMemberId, {
-              pointBalance: newPointBalance.toString(),
+              currentPoints: newPointBalance.toString(),
+              lastActivity: new Date()
             });
             
             // Update transaction object with points data
-            transaction.pointsEarned = pointsEarned;
+            transaction.pointsEarned = pointsEarnedStr;
           }
         }
       } catch (error) {
