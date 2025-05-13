@@ -2435,10 +2435,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply column mapping
       const mappedData = applyColumnMapping(data, mapping);
       
-      // Validate data based on type
-      const validationResult = dataType === 'loyalty' 
+      // Validate data based on type (using AI-powered validation)
+      const validationResult = await (dataType === 'loyalty' 
         ? validateLoyaltyData(mappedData)
-        : validateInventoryData(mappedData);
+        : validateInventoryData(mappedData));
       
       return res.status(200).json(validationResult);
     } catch (error) {

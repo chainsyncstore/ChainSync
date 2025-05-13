@@ -6,9 +6,10 @@ import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { db } from '@db/index';
 import { SessionsClient } from '@google-cloud/dialogflow';
+import { enhanceValidationWithAI } from './import-ai';
 
 // Define types for import data
-interface ImportResult {
+export interface ImportResult {
   success: boolean;
   totalRows: number;
   importedRows: number;
@@ -17,20 +18,20 @@ interface ImportResult {
   missingFields: MissingField[];
 }
 
-interface ImportError {
+export interface ImportError {
   row: number;
   field: string;
   value: string;
   reason: string;
 }
 
-interface MissingField {
+export interface MissingField {
   row: number;
   field: string;
   isRequired: boolean;
 }
 
-interface ColumnMapping {
+export interface ColumnMapping {
   source: string;
   target: string;
   confidence: number;
