@@ -27,11 +27,11 @@ export async function enhanceValidationWithAI(
     );
     
     // Prepare a sample of validation issues for Dialogflow to analyze
-    const errorSample = result.errors.slice(0, 5).map(err => 
+    const errorSample = result.errors.slice(0, 5).map((err: any) => 
       `Row ${err.row}: ${err.field} = "${err.value}" (${err.reason})`
     ).join("\n");
     
-    const missingSample = result.missingFields.slice(0, 5).map(field => 
+    const missingSample = result.missingFields.slice(0, 5).map((field: any) => 
       `Row ${field.row}: ${field.field} is missing ${field.isRequired ? '(required)' : '(optional)'}`
     ).join("\n");
     
@@ -125,7 +125,7 @@ function applyAISuggestedFixes(
           const newValue = match[2];
           
           // Try to find errors with this value and fix them
-          result.errors.forEach((error) => {
+          result.errors.forEach((error: any) => {
             if (error.value === oldValue) {
               applyFix(result, error.row - 1, oldValue, newValue);
               
@@ -142,7 +142,7 @@ function applyAISuggestedFixes(
   }
   
   // Remove fixed errors from the error list
-  result.errors = result.errors.filter(error => 
+  result.errors = result.errors.filter((error: any) => 
     !fixedRows.has(error.row) || !fixedRows.get(error.row)?.has(error.field)
   );
   
@@ -153,8 +153,8 @@ function applyAISuggestedFixes(
   } else {
     result.success = result.errors.length === 0;
     result.importedRows = result.totalRows - 
-      new Set(result.errors.map(e => e.row)).size - 
-      new Set(result.missingFields.map(m => m.row)).size;
+      new Set(result.errors.map((e: any) => e.row)).size - 
+      new Set(result.missingFields.map((m: any) => m.row)).size;
   }
 }
 
