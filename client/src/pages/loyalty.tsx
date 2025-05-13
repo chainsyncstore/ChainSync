@@ -9,6 +9,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Search, UserPlus, Award, Gift, TrendingUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AppShell } from '@/components/layout/app-shell';
 import {
   Table,
   TableBody,
@@ -329,8 +330,9 @@ export default function LoyaltyPage() {
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">ChainSync Loyalty Program</h1>
+    <AppShell>
+      <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6">ChainSync Loyalty Program</h1>
 
       <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
@@ -1008,5 +1010,6 @@ export default function LoyaltyPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </AppShell>
   );
 }
