@@ -14,14 +14,17 @@ export default function DebugLoginPage() {
   const [password, setPassword] = useState('admin123');
   const { user, isAuthenticated, login } = useAuth();
 
-  // Instead of using the normal debug-login API endpoint, we'll use a direct approach
+  // Direct login with admin credentials
   const handleDirectDebugLogin = async () => {
     try {
       setStatus('loading');
       setError(null);
       
       // Use regular login function with hardcoded admin credentials
-      await login('admin', 'admin123');
+      await login({
+        username: 'admin',
+        password: 'admin123'
+      });
       
       setStatus('success');
       
@@ -36,12 +39,18 @@ export default function DebugLoginPage() {
     }
   };
   
+  // Manual login with form data
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setStatus('loading');
       setError(null);
-      await login(username, password);
+      
+      await login({
+        username,
+        password
+      });
+      
       setStatus('success');
       
       // Use a timeout to ensure state has time to update before redirecting

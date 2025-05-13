@@ -2,39 +2,59 @@ import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuth } from '@/providers/auth-provider';
+import { useAuth, LoginCredentials } from '@/providers/auth-provider';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Form schema
 const formSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional(),
 });
+
+export type LoginFormValues = z.infer<typeof formSchema>;
 
 export function LoginForm() {
   const { login, isLoading, error } = useAuth();
+  const [formError, setFormError] = React.useState<string | null>(null);
 
   // Initialize form
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: '',
       password: '',
+      rememberMe: false,
     },
   });
 
   // Handle form submission
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: LoginFormValues) {
+    setFormError(null);
+    
     try {
-      await login(values.username, values.password);
+      // Extract credentials from form values
+      const credentials: LoginCredentials = {
+        username: values.username,
+        password: values.password,
+      };
+      
+      // Call login function from auth provider
+      await login(credentials);
     } catch (err) {
-      // Error is handled in the auth provider
+      // Show error in form
+      if (err instanceof Error) {
+        setFormError(err.message);
+      } else {
+        setFormError('An unknown error occurred. Please try again.');
+      }
     }
   }
 
@@ -47,10 +67,12 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
+        {(error || formError) && (
           <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              {formError || (error instanceof Error ? error.message : 'Authentication error')}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -63,7 +85,11 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your username" {...field} />
+                    <Input 
+                      placeholder="Enter your username" 
+                      autoComplete="username"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -77,19 +103,54 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Enter your password" {...field} />
+                    <Input 
+                      type="password" 
+                      placeholder="Enter your password"
+                      autoComplete="current-password" 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="rememberMe"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Remember me</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Logging in...' : 'Login'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                'Login'
+              )}
             </Button>
           </form>
         </Form>
       </CardContent>
+      <CardFooter className="flex justify-center">
+        <p className="text-sm text-neutral-500">
+          {process.env.NODE_ENV === 'development' && 'Admin/admin123 or Manager/manager123'}
+        </p>
+      </CardFooter>
     </Card>
   );
 }

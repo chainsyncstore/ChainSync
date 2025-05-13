@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocation } from 'wouter';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 // Define User type
 export interface User {
@@ -12,181 +14,179 @@ export interface User {
   storeId?: number;
 }
 
+// Define login request type
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+// Define authentication response type
+interface AuthResponse {
+  authenticated: boolean;
+  user: User;
+  message?: string;
+}
+
 // Define context type
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<User>;
   logout: () => Promise<void>;
-  signup?: (userData: any) => Promise<void>; // Optional as we implement it later
-  error: string | null;
+  checkAuth: () => Promise<User | null>;
+  error: Error | null;
 }
 
 // Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkAuth = async () => {
+  // Query to check authentication status
+  const { 
+    data: authData,
+    isLoading,
+    error,
+    refetch: checkAuth
+  } = useQuery<AuthResponse>({
+    queryKey: ['auth'],
+    queryFn: async () => {
+      console.log('Checking authentication status...');
       try {
-        console.log('Checking authentication status...');
-        const res = await fetch('/api/auth/me', {
-          method: 'GET',
-          credentials: 'include', // Important: this tells fetch to send cookies
-          headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-
-        console.log('Auth check response status:', res.status);
-        console.log('Auth check response headers:', {
-          'content-type': res.headers.get('content-type'),
-          'set-cookie': res.headers.get('set-cookie')
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          console.log('Auth check response data:', data);
-          if (data.authenticated && data.user) {
-            console.log('User is authenticated:', data.user);
-            setUser(data.user);
-          } else {
-            console.log('Data format unexpected:', data);
-            setUser(null);
-          }
-        } else {
-          // Handle unauthenticated state explicitly
-          const errorText = await res.text();
+        const response = await apiRequest('GET', '/api/auth/me');
+        if (!response.ok) {
+          const errorText = await response.text();
           console.log('Not authenticated, response:', errorText);
-          setUser(null);
+          return { authenticated: false, user: null };
         }
+        
+        const data = await response.json();
+        console.log('Auth check response data:', data);
+        return data;
       } catch (err) {
         console.error('Auth check failed:', err);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+        throw new Error('Failed to check authentication status');
       }
-    };
+    },
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
 
-    checkAuth();
-  }, []);
-
-  // Login function
-  const login = async (username: string, password: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      console.log('Login request for:', username);
+  // Extract user from auth data
+  const user = authData?.authenticated ? authData.user : null;
+  
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginCredentials): Promise<User> => {
+      console.log('Login request for:', credentials.username);
       
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        body: JSON.stringify({ username, password }),
-        credentials: 'include', // Important: this allows the browser to store the cookie
-        cache: 'no-store' // Avoid caching this request
+      const response = await apiRequest('POST', '/api/auth/login', credentials);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Login failed' }));
+        throw new Error(errorData.message || 'Invalid username or password');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (userData) => {
+      // Invalidate and refetch auth query
+      queryClient.invalidateQueries({ queryKey: ['auth'] });
+      
+      // Show success toast
+      toast({
+        title: 'Login successful',
+        description: `Welcome back, ${userData.fullName || userData.username}!`,
+        duration: 3000,
       });
-      
-      console.log('Login response status:', res.status);
-      console.log('Login response headers:', {
-        'content-type': res.headers.get('content-type'),
-        'set-cookie': res.headers.get('set-cookie')
-      });
-      
-      // Try to get the response text first before parsing as JSON
-      const responseText = await res.text();
-      console.log('Raw login response:', responseText);
-      
-      if (!res.ok) {
-        let errorMessage = 'Login failed';
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.message || 'Invalid username or password';
-          console.error('Login error data:', errorData);
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-        }
-        throw new Error(errorMessage);
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('Login response data:', data);
-        setUser(data);
-      } catch (parseError) {
-        console.error('Failed to parse login response as JSON:', parseError);
-        throw new Error('Received invalid response from server');
-      }
       
       // Redirect based on user role
-      if (data.role === 'cashier') {
+      if (userData.role === 'cashier') {
         setLocation('/pos');
-      } else if (data.role === 'affiliate') {
+      } else if (userData.role === 'affiliate') {
         setLocation('/affiliates');
       } else {
         setLocation('/dashboard');
       }
-    } catch (err: any) {
-      console.error('Login failed:', err);
-      setError(err.message || 'Invalid username or password');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Logout function
-  const logout = async () => {
-    setIsLoading(true);
-
-    try {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json'
-        },
-        credentials: 'include'
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Login failed',
+        description: error.message || 'Invalid username or password',
+        variant: 'destructive',
+        duration: 5000,
       });
+    },
+  });
+
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async (): Promise<void> => {
+      const response = await apiRequest('POST', '/api/auth/logout');
       
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: 'Logout failed' }));
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Logout failed' }));
         throw new Error(errorData.message || 'Logout failed');
       }
+    },
+    onSuccess: () => {
+      // Clear auth data from cache
+      queryClient.setQueryData(['auth'], { authenticated: false, user: null });
+      queryClient.invalidateQueries({ queryKey: ['auth'] });
       
-      setUser(null);
+      // Show success toast
+      toast({
+        title: 'Logged out',
+        description: 'You have been successfully logged out.',
+        duration: 3000,
+      });
+      
+      // Redirect to login page
       setLocation('/login');
-    } catch (err: any) {
-      console.error('Logout failed:', err);
-      setError(err.message || 'Logout failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Logout failed',
+        description: error.message || 'Failed to log out. Please try again.',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    },
+  });
+
+  // Login function wrapper
+  const login = async (credentials: LoginCredentials): Promise<User> => {
+    return await loginMutation.mutateAsync(credentials);
+  };
+
+  // Logout function wrapper
+  const logout = async (): Promise<void> => {
+    await logoutMutation.mutateAsync();
+  };
+
+  // Auth check function wrapper that returns the user (or null)
+  const performAuthCheck = async (): Promise<User | null> => {
+    const result = await checkAuth();
+    return result.data?.authenticated ? result.data.user : null;
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isLoading,
+        isLoading: isLoading || loginMutation.isPending || logoutMutation.isPending,
         isAuthenticated: !!user,
         login,
         logout,
-        error,
+        checkAuth: performAuthCheck,
+        error: error as Error,
       }}
     >
       {children}
