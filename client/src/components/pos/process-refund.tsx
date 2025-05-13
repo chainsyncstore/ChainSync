@@ -1,28 +1,16 @@
 import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -30,337 +18,443 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { 
+  RotateCcw, 
+  AlertCircle, 
+  Check, 
+  X, 
+  Percent,
+  AlertTriangle
+} from "lucide-react";
 
 interface ProcessRefundProps {
-  transaction: any;
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  transactionId: number;
+  onComplete: () => void;
 }
 
-export function ProcessRefund({
-  transaction,
-  isOpen,
-  onClose,
-  onSuccess,
-}: ProcessRefundProps) {
+export function ProcessRefund({ transactionId, onComplete }: ProcessRefundProps) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<{
+    [key: number]: { id: number; quantity: number; maxQuantity: number; reason: string }
+  }>({});
+  const [isFullRefund, setIsFullRefund] = useState(false);
   const [refundMethod, setRefundMethod] = useState("cash");
-  const [reason, setReason] = useState("");
-  const [itemsToRefund, setItemsToRefund] = useState<{ 
-    transactionItemId: number; 
-    productId: number;
-    name: string;
-    quantity: number;
-    maxQuantity: number;
-    isPerishable: boolean;
-    unitPrice: string;
-    selected: boolean;
-    refundQuantity: number;
-    reasonPerItem: string;
-  }[]>([]);
+  const [generalReason, setGeneralReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize refund items from transaction
-  useEffect(() => {
-    if (transaction?.items) {
-      const items = transaction.items.map((item: any) => ({
-        transactionItemId: item.id,
-        productId: item.productId,
-        name: item.product?.name || "Unknown Product",
-        quantity: item.quantity,
-        maxQuantity: item.quantity - (item.returnedQuantity || 0),
-        isPerishable: item.product?.isPerishable || false,
-        unitPrice: item.unitPrice,
-        selected: false,
-        refundQuantity: 0,
-        reasonPerItem: "",
-      }));
+  // Fetch transaction details
+  const {
+    data: transaction,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: [`/api/transactions/${transactionId}`],
+    enabled: !!transactionId,
+  });
+
+  // Mutation for processing refund
+  const processMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/refunds", data);
+    },
+    onSuccess: () => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: [`/api/transactions/${transactionId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/transactions/${transactionId}/refunds`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/refunds"] });
       
-      // Only show items that have available quantity to return
-      setItemsToRefund(items.filter(item => item.maxQuantity > 0));
-    }
-  }, [transaction]);
-
-  // Toggle item selection
-  const toggleItemSelection = (index: number) => {
-    const updatedItems = [...itemsToRefund];
-    updatedItems[index].selected = !updatedItems[index].selected;
-    
-    // If selected, default refund quantity to max available
-    if (updatedItems[index].selected && updatedItems[index].refundQuantity === 0) {
-      updatedItems[index].refundQuantity = 1;
-    }
-    
-    setItemsToRefund(updatedItems);
-  };
-
-  // Update refund quantity for an item
-  const updateRefundQuantity = (index: number, quantity: number) => {
-    const updatedItems = [...itemsToRefund];
-    
-    // Ensure quantity is within valid range
-    let newQuantity = Math.max(0, quantity);
-    newQuantity = Math.min(newQuantity, updatedItems[index].maxQuantity);
-    
-    updatedItems[index].refundQuantity = newQuantity;
-    setItemsToRefund(updatedItems);
-  };
-
-  // Update reason for an item
-  const updateItemReason = (index: number, itemReason: string) => {
-    const updatedItems = [...itemsToRefund];
-    updatedItems[index].reasonPerItem = itemReason;
-    setItemsToRefund(updatedItems);
-  };
-
-  // Calculate total refund amount
-  const calculateTotal = () => {
-    return itemsToRefund
-      .filter((item) => item.selected && item.refundQuantity > 0)
-      .reduce((total, item) => {
-        return total + parseFloat(item.unitPrice) * item.refundQuantity;
-      }, 0);
-  };
-
-  // Process the refund
-  const handleProcessRefund = async () => {
-    // Validate if any items are selected
-    const selectedItems = itemsToRefund.filter(
-      (item) => item.selected && item.refundQuantity > 0
-    );
-    
-    if (selectedItems.length === 0) {
-      toast({
-        title: "No items selected",
-        description: "Please select at least one item to refund",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Validate if reason is provided
-    if (!reason.trim()) {
-      toast({
-        title: "Reason required",
-        description: "Please provide a reason for the refund",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      
-      // Format the refund items
-      const refundItems = selectedItems.map((item) => ({
-        transactionItemId: item.transactionItemId,
-        quantity: item.refundQuantity,
-        reason: item.reasonPerItem || reason,
-      }));
-      
-      // Send the refund request
-      const response = await apiRequest("POST", "/api/refunds", {
-        transactionId: transaction.id,
-        items: refundItems,
-        refundMethod,
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to process refund");
-      }
-      
-      // Success
+      // Show success toast
       toast({
         title: "Refund processed successfully",
-        description: `Refund amount: ₦${calculateTotal().toFixed(2)}`,
+        description: "The items have been refunded.",
+        variant: "default",
       });
       
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/refunds'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/pos/transactions/${transaction.id}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/pos/transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      
-      // Close dialog and notify parent
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error("Error processing refund:", error);
+      // Call the onComplete callback
+      onComplete();
+    },
+    onError: (error: Error) => {
+      console.error("Refund error:", error);
       toast({
         title: "Refund failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: error.message || "There was an error processing the refund.",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
+    },
+  });
+
+  // Handle item selection toggle
+  const handleItemToggle = (item: any) => {
+    // If item is already selected, remove it from selection
+    if (selectedItems[item.id]) {
+      const updatedItems = { ...selectedItems };
+      delete updatedItems[item.id];
+      setSelectedItems(updatedItems);
+    } else {
+      // Otherwise add it with default quantity 1
+      setSelectedItems({
+        ...selectedItems,
+        [item.id]: {
+          id: item.id,
+          quantity: 1,
+          maxQuantity: item.quantity - item.returnedQuantity,
+          reason: "",
+        },
+      });
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Process Refund</DialogTitle>
-          <DialogDescription>
-            Transaction ID: {transaction?.transactionId}
-          </DialogDescription>
-        </DialogHeader>
+  // Handle quantity change
+  const handleQuantityChange = (id: number, value: string) => {
+    const quantity = parseInt(value);
+    if (isNaN(quantity) || quantity < 1) return;
 
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          <div>
-            <Label htmlFor="refundMethod">Refund Method</Label>
-            <Select
-              value={refundMethod}
-              onValueChange={setRefundMethod}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger id="refundMethod">
-                <SelectValue placeholder="Select refund method" />
+    const maxQuantity = selectedItems[id].maxQuantity;
+    const validQuantity = Math.min(quantity, maxQuantity);
+
+    setSelectedItems({
+      ...selectedItems,
+      [id]: {
+        ...selectedItems[id],
+        quantity: validQuantity,
+      },
+    });
+  };
+
+  // Handle reason change
+  const handleReasonChange = (id: number, reason: string) => {
+    setSelectedItems({
+      ...selectedItems,
+      [id]: {
+        ...selectedItems[id],
+        reason,
+      },
+    });
+  };
+
+  // Handle full refund toggle
+  useEffect(() => {
+    if (isFullRefund && transaction?.items) {
+      // Select all items with max quantity
+      const allItems: { [key: number]: any } = {};
+      transaction.items.forEach((item: any) => {
+        const availableQuantity = item.quantity - item.returnedQuantity;
+        if (availableQuantity > 0) {
+          allItems[item.id] = {
+            id: item.id,
+            quantity: availableQuantity,
+            maxQuantity: availableQuantity,
+            reason: generalReason,
+          };
+        }
+      });
+      setSelectedItems(allItems);
+    } else if (!isFullRefund && Object.keys(selectedItems).length > 0) {
+      // Keep selected items but apply general reason to all
+      const updatedItems = { ...selectedItems };
+      Object.keys(updatedItems).forEach((key) => {
+        updatedItems[parseInt(key)].reason = generalReason;
+      });
+      setSelectedItems(updatedItems);
+    }
+  }, [isFullRefund, transaction, generalReason]);
+
+  // Format currency
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    return `₦${numAmount.toFixed(2)}`;
+  };
+
+  // Calculate refund total
+  const calculateRefundTotal = () => {
+    if (!transaction?.items) return 0;
+    
+    return Object.values(selectedItems).reduce((total, selected) => {
+      const item = transaction.items.find((i: any) => i.id === selected.id);
+      if (!item) return total;
+      
+      const itemTotal = parseFloat(item.unitPrice) * selected.quantity;
+      return total + itemTotal;
+    }, 0);
+  };
+
+  // Calculate tax based on the same rate as the original transaction
+  const calculateRefundTax = () => {
+    if (!transaction) return 0;
+    
+    const subtotal = calculateRefundTotal();
+    const originalTaxRate = parseFloat(transaction.tax) / parseFloat(transaction.subtotal);
+    return subtotal * originalTaxRate;
+  };
+
+  // Submit refund
+  const handleSubmitRefund = async () => {
+    if (Object.keys(selectedItems).length === 0) {
+      toast({
+        title: "No items selected",
+        description: "Please select at least one item to refund.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Transform selected items for API
+    const refundItems = Object.values(selectedItems).map((selected) => ({
+      transactionItemId: selected.id,
+      quantity: selected.quantity,
+      reason: selected.reason || generalReason || "Customer return",
+    }));
+
+    // Call the refund API
+    processMutation.mutate({
+      transactionId,
+      items: refundItems,
+      refundMethod,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center p-4">
+        <AlertCircle className="h-16 w-16 text-destructive" />
+        <h2 className="mt-4 text-xl font-semibold">Error Loading Transaction</h2>
+        <p className="mb-4 text-center text-muted-foreground">
+          Unable to load transaction details. Please try again.
+        </p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
+
+  // Check if any items are available for refund
+  const hasRefundableItems = transaction?.items?.some(
+    (item: any) => item.returnedQuantity < item.quantity
+  );
+
+  if (!hasRefundableItems) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center p-4">
+        <Check className="h-16 w-16 text-success" />
+        <h2 className="mt-4 text-xl font-semibold">All Items Already Refunded</h2>
+        <p className="mb-4 text-center text-muted-foreground">
+          There are no items available for refund in this transaction.
+        </p>
+        <Button onClick={onComplete}>Close</Button>
+      </div>
+    );
+  }
+
+  const subtotal = calculateRefundTotal();
+  const tax = calculateRefundTax();
+  const total = subtotal + tax;
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-none">
+        <h2 className="text-xl font-semibold">Process Refund</h2>
+        <p className="text-muted-foreground">
+          Transaction #{transaction?.transactionId}
+        </p>
+
+        <Alert className="mt-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Important</AlertTitle>
+          <AlertDescription>
+            Perishable items will not be restocked to inventory.
+            Non-perishable items will be automatically added back to inventory.
+          </AlertDescription>
+        </Alert>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <Label>Refund Method</Label>
+            <Select value={refundMethod} onValueChange={setRefundMethod}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select method" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="credit_card">Credit Card</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                 <SelectItem value="store_credit">Store Credit</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          <div>
-            <Label htmlFor="reason">General Reason for Refund</Label>
-            <Textarea
-              id="reason"
-              placeholder="Enter reason for refund"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              disabled={isSubmitting}
-              className="h-20"
-            />
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Select Items to Refund</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">Select</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Unit Price</TableHead>
-                  <TableHead>Refund Amount</TableHead>
-                  <TableHead>Item-Specific Reason (Optional)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {itemsToRefund.map((item, index) => (
-                  <TableRow key={item.transactionItemId}>
-                    <TableCell>
-                      <Checkbox
-                        checked={item.selected}
-                        onCheckedChange={() => toggleItemSelection(index)}
-                        disabled={isSubmitting || item.maxQuantity === 0}
-                      />
-                    </TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>
-                      {item.isPerishable ? (
-                        <Badge variant="destructive">Perishable</Badge>
-                      ) : (
-                        <Badge variant="outline">Non-Perishable</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          max={item.maxQuantity}
-                          value={item.refundQuantity}
-                          onChange={(e) =>
-                            updateRefundQuantity(index, parseInt(e.target.value) || 0)
-                          }
-                          disabled={!item.selected || isSubmitting}
-                          className="w-16"
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          / {item.maxQuantity} available
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>₦{parseFloat(item.unitPrice).toFixed(2)}</TableCell>
-                    <TableCell>
-                      ₦
-                      {item.selected
-                        ? (
-                            parseFloat(item.unitPrice) * item.refundQuantity
-                          ).toFixed(2)
-                        : "0.00"}
-                    </TableCell>
-                    <TableCell>
-                      <Input 
-                        placeholder="Specific reason"
-                        value={item.reasonPerItem}
-                        onChange={(e) => updateItemReason(index, e.target.value)}
-                        disabled={!item.selected || isSubmitting}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {itemsToRefund.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
-                      No items available for refund
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="bg-muted p-4 rounded-md">
-            <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> Perishable items cannot be restocked to inventory
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Non-perishable items will be automatically restocked
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Subtotal</p>
-                <p className="text-2xl font-bold">
-                  ₦{calculateTotal().toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button
-            variant="default"
-            onClick={handleProcessRefund}
-            disabled={
-              isSubmitting ||
-              itemsToRefund.filter((item) => item.selected && item.refundQuantity > 0)
-                .length === 0
-            }
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="fullRefund" 
+            checked={isFullRefund}
+            onCheckedChange={(checked) => setIsFullRefund(!!checked)}
+          />
+          <label
+            htmlFor="fullRefund"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
-            {isSubmitting ? <Spinner className="mr-2" /> : null}
-            Process Refund
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            Refund all items
+          </label>
+        </div>
+
+        <div>
+          <Label htmlFor="reason">Reason for Refund</Label>
+          <Textarea
+            id="reason"
+            placeholder="General reason for the refund"
+            value={generalReason}
+            onChange={(e) => setGeneralReason(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      <div className="flex-grow overflow-auto">
+        <h3 className="font-medium mb-2">Select Items to Refund</h3>
+        <ScrollArea className="h-[300px] rounded-md border">
+          <div className="p-4 space-y-4">
+            {transaction?.items
+              ?.filter((item: any) => item.returnedQuantity < item.quantity)
+              .map((item: any) => {
+                const availableQuantity = item.quantity - item.returnedQuantity;
+                const isSelected = !!selectedItems[item.id];
+
+                return (
+                  <Card key={item.id} className={isSelected ? "border-primary" : ""}>
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex justify-between">
+                        <div>
+                          <CardTitle className="text-base">{item.product?.name}</CardTitle>
+                          <CardDescription>
+                            {formatCurrency(item.unitPrice)} × {availableQuantity} available
+                          </CardDescription>
+                        </div>
+                        <div>
+                          <Badge>
+                            {item.product?.isPerishable ? "Perishable" : "Non-perishable"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`item-${item.id}`}
+                            checked={isSelected}
+                            onCheckedChange={() => handleItemToggle(item)}
+                          />
+                          <label
+                            htmlFor={`item-${item.id}`}
+                            className="text-sm font-medium leading-none"
+                          >
+                            Select for refund
+                          </label>
+                        </div>
+                        
+                        {isSelected && (
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor={`quantity-${item.id}`} className="text-xs">Qty:</Label>
+                            <Input
+                              id={`quantity-${item.id}`}
+                              type="number"
+                              min={1}
+                              max={availableQuantity}
+                              value={selectedItems[item.id].quantity}
+                              onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                              className="w-16 h-8"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {isSelected && !generalReason && (
+                        <div className="mt-2">
+                          <Label htmlFor={`reason-${item.id}`} className="text-xs">Item reason:</Label>
+                          <Input
+                            id={`reason-${item.id}`}
+                            placeholder="Reason for this item"
+                            value={selectedItems[item.id].reason}
+                            onChange={(e) => handleReasonChange(item.id, e.target.value)}
+                            className="mt-1 h-8"
+                          />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+          </div>
+        </ScrollArea>
+      </div>
+
+      <Separator className="my-4" />
+
+      <div className="flex-none">
+        <Card>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="text-sm">Subtotal:</div>
+              <div className="text-sm text-right">{formatCurrency(subtotal)}</div>
+              
+              <div className="text-sm flex items-center">
+                <Percent className="h-3 w-3 mr-1" />
+                Tax:
+              </div>
+              <div className="text-sm text-right">{formatCurrency(tax)}</div>
+              
+              <div className="text-base font-bold">Total Refund:</div>
+              <div className="text-base font-bold text-right">{formatCurrency(total)}</div>
+            </div>
+          </CardContent>
+          <CardFooter className="px-4 py-3 flex justify-between">
+            <Button
+              variant="outline"
+              onClick={onComplete}
+              disabled={isSubmitting}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitRefund}
+              disabled={Object.keys(selectedItems).length === 0 || isSubmitting}
+              className="min-w-32"
+            >
+              {isSubmitting ? (
+                <Spinner className="mr-2" size="sm" />
+              ) : (
+                <RotateCcw className="mr-2 h-4 w-4" />
+              )}
+              Process Refund
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
   );
 }
