@@ -727,29 +727,34 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
       const existingMember = await storage.getLoyaltyMemberByLoyaltyId(row.loyaltyId);
       
       if (existingMember) {
-        // Update existing member
+        // Update existing member with valid fields
         await storage.updateLoyaltyMember(existingMember.id, {
-          fullName: row.fullName,
-          email: row.email || existingMember.email,
-          phone: row.phone || existingMember.phone,
-          points: row.points !== undefined ? row.points : existingMember.points,
+          // We don't store fullName directly on loyaltyMember but should update customer
+          // Any customer updates would need to be handled separately
+          currentPoints: row.points !== undefined ? row.points.toString() : existingMember.currentPoints,
           tierId: row.tierId || existingMember.tierId,
           enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : existingMember.enrollmentDate,
-          lastActivityDate: new Date(),
+          lastActivity: new Date(),
         });
       } else {
-        // Create new member
-        const memberData: schema.LoyaltyMemberInsert = {
-          loyaltyId: row.loyaltyId,
-          fullName: row.fullName,
+        // Create new customer first
+        const customerData: schema.CustomerInsert = {
+          fullName: row.fullName, 
           email: row.email || null,
           phone: row.phone || null,
-          programId: loyaltyProgram.id,
+          storeId: storeId
+        };
+        
+        // Create customer first, then loyalty member
+        const customer = await storage.createCustomer(customerData);
+        
+        // Create new loyalty member linked to customer
+        const memberData: schema.LoyaltyMemberInsert = {
+          loyaltyId: row.loyaltyId,
+          customerId: customer.id,
           tierId: null, // Default tier - can be updated later
-          points: row.points || 0,
-          enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : new Date(),
-          lastActivityDate: new Date(),
-          isActive: true,
+          currentPoints: row.points ? row.points.toString() : "0",
+          enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : new Date()
         };
         
         await storage.createLoyaltyMember(memberData);
