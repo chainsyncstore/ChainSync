@@ -61,7 +61,7 @@ export default function LandingPage() {
             <Link href="/login">
               <Button variant="outline" size="sm">Login</Button>
             </Link>
-            <Link href="/signup">
+            <Link href="/signup?plan=basic">
               <Button size="sm">Start Free Trial</Button>
             </Link>
           </div>
@@ -81,7 +81,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              <Link href="/signup" className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-white shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+              <Link href="/signup?plan=basic" className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-white shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                 Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -264,7 +264,7 @@ export default function LandingPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Link href="/signup" className="w-full">
+                <Link href="/signup?plan=basic" className="w-full">
                   <Button className="w-full" variant="outline">Start Free Trial</Button>
                 </Link>
               </CardFooter>
@@ -310,7 +310,7 @@ export default function LandingPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Link href="/signup" className="w-full">
+                <Link href="/signup?plan=pro" className="w-full">
                   <Button className="w-full">Start Free Trial</Button>
                 </Link>
               </CardFooter>
@@ -413,7 +413,7 @@ export default function LandingPage() {
                 </ol>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="/signup" className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-white shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                <Link href="/signup?plan=basic" className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-white shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                   Start Free Trial
                 </Link>
               </div>

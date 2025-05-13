@@ -17,9 +17,10 @@ export default function SignupPage() {
   const { toast } = useToast();
   const { login } = useAuth();
   
-  // Get referral code from URL
+  // Get referral code and plan from URL
   const urlParams = new URLSearchParams(window.location.search);
   const referralCode = urlParams.get('ref');
+  const selectedPlan = urlParams.get('plan') || 'basic';
   
   // Mutation for signup
   const signupMutation = useMutation({
@@ -91,6 +92,16 @@ export default function SignupPage() {
         {/* Referral Banner */}
         <ReferralBanner />
         
+        {/* Selected Plan Banner */}
+        {selectedPlan && (
+          <div className="mb-4 p-3 bg-primary/10 rounded-md border border-primary/20 text-center">
+            <p className="text-sm font-medium">
+              You're signing up for the <span className="font-bold text-primary">{selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} Plan</span>
+              {referralCode && <span> with a 10% referral discount for 12 months!</span>}
+            </p>
+          </div>
+        )}
+        
         {/* Signup Form */}
         <Card className="w-full">
           <CardHeader>
@@ -148,7 +159,7 @@ export default function SignupPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="plan">Subscription Plan</Label>
-                <Select name="plan" defaultValue="basic">
+                <Select name="plan" defaultValue={selectedPlan}>
                   <SelectTrigger id="plan">
                     <SelectValue placeholder="Select a plan" />
                   </SelectTrigger>
