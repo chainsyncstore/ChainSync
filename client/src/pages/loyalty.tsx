@@ -640,11 +640,12 @@ export default function LoyaltyPage() {
                                   <Badge
                                     variant={
                                       activity.type === 'earn'
-                                        ? 'success'
+                                        ? 'default'
                                         : activity.type === 'redeem'
                                         ? 'destructive'
                                         : 'outline'
                                     }
+                                    className={activity.type === 'earn' ? 'bg-green-500 hover:bg-green-600' : ''}
                                   >
                                     {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
                                   </Badge>
