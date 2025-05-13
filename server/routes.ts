@@ -10,6 +10,7 @@ import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSes
 import { getAIResponse } from "./services/ai";
 import multer from "multer";
 import path from "path";
+import bcrypt from "bcrypt";
 
 // Import services
 import * as affiliateService from './services/affiliate';
@@ -266,12 +267,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const loginData = schema.loginSchema.parse(req.body);
       
-      const user = await storage.validateUserCredentials(
-        loginData.username,
-        loginData.password
-      );
+      // Get user by username first
+      const user = await storage.getUserByUsername(loginData.username);
       
       if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(loginData.password, user.password);
+      
+      if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
       
