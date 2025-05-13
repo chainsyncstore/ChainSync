@@ -854,11 +854,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Transaction items are required" });
       }
       
+      // Process loyalty ID if provided
+      let loyaltyMemberId = null;
+      if (transactionData.loyaltyId) {
+        // Find loyalty member by loyalty ID
+        const loyaltyMember = await storage.getLoyaltyMemberByLoyaltyId(transactionData.loyaltyId);
+        if (loyaltyMember) {
+          loyaltyMemberId = loyaltyMember.id;
+        }
+      }
+      
       // Validate transaction data
       const validatedTransaction = schema.transactionInsertSchema.parse({
         ...transactionData,
         storeId,
-        cashierId: userId
+        cashierId: userId,
+        loyaltyMemberId
       });
       
       // Validate each item
@@ -899,6 +910,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const transaction of transactions) {
         try {
+          // Process loyalty ID if provided
+          if (transaction.transactionData.loyaltyId) {
+            // Find loyalty member by loyalty ID
+            const loyaltyMember = await storage.getLoyaltyMemberByLoyaltyId(transaction.transactionData.loyaltyId);
+            if (loyaltyMember) {
+              transaction.transactionData.loyaltyMemberId = loyaltyMember.id;
+            }
+            // Remove the loyaltyId property as it's not in the database schema
+            delete transaction.transactionData.loyaltyId;
+          }
+          
           const result = await storage.createTransaction(
             transaction.transactionData,
             transaction.items

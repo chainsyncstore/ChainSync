@@ -654,6 +654,52 @@ export const storage = {
       })
     );
     
+    // Process loyalty points if this is a loyalty member transaction
+    if (transaction.loyaltyMemberId) {
+      try {
+        // Get the loyalty member
+        const loyaltyMember = await this.getLoyaltyMemberById(transaction.loyaltyMemberId);
+        
+        if (loyaltyMember) {
+          // Get the loyalty program for this store
+          const loyaltyProgram = await this.getLoyaltyProgram(transaction.storeId);
+          
+          if (loyaltyProgram) {
+            // Calculate points based on transaction amount
+            const pointsRate = loyaltyProgram.pointsRate || 0.01; // Default to 1 point per $100 if not set
+            const pointsEarned = parseFloat(transaction.total) * pointsRate;
+            
+            // Update transaction with points earned
+            await db.update(schema.transactions)
+              .set({ pointsEarned })
+              .where(eq(schema.transactions.id, transaction.id));
+            
+            // Create loyalty transaction record
+            await this.createLoyaltyTransaction({
+              loyaltyMemberId: transaction.loyaltyMemberId,
+              transactionId: transaction.id,
+              points: pointsEarned,
+              type: 'earn',
+              description: `Points earned from transaction ${transaction.transactionId}`,
+              expiresAt: new Date(Date.now() + (loyaltyProgram.pointExpiryDays || 365) * 24 * 60 * 60 * 1000),
+            });
+            
+            // Update member's point balance
+            const newPointBalance = parseFloat(loyaltyMember.pointBalance || "0") + pointsEarned;
+            await this.updateLoyaltyMember(transaction.loyaltyMemberId, {
+              pointBalance: newPointBalance.toString(),
+            });
+            
+            // Update transaction object with points data
+            transaction.pointsEarned = pointsEarned;
+          }
+        }
+      } catch (error) {
+        console.error('Error processing loyalty points:', error);
+        // We don't throw here to avoid failing the transaction
+      }
+    }
+    
     return { transaction, items: transactionItems };
   },
 
