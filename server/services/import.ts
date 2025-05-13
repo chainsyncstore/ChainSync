@@ -5,6 +5,7 @@ import { storage } from '../storage';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { db } from '@db/index';
+import { SessionsClient } from '@google-cloud/dialogflow';
 
 // Define types for import data
 interface ImportResult {
