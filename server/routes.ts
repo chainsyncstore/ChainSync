@@ -2361,6 +2361,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for file uploads
+  const storage = multer.memoryStorage();
+  const upload = multer({
+    storage,
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB file size limit
+    },
+    fileFilter: (_req, file, cb) => {
+      // Accept only CSV and Excel files
+      const allowedTypes = [
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/octet-stream'
+      ];
+      
+      if (allowedTypes.includes(file.mimetype) || 
+          file.originalname.endsWith('.csv') || 
+          file.originalname.endsWith('.xlsx') || 
+          file.originalname.endsWith('.xls')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only CSV and Excel files are allowed'));
+      }
+    }
+  });
+
+  // Data Import Routes
+  
+  // Upload and analyze file for import
+  app.post(`${apiPrefix}/import/analyze`, isAuthenticated, isManagerOrAdmin, upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const { dataType } = req.body;
+      if (!dataType || !['loyalty', 'inventory'].includes(dataType)) {
+        return res.status(400).json({ error: 'Invalid data type. Must be either "loyalty" or "inventory"' });
+      }
+
+      const result = await processImportFile(
+        req.file.buffer,
+        req.file.mimetype,
+        dataType as 'loyalty' | 'inventory'
+      );
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('Error analyzing import file:', error);
+      return res.status(500).json({ error: error.message || 'Failed to analyze file' });
+    }
+  });
+
+  // Validate mapped data
+  app.post(`${apiPrefix}/import/validate`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { data, mapping, dataType } = req.body;
+      
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return res.status(400).json({ error: 'No data provided' });
+      }
+      
+      if (!mapping || typeof mapping !== 'object') {
+        return res.status(400).json({ error: 'No column mapping provided' });
+      }
+      
+      if (!dataType || !['loyalty', 'inventory'].includes(dataType)) {
+        return res.status(400).json({ error: 'Invalid data type. Must be either "loyalty" or "inventory"' });
+      }
+      
+      // Apply column mapping
+      const mappedData = applyColumnMapping(data, mapping);
+      
+      // Validate data based on type
+      const validationResult = dataType === 'loyalty' 
+        ? validateLoyaltyData(mappedData)
+        : validateInventoryData(mappedData);
+      
+      return res.status(200).json(validationResult);
+    } catch (error) {
+      console.error('Error validating import data:', error);
+      return res.status(500).json({ error: error.message || 'Failed to validate data' });
+    }
+  });
+
+  // Import validated data
+  app.post(`${apiPrefix}/import/process`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { data, dataType, storeId } = req.body;
+      
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return res.status(400).json({ error: 'No data provided' });
+      }
+      
+      if (!dataType || !['loyalty', 'inventory'].includes(dataType)) {
+        return res.status(400).json({ error: 'Invalid data type. Must be either "loyalty" or "inventory"' });
+      }
+      
+      if (!storeId) {
+        return res.status(400).json({ error: 'Store ID is required' });
+      }
+      
+      // Validate store access for non-admins
+      if (req.session.userRole !== 'admin' && req.session.storeId !== parseInt(storeId)) {
+        return res.status(403).json({ error: 'You do not have access to this store' });
+      }
+      
+      // Import data
+      const importResult = dataType === 'loyalty'
+        ? await importLoyaltyData(data, parseInt(storeId))
+        : await importInventoryData(data, parseInt(storeId));
+      
+      return res.status(200).json({
+        success: importResult.success,
+        totalRows: importResult.totalRows,
+        importedRows: importResult.importedRows,
+        errors: importResult.errors,
+        message: importResult.success 
+          ? `Successfully imported ${importResult.importedRows} of ${importResult.totalRows} rows` 
+          : 'Import completed with errors'
+      });
+    } catch (error) {
+      console.error('Error importing data:', error);
+      return res.status(500).json({ error: error.message || 'Failed to import data' });
+    }
+  });
+
+  // Download error report
+  app.post(`${apiPrefix}/import/error-report`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { errors, missingFields } = req.body;
+      
+      if ((!errors || !Array.isArray(errors)) && (!missingFields || !Array.isArray(missingFields))) {
+        return res.status(400).json({ error: 'No error data provided' });
+      }
+      
+      let errorsCsv = '';
+      let missingFieldsCsv = '';
+      
+      if (errors && errors.length > 0) {
+        errorsCsv = formatErrorsAsCsv(errors);
+      }
+      
+      if (missingFields && missingFields.length > 0) {
+        missingFieldsCsv = formatMissingFieldsAsCsv(missingFields);
+      }
+      
+      // Create a combined CSV if both are present
+      let combinedCsv = '';
+      if (errorsCsv && missingFieldsCsv) {
+        combinedCsv = errorsCsv + '\n\nMissing Fields:\n' + missingFieldsCsv;
+      } else {
+        combinedCsv = errorsCsv || missingFieldsCsv;
+      }
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="import-errors.csv"');
+      return res.status(200).send(combinedCsv);
+    } catch (error) {
+      console.error('Error generating error report:', error);
+      return res.status(500).json({ error: error.message || 'Failed to generate error report' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

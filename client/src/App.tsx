@@ -18,9 +18,10 @@ import LandingPage from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 import PaymentTestingPage from "@/pages/payment-testing";
 import LoyaltyPage from "@/pages/loyalty";
+import ImportPage from "@/pages/import";
 
 // Protected route component
-function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: any) {
+function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -37,7 +38,14 @@ function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: an
       setLocation("/dashboard");
       return;
     }
-  }, [isAuthenticated, isLoading, user, adminOnly, setLocation]);
+    
+    // Check for manager or admin access if required
+    if (!isLoading && isAuthenticated && isManagerOrAdmin && 
+        user?.role !== "admin" && user?.role !== "manager") {
+      setLocation("/dashboard");
+      return;
+    }
+  }, [isAuthenticated, isLoading, user, adminOnly, isManagerOrAdmin, setLocation]);
 
   // Handle loading state
   if (isLoading) {
@@ -145,6 +153,14 @@ function LoyaltyRoute() {
   );
 }
 
+function ImportRoute() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <ProtectedRoute component={ImportPage} isManagerOrAdmin={true} />
+    </Suspense>
+  );
+}
+
 function AppRoutes() {
   return (
     <Switch>
@@ -160,6 +176,7 @@ function AppRoutes() {
       <Route path="/affiliates" component={AffiliatesRoute} />
       <Route path="/returns" component={ReturnsRoute} />
       <Route path="/loyalty" component={LoyaltyRoute} />
+      <Route path="/import" component={ImportRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
