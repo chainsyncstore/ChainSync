@@ -709,32 +709,65 @@ export const storage = {
 
   async getTransactionById(id: number) {
     try {
-      return await db.query.transactions.findFirst({
-        where: eq(schema.transactions.id, id),
-        with: {
-          store: true,
-          cashier: true,
-          items: {
-            with: {
-              product: {
-                columns: {
-                  id: true,
-                  name: true,
-                  price: true,
-                  categoryId: true,
-                  barcode: true,
-                  description: true,
-                  cost: true,
-                  imageUrl: true,
-                  isActive: true,
-                  createdAt: true,
-                  updatedAt: true
-                }
-              }
-            }
-          }
+      // First get the transaction details
+      const transaction = await db.select({
+        id: schema.transactions.id,
+        transactionId: schema.transactions.transactionId,
+        storeId: schema.transactions.storeId,
+        cashierId: schema.transactions.cashierId,
+        subtotal: schema.transactions.subtotal,
+        tax: schema.transactions.tax,
+        total: schema.transactions.total,
+        paymentMethod: schema.transactions.paymentMethod,
+        status: schema.transactions.status,
+        isOfflineTransaction: schema.transactions.isOfflineTransaction,
+        createdAt: schema.transactions.createdAt,
+        updatedAt: schema.transactions.updatedAt,
+        syncedAt: schema.transactions.syncedAt,
+        store: {
+          id: schema.stores.id,
+          name: schema.stores.name
+        },
+        cashier: {
+          id: schema.users.id,
+          username: schema.users.username,
+          fullName: schema.users.fullName
         }
-      });
+      })
+      .from(schema.transactions)
+      .leftJoin(schema.stores, eq(schema.transactions.storeId, schema.stores.id))
+      .leftJoin(schema.users, eq(schema.transactions.cashierId, schema.users.id))
+      .where(eq(schema.transactions.id, id))
+      .limit(1);
+
+      if (!transaction || transaction.length === 0) {
+        return null;
+      }
+
+      // Then get the transaction items
+      const items = await db.select({
+        id: schema.transactionItems.id,
+        productId: schema.transactionItems.productId,
+        quantity: schema.transactionItems.quantity,
+        unitPrice: schema.transactionItems.unitPrice,
+        subtotal: schema.transactionItems.subtotal,
+        returnedQuantity: schema.transactionItems.returnedQuantity,
+        product: {
+          id: schema.products.id,
+          name: schema.products.name,
+          barcode: schema.products.barcode,
+          price: schema.products.price
+        }
+      })
+      .from(schema.transactionItems)
+      .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))
+      .where(eq(schema.transactionItems.transactionId, id));
+
+      // Combine the results
+      return {
+        ...transaction[0],
+        items
+      };
     } catch (error) {
       console.error("Error fetching transaction by ID:", error);
       return null; // Return null instead of failing
@@ -747,34 +780,37 @@ export const storage = {
         ? eq(schema.transactions.storeId, storeId)
         : undefined;
       
-      return await db.query.transactions.findMany({
-        where: query,
-        with: {
-          store: true,
-          cashier: true,
-          items: {
-            with: {
-              product: {
-                columns: {
-                  id: true,
-                  name: true,
-                  price: true,
-                  categoryId: true,
-                  barcode: true,
-                  description: true,
-                  cost: true,
-                  imageUrl: true,
-                  isActive: true,
-                  createdAt: true,
-                  updatedAt: true
-                }
-              }
-            }
-          }
+      // Explicit column selection to avoid requesting columns that may not exist in the database yet
+      return await db.select({
+        id: schema.transactions.id,
+        transactionId: schema.transactions.transactionId,
+        storeId: schema.transactions.storeId,
+        cashierId: schema.transactions.cashierId,
+        subtotal: schema.transactions.subtotal,
+        tax: schema.transactions.tax,
+        total: schema.transactions.total,
+        paymentMethod: schema.transactions.paymentMethod,
+        status: schema.transactions.status,
+        isOfflineTransaction: schema.transactions.isOfflineTransaction,
+        createdAt: schema.transactions.createdAt,
+        updatedAt: schema.transactions.updatedAt,
+        synced_at: schema.transactions.syncedAt,
+        store: {
+          id: schema.stores.id,
+          name: schema.stores.name
         },
-        orderBy: [desc(schema.transactions.createdAt)],
-        limit
-      });
+        cashier: {
+          id: schema.users.id,
+          username: schema.users.username,
+          fullName: schema.users.fullName
+        }
+      })
+      .from(schema.transactions)
+      .leftJoin(schema.stores, eq(schema.transactions.storeId, schema.stores.id))
+      .leftJoin(schema.users, eq(schema.transactions.cashierId, schema.users.id))
+      .where(query)
+      .orderBy(desc(schema.transactions.createdAt))
+      .limit(limit);
     } catch (error) {
       console.error("Error fetching recent transactions:", error);
       return []; // Return empty array instead of failing
@@ -782,32 +818,80 @@ export const storage = {
   },
 
   async getStoreTransactions(storeId: number, startDate?: Date, endDate?: Date, page = 1, limit = 20) {
-    // Start with store filter as the base query
-    let whereClause = eq(schema.transactions.storeId, storeId);
-    
-    // Apply date filters if provided
-    if (startDate) {
-      whereClause = and(whereClause, gte(schema.transactions.createdAt, startDate));
-    }
-    
-    if (endDate) {
-      whereClause = and(whereClause, lte(schema.transactions.createdAt, endDate));
-    }
-    
-    return await db.query.transactions.findMany({
-      where: whereClause,
-      with: {
-        cashier: true,
-        items: {
-          with: {
-            product: true
-          }
+    try {
+      // Start with store filter as the base query
+      let whereClause = eq(schema.transactions.storeId, storeId);
+      
+      // Apply date filters if provided
+      if (startDate) {
+        whereClause = and(whereClause, gte(schema.transactions.createdAt, startDate));
+      }
+      
+      if (endDate) {
+        whereClause = and(whereClause, lte(schema.transactions.createdAt, endDate));
+      }
+      
+      // Get transactions with basic details
+      const transactions = await db.select({
+        id: schema.transactions.id,
+        transactionId: schema.transactions.transactionId,
+        storeId: schema.transactions.storeId,
+        cashierId: schema.transactions.cashierId,
+        subtotal: schema.transactions.subtotal,
+        tax: schema.transactions.tax,
+        total: schema.transactions.total,
+        paymentMethod: schema.transactions.paymentMethod,
+        status: schema.transactions.status,
+        isOfflineTransaction: schema.transactions.isOfflineTransaction,
+        createdAt: schema.transactions.createdAt,
+        updatedAt: schema.transactions.updatedAt,
+        syncedAt: schema.transactions.syncedAt,
+        cashier: {
+          id: schema.users.id,
+          username: schema.users.username,
+          fullName: schema.users.fullName
         }
-      },
-      orderBy: [desc(schema.transactions.createdAt)],
-      offset: (page - 1) * limit,
-      limit
-    });
+      })
+      .from(schema.transactions)
+      .leftJoin(schema.users, eq(schema.transactions.cashierId, schema.users.id))
+      .where(whereClause)
+      .orderBy(desc(schema.transactions.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+      // For each transaction, get its items
+      const transactionsWithItems = await Promise.all(
+        transactions.map(async (transaction) => {
+          const items = await db.select({
+            id: schema.transactionItems.id,
+            productId: schema.transactionItems.productId,
+            quantity: schema.transactionItems.quantity,
+            unitPrice: schema.transactionItems.unitPrice,
+            subtotal: schema.transactionItems.subtotal,
+            returnedQuantity: schema.transactionItems.returnedQuantity,
+            product: {
+              id: schema.products.id,
+              name: schema.products.name,
+              barcode: schema.products.barcode,
+              price: schema.products.price
+            }
+          })
+          .from(schema.transactionItems)
+          .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))
+          .where(eq(schema.transactionItems.transactionId, transaction.id));
+
+          return {
+            ...transaction,
+            items
+          };
+        })
+      );
+      
+      return transactionsWithItems;
+    } catch (error) {
+      console.error("Error fetching store transactions:", error);
+      return []; // Return empty array instead of failing
+    }
   },
 
   async getTransactionCount(storeId?: number, startDate?: Date, endDate?: Date) {
