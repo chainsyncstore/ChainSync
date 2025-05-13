@@ -383,12 +383,21 @@ export async function validateLoyaltyData(
 }
 
 // Basic loyalty data validation
+/**
+ * Basic validation for loyalty data with improved field handling and data type validation
+ * 
+ * @param data - The loyalty data to validate
+ * @param result - The import result object to update with validation results
+ * @returns Updated import result
+ */
 export function basicValidateLoyaltyData(
   data: any[],
   result: ImportResult
 ): ImportResult {
   
   const processedLoyaltyIds = new Set<string>();
+  const processedEmails = new Set<string>();
+  const processedPhones = new Set<string>();
   
   data.forEach((row, index) => {
     const rowNumber = index + 1;
@@ -403,8 +412,70 @@ export function basicValidateLoyaltyData(
         isRequired: true
       });
       hasErrors = true;
+    } else if (typeof cleanedRow.fullName === 'string' && cleanedRow.fullName.trim().length < 3) {
+      result.errors.push({
+        row: rowNumber,
+        field: 'fullName',
+        value: cleanedRow.fullName,
+        reason: 'Full name must be at least 3 characters long'
+      });
+      hasErrors = true;
     }
     
+    // Validate email if present
+    if (cleanedRow.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(cleanedRow.email)) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'email',
+          value: cleanedRow.email,
+          reason: 'Invalid email format'
+        });
+        hasErrors = true;
+      } else if (processedEmails.has(cleanedRow.email.toLowerCase())) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'email',
+          value: cleanedRow.email,
+          reason: 'Duplicate email found'
+        });
+        hasErrors = true;
+      } else {
+        // Store normalized email for duplicate checking
+        processedEmails.add(cleanedRow.email.toLowerCase());
+      }
+    }
+    
+    // Validate phone if present
+    if (cleanedRow.phone) {
+      // Remove non-numeric characters for validation
+      const cleanPhone = cleanedRow.phone.toString().replace(/\D/g, '');
+      
+      if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'phone',
+          value: cleanedRow.phone,
+          reason: 'Phone number should be between 10-15 digits'
+        });
+        hasErrors = true;
+      } else if (processedPhones.has(cleanPhone)) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'phone',
+          value: cleanedRow.phone,
+          reason: 'Duplicate phone number found'
+        });
+        hasErrors = true;
+      } else {
+        // Store normalized phone for duplicate checking and update the value
+        processedPhones.add(cleanPhone);
+        cleanedRow.phone = cleanPhone;
+      }
+    }
+    
+    // Validate loyalty ID
     if (!cleanedRow.loyaltyId) {
       result.missingFields.push({
         row: rowNumber,
@@ -413,19 +484,35 @@ export function basicValidateLoyaltyData(
       });
       hasErrors = true;
     } else {
-      // Check duplicate loyalty IDs
-      if (processedLoyaltyIds.has(cleanedRow.loyaltyId)) {
+      const loyaltyId = String(cleanedRow.loyaltyId).trim();
+      
+      // Check if loyalty ID format is valid (alphanumeric and at least 4 chars)
+      if (!/^[a-zA-Z0-9]{4,}$/.test(loyaltyId)) {
         result.errors.push({
           row: rowNumber,
           field: 'loyaltyId',
-          value: cleanedRow.loyaltyId,
-          reason: 'Duplicate loyalty ID found'
+          value: loyaltyId,
+          reason: 'Loyalty ID must be at least 4 alphanumeric characters'
         });
         hasErrors = true;
       }
-      processedLoyaltyIds.add(cleanedRow.loyaltyId);
+      
+      // Check duplicate loyalty IDs
+      else if (processedLoyaltyIds.has(loyaltyId.toLowerCase())) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'loyaltyId',
+          value: loyaltyId,
+          reason: 'Duplicate loyalty ID found'
+        });
+        hasErrors = true;
+      } else {
+        processedLoyaltyIds.add(loyaltyId.toLowerCase());
+        cleanedRow.loyaltyId = loyaltyId;
+      }
     }
     
+    // Validate store ID
     if (!cleanedRow.storeId) {
       result.missingFields.push({
         row: rowNumber,
@@ -449,10 +536,29 @@ export function basicValidateLoyaltyData(
       }
     }
     
-    // Clean and validate points - convert various formats
-    if (cleanedRow.points !== undefined) {
+    // Validate tier if present
+    if (cleanedRow.tier) {
+      const validTiers = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+      const normalizedTier = cleanedRow.tier.toString().toLowerCase().trim();
+      
+      if (!validTiers.includes(normalizedTier)) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'tier',
+          value: cleanedRow.tier,
+          reason: 'Invalid tier. Valid tiers are: Bronze, Silver, Gold, Platinum, Diamond'
+        });
+        hasErrors = true;
+      } else {
+        // Capitalize first letter for consistency
+        cleanedRow.tier = normalizedTier.charAt(0).toUpperCase() + normalizedTier.slice(1);
+      }
+    }
+    
+    // Validate points
+    if (cleanedRow.points !== undefined && cleanedRow.points !== null && cleanedRow.points !== '') {
       try {
-        cleanedRow.points = parseInt(cleanedRow.points, 10);
+        cleanedRow.points = parseInt(String(cleanedRow.points).replace(/[^\d.]/g, ''), 10);
         if (isNaN(cleanedRow.points) || cleanedRow.points < 0) {
           throw new Error('Invalid points value');
         }
@@ -470,24 +576,58 @@ export function basicValidateLoyaltyData(
       cleanedRow.points = 0;
     }
     
-    // Clean and validate enrollmentDate
+    // Validate status if present
+    if (cleanedRow.status) {
+      const validStatuses = ['active', 'inactive', 'pending', 'suspended'];
+      const normalizedStatus = cleanedRow.status.toString().toLowerCase().trim();
+      
+      if (!validStatuses.includes(normalizedStatus)) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'status',
+          value: cleanedRow.status,
+          reason: 'Invalid status. Valid statuses are: Active, Inactive, Pending, Suspended'
+        });
+        hasErrors = true;
+      } else {
+        // Capitalize first letter for consistency
+        cleanedRow.status = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+      }
+    } else {
+      // Default status to Active if not provided
+      cleanedRow.status = 'Active';
+    }
+    
+    // Validate enrollment date
     if (cleanedRow.enrollmentDate) {
       try {
         const date = new Date(cleanedRow.enrollmentDate);
         if (isNaN(date.getTime())) throw new Error('Invalid date');
-        cleanedRow.enrollmentDate = date.toISOString();
+        
+        // Ensure enrollment date is not in the future
+        if (date > new Date()) {
+          result.errors.push({
+            row: rowNumber,
+            field: 'enrollmentDate',
+            value: cleanedRow.enrollmentDate,
+            reason: 'Enrollment date cannot be in the future'
+          });
+          hasErrors = true;
+        } else {
+          cleanedRow.enrollmentDate = date.toISOString().split('T')[0]; // Store as YYYY-MM-DD
+        }
       } catch (error: any) {
         result.errors.push({
           row: rowNumber,
           field: 'enrollmentDate',
           value: row.enrollmentDate,
-          reason: 'Invalid date format'
+          reason: 'Invalid date format. Use YYYY-MM-DD'
         });
         hasErrors = true;
       }
     } else {
       // Default to current date if not provided
-      cleanedRow.enrollmentDate = new Date().toISOString();
+      cleanedRow.enrollmentDate = new Date().toISOString().split('T')[0];
     }
     
     if (!hasErrors) {
@@ -528,6 +668,13 @@ export async function validateInventoryData(
 }
 
 // Basic inventory data validation
+/**
+ * Basic validation for inventory data with improved field handling
+ * 
+ * @param data - The inventory data to validate
+ * @param result - The import result object to update with validation results
+ * @returns Updated import result
+ */
 export function basicValidateInventoryData(
   data: any[],
   result: ImportResult
@@ -548,6 +695,14 @@ export function basicValidateInventoryData(
         isRequired: true
       });
       hasErrors = true;
+    } else if (typeof cleanedRow.name === 'string' && cleanedRow.name.trim().length < 2) {
+      result.errors.push({
+        row: rowNumber,
+        field: 'name',
+        value: row.name,
+        reason: 'Product name must be at least 2 characters long'
+      });
+      hasErrors = true;
     }
     
     if (!cleanedRow.barcode) {
@@ -555,6 +710,14 @@ export function basicValidateInventoryData(
         row: rowNumber,
         field: 'barcode',
         isRequired: true
+      });
+      hasErrors = true;
+    } else if (typeof cleanedRow.barcode === 'string' && cleanedRow.barcode.trim().length < 4) {
+      result.errors.push({
+        row: rowNumber,
+        field: 'barcode',
+        value: row.barcode,
+        reason: 'Barcode must be at least 4 characters long'
       });
       hasErrors = true;
     } else {
@@ -600,6 +763,31 @@ export function basicValidateInventoryData(
       }
     }
     
+    // Validate cost field if present (optional)
+    if (cleanedRow.cost !== undefined && cleanedRow.cost !== null && cleanedRow.cost !== '') {
+      try {
+        // Handle cost formatting (e.g. "$8.50" -> 8.50)
+        if (typeof cleanedRow.cost === 'string') {
+          cleanedRow.cost = cleanedRow.cost.replace(/[^0-9.]/g, '');
+        }
+        cleanedRow.cost = parseFloat(cleanedRow.cost);
+        if (isNaN(cleanedRow.cost) || cleanedRow.cost < 0) {
+          throw new Error('Invalid cost');
+        }
+      } catch (error: any) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'cost',
+          value: row.cost,
+          reason: 'Cost must be a valid positive number'
+        });
+        hasErrors = true;
+      }
+    } else {
+      // Default cost can be set in the defaults function in import-ai.ts
+      cleanedRow.cost = 0;
+    }
+    
     if (!cleanedRow.categoryId) {
       result.missingFields.push({
         row: rowNumber,
@@ -637,6 +825,42 @@ export function basicValidateInventoryData(
           field: 'quantity',
           value: row.quantity,
           reason: 'Quantity must be a valid positive number'
+        });
+        hasErrors = true;
+      }
+    }
+    
+    // Validate reorderLevel field if present
+    if (cleanedRow.reorderLevel !== undefined && cleanedRow.reorderLevel !== null && cleanedRow.reorderLevel !== '') {
+      try {
+        cleanedRow.reorderLevel = parseInt(cleanedRow.reorderLevel, 10);
+        if (isNaN(cleanedRow.reorderLevel) || cleanedRow.reorderLevel < 0) {
+          throw new Error('Invalid reorder level');
+        }
+      } catch (error: any) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'reorderLevel',
+          value: row.reorderLevel,
+          reason: 'Reorder level must be a valid positive number'
+        });
+        hasErrors = true;
+      }
+    }
+    
+    // Validate reorderQuantity field if present
+    if (cleanedRow.reorderQuantity !== undefined && cleanedRow.reorderQuantity !== null && cleanedRow.reorderQuantity !== '') {
+      try {
+        cleanedRow.reorderQuantity = parseInt(cleanedRow.reorderQuantity, 10);
+        if (isNaN(cleanedRow.reorderQuantity) || cleanedRow.reorderQuantity < 0) {
+          throw new Error('Invalid reorder quantity');
+        }
+      } catch (error: any) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'reorderQuantity',
+          value: row.reorderQuantity,
+          reason: 'Reorder quantity must be a valid positive number'
         });
         hasErrors = true;
       }
@@ -689,6 +913,51 @@ export function basicValidateInventoryData(
     } else {
       // Default to false if not provided
       cleanedRow.isPerishable = false;
+    }
+    
+    // Validate batch number if present
+    if (cleanedRow.batchNumber !== undefined && cleanedRow.batchNumber !== null) {
+      if (typeof cleanedRow.batchNumber === 'string' && cleanedRow.batchNumber.trim() === '') {
+        cleanedRow.batchNumber = null;
+      }
+    }
+    
+    // Validate expiry date if present
+    if (cleanedRow.expiryDate !== undefined && cleanedRow.expiryDate !== null && cleanedRow.expiryDate !== '') {
+      try {
+        const date = new Date(cleanedRow.expiryDate);
+        if (isNaN(date.getTime())) {
+          throw new Error('Invalid date format');
+        }
+        
+        // For perishable items, expiry date should be in the future
+        if (cleanedRow.isPerishable && date < new Date()) {
+          result.errors.push({
+            row: rowNumber,
+            field: 'expiryDate',
+            value: cleanedRow.expiryDate,
+            reason: 'Expiry date must be in the future for perishable items'
+          });
+          hasErrors = true;
+        } else {
+          cleanedRow.expiryDate = date.toISOString().split('T')[0]; // Store as YYYY-MM-DD
+        }
+      } catch (error: any) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'expiryDate',
+          value: cleanedRow.expiryDate,
+          reason: 'Invalid date format. Use YYYY-MM-DD'
+        });
+        hasErrors = true;
+      }
+    } else if (cleanedRow.isPerishable === true) {
+      // For perishable items, warn if no expiry date provided
+      result.missingFields.push({
+        row: rowNumber,
+        field: 'expiryDate',
+        isRequired: false
+      });
     }
     
     if (!hasErrors) {
