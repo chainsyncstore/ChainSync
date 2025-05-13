@@ -1447,6 +1447,324 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========= Returns and Refunds API Routes =========
+  
+  // Get all return reasons
+  app.get(`${apiPrefix}/returns/reasons`, isAuthenticated, async (req, res) => {
+    try {
+      const reasons = await storage.getAllReturnReasons();
+      return res.json(reasons);
+    } catch (error) {
+      console.error('Error fetching return reasons:', error);
+      return res.status(500).json({ error: 'Failed to fetch return reasons' });
+    }
+  });
+
+  // Create a new return reason (admin only)
+  app.post(`${apiPrefix}/returns/reasons`, isAdmin, async (req, res) => {
+    try {
+      const { name, description } = req.body;
+      
+      const reasonData = schema.returnReasonInsertSchema.parse({
+        name,
+        description,
+        active: true
+      });
+      
+      const reason = await storage.createReturnReason(reasonData);
+      return res.status(201).json(reason);
+    } catch (error) {
+      console.error('Error creating return reason:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(500).json({ error: 'Failed to create return reason' });
+    }
+  });
+
+  // Get returns analytics
+  app.get(`${apiPrefix}/returns/analytics`, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { storeId } = req.query;
+      const startDateParam = req.query.startDate as string;
+      const endDateParam = req.query.endDate as string;
+      
+      // Parse dates if provided
+      const startDate = startDateParam ? new Date(startDateParam) : undefined;
+      const endDate = endDateParam ? new Date(endDateParam) : undefined;
+      
+      // Check store access if storeId is provided
+      if (storeId && req.session.userRole !== 'admin') {
+        if (req.session.storeId !== parseInt(storeId as string)) {
+          return res.status(403).json({ error: 'You do not have access to this store' });
+        }
+      }
+      
+      const storeIdNumber = storeId ? parseInt(storeId as string) : undefined;
+      
+      const analytics = await storage.getReturnAnalytics(
+        storeIdNumber,
+        startDate,
+        endDate
+      );
+      
+      return res.json(analytics);
+    } catch (error) {
+      console.error('Error fetching returns analytics:', error);
+      return res.status(500).json({ error: 'Failed to fetch returns analytics' });
+    }
+  });
+
+  // Get recent returns
+  app.get(`${apiPrefix}/returns/recent`, isAuthenticated, async (req, res) => {
+    try {
+      const { limit } = req.query;
+      let { storeId } = req.query;
+      
+      // If user is not admin or manager, force their storeId
+      if (req.session.userRole !== 'admin' && req.session.userRole !== 'manager') {
+        storeId = req.session.storeId?.toString();
+      }
+      
+      // If manager, ensure they only access their store
+      if (req.session.userRole === 'manager' && storeId && 
+          req.session.storeId !== parseInt(storeId as string)) {
+        return res.status(403).json({ error: 'You do not have access to this store' });
+      }
+      
+      const limitNumber = limit ? parseInt(limit as string) : 5;
+      const storeIdNumber = storeId ? parseInt(storeId as string) : undefined;
+      
+      const returns = await storage.getRecentReturns(limitNumber, storeIdNumber);
+      return res.json(returns);
+    } catch (error) {
+      console.error('Error fetching recent returns:', error);
+      return res.status(500).json({ error: 'Failed to fetch recent returns' });
+    }
+  });
+
+  // Get returns for a store with pagination
+  app.get(`${apiPrefix}/returns/store/:storeId`, isAuthenticated, hasStoreAccess(), async (req, res) => {
+    try {
+      const { storeId } = req.params;
+      const { page, limit, startDate, endDate } = req.query;
+      
+      const pageNumber = page ? parseInt(page as string) : 1;
+      const limitNumber = limit ? parseInt(limit as string) : 20;
+      const startDateObj = startDate ? new Date(startDate as string) : undefined;
+      const endDateObj = endDate ? new Date(endDate as string) : undefined;
+      
+      const returns = await storage.getReturnsByStoreId(
+        parseInt(storeId),
+        startDateObj,
+        endDateObj,
+        pageNumber,
+        limitNumber
+      );
+      
+      return res.json(returns);
+    } catch (error) {
+      console.error('Error fetching store returns:', error);
+      return res.status(500).json({ error: 'Failed to fetch store returns' });
+    }
+  });
+
+  // Get a specific return by ID
+  app.get(`${apiPrefix}/returns/:returnId`, isAuthenticated, async (req, res) => {
+    try {
+      const { returnId } = req.params;
+      
+      // Try to get by numeric ID first
+      let returnData;
+      if (!isNaN(parseInt(returnId))) {
+        returnData = await storage.getReturnById(parseInt(returnId));
+      } else {
+        // If not a number, try to get by return ID string
+        returnData = await storage.getReturnByReturnId(returnId);
+      }
+      
+      if (!returnData) {
+        return res.status(404).json({ error: 'Return not found' });
+      }
+      
+      // Check access
+      if (req.session.userRole !== 'admin' && returnData.storeId !== req.session.storeId) {
+        return res.status(403).json({ error: 'You do not have access to this return' });
+      }
+      
+      return res.json(returnData);
+    } catch (error) {
+      console.error('Error fetching return:', error);
+      return res.status(500).json({ error: 'Failed to fetch return' });
+    }
+  });
+
+  // Process a return
+  app.post(`${apiPrefix}/returns`, isAuthenticated, async (req, res) => {
+    try {
+      const { originalTransactionId, storeId, customerId, totalRefundAmount, items, notes } = req.body;
+      
+      // Validate access
+      if (req.session.userRole !== 'admin' && req.session.storeId !== storeId) {
+        return res.status(403).json({ error: 'You do not have access to this store' });
+      }
+      
+      // Generate unique return ID
+      const returnId = `RET-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      // Prepare return data
+      const returnData = schema.returnInsertSchema.parse({
+        returnId,
+        originalTransactionId,
+        storeId,
+        processedBy: req.session.userId,
+        customerId,
+        totalRefundAmount,
+        status: 'completed',
+        notes,
+        returnDate: new Date(),
+        updatedAt: new Date()
+      });
+      
+      // Prepare return items
+      const returnItems = items.map((item: any) => schema.returnItemInsertSchema.parse({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        refundAmount: item.refundAmount,
+        isPerishable: item.isPerishable,
+        returnReasonId: item.returnReasonId,
+        restocked: !item.isPerishable, // Only restock non-perishable items
+        notes: item.notes
+      }));
+      
+      // Create the return with items
+      const returnResult = await storage.createReturn(returnData, returnItems);
+      
+      return res.status(201).json(returnResult);
+    } catch (error) {
+      console.error('Error processing return:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(500).json({ error: 'Failed to process return' });
+    }
+  });
+
+  // Update return status
+  app.patch(`${apiPrefix}/returns/:returnId/status`, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { returnId } = req.params;
+      const { status } = req.body;
+      
+      if (!['processing', 'completed', 'cancelled'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status. Must be processing, completed, or cancelled' });
+      }
+      
+      // Get the return to check access
+      let returnData;
+      if (!isNaN(parseInt(returnId))) {
+        returnData = await storage.getReturnById(parseInt(returnId));
+      } else {
+        returnData = await storage.getReturnByReturnId(returnId);
+      }
+      
+      if (!returnData) {
+        return res.status(404).json({ error: 'Return not found' });
+      }
+      
+      // Check access for managers
+      if (req.session.userRole === 'manager' && returnData.storeId !== req.session.storeId) {
+        return res.status(403).json({ error: 'You do not have access to this return' });
+      }
+      
+      // Update the status
+      const updatedReturn = await storage.updateReturnStatus(returnData.id, status);
+      
+      return res.json(updatedReturn);
+    } catch (error) {
+      console.error('Error updating return status:', error);
+      return res.status(500).json({ error: 'Failed to update return status' });
+    }
+  });
+
+  // Customer lookup by email or phone
+  app.get(`${apiPrefix}/customers/lookup`, isAuthenticated, async (req, res) => {
+    try {
+      const { email, phone } = req.query;
+      
+      if (!email && !phone) {
+        return res.status(400).json({ error: 'Email or phone is required for customer lookup' });
+      }
+      
+      let customer;
+      if (email) {
+        customer = await storage.getCustomerByEmail(email as string);
+      } else if (phone) {
+        customer = await storage.getCustomerByPhone(phone as string);
+      }
+      
+      if (!customer) {
+        return res.status(404).json({ error: 'Customer not found' });
+      }
+      
+      // Validate store access for non-admins
+      if (req.session.userRole !== 'admin' && customer.storeId !== req.session.storeId) {
+        return res.status(403).json({ error: 'You do not have access to this customer' });
+      }
+      
+      return res.json(customer);
+    } catch (error) {
+      console.error('Error looking up customer:', error);
+      return res.status(500).json({ error: 'Failed to lookup customer' });
+    }
+  });
+
+  // Create or update customer
+  app.post(`${apiPrefix}/customers`, isAuthenticated, async (req, res) => {
+    try {
+      const { fullName, email, phone, storeId } = req.body;
+      
+      // Validate access
+      if (req.session.userRole !== 'admin' && req.session.storeId !== storeId) {
+        return res.status(403).json({ error: 'You do not have access to this store' });
+      }
+      
+      // Check if customer already exists
+      let customer;
+      if (email) {
+        customer = await storage.getCustomerByEmail(email);
+      }
+      
+      if (!customer && phone) {
+        customer = await storage.getCustomerByPhone(phone);
+      }
+      
+      if (customer) {
+        // Return existing customer
+        return res.status(200).json(customer);
+      }
+      
+      // Create new customer
+      const customerData = schema.customerInsertSchema.parse({
+        fullName,
+        email,
+        phone,
+        storeId,
+        updatedAt: new Date()
+      });
+      
+      const newCustomer = await storage.createCustomer(customerData);
+      return res.status(201).json(newCustomer);
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(500).json({ error: 'Failed to create customer' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

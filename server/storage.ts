@@ -873,7 +873,7 @@ export const storage = {
       count: count()
     })
     .from(schema.returns)
-    .where(whereClause);
+    .where(and(...conditions));
     
     const totalReturns = totalReturnsCountResult[0].count;
     
@@ -1029,11 +1029,13 @@ export const storage = {
       count: number
     }> = {};
     
+    // For each item with a return reason, count it
     allReturnItems.forEach(item => {
       if (item.returnReasonId) {
         if (!reasonsData[item.returnReasonId]) {
+          // Get the reason name from the database
           reasonsData[item.returnReasonId] = {
-            reasonName: item.returnReason?.name || `Reason ${item.returnReasonId}`,
+            reasonName: `Reason ${item.returnReasonId}`,
             count: 0
           };
         }
