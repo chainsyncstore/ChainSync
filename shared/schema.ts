@@ -68,6 +68,7 @@ export const products = pgTable("products", {
   cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
   isPerishable: boolean("is_perishable").notNull().default(false),
   imageUrl: text("image_url"),
+  bonusPoints: decimal("bonus_points", { precision: 10, scale: 2 }).default("0"), // For loyalty program bonus points
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

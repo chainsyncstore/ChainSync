@@ -1,9 +1,163 @@
 import { db } from "@db";
 import * as schema from "@shared/schema";
-import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL, inArray } from "drizzle-orm";
+import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL, inArray, asc } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 
 export const storage = {
+  // --------- Loyalty Program ---------
+  async getLoyaltyMemberById(memberId: number) {
+    return await db.query.loyaltyMembers.findFirst({
+      where: eq(schema.loyaltyMembers.id, memberId),
+      with: {
+        customer: true,
+        tier: true
+      }
+    });
+  },
+  
+  async getLoyaltyMemberByLoyaltyId(loyaltyId: string) {
+    return await db.query.loyaltyMembers.findFirst({
+      where: eq(schema.loyaltyMembers.loyaltyId, loyaltyId),
+      with: {
+        customer: true,
+        tier: true
+      }
+    });
+  },
+  
+  async getLoyaltyMemberByCustomerId(customerId: number) {
+    return await db.query.loyaltyMembers.findFirst({
+      where: eq(schema.loyaltyMembers.customerId, customerId),
+      with: {
+        customer: true,
+        tier: true
+      }
+    });
+  },
+  
+  async createLoyaltyMember(data: schema.LoyaltyMemberInsert) {
+    const [member] = await db.insert(schema.loyaltyMembers)
+      .values(data)
+      .returning();
+    return member;
+  },
+  
+  async updateLoyaltyMember(memberId: number, data: Partial<schema.LoyaltyMemberInsert>) {
+    const [updated] = await db.update(schema.loyaltyMembers)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.loyaltyMembers.id, memberId))
+      .returning();
+    return updated;
+  },
+  
+  async getLoyaltyProgram(storeId: number) {
+    return await db.query.loyaltyPrograms.findFirst({
+      where: and(
+        eq(schema.loyaltyPrograms.storeId, storeId),
+        eq(schema.loyaltyPrograms.active, true)
+      ),
+      with: {
+        tiers: true,
+        rewards: true
+      }
+    });
+  },
+  
+  async createLoyaltyProgram(data: schema.LoyaltyProgramInsert) {
+    const [program] = await db.insert(schema.loyaltyPrograms)
+      .values(data)
+      .returning();
+    return program;
+  },
+  
+  async updateLoyaltyProgram(programId: number, data: Partial<schema.LoyaltyProgramInsert>) {
+    const [updated] = await db.update(schema.loyaltyPrograms)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.loyaltyPrograms.id, programId))
+      .returning();
+    return updated;
+  },
+  
+  async getLoyaltyTiers(programId: number) {
+    return await db.query.loyaltyTiers.findMany({
+      where: eq(schema.loyaltyTiers.programId, programId),
+      orderBy: [asc(schema.loyaltyTiers.requiredPoints)]
+    });
+  },
+  
+  async createLoyaltyTier(data: schema.LoyaltyTierInsert) {
+    const [tier] = await db.insert(schema.loyaltyTiers)
+      .values(data)
+      .returning();
+    return tier;
+  },
+  
+  async updateLoyaltyTier(tierId: number, data: Partial<schema.LoyaltyTierInsert>) {
+    const [updated] = await db.update(schema.loyaltyTiers)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.loyaltyTiers.id, tierId))
+      .returning();
+    return updated;
+  },
+  
+  async getLoyaltyRewards(programId: number) {
+    return await db.query.loyaltyRewards.findMany({
+      where: and(
+        eq(schema.loyaltyRewards.programId, programId),
+        eq(schema.loyaltyRewards.active, true)
+      ),
+      with: {
+        product: true
+      }
+    });
+  },
+  
+  async createLoyaltyReward(data: schema.LoyaltyRewardInsert) {
+    const [reward] = await db.insert(schema.loyaltyRewards)
+      .values(data)
+      .returning();
+    return reward;
+  },
+  
+  async updateLoyaltyReward(rewardId: number, data: Partial<schema.LoyaltyRewardInsert>) {
+    const [updated] = await db.update(schema.loyaltyRewards)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.loyaltyRewards.id, rewardId))
+      .returning();
+    return updated;
+  },
+  
+  async getLoyaltyTransactions(memberId: number, limit = 20, offset = 0) {
+    return await db.query.loyaltyTransactions.findMany({
+      where: eq(schema.loyaltyTransactions.memberId, memberId),
+      orderBy: [desc(schema.loyaltyTransactions.createdAt)],
+      limit,
+      offset,
+      with: {
+        transaction: true,
+        reward: true
+      }
+    });
+  },
+  
+  async createLoyaltyTransaction(data: schema.LoyaltyTransactionInsert) {
+    const [transaction] = await db.insert(schema.loyaltyTransactions)
+      .values(data)
+      .returning();
+    return transaction;
+  },
   // ----------- Affiliate Methods -----------
   
   async getAffiliateByUserId(userId: number) {
