@@ -11,6 +11,8 @@ import { getAIResponse } from "./services/ai";
 import multer from "multer";
 import path from "path";
 import bcrypt from "bcrypt";
+import { db } from "@db";
+import { eq, and, or, like, desc, asc, sql } from "drizzle-orm";
 
 // Import services
 import * as affiliateService from './services/affiliate';
@@ -267,8 +269,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const loginData = schema.loginSchema.parse(req.body);
       
-      // Get user by username first
-      const user = await storage.getUserByUsername(loginData.username);
+      // Use the database directly to look up the user
+      const user = await db.query.users.findFirst({
+        where: eq(schema.users.username, loginData.username)
+      });
       
       if (!user) {
         return res.status(401).json({ message: "Invalid username or password" });
@@ -282,7 +286,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update last login timestamp
-      await storage.updateUserLastLogin(user.id);
+      await db.update(schema.users)
+        .set({ lastLogin: new Date() })
+        .where(eq(schema.users.id, user.id));
       
       // Set session data
       req.session.userId = user.id;
