@@ -895,46 +895,97 @@ export const storage = {
   },
 
   async getTransactionCount(storeId?: number, startDate?: Date, endDate?: Date) {
-    let query = undefined;
-    
-    if (storeId) {
-      query = eq(schema.transactions.storeId, storeId);
+    try {
+      let query = undefined;
+      
+      if (storeId) {
+        query = eq(schema.transactions.storeId, storeId);
+      }
+      
+      // Add date filters if provided
+      if (startDate) {
+        const startFilter = gte(schema.transactions.createdAt, startDate);
+        query = query ? and(query, startFilter) : startFilter;
+      }
+      
+      if (endDate) {
+        const endFilter = lte(schema.transactions.createdAt, endDate);
+        query = query ? and(query, endFilter) : endFilter;
+      }
+      
+      const result = await db
+        .select({ count: count() })
+        .from(schema.transactions)
+        .where(query);
+      
+      return Number(result[0]?.count) || 0;
+    } catch (error) {
+      console.error("Error counting transactions:", error);
+      return 0; // Return 0 instead of failing
     }
-    
-    // Add date filters if provided
-    if (startDate) {
-      const startFilter = gte(schema.transactions.createdAt, startDate);
-      query = query ? and(query, startFilter) : startFilter;
-    }
-    
-    if (endDate) {
-      const endFilter = lte(schema.transactions.createdAt, endDate);
-      query = query ? and(query, endFilter) : endFilter;
-    }
-    
-    const result = await db
-      .select({ count: count() })
-      .from(schema.transactions)
-      .where(query);
-    
-    return result[0]?.count || 0;
   },
 
   async getOfflineTransactions() {
-    return await db.query.transactions.findMany({
-      where: and(
+    try {
+      // Explicit column selection to avoid requesting columns that may not exist in the database yet
+      const transactions = await db.select({
+        id: schema.transactions.id,
+        transactionId: schema.transactions.transactionId,
+        storeId: schema.transactions.storeId,
+        cashierId: schema.transactions.cashierId,
+        subtotal: schema.transactions.subtotal,
+        tax: schema.transactions.tax,
+        total: schema.transactions.total,
+        paymentMethod: schema.transactions.paymentMethod,
+        status: schema.transactions.status,
+        isOfflineTransaction: schema.transactions.isOfflineTransaction,
+        createdAt: schema.transactions.createdAt,
+        updatedAt: schema.transactions.updatedAt,
+        syncedAt: schema.transactions.syncedAt,
+        store: {
+          id: schema.stores.id,
+          name: schema.stores.name
+        }
+      })
+      .from(schema.transactions)
+      .leftJoin(schema.stores, eq(schema.transactions.storeId, schema.stores.id))
+      .where(and(
         eq(schema.transactions.isOfflineTransaction, true),
         isNull(schema.transactions.syncedAt)
-      ),
-      with: {
-        store: true,
-        items: {
-          with: {
-            product: true
-          }
-        }
-      }
-    });
+      ));
+
+      // For each transaction, get its items
+      const transactionsWithItems = await Promise.all(
+        transactions.map(async (transaction) => {
+          const items = await db.select({
+            id: schema.transactionItems.id,
+            productId: schema.transactionItems.productId,
+            quantity: schema.transactionItems.quantity,
+            unitPrice: schema.transactionItems.unitPrice,
+            subtotal: schema.transactionItems.subtotal,
+            product: {
+              id: schema.products.id,
+              name: schema.products.name,
+              barcode: schema.products.barcode,
+              price: schema.products.price
+            }
+          })
+          .from(schema.transactionItems)
+          .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))
+          .where(eq(schema.transactionItems.transactionId, transaction.id));
+
+          return {
+            ...transaction,
+            items
+          };
+        })
+      );
+      
+      return transactionsWithItems;
+    } catch (error) {
+      console.error("Error fetching offline transactions:", error);
+      return []; // Return empty array instead of failing
+    }
   },
 
   async syncOfflineTransaction(transactionId: number) {

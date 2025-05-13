@@ -25,22 +25,39 @@ interface RecentTransactionsProps {
   limit?: number;
 }
 
+interface TransactionItem {
+  id: number;
+  productId: number;
+  quantity: number;
+  unitPrice: string;
+  subtotal: string;
+  returnedQuantity?: number;
+  product: {
+    id: number;
+    name: string;
+    barcode: string;
+    price: string;
+  };
+}
+
 interface Transaction {
   id: number;
   transactionId: string;
-  total: number;
+  total: string | number;
   createdAt: string;
   status: string;
   isOfflineTransaction: boolean;
   syncedAt?: string;
-  items: Array<any>;
+  synced_at?: string; // Both variants might be present
+  items?: TransactionItem[]; // Now optional as it might not be in the response
   store: {
     id: number;
     name: string;
   };
   cashier: {
     id: number;
-    fullName: string;
+    fullName?: string; // Might be missing
+    username?: string; // Might have username instead
   };
 }
 
@@ -157,7 +174,10 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
           </TableHeader>
           <TableBody className="bg-white divide-y divide-neutral-200">
             {data && data.length > 0 ? data.map((transaction) => {
-              const itemCount = transaction.items.length;
+              // Handle case where items might be undefined or not an array
+              const itemCount = transaction.items && Array.isArray(transaction.items) 
+                ? transaction.items.length 
+                : 0;
               
               return (
                 <TableRow key={transaction.id}>
