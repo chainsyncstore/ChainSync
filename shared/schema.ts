@@ -203,6 +203,7 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     references: [users.id],
   }),
   items: many(transactionItems),
+  refunds: many(refunds),
 }));
 
 // Transaction Items
@@ -213,16 +214,79 @@ export const transactionItems = pgTable("transaction_items", {
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  returnedQuantity: integer("returned_quantity").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const transactionItemsRelations = relations(transactionItems, ({ one }) => ({
+export const transactionItemsRelations = relations(transactionItems, ({ one, many }) => ({
   transaction: one(transactions, {
     fields: [transactionItems.transactionId],
     references: [transactions.id],
   }),
   product: one(products, {
     fields: [transactionItems.productId],
+    references: [products.id],
+  }),
+  refundItems: many(refundItems),
+}));
+
+// Refunds
+export const refunds = pgTable("refunds", {
+  id: serial("id").primaryKey(),
+  refundId: text("refund_id").notNull().unique(), // e.g., REF-12345
+  transactionId: integer("transaction_id").references(() => transactions.id).notNull(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  processedById: integer("processed_by_id").references(() => users.id).notNull(),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  refundMethod: text("refund_method").notNull(), // cash, credit_card, store_credit, etc.
+  reason: text("reason").notNull(), // damaged, unwanted, defective, etc.
+  status: text("status").notNull().default("completed"), // completed, pending, voided
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const refundsRelations = relations(refunds, ({ one, many }) => ({
+  transaction: one(transactions, {
+    fields: [refunds.transactionId],
+    references: [transactions.id],
+  }),
+  store: one(stores, {
+    fields: [refunds.storeId],
+    references: [stores.id],
+  }),
+  processedBy: one(users, {
+    fields: [refunds.processedById],
+    references: [users.id],
+  }),
+  items: many(refundItems),
+}));
+
+// Refund Items
+export const refundItems = pgTable("refund_items", {
+  id: serial("id").primaryKey(),
+  refundId: integer("refund_id").references(() => refunds.id).notNull(),
+  transactionItemId: integer("transaction_item_id").references(() => transactionItems.id).notNull(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  isRestocked: boolean("is_restocked").notNull().default(false), // Indicates if non-perishable item was returned to inventory
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const refundItemsRelations = relations(refundItems, ({ one }) => ({
+  refund: one(refunds, {
+    fields: [refundItems.refundId],
+    references: [refunds.id],
+  }),
+  transactionItem: one(transactionItems, {
+    fields: [refundItems.transactionItemId],
+    references: [transactionItems.id],
+  }),
+  product: one(products, {
+    fields: [refundItems.productId],
     references: [products.id],
   }),
 }));
@@ -307,6 +371,32 @@ export const transactionItemInsertSchema = createInsertSchema(transactionItems, 
   }),
 });
 
+export const refundInsertSchema = createInsertSchema(refunds, {
+  refundId: (schema) => schema.min(5, "Refund ID must be at least 5 characters"),
+  subtotal: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Subtotal must be a positive number"
+  }),
+  tax: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Tax must be a positive number"
+  }),
+  total: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Total must be a positive number"
+  }),
+  reason: (schema) => schema.min(2, "Reason must be at least 2 characters"),
+});
+
+export const refundItemInsertSchema = createInsertSchema(refundItems, {
+  quantity: (schema) => schema.refine(val => val > 0, {
+    message: "Quantity must be greater than 0"
+  }),
+  unitPrice: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Unit price must be a positive number"
+  }),
+  subtotal: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Subtotal must be a positive number"
+  }),
+});
+
 // Login schema
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -343,6 +433,12 @@ export type TransactionInsert = z.infer<typeof transactionInsertSchema>;
 
 export type TransactionItem = typeof transactionItems.$inferSelect;
 export type TransactionItemInsert = z.infer<typeof transactionItemInsertSchema>;
+
+export type Refund = typeof refunds.$inferSelect;
+export type RefundInsert = z.infer<typeof refundInsertSchema>;
+
+export type RefundItem = typeof refundItems.$inferSelect;
+export type RefundItemInsert = z.infer<typeof refundItemInsertSchema>;
 
 // Affiliate Program Schema
 export const affiliates = pgTable("affiliates", {
