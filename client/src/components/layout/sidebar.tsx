@@ -35,43 +35,43 @@ interface NavItemProps {
   external?: boolean;
 }
 
-const NavItem = ({ href, icon, children, active, onClick, external = false }: NavItemProps) => {
-  if (external) {
-    // Use an anchor tag for external links or landing page routing
-    return (
-      <a
-        href={href}
-        onClick={onClick}
-        className={cn(
-          "flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors",
-          active && "bg-primary-600"
-        )}
-      >
-        <div className="w-5 h-5 mr-3 text-primary-100">
-          {icon}
-        </div>
-        <span>{children}</span>
-      </a>
-    );
-  }
-  
-  // Use wouter Link for internal navigation
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={cn(
-        "flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors",
-        active && "bg-primary-600"
-      )}
-    >
-      <div className="w-5 h-5 mr-3 text-primary-100">
-        {icon}
-      </div>
-      <span>{children}</span>
-    </Link>
-  );
-};
+// Regular NavItem component for internal app navigation
+const NavItem = ({ href, icon, children, active, onClick }: NavItemProps) => (
+  <Link
+    href={href}
+    onClick={onClick}
+    className={cn(
+      "flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors",
+      active && "bg-primary-600"
+    )}
+  >
+    <div className="w-5 h-5 mr-3 text-primary-100">
+      {icon}
+    </div>
+    <span>{children}</span>
+  </Link>
+);
+
+// Separate component for external links outside the app
+interface ExternalLinkProps {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+
+const ExternalLink = ({ href, icon, children, onClick }: ExternalLinkProps) => (
+  <a
+    href={href}
+    onClick={onClick}
+    className="flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors"
+  >
+    <div className="w-5 h-5 mr-3 text-primary-100">
+      {icon}
+    </div>
+    <span>{children}</span>
+  </a>
+);
 
 export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
   const isMobile = useMobile();
@@ -134,15 +134,13 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                     Loyalty Program
                   </NavItem>
                   
-                  <NavItem 
-                    href="/" 
+                  <ExternalLink 
+                    href="/#affiliate" 
                     icon={<Share2 className="w-5 h-5" />} 
-                    active={false} 
                     onClick={isMobile ? onClose : undefined}
-                    external={true}
                   >
                     Affiliate Program
-                  </NavItem>
+                  </ExternalLink>
                 </>
               ) : (
                 <>
@@ -222,15 +220,13 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                     </NavItem>
                   )}
                   
-                  <NavItem 
-                    href="/" 
+                  <ExternalLink 
+                    href="/#affiliate" 
                     icon={<Share2 className="w-5 h-5" />} 
-                    active={false} 
                     onClick={isMobile ? onClose : undefined}
-                    external={true}
                   >
                     Affiliate Program
-                  </NavItem>
+                  </ExternalLink>
                   
                   <NavItem 
                     href="/settings" 
