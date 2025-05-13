@@ -383,7 +383,7 @@ export async function validateLoyaltyData(
 }
 
 // Basic loyalty data validation
-function basicValidateLoyaltyData(
+export function basicValidateLoyaltyData(
   data: any[],
   result: ImportResult
 ): void {
@@ -528,7 +528,7 @@ export async function validateInventoryData(
 }
 
 // Basic inventory data validation
-function basicValidateInventoryData(
+export function basicValidateInventoryData(
   data: any[],
   result: ImportResult
 ): void {

@@ -1,5 +1,5 @@
 import { SessionsClient } from '@google-cloud/dialogflow';
-import { ImportResult, ImportError, MissingField } from './import';
+import type { ImportResult } from './import';
 
 // Use Dialogflow to enhance data validation with AI insights
 export async function enhanceValidationWithAI(
