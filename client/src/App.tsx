@@ -5,6 +5,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/providers/auth-provider";
 import { CurrencyProvider } from "@/providers/currency-provider";
+import { useMobile } from "@/hooks/use-mobile";
+import { MobileLayout } from "@/components/mobile/mobile-layout";
 
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
