@@ -179,6 +179,7 @@ function AppRoutes() {
       <Route path="/loyalty" component={LoyaltyRoute} />
       <Route path="/import" component={ImportRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
+      <Route path="/debug-login" component={DebugLoginPage} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
     </Switch>

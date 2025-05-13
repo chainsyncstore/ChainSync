@@ -275,6 +275,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Debug endpoint to auto-login (REMOVE IN PRODUCTION)
   app.get(`${apiPrefix}/auth/debug-login`, async (req, res) => {
+    // Set the response content type to application/json
+    res.setHeader('Content-Type', 'application/json');
     try {
       const username = "admin"; // Default admin user from seed data
       const user = await storage.getUserByUsername(username);
@@ -326,6 +328,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Endpoint to check if user is authenticated
   app.get(`${apiPrefix}/auth/me`, async (req, res) => {
+    // Set the response content type to application/json
+    res.setHeader('Content-Type', 'application/json');
     console.log("Session in /auth/me:", req.session);
     if (!req.session.userId) {
       return res.status(401).json({
@@ -368,6 +372,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post(`${apiPrefix}/auth/login`, async (req, res) => {
+    // Set the response content type to application/json
+    res.setHeader('Content-Type', 'application/json');
     try {
       console.log("Login attempt for:", req.body.username);
       const loginData = schema.loginSchema.parse(req.body);
@@ -494,6 +500,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post(`${apiPrefix}/auth/logout`, (req, res) => {
+    // Set the response content type to application/json
+    res.setHeader('Content-Type', 'application/json');
     req.session.destroy((err) => {
       if (err) {
         console.error("Error destroying session:", err);
