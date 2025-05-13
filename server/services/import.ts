@@ -386,7 +386,7 @@ export async function validateLoyaltyData(
 export function basicValidateLoyaltyData(
   data: any[],
   result: ImportResult
-): void {
+): ImportResult {
   
   const processedLoyaltyIds = new Set<string>();
   
