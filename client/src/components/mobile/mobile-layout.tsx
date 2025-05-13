@@ -19,7 +19,6 @@ import { useMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { UserNav } from '@/components/layout/user-nav';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -96,9 +95,6 @@ export function MobileLayout({ children, title = 'ChainSync' }: MobileLayoutProp
             </SheetContent>
           </Sheet>
           <h1 className="text-xl font-semibold">{title}</h1>
-          <div className="ml-auto">
-            <UserNav />
-          </div>
         </div>
       </header>
       <main className="flex-1 p-4">
