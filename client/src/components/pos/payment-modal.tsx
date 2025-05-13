@@ -21,6 +21,8 @@ interface PaymentModalProps {
   paymentMethod: string;
   setPaymentMethod: (method: string) => void;
   isProcessing: boolean;
+  loyaltyId: string;
+  setLoyaltyId: (id: string) => void;
 }
 
 export function PaymentModal({

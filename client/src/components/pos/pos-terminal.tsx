@@ -37,6 +37,7 @@ export function PosTerminal() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [completedTransaction, setCompletedTransaction] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [loyaltyId, setLoyaltyId] = useState<string>('');
   
   // Calculated values
   const subtotal = calculateSubtotal(cart);
@@ -176,6 +177,7 @@ export function PosTerminal() {
         paymentMethod,
         status: 'completed',
         isOfflineTransaction: !isOnline,
+        loyaltyId: loyaltyId.trim() || null,
       },
       items: cart.map(item => ({
         productId: item.productId,
