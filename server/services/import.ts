@@ -6,7 +6,6 @@ import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { db } from '@db/index';
 import { SessionsClient } from '@google-cloud/dialogflow';
-import { enhanceValidationWithAI } from './import-ai';
 
 // Define types for import data
 export interface ImportResult {
@@ -373,7 +372,7 @@ export async function validateLoyaltyData(
   
   // Try AI-powered validation enhancement if available
   try {
-    await enhanceValidationWithAI(result, 'loyalty');
+    await enhanceDataValidationWithAI(result, 'loyalty');
   } catch (error) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
