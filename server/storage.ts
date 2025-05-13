@@ -457,12 +457,18 @@ export const storage = {
 
   // --------- Products ---------
   async getAllProducts() {
-    return await db.query.products.findMany({
-      with: {
-        category: true
-      },
-      orderBy: [schema.products.name]
-    });
+    try {
+      return await db.query.products.findMany({
+        with: {
+          category: true
+        },
+        orderBy: [schema.products.name]
+      });
+    } catch (error) {
+      console.error("Get products error:", error);
+      // Return empty array instead of throwing error
+      return [];
+    }
   },
 
   async getProductById(productId: number) {
