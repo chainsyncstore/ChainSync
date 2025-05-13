@@ -1066,8 +1066,9 @@ function ReturnAnalytics() {
 
 export default function ReturnsPage() {
   return (
-    <AppShell title="Returns and Refunds">
+    <AppShell>
       <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6">Returns and Refunds</h1>
         <Tabs defaultValue="process">
           <TabsList className="mb-6">
             <TabsTrigger value="process">Process Return</TabsTrigger>
