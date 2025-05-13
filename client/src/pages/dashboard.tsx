@@ -8,19 +8,10 @@ import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, PrinterIcon } from 'lucide-react';
 import { Link } from 'wouter';
-import { useMobile } from '@/hooks/use-mobile';
-import { MobileDashboard } from '@/components/mobile/dashboard/mobile-dashboard';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { isMobile } = useMobile();
   
-  // Use mobile dashboard for mobile devices
-  if (isMobile) {
-    return <MobileDashboard />;
-  }
-  
-  // Desktop dashboard
   return (
     <AppShell>
       {/* Page Title */}

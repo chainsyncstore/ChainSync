@@ -10,9 +10,6 @@ import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSes
 import { getAIResponse } from "./services/ai";
 import multer from "multer";
 import path from "path";
-import bcrypt from "bcrypt";
-import { db } from "@db";
-import { eq, and, or, like, desc, asc, sql } from "drizzle-orm";
 
 // Import services
 import * as affiliateService from './services/affiliate';
@@ -269,26 +266,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const loginData = schema.loginSchema.parse(req.body);
       
-      // Use the database directly to look up the user
-      const user = await db.query.users.findFirst({
-        where: eq(schema.users.username, loginData.username)
-      });
+      const user = await storage.validateUserCredentials(
+        loginData.username,
+        loginData.password
+      );
       
       if (!user) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
       
-      // Verify password
-      const isPasswordValid = await bcrypt.compare(loginData.password, user.password);
-      
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-      
       // Update last login timestamp
-      await db.update(schema.users)
-        .set({ lastLogin: new Date() })
-        .where(eq(schema.users.id, user.id));
+      await storage.updateUserLastLogin(user.id);
       
       // Set session data
       req.session.userId = user.id;

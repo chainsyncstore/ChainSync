@@ -8,15 +8,12 @@ import { PosTerminal } from '@/components/pos/pos-terminal';
 import { Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useMobile } from '@/hooks/use-mobile';
-import { MobilePosTerminal } from '@/components/mobile/pos/mobile-pos-terminal';
 
 export default function PosPage() {
   const { user, logout } = useAuth();
   const { isOnline, offlineTransactions, clearSyncedTransactions } = useOfflineMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isMobile } = useMobile();
   
   // Fetch store data
   const { data: storeData } = useQuery({
@@ -89,17 +86,6 @@ export default function PosPage() {
     }
   };
   
-  // Render mobile POS terminal for mobile devices
-  if (isMobile) {
-    return (
-      <MobilePosTerminal 
-        storeId={user?.storeId || 0}
-        storeName={storeData?.name || 'ChainSync Store'}
-      />
-    );
-  }
-  
-  // Render desktop POS terminal
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Header */}

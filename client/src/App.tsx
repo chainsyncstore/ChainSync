@@ -5,8 +5,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/providers/auth-provider";
 import { CurrencyProvider } from "@/providers/currency-provider";
-import { useMobile } from "@/hooks/use-mobile";
-import { MobileLayout } from "@/components/mobile/mobile-layout";
 
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
@@ -26,7 +24,6 @@ import ImportPage from "@/pages/import";
 function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
-  const { isMobile } = useMobile();
 
   // Use effect for navigation after component mounts
   useEffect(() => {
@@ -60,33 +57,7 @@ function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAd
     return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
   }
 
-  // Get the page title based on the current route
-  const getPageTitle = () => {
-    const path = window.location.pathname;
-    if (path.includes('/dashboard')) return 'Dashboard';
-    if (path.includes('/pos')) return 'Point of Sale';
-    if (path.includes('/inventory')) return 'Inventory';
-    if (path.includes('/analytics')) return 'Analytics';
-    if (path.includes('/stores')) return 'Stores';
-    if (path.includes('/users')) return 'Users';
-    if (path.includes('/loyalty')) return 'Loyalty';
-    if (path.includes('/returns')) return 'Returns';
-    if (path.includes('/import')) return 'Import';
-    if (path.includes('/affiliates')) return 'Affiliates';
-    if (path.includes('/settings')) return 'Settings';
-    return 'ChainSync';
-  };
-
-  // Render component with mobile layout if on mobile device
-  if (isMobile) {
-    return (
-      <MobileLayout title={getPageTitle()}>
-        <Component {...rest} />
-      </MobileLayout>
-    );
-  }
-
-  // Render component normally on desktop
+  // Render component if authorized
   return <Component {...rest} />;
 }
 

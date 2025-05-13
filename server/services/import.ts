@@ -6,7 +6,6 @@ import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { db } from '@db/index';
 import { SessionsClient } from '@google-cloud/dialogflow';
-import { enhanceDataValidationWithAI } from './import-ai-functions';
 
 // Define types for import data
 export interface ImportResult {
@@ -518,7 +517,7 @@ export async function validateInventoryData(
   
   // Try AI-powered validation enhancement if available
   try {
-    await enhanceDataValidationWithAI(result, 'inventory');
+    await enhanceValidationWithAI(result, 'inventory');
   } catch (error) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails

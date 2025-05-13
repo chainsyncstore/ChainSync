@@ -7,19 +7,10 @@ import { InventoryList } from '@/components/inventory/inventory-list';
 import { LowStockAlerts } from '@/components/inventory/low-stock-alerts';
 import { Button } from '@/components/ui/button';
 import { PlusIcon } from 'lucide-react';
-import { useMobile } from '@/hooks/use-mobile';
-import { MobileInventory } from '@/components/mobile/inventory/mobile-inventory';
 
 export default function InventoryPage() {
   const { user } = useAuth();
-  const { isMobile } = useMobile();
   
-  // Use mobile layout for mobile devices
-  if (isMobile) {
-    return <MobileInventory />;
-  }
-  
-  // Desktop layout
   return (
     <AppShell>
       <div className="mb-6 flex items-center justify-between">
