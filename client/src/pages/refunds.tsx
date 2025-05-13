@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -21,72 +21,88 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { AppShell } from "@/components/layout/app-shell";
-import { DataTable } from "@/components/ui/data-table";
-import { Separator } from "@/components/ui/separator";
 import { Pagination } from "@/components/ui/pagination";
 import { Spinner } from "@/components/ui/spinner";
+import { CalendarDateRangePicker } from "@/components/ui/date-range-picker";
 
-// Refund page for managers to process refunds
+// Refunds page to view all refunds
 export default function RefundsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [location, setLocation] = useLocation();
-  const [selectedRefund, setSelectedRefund] = useState<any>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
   const [pageSize] = useState(10);
+  const [, params] = useRoute("/refunds/:id");
+  const [location, setLocation] = useLocation();
 
-  // Fetch refunds
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['/api/refunds', currentPage, pageSize],
-    enabled: !!user,
+  // Fetch stores for filtering (if admin)
+  const { data: stores } = useQuery({
+    queryKey: ["/api/stores"],
+    enabled: !!user && user.role === "admin",
   });
 
-  // Show refund details
-  const showRefundDetails = (refund: any) => {
-    setSelectedRefund(refund);
-    setIsDetailOpen(true);
-  };
+  // State for selected store filter
+  const [selectedStoreId, setSelectedStoreId] = useState<string | undefined>(
+    undefined
+  );
 
-  // Close refund details
-  const closeRefundDetails = () => {
-    setIsDetailOpen(false);
-    setSelectedRefund(null);
-  };
+  // Compute query parameters
+  const queryParams = new URLSearchParams();
+  queryParams.append("page", currentPage.toString());
+  queryParams.append("limit", pageSize.toString());
+
+  if (selectedStoreId) {
+    queryParams.append("storeId", selectedStoreId);
+  }
+
+  if (dateRange.from) {
+    queryParams.append("startDate", dateRange.from.toISOString());
+  }
+
+  if (dateRange.to) {
+    queryParams.append("endDate", dateRange.to.toISOString());
+  }
+
+  // Fetch refunds
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: [`/api/refunds?${queryParams.toString()}`],
+    enabled: !!user,
+  });
 
   // Filter refunds by search term
   const filteredRefunds = data?.refunds?.filter((refund: any) => {
     return (
-      refund.refundId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      refund.reason.toLowerCase().includes(searchTerm.toLowerCase())
+      refund.refundId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      refund.transaction?.transactionId
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      refund.processedBy?.fullName
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      refund.transaction?.store?.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase())
     );
-  }) || [];
-
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+  });
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -94,9 +110,34 @@ export default function RefundsPage() {
     return new Date(dateString).toLocaleString();
   };
 
-  // Handle view transaction
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handle view transaction details
   const handleViewTransaction = (transactionId: number) => {
     setLocation(`/transactions/${transactionId}`);
+  };
+
+  // Handle store filter change
+  const handleStoreChange = (storeId: string) => {
+    setSelectedStoreId(storeId === "all" ? undefined : storeId);
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Handle date range change
+  const handleDateRangeChange = (range: { from?: Date; to?: Date }) => {
+    setDateRange(range as { from: Date | undefined; to: Date | undefined });
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Handle clear filters
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setSelectedStoreId(undefined);
+    setDateRange({ from: undefined, to: undefined });
+    setCurrentPage(1);
   };
 
   return (
@@ -106,24 +147,76 @@ export default function RefundsPage() {
           <div>
             <h1 className="text-3xl font-bold">Refunds</h1>
             <p className="text-muted-foreground">
-              View and manage refunds
+              View and manage refund history
             </p>
           </div>
         </div>
 
-        <Card>
+        <Card className="mb-6">
           <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
-              <CardTitle>All Refunds</CardTitle>
-              <div className="flex gap-2">
+            <CardTitle>Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
                 <Input
                   placeholder="Search refunds..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64"
+                />
+              </div>
+
+              {user?.role === "admin" && (
+                <div>
+                  <Select
+                    value={selectedStoreId || "all"}
+                    onValueChange={handleStoreChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Store" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Stores</SelectItem>
+                      {stores?.map((store: any) => (
+                        <SelectItem key={store.id} value={store.id.toString()}>
+                          {store.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div>
+                <CalendarDateRangePicker
+                  date={dateRange}
+                  onChange={handleDateRangeChange}
                 />
               </div>
             </div>
+
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={handleClearFilters}
+              disabled={
+                !searchTerm && !selectedStoreId && !dateRange.from && !dateRange.to
+              }
+            >
+              Clear Filters
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>Refund History</CardTitle>
+            {data?.pagination && (
+              <CardDescription>
+                Showing {filteredRefunds?.length || 0} of{" "}
+                {data.pagination.totalItems} refunds
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -136,20 +229,20 @@ export default function RefundsPage() {
                   <p className="text-destructive mb-2">
                     Error loading refunds
                   </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/refunds'] })}
-                  >
+                  <Button variant="outline" onClick={() => refetch()}>
                     Try Again
                   </Button>
                 </div>
               </div>
-            ) : filteredRefunds.length === 0 ? (
+            ) : !filteredRefunds || filteredRefunds.length === 0 ? (
               <div className="h-80 flex items-center justify-center text-center">
                 <div>
                   <p className="text-muted-foreground mb-2">
                     No refunds found
                   </p>
+                  <Button variant="outline" onClick={handleClearFilters}>
+                    Clear Filters
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -159,9 +252,12 @@ export default function RefundsPage() {
                     <TableRow>
                       <TableHead>Refund ID</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Transaction</TableHead>
+                      <TableHead>Store</TableHead>
+                      <TableHead>Processed By</TableHead>
+                      <TableHead>Method</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Reason</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -171,29 +267,46 @@ export default function RefundsPage() {
                         <TableCell className="font-medium">
                           {refund.refundId}
                         </TableCell>
-                        <TableCell>{formatDate(refund.createdAt)}</TableCell>
-                        <TableCell>₦{Number(refund.total).toFixed(2)}</TableCell>
+                        <TableCell>
+                          {formatDate(refund.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          {refund.transaction?.transactionId || "Unknown"}
+                        </TableCell>
+                        <TableCell>
+                          {refund.transaction?.store?.name || "Unknown Store"}
+                        </TableCell>
+                        <TableCell>
+                          {refund.processedBy?.fullName || "Unknown"}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {refund.refundMethod.replace("_", " ")}
+                        </TableCell>
+                        <TableCell>
+                          ₦{parseFloat(refund.total).toFixed(2)}
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant={
                               refund.status === "completed"
-                                ? "success"
-                                : refund.status === "pending"
                                 ? "outline"
-                                : "destructive"
+                                : refund.status === "failed"
+                                ? "destructive"
+                                : "outline"
                             }
                           >
                             {refund.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{refund.reason}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => showRefundDetails(refund)}
+                            onClick={() =>
+                              handleViewTransaction(refund.transactionId)
+                            }
                           >
-                            Details
+                            View Transaction
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -201,7 +314,7 @@ export default function RefundsPage() {
                   </TableBody>
                 </Table>
 
-                {data?.pagination && (
+                {data?.pagination && data.pagination.totalPages > 1 && (
                   <div className="mt-4 flex justify-end">
                     <Pagination
                       currentPage={currentPage}
@@ -215,119 +328,6 @@ export default function RefundsPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Refund Details Dialog */}
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Refund Details</DialogTitle>
-            <DialogDescription>
-              Refund ID: {selectedRefund?.refundId}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedRefund && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Refund Information</h3>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status:</span>
-                      <Badge
-                        variant={
-                          selectedRefund.status === "completed"
-                            ? "success"
-                            : selectedRefund.status === "pending"
-                            ? "outline"
-                            : "destructive"
-                        }
-                      >
-                        {selectedRefund.status}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Date:</span>
-                      <span>{formatDate(selectedRefund.createdAt)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Method:</span>
-                      <span>{selectedRefund.refundMethod}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Subtotal:</span>
-                      <span>₦{Number(selectedRefund.subtotal).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tax:</span>
-                      <span>₦{Number(selectedRefund.tax).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold">
-                      <span>Total:</span>
-                      <span>₦{Number(selectedRefund.total).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold mb-2">Reason & Notes</h3>
-                  <div className="p-2 bg-muted rounded-md min-h-[100px]">
-                    {selectedRefund.reason}
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h3 className="font-semibold mb-2">Refunded Items</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Subtotal</TableHead>
-                      <TableHead className="text-right">Restocked</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedRefund.items?.map((item: any) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{item.product?.name || "Unknown Product"}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>₦{Number(item.unitPrice).toFixed(2)}</TableCell>
-                        <TableCell>₦{Number(item.subtotal).toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                          {item.isRestocked ? (
-                            <Badge variant="success">Restocked</Badge>
-                          ) : item.product?.isPerishable ? (
-                            <Badge variant="destructive">Not Restockable (Perishable)</Badge>
-                          ) : (
-                            <Badge variant="secondary">Not Restocked</Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div className="flex justify-between">
-                <Button
-                  variant="outline"
-                  onClick={() => handleViewTransaction(selectedRefund.transactionId)}
-                >
-                  View Original Transaction
-                </Button>
-                <Button variant="default" onClick={closeRefundDetails}>
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </AppShell>
   );
 }
