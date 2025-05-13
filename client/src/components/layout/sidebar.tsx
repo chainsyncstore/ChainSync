@@ -147,6 +147,15 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                     Inventory
                   </NavItem>
                   
+                  <NavItem 
+                    href="/returns" 
+                    icon={<RotateCcw className="w-5 h-5" />} 
+                    active={location === '/returns'} 
+                    onClick={isMobile ? onClose : undefined}
+                  >
+                    Returns
+                  </NavItem>
+                  
                   {role === 'admin' && (
                     <NavItem 
                       href="/users" 
