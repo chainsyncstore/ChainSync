@@ -12,7 +12,8 @@ import {
   Settings,
   ShoppingCart,
   Share2,
-  RotateCcw
+  RotateCcw,
+  Award
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -101,6 +102,15 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                   </NavItem>
                   
                   <NavItem 
+                    href="/loyalty" 
+                    icon={<Award className="w-5 h-5" />} 
+                    active={location === '/loyalty'} 
+                    onClick={isMobile ? onClose : undefined}
+                  >
+                    Loyalty Program
+                  </NavItem>
+                  
+                  <NavItem 
                     href="/affiliates" 
                     icon={<Share2 className="w-5 h-5" />} 
                     active={location === '/affiliates'} 
@@ -154,6 +164,15 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                     onClick={isMobile ? onClose : undefined}
                   >
                     Returns
+                  </NavItem>
+                  
+                  <NavItem 
+                    href="/loyalty" 
+                    icon={<Award className="w-5 h-5" />} 
+                    active={location === '/loyalty'} 
+                    onClick={isMobile ? onClose : undefined}
+                  >
+                    Loyalty Program
                   </NavItem>
                   
                   {role === 'admin' && (
