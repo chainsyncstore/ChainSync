@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
 import session from "express-session";
@@ -8,13 +8,25 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from "./middleware/auth";
 import { getAIResponse } from "./services/ai";
+import multer from "multer";
+import path from "path";
 
 // Import services
 import * as affiliateService from './services/affiliate';
 import * as webhookService from './services/webhooks';
 import * as paymentService from './services/payment';
-
 import * as loyaltyService from "./services/loyalty";
+import { 
+  processImportFile, 
+  applyColumnMapping, 
+  validateLoyaltyData, 
+  validateInventoryData,
+  importLoyaltyData,
+  importInventoryData,
+  formatErrorsAsCsv,
+  formatMissingFieldsAsCsv
+} from "./services/import";
+
 import { db } from "@db";
 import { eq, and, desc, sql } from "drizzle-orm";
 
