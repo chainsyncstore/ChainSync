@@ -73,8 +73,8 @@ export async function processImportFile(
     throw new Error('No data found in the uploaded file.');
   }
 
-  // Get column mapping suggestions based on data type
-  const columnSuggestions = getColumnMappingSuggestions(parsedData[0], dataType);
+  // Get column mapping suggestions based on data type (AI-enhanced)
+  const columnSuggestions = await getColumnMappingSuggestions(parsedData[0], dataType);
   
   // Return first 5 rows of data as sample
   const sampleData = parsedData.slice(0, 5);
@@ -87,10 +87,10 @@ export async function processImportFile(
 }
 
 // This function analyzes the headers and suggests mappings
-function getColumnMappingSuggestions(
+async function getColumnMappingSuggestions(
   sampleRow: Record<string, any>,
   dataType: 'loyalty' | 'inventory'
-): ColumnMapping[] {
+): Promise<ColumnMapping[]> {
   const sourceColumns = Object.keys(sampleRow);
   const targetColumns = getTargetColumns(dataType);
   
@@ -107,7 +107,130 @@ function getColumnMappingSuggestions(
     });
   }
   
-  return suggestions;
+  // Enhance mappings with AI if available
+  try {
+    const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
+    return enhancedSuggestions;
+  } catch (error) {
+    console.log("Error enhancing mappings with AI:", error);
+    // If AI enhancement fails, return the basic pattern matching results
+    return suggestions;
+  }
+}
+
+// Use Dialogflow to enhance column mapping suggestions
+async function enhanceMappingsWithAI(
+  initialSuggestions: ColumnMapping[],
+  sourceColumns: string[],
+  dataType: 'loyalty' | 'inventory'
+): Promise<ColumnMapping[]> {
+  // Check if Dialogflow credentials are available
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !process.env.DIALOGFLOW_PROJECT_ID) {
+    console.log("Dialogflow credentials not found. Using basic mapping only.");
+    return initialSuggestions;
+  }
+  
+  try {
+    // Initialize Dialogflow session client
+    const sessionClient = new SessionsClient();
+    const sessionId = `import-mapping-${Date.now()}`;
+    const sessionPath = sessionClient.projectAgentSessionPath(
+      process.env.DIALOGFLOW_PROJECT_ID,
+      sessionId
+    );
+    
+    // Prepare the prompt for Dialogflow
+    const targetFields = getTargetColumns(dataType).map(col => 
+      `${col.name}${col.required ? ' (required)' : ''}`
+    ).join(", ");
+    
+    const lowConfidenceMappings = initialSuggestions
+      .filter(mapping => mapping.confidence < 0.7)
+      .map(mapping => `${mapping.source} => ${mapping.target} (confidence: ${mapping.confidence})`)
+      .join("\n");
+    
+    let prompt = `I need to map columns from a CSV file to specific target fields in my database. 
+    The source columns are: ${sourceColumns.join(", ")}
+    The target fields I'm trying to map to are: ${targetFields}
+    
+    I already have these suggested mappings with low confidence:
+    ${lowConfidenceMappings}
+    
+    Based on common naming patterns for ${dataType} data, can you suggest better mappings for these low confidence fields?
+    Please respond in a structured format with just the improved mappings as source => target with confidence score (0-1).`;
+    
+    // Send the request to Dialogflow
+    const request = {
+      session: sessionPath,
+      queryInput: {
+        text: {
+          text: prompt,
+          languageCode: 'en-US',
+        },
+      },
+    };
+    
+    // Get Dialogflow response
+    const [response] = await sessionClient.detectIntent(request);
+    
+    if (!response.queryResult) {
+      throw new Error("No query result returned from Dialogflow");
+    }
+    
+    const responseText = response.queryResult.fulfillmentText || "";
+    
+    // Parse the response to extract improved mappings
+    const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
+    
+    return improvedMappings;
+  } catch (error) {
+    console.error("Error using Dialogflow for column mapping:", error);
+    return initialSuggestions;
+  }
+}
+
+// Parse Dialogflow response to extract improved mappings
+function parseDialogflowMappingResponse(
+  responseText: string,
+  initialSuggestions: ColumnMapping[],
+  dataType: 'loyalty' | 'inventory'
+): ColumnMapping[] {
+  // Make a copy of the initial suggestions
+  const enhancedSuggestions = [...initialSuggestions];
+  
+  // Look for patterns like "source => target (confidence: 0.8)" in the response
+  const mappingPattern = /([^=]+)\s*=>\s*([^(]+)\s*\(confidence:\s*([\d.]+)\)/gi;
+  const matches = responseText.matchAll(mappingPattern);
+  
+  for (const match of Array.from(matches)) {
+    if (match.length >= 4) {
+      const source = match[1].trim();
+      const target = match[2].trim();
+      const confidence = parseFloat(match[3].trim());
+      
+      // Find this suggestion in our initial set
+      const index = enhancedSuggestions.findIndex(s => s.source === source);
+      
+      if (index !== -1 && !isNaN(confidence)) {
+        // Only update if the AI confidence is higher than our initial confidence
+        if (confidence > enhancedSuggestions[index].confidence) {
+          // Find the required flag from the target columns
+          const targetColumns = getTargetColumns(dataType);
+          const targetColumn = targetColumns.find(t => t.name === target);
+          const isRequired = targetColumn?.required || false;
+          
+          enhancedSuggestions[index] = {
+            source,
+            target,
+            confidence,
+            required: isRequired
+          };
+        }
+      }
+    }
+  }
+  
+  return enhancedSuggestions;
 }
 
 // Get the target column names for the given data type
@@ -231,10 +354,10 @@ export function applyColumnMapping(
   });
 }
 
-// Validate and clean loyalty data
-export function validateLoyaltyData(
+// Validate and clean loyalty data with AI enhancement
+export async function validateLoyaltyData(
   data: any[]
-): ImportResult {
+): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -243,6 +366,26 @@ export function validateLoyaltyData(
     mappedData: [],
     missingFields: []
   };
+  
+  // Perform basic validation
+  basicValidateLoyaltyData(data, result);
+  
+  // Try AI-powered validation enhancement if available
+  try {
+    await enhanceValidationWithAI(result, 'loyalty');
+  } catch (error) {
+    console.log("Error enhancing validation with AI:", error);
+    // Continue with basic validation results if AI enhancement fails
+  }
+  
+  return result;
+}
+
+// Basic loyalty data validation
+function basicValidateLoyaltyData(
+  data: any[],
+  result: ImportResult
+): void {
   
   const processedLoyaltyIds = new Set<string>();
   
