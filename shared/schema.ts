@@ -264,14 +264,7 @@ export const aiConversationsRelations = relations(aiConversations, ({ one }) => 
 }));
 
 // Validation Schemas
-export const userInsertSchema = createInsertSchema(users, {
-  fullName: (schema) => schema.min(2, "Full name must be at least 2 characters"),
-  email: (schema) => schema.email("Must provide a valid email"),
-  password: (schema) => schema.min(6, "Password must be at least 6 characters"),
-  role: (schema) => schema.refine(val => ['cashier', 'manager', 'admin', 'affiliate'].includes(val), {
-    message: "Role must be one of: cashier, manager, admin, affiliate"
-  }),
-});
+// User schemas are defined later in the file
 
 export const storeInsertSchema = createInsertSchema(stores, {
   name: (schema) => schema.min(2, "Store name must be at least 2 characters"),
@@ -336,15 +329,35 @@ export const transactionItemInsertSchema = createInsertSchema(transactionItems, 
   }),
 });
 
-// Login schema
+// Schema for user operations
+export const userSchema = createSelectSchema(users);
+export const userInsertSchema = createInsertSchema(users, {
+  username: (schema) => schema.min(3, "Username must be at least 3 characters"),
+  password: (schema) => schema.min(6, "Password must be at least 6 characters"),
+  fullName: (schema) => schema.min(2, "Full name is required"),
+  email: (schema) => schema.email("Please provide a valid email address"),
+  role: (schema) => schema.refine(val => ["admin", "manager", "cashier", "affiliate"].includes(val), {
+    message: "Role must be one of: admin, manager, cashier, affiliate"
+  })
+});
+
+// Auth schemas
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
+  rememberMe: z.boolean().optional()
+});
+
+export const authResponseSchema = z.object({
+  authenticated: z.boolean(),
+  user: userSchema.omit({ password: true }).optional(),
+  message: z.string().optional(),
 });
 
 // Type exports
 export type User = typeof users.$inferSelect;
 export type UserInsert = z.infer<typeof userInsertSchema>;
+export type AuthResponse = z.infer<typeof authResponseSchema>;
 
 export type Store = typeof stores.$inferSelect;
 export type StoreInsert = z.infer<typeof storeInsertSchema>;

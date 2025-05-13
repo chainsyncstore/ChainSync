@@ -3,28 +3,13 @@ import { useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { AuthResponse, User } from '@shared/schema';
 
-// Define User type
-export interface User {
-  id: number;
-  username: string;
-  fullName: string;
-  email: string;
-  role: 'admin' | 'manager' | 'cashier' | 'affiliate';
-  storeId?: number;
-}
-
-// Define login request type
+// Define login credentials type
 export interface LoginCredentials {
   username: string;
   password: string;
-}
-
-// Define authentication response type
-interface AuthResponse {
-  authenticated: boolean;
-  user: User;
-  message?: string;
+  rememberMe?: boolean;
 }
 
 // Define context type
@@ -49,56 +34,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Query to check authentication status
   const { 
     data: authData,
-    isLoading,
-    error,
-    refetch: checkAuth
+    isLoading: authLoading,
+    error: authError,
+    refetch: refetchAuth,
   } = useQuery<AuthResponse>({
-    queryKey: ['auth'],
-    queryFn: async () => {
-      console.log('Checking authentication status...');
-      try {
-        const response = await apiRequest('GET', '/api/auth/me');
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.log('Not authenticated, response:', errorText);
-          return { authenticated: false, user: null };
-        }
-        
-        const data = await response.json();
-        console.log('Auth check response data:', data);
-        return data;
-      } catch (err) {
-        console.error('Auth check failed:', err);
-        throw new Error('Failed to check authentication status');
-      }
-    },
+    queryKey: ['/api/auth/me'],
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    refetchInterval: false,
   });
 
   // Extract user from auth data
-  const user = authData?.authenticated ? authData.user : null;
+  const user = authData?.authenticated && authData?.user ? authData.user : null;
+  const isAuthenticated = !!user;
   
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials): Promise<User> => {
-      console.log('Login request for:', credentials.username);
+      // Extract rememberMe if present
+      const { rememberMe, ...loginCredentials } = credentials;
       
-      const response = await apiRequest('POST', '/api/auth/login', credentials);
+      // Send rememberMe as query param if true
+      const endpoint = rememberMe 
+        ? `/api/auth/login?remember=true` 
+        : '/api/auth/login';
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Login failed' }));
-        throw new Error(errorData.message || 'Invalid username or password');
+      const response = await apiRequest('POST', endpoint, loginCredentials);
+      const data = await response.json();
+      
+      if (!data.authenticated || !data.user) {
+        throw new Error(data.message || 'Authentication failed');
       }
       
-      return await response.json();
+      return data.user;
     },
     onSuccess: (userData) => {
       // Invalidate and refetch auth query
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       
       // Show success toast
       toast({
@@ -129,17 +104,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async (): Promise<void> => {
-      const response = await apiRequest('POST', '/api/auth/logout');
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Logout failed' }));
-        throw new Error(errorData.message || 'Logout failed');
-      }
+      await apiRequest('POST', '/api/auth/logout');
     },
     onSuccess: () => {
       // Clear auth data from cache
-      queryClient.setQueryData(['auth'], { authenticated: false, user: null });
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
+      queryClient.setQueryData(['/api/auth/me'], { authenticated: false, user: null });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       
       // Show success toast
       toast({
@@ -172,21 +142,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Auth check function wrapper that returns the user (or null)
-  const performAuthCheck = async (): Promise<User | null> => {
-    const result = await checkAuth();
-    return result.data?.authenticated ? result.data.user : null;
+  const checkAuth = async (): Promise<User | null> => {
+    const result = await refetchAuth();
+    const data = result.data;
+    return data?.authenticated && data?.user ? data.user : null;
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isLoading: isLoading || loginMutation.isPending || logoutMutation.isPending,
-        isAuthenticated: !!user,
+        isLoading: authLoading || loginMutation.isPending || logoutMutation.isPending,
+        isAuthenticated,
         login,
         logout,
-        checkAuth: performAuthCheck,
-        error: error as Error,
+        checkAuth,
+        error: authError as Error,
       }}
     >
       {children}
