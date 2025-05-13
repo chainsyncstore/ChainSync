@@ -334,16 +334,16 @@ export default function LoyaltyPage() {
       <div className="container mx-auto py-6">
         <h1 className="text-3xl font-bold mb-6">ChainSync Loyalty Program</h1>
 
-      <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="members">Member Management</TabsTrigger>
-          <TabsTrigger value="rewards">Rewards</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Program Settings</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="members">Member Management</TabsTrigger>
+            <TabsTrigger value="rewards">Rewards</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="settings">Program Settings</TabsTrigger>
+          </TabsList>
 
-        {/* Members Tab */}
-        <TabsContent value="members">
+          {/* Members Tab */}
+          <TabsContent value="members">
           <div className="flex justify-between mb-4">
             <div className="relative w-72">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -681,7 +681,7 @@ export default function LoyaltyPage() {
         </TabsContent>
 
         {/* Rewards Tab */}
-        <TabsContent value="rewards">
+          <TabsContent value="rewards">
           <Card>
             <CardHeader>
               <CardTitle>Loyalty Rewards</CardTitle>
@@ -754,7 +754,7 @@ export default function LoyaltyPage() {
         </TabsContent>
 
         {/* Analytics Tab */}
-        <TabsContent value="analytics">
+          <TabsContent value="analytics">
           <Card>
             <CardHeader>
               <CardTitle>Loyalty Program Analytics</CardTitle>
@@ -907,7 +907,7 @@ export default function LoyaltyPage() {
         </TabsContent>
 
         {/* Settings Tab */}
-        <TabsContent value="settings">
+          <TabsContent value="settings">
           <Card>
             <CardHeader>
               <CardTitle>Loyalty Program Settings</CardTitle>
@@ -1008,8 +1008,8 @@ export default function LoyaltyPage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
-    </div>
+        </Tabs>
+      </div>
     </AppShell>
   );
 }
