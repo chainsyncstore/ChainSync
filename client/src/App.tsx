@@ -127,6 +127,15 @@ function PaymentTestingRoute() {
   return <ProtectedRoute component={PaymentTestingPage} adminOnly={true} />;
 }
 
+function ReturnsRoute() {
+  const ReturnsPage = React.lazy(() => import('./pages/returns'));
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <ProtectedRoute component={ReturnsPage} />
+    </Suspense>
+  );
+}
+
 function AppRoutes() {
   return (
     <Switch>
@@ -140,6 +149,7 @@ function AppRoutes() {
       <Route path="/settings" component={SettingsRoute} />
       <Route path="/pos" component={PosRoute} />
       <Route path="/affiliates" component={AffiliatesRoute} />
+      <Route path="/returns" component={ReturnsRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
