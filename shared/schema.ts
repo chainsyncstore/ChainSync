@@ -433,33 +433,31 @@ export const returnsRelations = relations(returns, ({ one, many }) => ({
   items: many(returnItems),
 }));
 
-// Return items table
-export const returnItems = pgTable("return_items", {
+// Return items table (actually refund_items in the database)
+export const returnItems = pgTable("refund_items", {
   id: serial("id").primaryKey(),
-  returnId: integer("return_id").references(() => returns.id).notNull(),
+  refundId: integer("refund_id").references(() => returns.id).notNull(),
+  transactionItemId: integer("transaction_item_id").references(() => transactionItems.id),
   productId: integer("product_id").references(() => products.id).notNull(),
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }).notNull(),
-  isPerishable: boolean("is_perishable").notNull(), // Whether the item is perishable
-  returnReasonId: integer("return_reason_id").references(() => returnReasons.id),
-  restocked: boolean("restocked").default(false).notNull(), // Whether the item was restocked
-  notes: text("notes"),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  isRestocked: boolean("is_restocked").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const returnItemsRelations = relations(returnItems, ({ one }) => ({
-  return: one(returns, {
-    fields: [returnItems.returnId],
+  refund: one(returns, {
+    fields: [returnItems.refundId],
     references: [returns.id],
   }),
   product: one(products, {
     fields: [returnItems.productId],
     references: [products.id],
   }),
-  returnReason: one(returnReasons, {
-    fields: [returnItems.returnReasonId],
-    references: [returnReasons.id],
+  transactionItem: one(transactionItems, {
+    fields: [returnItems.transactionItemId],
+    references: [transactionItems.id],
   }),
 }));
 
@@ -473,9 +471,9 @@ export const returnReasonInsertSchema = createInsertSchema(returnReasons, {
 });
 
 export const returnInsertSchema = createInsertSchema(returns, {
-  returnId: (schema) => schema.min(5, "Return ID must be at least 5 characters"),
-  totalRefundAmount: (schema) => schema.refine(val => parseFloat(val) >= 0, {
-    message: "Refund amount must be a positive number"
+  refundId: (schema) => schema.min(5, "Refund ID must be at least 5 characters"),
+  total: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Total amount must be a positive number"
   }),
 });
 
@@ -483,8 +481,8 @@ export const returnItemInsertSchema = createInsertSchema(returnItems, {
   quantity: (schema) => schema.refine(val => val > 0, {
     message: "Quantity must be greater than 0"
   }),
-  refundAmount: (schema) => schema.refine(val => parseFloat(val) >= 0, {
-    message: "Refund amount must be a positive number"
+  subtotal: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Subtotal amount must be a positive number"
   }),
 });
 
