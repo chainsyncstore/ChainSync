@@ -13,8 +13,11 @@ import { apiRequest } from '@/lib/queryClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { generateTransactionId, calculateSubtotal, calculateTax, calculateTotal } from '@/lib/utils';
 import { useMutation } from '@tanstack/react-query';
-import { AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { AlertCircle, Wifi, WifiOff, XCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type CartItem = {
   productId: number;
@@ -270,7 +273,91 @@ export function PosTerminal() {
       
       <div className="lg:w-5/12">
         {/* Numpad section */}
-        <Numpad onInput={handleNumpadInput} activeInput={activeInput} />
+        <div className="h-full">
+          <Tabs defaultValue="numpad" className="h-full">
+            <div className="bg-white rounded-md border shadow-sm h-full">
+              <div className="px-4 pt-4 pb-0">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="numpad">Numpad</TabsTrigger>
+                  <TabsTrigger value="loyalty">Loyalty</TabsTrigger>
+                </TabsList>
+              </div>
+              <div className="p-4">
+                <TabsContent value="numpad" className="mt-0 p-0">
+                  <Numpad onInput={handleNumpadInput} activeInput={activeInput} />
+                </TabsContent>
+                <TabsContent value="loyalty" className="mt-0 p-0">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium mb-1">Customer Loyalty</h3>
+                      <p className="text-sm text-muted-foreground">Enter a loyalty ID to award points for this purchase</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="loyalty-id">Loyalty ID</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="loyalty-id"
+                          value={loyaltyId}
+                          onChange={(e) => setLoyaltyId(e.target.value)}
+                          placeholder="Enter loyalty ID"
+                          className="flex-1"
+                        />
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setLoyaltyId('')}
+                          type="button"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {loyaltyId && (
+                      <Alert className="bg-blue-50 border-blue-200">
+                        <AlertTitle className="text-blue-600">Loyalty ID: {loyaltyId}</AlertTitle>
+                        <AlertDescription className="text-blue-700">
+                          This customer will earn points on their purchase.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    <div className="pt-2">
+                      <h3 className="text-sm font-medium mb-2">Quick Actions</h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="h-10"
+                          onClick={() => {
+                            // Placeholder for loyalty search feature
+                            toast({
+                              title: "Search Loyalty Members",
+                              description: "This feature is coming soon",
+                            });
+                          }}
+                        >
+                          Search Members
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="h-10"
+                          onClick={() => {
+                            // Placeholder for loyalty enrollment feature
+                            toast({
+                              title: "Enroll New Member",
+                              description: "This feature is coming soon",
+                            });
+                          }}
+                        >
+                          Enroll New Member
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </div>
+            </div>
+          </Tabs>
+        </div>
       </div>
       
       {/* Payment Modal */}
