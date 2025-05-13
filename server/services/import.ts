@@ -112,7 +112,7 @@ async function getColumnMappingSuggestions(
   try {
     const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
     return enhancedSuggestions;
-  } catch (error) {
+  } catch (error: any) {
     console.log("Error enhancing mappings with AI:", error);
     // If AI enhancement fails, return the basic pattern matching results
     return suggestions;
@@ -184,7 +184,7 @@ async function enhanceMappingsWithAI(
     const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
     
     return improvedMappings;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error using Dialogflow for column mapping:", error);
     return initialSuggestions;
   }
@@ -374,7 +374,7 @@ export async function validateLoyaltyData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'loyalty');
-  } catch (error) {
+  } catch (error: any) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -438,7 +438,7 @@ export function basicValidateLoyaltyData(
       try {
         cleanedRow.storeId = parseInt(cleanedRow.storeId, 10);
         if (isNaN(cleanedRow.storeId)) throw new Error('Invalid store ID');
-      } catch (error) {
+      } catch (error: any) {
         result.errors.push({
           row: rowNumber,
           field: 'storeId',
@@ -456,7 +456,7 @@ export function basicValidateLoyaltyData(
         if (isNaN(cleanedRow.points) || cleanedRow.points < 0) {
           throw new Error('Invalid points value');
         }
-      } catch (error) {
+      } catch (error: any) {
         result.errors.push({
           row: rowNumber,
           field: 'points',
@@ -476,7 +476,7 @@ export function basicValidateLoyaltyData(
         const date = new Date(cleanedRow.enrollmentDate);
         if (isNaN(date.getTime())) throw new Error('Invalid date');
         cleanedRow.enrollmentDate = date.toISOString();
-      } catch (error) {
+      } catch (error: any) {
         result.errors.push({
           row: rowNumber,
           field: 'enrollmentDate',
@@ -519,7 +519,7 @@ export async function validateInventoryData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'inventory');
-  } catch (error) {
+  } catch (error: any) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -589,7 +589,7 @@ export function basicValidateInventoryData(
         if (isNaN(cleanedRow.price) || cleanedRow.price < 0) {
           throw new Error('Invalid price');
         }
-      } catch (error) {
+      } catch (error: any) {
         result.errors.push({
           row: rowNumber,
           field: 'price',
@@ -631,7 +631,7 @@ export function basicValidateInventoryData(
         if (isNaN(cleanedRow.quantity) || cleanedRow.quantity < 0) {
           throw new Error('Invalid quantity');
         }
-      } catch (error) {
+      } catch (error: any) {
         result.errors.push({
           row: rowNumber,
           field: 'quantity',
@@ -654,7 +654,7 @@ export function basicValidateInventoryData(
       try {
         cleanedRow.storeId = parseInt(cleanedRow.storeId, 10);
         if (isNaN(cleanedRow.storeId)) throw new Error('Invalid store ID');
-      } catch (error) {
+      } catch (error: any) {
         result.errors.push({
           row: rowNumber,
           field: 'storeId',
@@ -761,7 +761,7 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
       }
       
       result.importedRows++;
-    } catch (error) {
+    } catch (error: any) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
@@ -859,7 +859,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
       }
       
       result.importedRows++;
-    } catch (error) {
+    } catch (error: any) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
