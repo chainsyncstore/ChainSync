@@ -531,7 +531,7 @@ export async function validateInventoryData(
 export function basicValidateInventoryData(
   data: any[],
   result: ImportResult
-): void {
+): ImportResult {
   
   const processedBarcodes = new Set<string>();
   
