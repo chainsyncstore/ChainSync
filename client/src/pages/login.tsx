@@ -36,6 +36,18 @@ export default function LoginPage() {
       <LoginForm />
       
       <div className="mt-8 text-center text-sm text-gray-500">
+        <p className="mb-2">
+          <a 
+            href="/debug-login" 
+            className="text-primary hover:underline"
+            onClick={(e) => {
+              e.preventDefault();
+              setLocation('/debug-login');
+            }}
+          >
+            Debug Login
+          </a>
+        </p>
         <p>© {new Date().getFullYear()} ChainSync. All rights reserved.</p>
       </div>
     </div>
