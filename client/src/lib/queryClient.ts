@@ -12,11 +12,22 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = {
+    "Accept": "application/json",
+    "Cache-Control": "no-cache, no-store",
+    "Pragma": "no-cache"
+  };
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // Important: this ensures cookies are sent with the request
+    cache: "no-store" // Prevent caching of requests
   });
 
   await throwIfResNotOk(res);
@@ -30,10 +41,17 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+      credentials: "include", // Important: this ensures cookies are sent with the request
+      headers: {
+        "Accept": "application/json",
+        "Cache-Control": "no-cache, no-store",
+        "Pragma": "no-cache"
+      },
+      cache: "no-store" // Prevent caching of requests
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      console.log("401 response in query, returning null as configured");
       return null;
     }
 
