@@ -619,6 +619,74 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Affiliate Program Section */}
+      <section id="affiliate" className="w-full py-12 md:py-20 bg-neutral-50">
+        <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col lg:flex-row gap-8 items-center">
+              <div className="w-full lg:w-1/2">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary">Join Our Affiliate Program</h2>
+                <p className="text-lg mb-6 text-neutral-700">
+                  Earn 10% commission on all referred subscriptions for 12 months, while your referrals 
+                  receive a 10% discount for their first year.
+                </p>
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6 border border-neutral-200">
+                  <h3 className="text-xl font-bold mb-3 text-primary">Benefits for Affiliates</h3>
+                  <ul className="space-y-2">
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                      <span>10% commission on all referred subscriptions</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                      <span>Commission paid for a full 12 months</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                      <span>Dedicated affiliate dashboard</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                      <span>Marketing materials and support</span>
+                    </li>
+                  </ul>
+                </div>
+                <Link href="/affiliates" className="inline-flex items-center justify-center h-10 px-6 font-medium tracking-wide text-white transition duration-200 rounded shadow-md bg-primary hover:bg-primary-600 focus:shadow-outline focus:outline-none">
+                  Become an Affiliate
+                </Link>
+              </div>
+              <div className="w-full lg:w-1/2 bg-white p-8 rounded-lg shadow-lg border border-neutral-200">
+                <h3 className="text-xl font-bold mb-6 text-center text-primary">Sign Up or Log In to Your Affiliate Account</h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1" htmlFor="affiliate-email">Email</label>
+                  <input 
+                    type="email" 
+                    id="affiliate-email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" 
+                    placeholder="your@email.com"
+                  />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-1" htmlFor="affiliate-password">Password</label>
+                  <input 
+                    type="password" 
+                    id="affiliate-password"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" 
+                    placeholder="••••••••"
+                  />
+                </div>
+                <button className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-600 transition-colors">
+                  Sign In
+                </button>
+                <div className="mt-4 text-center">
+                  <a href="#" className="text-sm text-primary hover:underline">Don't have an account? Sign up</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Banner */}
       <section className="w-full py-12 md:py-24 bg-primary text-white">
         <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
