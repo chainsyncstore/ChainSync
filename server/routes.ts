@@ -48,9 +48,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === "production",
+        secure: false, // Only set to true in production with HTTPS
+        httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'lax'
       },
+      name: 'chainsync.sid' // Custom name to avoid conflicts
     })
   );
   
@@ -369,9 +372,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/auth/me`, async (req, res) => {
     // Set the response content type to application/json
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    
     console.log("Session in /auth/me:", req.session);
     console.log("Cookies:", req.headers.cookie);
-    if (!req.session.userId) {
+    
+    if (!req.session || typeof req.session.userId === 'undefined') {
+      console.log("No active session or userId found");
       return res.status(401).json({
         authenticated: false,
         message: "Not authenticated"
@@ -379,9 +386,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log("Fetching user data for ID:", req.session.userId);
       const user = await storage.getUserById(req.session.userId);
       
       if (!user) {
+        console.log("User not found in database, destroying session");
         req.session.destroy((err) => {
           if (err) console.error("Error destroying invalid session:", err);
         });
@@ -391,6 +400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      console.log("User authenticated successfully:", user.username);
       return res.status(200).json({
         authenticated: true,
         user: {

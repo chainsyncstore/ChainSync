@@ -24,8 +24,12 @@ export default function DebugLoginPage() {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache',
+          'Referer': window.location.origin
         },
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       });
 
       if (!response.ok) {

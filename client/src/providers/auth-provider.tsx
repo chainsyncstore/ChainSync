@@ -39,10 +39,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Checking authentication status...');
         const res = await fetch('/api/auth/me', {
           method: 'GET',
-          credentials: 'include',
+          credentials: 'include', // Important: this tells fetch to send cookies
           headers: {
             'Accept': 'application/json',
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
         });
 
@@ -92,10 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
         body: JSON.stringify({ username, password }),
-        credentials: 'include'
+        credentials: 'include', // Important: this allows the browser to store the cookie
+        cache: 'no-store' // Avoid caching this request
       });
       
       console.log('Login response status:', res.status);
