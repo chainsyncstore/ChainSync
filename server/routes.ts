@@ -13,6 +13,7 @@ import { getAIResponse } from "./services/ai";
 import * as affiliateService from './services/affiliate';
 import * as webhookService from './services/webhooks';
 import * as paymentService from './services/payment';
+import * as refundService from './services/refund';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up session middleware
@@ -708,6 +709,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json({ results });
     } catch (error) {
       console.error("Sync offline transactions error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // ----------- Refund Routes -----------
+  
+  // Process a refund
+  app.post(`${apiPrefix}/refunds`, isAuthenticated, async (req, res) => {
+    try {
+      const { userId, storeId } = req.session;
+      
+      if (!storeId) {
+        return res.status(400).json({ message: "Store ID is required" });
+      }
+      
+      const { transactionId, items, refundMethod } = req.body;
+      
+      if (!transactionId || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Transaction ID and items are required" });
+      }
+      
+      // Process the refund
+      const refund = await refundService.processRefund(
+        transactionId,
+        storeId,
+        userId,
+        items,
+        refundMethod
+      );
+      
+      return res.status(201).json(refund);
+    } catch (error) {
+      console.error("Process refund error:", error);
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get refund details
+  app.get(`${apiPrefix}/refunds/:id`, isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid refund ID" });
+      }
+      
+      const refund = await refundService.getRefundById(id);
+      
+      if (!refund) {
+        return res.status(404).json({ message: "Refund not found" });
+      }
+      
+      // Check if user has permission to view this refund
+      const { userRole, storeId } = req.session;
+      if (userRole !== 'admin' && refund.storeId !== storeId) {
+        return res.status(403).json({ message: "Access forbidden" });
+      }
+      
+      return res.status(200).json(refund);
+    } catch (error) {
+      console.error("Get refund error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get all refunds for a transaction
+  app.get(`${apiPrefix}/transactions/:transactionId/refunds`, isAuthenticated, async (req, res) => {
+    try {
+      const transactionId = parseInt(req.params.transactionId);
+      
+      if (isNaN(transactionId)) {
+        return res.status(400).json({ message: "Invalid transaction ID" });
+      }
+      
+      // Verify the transaction exists and user has access to it
+      const transaction = await storage.getTransactionById(transactionId);
+      
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+      
+      // Check if user has permission to view refunds for this transaction
+      const { userRole, storeId } = req.session;
+      if (userRole !== 'admin' && transaction.storeId !== storeId) {
+        return res.status(403).json({ message: "Access forbidden" });
+      }
+      
+      // Get refunds for the transaction
+      const refunds = await refundService.getRefundsByTransactionId(transactionId);
+      
+      return res.status(200).json(refunds);
+    } catch (error) {
+      console.error("Get transaction refunds error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get all refunds for a store with pagination
+  app.get(`${apiPrefix}/refunds`, isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, userRole } = req.session;
+      
+      if (userRole !== 'admin' && !storeId) {
+        return res.status(400).json({ message: "Store ID is required" });
+      }
+      
+      // Parse pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      // Parse date filters if provided
+      let startDate: Date | undefined;
+      let endDate: Date | undefined;
+      
+      if (req.query.startDate) {
+        startDate = new Date(req.query.startDate as string);
+      }
+      
+      if (req.query.endDate) {
+        endDate = new Date(req.query.endDate as string);
+        // Set the end date to the end of the day
+        endDate.setHours(23, 59, 59, 999);
+      }
+      
+      // Get refunds for the store
+      const targetStoreId = userRole === 'admin' && req.query.storeId 
+        ? parseInt(req.query.storeId as string) 
+        : storeId;
+        
+      if (!targetStoreId) {
+        return res.status(400).json({ message: "Store ID is required" });
+      }
+      
+      const refunds = await refundService.getStoreRefunds(
+        targetStoreId,
+        startDate,
+        endDate,
+        page,
+        limit
+      );
+      
+      // Get total count for pagination
+      const totalCount = await refundService.getRefundCount(
+        targetStoreId,
+        startDate,
+        endDate
+      );
+      
+      return res.status(200).json({
+        refunds,
+        pagination: {
+          page,
+          limit,
+          totalItems: totalCount,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      });
+    } catch (error) {
+      console.error("Get refunds error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
