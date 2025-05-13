@@ -1,6 +1,6 @@
 import { db } from "@db";
 import * as schema from "@shared/schema";
-import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL } from "drizzle-orm";
+import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL, inArray } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 
 export const storage = {
@@ -699,5 +699,357 @@ export const storage = {
     return await db.query.aiConversations.findFirst({
       where: eq(schema.aiConversations.userId, userId)
     });
+  },
+
+  // ----------- Returns and Refunds Methods -----------
+
+  // Customer methods
+  async createCustomer(customerData: schema.CustomerInsert) {
+    const [customer] = await db.insert(schema.customers)
+      .values(customerData)
+      .returning();
+    return customer;
+  },
+
+  async getCustomerById(customerId: number) {
+    return await db.query.customers.findFirst({
+      where: eq(schema.customers.id, customerId)
+    });
+  },
+
+  async getCustomerByEmail(email: string) {
+    return await db.query.customers.findFirst({
+      where: eq(schema.customers.email, email)
+    });
+  },
+
+  async getCustomerByPhone(phone: string) {
+    return await db.query.customers.findFirst({
+      where: eq(schema.customers.phone, phone)
+    });
+  },
+
+  // Return reasons
+  async createReturnReason(reasonData: schema.ReturnReasonInsert) {
+    const [reason] = await db.insert(schema.returnReasons)
+      .values(reasonData)
+      .returning();
+    return reason;
+  },
+
+  async getAllReturnReasons(activeOnly: boolean = true) {
+    if (activeOnly) {
+      return await db.query.returnReasons.findMany({
+        where: eq(schema.returnReasons.active, true)
+      });
+    } else {
+      return await db.query.returnReasons.findMany();
+    }
+  },
+
+  async getReturnReasonById(reasonId: number) {
+    return await db.query.returnReasons.findFirst({
+      where: eq(schema.returnReasons.id, reasonId)
+    });
+  },
+
+  // Return methods
+  async createReturn(returnData: schema.ReturnInsert, returnItems: schema.ReturnItemInsert[]) {
+    // Start a transaction to ensure data integrity
+    return await db.transaction(async (tx) => {
+      // 1. Insert the return
+      const [newReturn] = await tx.insert(schema.returns)
+        .values(returnData)
+        .returning();
+      
+      // 2. Insert return items with the returned ID
+      const returnItemsWithReturnId = returnItems.map(item => ({
+        ...item,
+        returnId: newReturn.id
+      }));
+      
+      const insertedItems = await tx.insert(schema.returnItems)
+        .values(returnItemsWithReturnId)
+        .returning();
+      
+      // 3. Process inventory updates for non-perishable items
+      for (const item of insertedItems) {
+        if (!item.isPerishable && item.restocked) {
+          // Get store ID from the return
+          const storeId = newReturn.storeId;
+          
+          // Update inventory by incrementing the quantity for non-perishable returns
+          await tx.update(schema.inventory)
+            .set({
+              quantity: sql`${schema.inventory.quantity} + ${item.quantity}`,
+              lastStockUpdate: new Date()
+            })
+            .where(
+              and(
+                eq(schema.inventory.storeId, storeId),
+                eq(schema.inventory.productId, item.productId)
+              )
+            );
+        }
+      }
+      
+      return { 
+        ...newReturn, 
+        items: insertedItems 
+      };
+    });
+  },
+
+  async getReturnById(returnId: number) {
+    const result = await db.query.returns.findFirst({
+      where: eq(schema.returns.id, returnId),
+      with: {
+        items: {
+          with: {
+            product: true,
+            returnReason: true
+          }
+        },
+        store: true,
+        processor: true,
+        customer: true,
+        originalTransaction: true
+      }
+    });
+    
+    return result;
+  },
+
+  async getReturnByReturnId(returnId: string) {
+    const result = await db.query.returns.findFirst({
+      where: eq(schema.returns.returnId, returnId),
+      with: {
+        items: {
+          with: {
+            product: true,
+            returnReason: true
+          }
+        },
+        store: true,
+        processor: true,
+        customer: true,
+        originalTransaction: true
+      }
+    });
+    
+    return result;
+  },
+
+  async getReturnsByStoreId(storeId: number, startDate?: Date, endDate?: Date, page: number = 1, limit: number = 20) {
+    const conditions = [eq(schema.returns.storeId, storeId)];
+    
+    if (startDate) {
+      conditions.push(gte(schema.returns.returnDate, startDate));
+    }
+    
+    if (endDate) {
+      conditions.push(lte(schema.returns.returnDate, endDate));
+    }
+    
+    const offset = (page - 1) * limit;
+    
+    const returns = await db.query.returns.findMany({
+      where: and(...conditions),
+      with: {
+        items: {
+          with: {
+            product: true,
+            returnReason: true
+          }
+        },
+        customer: true,
+        processor: true
+      },
+      offset,
+      limit
+    });
+    
+    const totalReturnsCountResult = await db.select({ 
+      count: count()
+    })
+    .from(schema.returns)
+    .where(whereClause);
+    
+    const totalReturns = totalReturnsCountResult[0].count;
+    
+    return {
+      returns,
+      pagination: {
+        total: totalReturns,
+        page,
+        limit,
+        totalPages: Math.ceil(totalReturns / limit)
+      }
+    };
+  },
+
+  async getRecentReturns(limit: number = 5, storeId?: number) {
+    let query = db.query.returns.findMany({
+      with: {
+        items: {
+          with: {
+            product: true
+          }
+        },
+        store: true,
+        processor: true
+      },
+      orderBy: desc(schema.returns.returnDate),
+      limit
+    });
+    
+    if (storeId) {
+      query = db.query.returns.findMany({
+        where: eq(schema.returns.storeId, storeId),
+        with: {
+          items: {
+            with: {
+              product: true
+            }
+          },
+          store: true,
+          processor: true
+        },
+        orderBy: desc(schema.returns.returnDate),
+        limit
+      });
+    }
+    
+    return await query;
+  },
+
+  async updateReturnStatus(returnId: number, status: string) {
+    const [updatedReturn] = await db.update(schema.returns)
+      .set({ 
+        status,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.returns.id, returnId))
+      .returning();
+      
+    return updatedReturn;
+  },
+
+  async getReturnAnalytics(storeId?: number, startDate?: Date, endDate?: Date) {
+    // Build where clause
+    const conditions = [];
+    
+    if (storeId) {
+      conditions.push(eq(schema.returns.storeId, storeId));
+    }
+    
+    if (startDate) {
+      conditions.push(gte(schema.returns.returnDate, startDate));
+    }
+    
+    if (endDate) {
+      conditions.push(lte(schema.returns.returnDate, endDate));
+    }
+    
+    // Get all returns with their items
+    let returns = [];
+    
+    if (conditions.length > 0) {
+      returns = await db.query.returns.findMany({
+        where: and(...conditions),
+        with: {
+          items: true,
+          store: true
+        }
+      });
+    } else {
+      returns = await db.query.returns.findMany({
+        with: {
+          items: true,
+          store: true
+        }
+      });
+    }
+    
+    // Calculate analytics
+    let totalReturns = returns.length;
+    let totalRefundAmount = 0;
+    let perishableReturns = 0;
+    let nonPerishableReturns = 0;
+    let restockedItems = 0;
+    let storeData: Record<number, { 
+      storeName: string, 
+      returnCount: number, 
+      refundAmount: number 
+    }> = {};
+    
+    // Get all return items for detailed analysis
+    let allReturnItems: schema.ReturnItem[] = [];
+    
+    if (returns.length > 0) {
+      const returnIds = returns.map(r => r.id);
+      allReturnItems = await db.select().from(schema.returnItems)
+        .where(inArray(schema.returnItems.returnId, returnIds));
+    }
+    
+    // Process return items data
+    allReturnItems.forEach(item => {
+      if (item.isPerishable) {
+        perishableReturns++;
+      } else {
+        nonPerishableReturns++;
+      }
+      
+      if (item.restocked) {
+        restockedItems++;
+      }
+    });
+    
+    // Process returns data
+    returns.forEach(ret => {
+      totalRefundAmount += parseFloat(ret.totalRefundAmount.toString());
+      
+      // Group by store
+      const storeId = ret.storeId;
+      if (!storeData[storeId]) {
+        storeData[storeId] = {
+          storeName: ret.store?.name || `Store ${storeId}`,
+          returnCount: 0,
+          refundAmount: 0
+        };
+      }
+      
+      storeData[storeId].returnCount++;
+      storeData[storeId].refundAmount += parseFloat(ret.totalRefundAmount.toString());
+    });
+    
+    // Get return reasons summary
+    const reasonsData: Record<number, {
+      reasonName: string,
+      count: number
+    }> = {};
+    
+    allReturnItems.forEach(item => {
+      if (item.returnReasonId) {
+        if (!reasonsData[item.returnReasonId]) {
+          reasonsData[item.returnReasonId] = {
+            reasonName: item.returnReason?.name || `Reason ${item.returnReasonId}`,
+            count: 0
+          };
+        }
+        
+        reasonsData[item.returnReasonId].count++;
+      }
+    });
+    
+    return {
+      totalReturns,
+      totalRefundAmount,
+      perishableReturns,
+      nonPerishableReturns,
+      restockedItems,
+      storeBreakdown: Object.values(storeData),
+      reasonBreakdown: Object.values(reasonsData)
+    };
   }
 };

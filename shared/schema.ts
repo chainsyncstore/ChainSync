@@ -344,6 +344,137 @@ export type TransactionInsert = z.infer<typeof transactionInsertSchema>;
 export type TransactionItem = typeof transactionItems.$inferSelect;
 export type TransactionItemInsert = z.infer<typeof transactionItemInsertSchema>;
 
+// Returns and Refunds System
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  fullName: text("full_name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  storeId: integer("store_id").references(() => stores.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const customersRelations = relations(customers, ({ one }) => ({
+  store: one(stores, {
+    fields: [customers.storeId],
+    references: [stores.id],
+  }),
+}));
+
+// Return reason lookup table
+export const returnReasons = pgTable("return_reasons", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Product returns table
+export const returns = pgTable("returns", {
+  id: serial("id").primaryKey(),
+  returnId: text("return_id").notNull().unique(), // unique return reference (e.g., RET-12345)
+  originalTransactionId: integer("original_transaction_id").references(() => transactions.id).notNull(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  processedBy: integer("processed_by").references(() => users.id).notNull(), // User who processed the return
+  customerId: integer("customer_id").references(() => customers.id),
+  returnDate: timestamp("return_date").defaultNow().notNull(),
+  totalRefundAmount: decimal("total_refund_amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("completed").notNull(), // 'processing', 'completed', 'cancelled'
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const returnsRelations = relations(returns, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [returns.storeId],
+    references: [stores.id],
+  }),
+  processor: one(users, {
+    fields: [returns.processedBy],
+    references: [users.id],
+  }),
+  customer: one(customers, {
+    fields: [returns.customerId],
+    references: [customers.id],
+  }),
+  originalTransaction: one(transactions, {
+    fields: [returns.originalTransactionId],
+    references: [transactions.id], 
+  }),
+  items: many(returnItems),
+}));
+
+// Return items table
+export const returnItems = pgTable("return_items", {
+  id: serial("id").primaryKey(),
+  returnId: integer("return_id").references(() => returns.id).notNull(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }).notNull(),
+  isPerishable: boolean("is_perishable").notNull(), // Whether the item is perishable
+  returnReasonId: integer("return_reason_id").references(() => returnReasons.id),
+  restocked: boolean("restocked").default(false).notNull(), // Whether the item was restocked
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const returnItemsRelations = relations(returnItems, ({ one }) => ({
+  return: one(returns, {
+    fields: [returnItems.returnId],
+    references: [returns.id],
+  }),
+  product: one(products, {
+    fields: [returnItems.productId],
+    references: [products.id],
+  }),
+  returnReason: one(returnReasons, {
+    fields: [returnItems.returnReasonId],
+    references: [returnReasons.id],
+  }),
+}));
+
+// Validation schemas for returns
+export const customerInsertSchema = createInsertSchema(customers, {
+  fullName: (schema) => schema.min(2, "Customer name must be at least 2 characters"),
+});
+
+export const returnReasonInsertSchema = createInsertSchema(returnReasons, {
+  name: (schema) => schema.min(2, "Reason name must be at least 2 characters"),
+});
+
+export const returnInsertSchema = createInsertSchema(returns, {
+  returnId: (schema) => schema.min(5, "Return ID must be at least 5 characters"),
+  totalRefundAmount: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Refund amount must be a positive number"
+  }),
+});
+
+export const returnItemInsertSchema = createInsertSchema(returnItems, {
+  quantity: (schema) => schema.refine(val => val > 0, {
+    message: "Quantity must be greater than 0"
+  }),
+  refundAmount: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Refund amount must be a positive number"
+  }),
+});
+
+// Type exports for returns
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = z.infer<typeof customerInsertSchema>;
+
+export type ReturnReason = typeof returnReasons.$inferSelect;
+export type ReturnReasonInsert = z.infer<typeof returnReasonInsertSchema>;
+
+export type Return = typeof returns.$inferSelect;
+export type ReturnInsert = z.infer<typeof returnInsertSchema>;
+
+export type ReturnItem = typeof returnItems.$inferSelect;
+export type ReturnItemInsert = z.infer<typeof returnItemInsertSchema>;
+
 // Affiliate Program Schema
 export const affiliates = pgTable("affiliates", {
   id: serial("id").primaryKey(),
