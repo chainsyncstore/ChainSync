@@ -17,8 +17,6 @@ import PosPage from "@/pages/pos";
 import LandingPage from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 import PaymentTestingPage from "@/pages/payment-testing";
-import TransactionsPage from "@/pages/transactions";
-import RefundsPage from "@/pages/refunds";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: any) {
@@ -129,23 +127,6 @@ function PaymentTestingRoute() {
   return <ProtectedRoute component={PaymentTestingPage} adminOnly={true} />;
 }
 
-function TransactionsRoute() {
-  return <ProtectedRoute component={TransactionsPage} />;
-}
-
-function RefundsRoute() {
-  return <ProtectedRoute component={RefundsPage} />;
-}
-
-function TransactionDetailsRoute() {
-  const TransactionDetailsPage = React.lazy(() => import('./pages/transaction-details'));
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={TransactionDetailsPage} />
-    </Suspense>
-  );
-}
-
 function AppRoutes() {
   return (
     <Switch>
@@ -160,9 +141,6 @@ function AppRoutes() {
       <Route path="/pos" component={PosRoute} />
       <Route path="/affiliates" component={AffiliatesRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
-      <Route path="/transactions/:id" component={TransactionDetailsRoute} />
-      <Route path="/transactions" component={TransactionsRoute} />
-      <Route path="/refunds" component={RefundsRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
     </Switch>
