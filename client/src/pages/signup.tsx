@@ -11,6 +11,7 @@ import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/providers/auth-provider';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SignupPage() {
   const [location, navigate] = useLocation();
@@ -20,7 +21,10 @@ export default function SignupPage() {
   // Get referral code and plan from URL
   const urlParams = new URLSearchParams(window.location.search);
   const referralCode = urlParams.get('ref');
-  const selectedPlan = urlParams.get('plan') || 'basic';
+  const initialPlan = urlParams.get('plan') || 'basic';
+  
+  // State to track the current selected plan
+  const [selectedPlan, setSelectedPlan] = React.useState(initialPlan);
   
   // Mutation for signup
   const signupMutation = useMutation({
@@ -93,14 +97,35 @@ export default function SignupPage() {
         <ReferralBanner />
         
         {/* Selected Plan Banner */}
-        {selectedPlan && (
-          <div className="mb-4 p-3 bg-primary/10 rounded-md border border-primary/20 text-center">
-            <p className="text-sm font-medium">
-              You're signing up for the <span className="font-bold text-primary">{selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} Plan</span>
-              {referralCode && <span> with a 10% referral discount for 12 months!</span>}
-            </p>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selectedPlan}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4"
+          >
+            <div className="p-4 bg-primary/10 rounded-md border border-primary/20">
+              <h3 className="text-base font-bold text-primary flex items-center">
+                {selectedPlan === 'basic' && 'Basic Plan'}
+                {selectedPlan === 'pro' && 'Pro Plan'}
+                {selectedPlan === 'enterprise' && 'Enterprise Plan'}
+                {referralCode && <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">10% OFF</span>}
+              </h3>
+              <p className="text-sm mt-1 text-neutral-600">
+                {selectedPlan === 'basic' && 'Perfect for single-store operations. Includes inventory management and basic analytics.'}
+                {selectedPlan === 'pro' && 'Ideal for growing businesses with up to 10 store locations. Enhanced analytics and AI features.'}
+                {selectedPlan === 'enterprise' && 'Custom solution for large operations with 10+ stores. Includes dedicated support and premium SLA.'}
+              </p>
+              {referralCode && (
+                <p className="text-xs mt-2 text-green-700">
+                  Your referral code gives you 10% off for 12 months!
+                </p>
+              )}
+            </div>
+          </motion.div>
+        </AnimatePresence>
         
         {/* Signup Form */}
         <Card className="w-full">
@@ -159,14 +184,24 @@ export default function SignupPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="plan">Subscription Plan</Label>
-                <Select name="plan" defaultValue={selectedPlan}>
+                <Select 
+                  name="plan" 
+                  defaultValue={selectedPlan}
+                  onValueChange={(value) => setSelectedPlan(value)}
+                >
                   <SelectTrigger id="plan">
                     <SelectValue placeholder="Select a plan" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="basic">Basic (1 store) {referralCode && "- 10% off for 12 months"}</SelectItem>
-                    <SelectItem value="pro">Pro (up to 10 stores) {referralCode && "- 10% off for 12 months"}</SelectItem>
-                    <SelectItem value="enterprise">Enterprise (10+ stores) {referralCode && "- 10% off for 12 months"}</SelectItem>
+                    <SelectItem value="basic" className={selectedPlan === 'basic' ? 'font-medium bg-primary/5' : ''}>
+                      Basic (1 store) {referralCode && "- 10% off for 12 months"}
+                    </SelectItem>
+                    <SelectItem value="pro" className={selectedPlan === 'pro' ? 'font-medium bg-primary/5' : ''}>
+                      Pro (up to 10 stores) {referralCode && "- 10% off for 12 months"}
+                    </SelectItem>
+                    <SelectItem value="enterprise" className={selectedPlan === 'enterprise' ? 'font-medium bg-primary/5' : ''}>
+                      Enterprise (10+ stores) {referralCode && "- 10% off for 12 months"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
