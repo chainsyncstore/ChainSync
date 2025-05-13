@@ -182,9 +182,15 @@ export const transactions = pgTable("transactions", {
   transactionId: text("transaction_id").notNull().unique(), // e.g., TRX-12345
   storeId: integer("store_id").references(() => stores.id).notNull(),
   cashierId: integer("cashier_id").references(() => users.id).notNull(),
+  customerId: integer("customer_id").references(() => customers.id),
+  loyaltyMemberId: integer("loyalty_member_id").references(() => loyaltyMembers.id),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }),
+  pointsEarned: decimal("points_earned", { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal("points_redeemed", { precision: 10, scale: 2 }),
+  rewardId: integer("reward_id").references(() => loyaltyRewards.id),
   paymentMethod: text("payment_method").notNull(), // cash, credit_card, debit_card, etc.
   status: text("status").notNull().default("completed"), // completed, pending, voided
   isOfflineTransaction: boolean("is_offline_transaction").notNull().default(false),
@@ -201,6 +207,18 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
   cashier: one(users, {
     fields: [transactions.cashierId],
     references: [users.id],
+  }),
+  customer: one(customers, {
+    fields: [transactions.customerId],
+    references: [customers.id],
+  }),
+  loyaltyMember: one(loyaltyMembers, {
+    fields: [transactions.loyaltyMemberId],
+    references: [loyaltyMembers.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [transactions.rewardId],
+    references: [loyaltyRewards.id],
   }),
   items: many(transactionItems),
 }));
@@ -292,6 +310,15 @@ export const transactionInsertSchema = createInsertSchema(transactions, {
   }),
   total: (schema) => schema.refine(val => parseFloat(val) >= 0, {
     message: "Total must be a positive number"
+  }),
+  discountAmount: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+    message: "Discount amount must be a positive number"
+  }),
+  pointsEarned: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+    message: "Points earned must be a positive number"
+  }),
+  pointsRedeemed: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+    message: "Points redeemed must be a positive number"
   }),
 });
 
@@ -582,5 +609,185 @@ export type ReferralPaymentInsert = z.infer<typeof referralPaymentInsertSchema>;
 
 export type Subscription = typeof subscriptions.$inferSelect;
 export type SubscriptionInsert = z.infer<typeof subscriptionInsertSchema>;
+
+// Loyalty Program Schema
+export const loyaltyPrograms = pgTable("loyalty_programs", {
+  id: serial("id").primaryKey(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  name: text("name").notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal("points_per_amount", { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean("active").default(true).notNull(),
+  expiryMonths: integer("expiry_months").default(12), // Number of months before points expire
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards)
+}));
+
+export const loyaltyMembers = pgTable("loyalty_members", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  loyaltyId: text("loyalty_id").notNull().unique(), // Unique identifier for the member
+  currentPoints: decimal("current_points", { precision: 10, scale: 2 }).default("0").notNull(),
+  totalPointsEarned: decimal("total_points_earned", { precision: 10, scale: 2 }).default("0").notNull(),
+  totalPointsRedeemed: decimal("total_points_redeemed", { precision: 10, scale: 2 }).default("0").notNull(),
+  tierId: integer("tier_id").references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp("enrollment_date").defaultNow().notNull(),
+  lastActivity: timestamp("last_activity").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions)
+}));
+
+export const loyaltyTiers = pgTable("loyalty_tiers", {
+  id: serial("id").primaryKey(),
+  programId: integer("program_id").references(() => loyaltyPrograms.id).notNull(),
+  name: text("name").notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal("required_points", { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal("point_multiplier", { precision: 5, scale: 2 }).default("1.0").notNull(), // Earn rate multiplier
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers)
+}));
+
+export const loyaltyRewards = pgTable("loyalty_rewards", {
+  id: serial("id").primaryKey(),
+  programId: integer("program_id").references(() => loyaltyPrograms.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  pointsCost: decimal("points_cost", { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }),
+  discountType: text("discount_type"), // "percentage", "fixed", "free_product"
+  productId: integer("product_id").references(() => products.id), // For free product rewards
+  active: boolean("active").default(true).notNull(),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions)
+}));
+
+export const loyaltyTransactions = pgTable("loyalty_transactions", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => loyaltyMembers.id).notNull(),
+  transactionId: integer("transaction_id").references(() => transactions.id),
+  type: text("type").notNull(), // "earn", "redeem", "expire", "adjust"
+  points: decimal("points", { precision: 10, scale: 2 }).notNull(),
+  rewardId: integer("reward_id").references(() => loyaltyRewards.id),
+  note: text("note"),
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  })
+}));
+
+
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: (schema) => schema.min(2, "Program name must be at least 2 characters"),
+  pointsPerAmount: (schema) => schema.refine(val => parseFloat(val) > 0, {
+    message: "Points per amount must be a positive number"
+  })
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: (schema) => schema.min(5, "Loyalty ID must be at least 5 characters")
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: (schema) => schema.min(2, "Tier name must be at least 2 characters"),
+  requiredPoints: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+    message: "Required points must be a positive number"
+  })
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: (schema) => schema.min(2, "Reward name must be at least 2 characters"),
+  pointsCost: (schema) => schema.refine(val => parseFloat(val) > 0, {
+    message: "Points cost must be a positive number"
+  })
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: (schema) => schema.refine(val => ["earn", "redeem", "expire", "adjust"].includes(val), {
+    message: "Type must be one of: earn, redeem, expire, adjust"
+  }),
+  points: (schema) => schema.refine(val => parseFloat(val) !== 0, {
+    message: "Points must not be zero"
+  })
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
 
 export type LoginData = z.infer<typeof loginSchema>;
