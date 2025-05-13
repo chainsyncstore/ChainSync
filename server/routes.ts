@@ -277,12 +277,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/auth/debug-login`, async (req, res) => {
     // Set the response content type to application/json
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    
     try {
       const username = "admin"; // Default admin user from seed data
       const user = await storage.getUserByUsername(username);
       
       if (!user) {
         return res.status(404).json({ message: "Debug user not found" });
+      }
+      
+      // Regenerate session to prevent session fixation
+      const regenerateSession = () => {
+        return new Promise<void>((resolve, reject) => {
+          req.session.regenerate((err) => {
+            if (err) {
+              console.error("Error regenerating session:", err);
+              reject(err);
+            } else {
+              console.log("Session regenerated successfully for debug login");
+              resolve();
+            }
+          });
+        });
+      };
+      
+      try {
+        await regenerateSession();
+      } catch (sessionError) {
+        console.error("Failed to regenerate session:", sessionError);
+        return res.status(500).json({ message: "Session error" });
       }
       
       // Set session data
@@ -299,24 +323,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Save the session explicitly
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error saving session:", err);
-          return res.status(500).json({ message: "Failed to save session" });
-        }
-        
-        console.log("DEBUG: Session saved successfully");
-        return res.status(200).json({
-          message: "Debug login successful",
-          user: {
-            id: user.id,
-            username: user.username,
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
-            storeId: user.storeId
-          }
+      const saveSessionPromise = () => {
+        return new Promise((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error("Error saving session:", err);
+              reject(err);
+            } else {
+              console.log("DEBUG: Session saved successfully");
+              resolve(true);
+            }
+          });
         });
+      };
+      
+      try {
+        await saveSessionPromise();
+      } catch (sessionError) {
+        console.error("Failed to save session:", sessionError);
+        return res.status(500).json({ message: "Session error" });
+      }
+      
+      const userData = {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        storeId: user.storeId
+      };
+      
+      return res.status(200).json({
+        message: "Debug login successful",
+        user: userData
       });
     } catch (error) {
       console.error("Debug login error:", error);
@@ -375,10 +414,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(`${apiPrefix}/auth/login`, async (req, res) => {
     // Set the response content type to application/json
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    
     console.log("Login request headers:", {
       cookie: req.headers.cookie,
       "content-type": req.headers["content-type"]
     });
+    
     try {
       console.log("Login attempt for:", req.body.username);
       const loginData = schema.loginSchema.parse(req.body);
@@ -399,6 +441,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update last login timestamp
       await storage.updateUserLastLogin(user.id);
       
+      // Regenerate session to prevent session fixation attack
+      const regenerateSession = () => {
+        return new Promise<void>((resolve, reject) => {
+          req.session.regenerate((err) => {
+            if (err) {
+              console.error("Error regenerating session:", err);
+              reject(err);
+            } else {
+              console.log("Session regenerated successfully");
+              resolve();
+            }
+          });
+        });
+      };
+      
+      try {
+        await regenerateSession();
+      } catch (sessionError) {
+        console.error("Failed to regenerate session:", sessionError);
+        return res.status(500).json({ message: "Session error" });
+      }
+      
       // Set session data
       req.session.userId = user.id;
       req.session.userRole = user.role;
@@ -412,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName: req.session.fullName
       });
       
-      // Save the session explicitly using a promise for better error handling
+      // Save the session explicitly
       const saveSessionPromise = () => {
         return new Promise((resolve, reject) => {
           req.session.save((err) => {
@@ -434,14 +498,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Session error" });
       }
       
-      return res.status(200).json({
+      // Set the cookie explicitly in the response
+      const userData = {
         id: user.id,
         username: user.username,
         fullName: user.fullName,
         email: user.email,
         role: user.role,
         storeId: user.storeId,
-      });
+      };
+      
+      console.log("Sending user data in response:", userData);
+      return res.status(200).json(userData);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
