@@ -32,23 +32,46 @@ interface NavItemProps {
   children: React.ReactNode;
   active: boolean;
   onClick?: () => void;
+  external?: boolean;
 }
 
-const NavItem = ({ href, icon, children, active, onClick }: NavItemProps) => (
-  <Link
-    href={href}
-    onClick={onClick}
-    className={cn(
-      "flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors",
-      active && "bg-primary-600"
-    )}
-  >
-    <div className="w-5 h-5 mr-3 text-primary-100">
-      {icon}
-    </div>
-    <span>{children}</span>
-  </Link>
-);
+const NavItem = ({ href, icon, children, active, onClick, external = false }: NavItemProps) => {
+  if (external) {
+    // Use an anchor tag for external links or landing page routing
+    return (
+      <a
+        href={href}
+        onClick={onClick}
+        className={cn(
+          "flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors",
+          active && "bg-primary-600"
+        )}
+      >
+        <div className="w-5 h-5 mr-3 text-primary-100">
+          {icon}
+        </div>
+        <span>{children}</span>
+      </a>
+    );
+  }
+  
+  // Use wouter Link for internal navigation
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors",
+        active && "bg-primary-600"
+      )}
+    >
+      <div className="w-5 h-5 mr-3 text-primary-100">
+        {icon}
+      </div>
+      <span>{children}</span>
+    </Link>
+  );
+};
 
 export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
   const isMobile = useMobile();
@@ -112,10 +135,11 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                   </NavItem>
                   
                   <NavItem 
-                    href="/affiliates" 
+                    href="/" 
                     icon={<Share2 className="w-5 h-5" />} 
-                    active={location === '/affiliates'} 
+                    active={false} 
                     onClick={isMobile ? onClose : undefined}
+                    external={true}
                   >
                     Affiliate Program
                   </NavItem>
