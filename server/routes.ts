@@ -15,8 +15,220 @@ import * as webhookService from './services/webhooks';
 import * as paymentService from './services/payment';
 
 import * as loyaltyService from "./services/loyalty";
+import { db } from "@db";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Loyalty API Routes
+  app.get('/api/loyalty/members', isAuthenticated, hasStoreAccess, async (req, res) => {
+    try {
+      const storeId = req.query.storeId ? parseInt(req.query.storeId as string) : (req.user?.storeId || 0);
+      
+      if (!storeId) {
+        return res.status(400).json({ message: "Store ID is required" });
+      }
+      
+      // Get all customers from the store with their loyalty info
+      const customers = await db.query.customers.findMany({
+        where: eq(schema.customers.storeId, storeId),
+        with: {
+          loyaltyMembers: {
+            with: {
+              tier: true
+            }
+          }
+        }
+      });
+      
+      // Format response
+      const members = customers
+        .filter(customer => customer.loyaltyMembers && customer.loyaltyMembers.length > 0)
+        .map(customer => {
+          const member = customer.loyaltyMembers[0];
+          return {
+            id: member.id,
+            customerId: customer.id,
+            loyaltyId: member.loyaltyId,
+            currentPoints: member.currentPoints,
+            totalPointsEarned: member.totalPointsEarned,
+            totalPointsRedeemed: member.totalPointsRedeemed,
+            enrollmentDate: member.enrollmentDate,
+            lastActivity: member.lastActivity,
+            customer: {
+              id: customer.id,
+              fullName: customer.fullName,
+              email: customer.email,
+              phone: customer.phone
+            },
+            tier: member.tier
+          };
+        });
+      
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching loyalty members:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.get('/api/loyalty/member/:id', isAuthenticated, async (req, res) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      const member = await loyaltyService.getLoyaltyMember(memberId);
+      
+      if (!member) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+      
+      res.json(member);
+    } catch (error) {
+      console.error("Error fetching member details:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.get('/api/loyalty/member/:id/activity', isAuthenticated, async (req, res) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      const activity = await loyaltyService.getMemberActivityHistory(memberId);
+      
+      res.json(activity);
+    } catch (error) {
+      console.error("Error fetching member activity:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.get('/api/loyalty/member/:id/rewards', isAuthenticated, async (req, res) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      const rewards = await loyaltyService.getAvailableRewards(memberId);
+      
+      res.json(rewards);
+    } catch (error) {
+      console.error("Error fetching available rewards:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.get('/api/loyalty/program/:storeId', isAuthenticated, async (req, res) => {
+    try {
+      const storeId = parseInt(req.params.storeId);
+      const program = await loyaltyService.getLoyaltyProgram(storeId);
+      
+      if (!program) {
+        return res.status(404).json({ message: "Loyalty program not found" });
+      }
+      
+      res.json(program);
+    } catch (error) {
+      console.error("Error fetching loyalty program:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post('/api/loyalty/enroll', isAuthenticated, async (req, res) => {
+    try {
+      const { customerId } = req.body;
+      
+      if (!customerId) {
+        return res.status(400).json({ message: "Customer ID is required" });
+      }
+      
+      // Get customer to determine store
+      const customer = await db.query.customers.findFirst({
+        where: eq(schema.customers.id, customerId)
+      });
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      
+      if (!customer.storeId) {
+        return res.status(400).json({ message: "Customer is not associated with a store" });
+      }
+      
+      const member = await loyaltyService.enrollCustomer(customerId, customer.storeId, req.user.id);
+      
+      res.json(member);
+    } catch (error) {
+      console.error("Error enrolling customer:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post('/api/loyalty/program/:storeId', isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const storeId = parseInt(req.params.storeId);
+      const programData = req.body;
+      
+      const program = await loyaltyService.upsertLoyaltyProgram(storeId, programData);
+      
+      res.json(program);
+    } catch (error) {
+      console.error("Error creating/updating loyalty program:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post('/api/loyalty/reward', isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const rewardData = req.body;
+      
+      // Create reward
+      const reward = await db.insert(schema.loyaltyRewards)
+        .values({
+          ...rewardData,
+          active: rewardData.active !== undefined ? rewardData.active : true
+        })
+        .returning();
+      
+      res.json(reward[0]);
+    } catch (error) {
+      console.error("Error creating loyalty reward:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post('/api/loyalty/tier', isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const tierData = req.body;
+      
+      // Create tier
+      const tier = await loyaltyService.createLoyaltyTier(tierData);
+      
+      res.json(tier);
+    } catch (error) {
+      console.error("Error creating loyalty tier:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post('/api/loyalty/redeem', isAuthenticated, async (req, res) => {
+    try {
+      const { memberId, rewardId, transactionId } = req.body;
+      
+      if (!memberId || !rewardId || !transactionId) {
+        return res.status(400).json({ message: "Member ID, reward ID, and transaction ID are required" });
+      }
+      
+      const result = await loyaltyService.applyReward(
+        memberId,
+        rewardId,
+        transactionId,
+        req.user.id
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.message || "Failed to apply reward" });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error redeeming reward:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
   // Set up session middleware
   app.use(
     session({
