@@ -62,7 +62,7 @@ export function LoginForm() {
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1">
+      <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-bold">Login to ChainSync</CardTitle>
         <CardDescription>
           Enter your credentials to access your account.
