@@ -10,10 +10,19 @@ interface CurrencyContextType {
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
+// Enable this flag to test as if user is in Nigeria 
+// Set to false for production usage
+const TEST_AS_NIGERIAN_USER = false;
+
 // Function to detect if user is in Nigeria using IP geolocation
 const detectUserCountry = async (): Promise<string | null> => {
-  try {
-    // Use a free IP geolocation API service
+  try {    
+    // For testing: simulate a Nigerian user if test flag is enabled
+    if (TEST_AS_NIGERIAN_USER) {
+      return 'NG';
+    }
+    
+    // Real implementation using IP geolocation
     const response = await fetch('https://ipapi.co/json/');
     if (!response.ok) {
       throw new Error('Failed to fetch location data');
@@ -84,11 +93,17 @@ const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   
   // Initialize currency detection on mount
   useEffect(() => {
+    // For testing: clear any stored preferences to force location detection
+    if (TEST_AS_NIGERIAN_USER) {
+      localStorage.removeItem('preferredCurrency');
+    }
+    
     const detectCurrency = async () => {
       setIsDetectingLocation(true);
       try {
         // First try to get currency from localStorage for returning users
         const storedCurrency = localStorage.getItem('preferredCurrency');
+        
         if (storedCurrency && Object.keys(currencies).includes(storedCurrency)) {
           setCurrency(storedCurrency as CurrencyCode);
           setIsDetectingLocation(false);
@@ -105,10 +120,8 @@ const CurrencyProvider = ({ children }: { children: ReactNode }) => {
           // Otherwise use USD as default for international users
           setCurrency('USD');
         }
-        
-        console.log('Currency auto-detected:', countryCode === 'NG' ? 'NGN' : 'USD');
       } catch (error) {
-        console.error('Error detecting currency:', error);
+        console.error('Error in currency detection:', error);
         // Keep USD as fallback on error (already set in useState)
       } finally {
         setIsDetectingLocation(false);
