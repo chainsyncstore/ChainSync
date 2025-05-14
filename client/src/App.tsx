@@ -21,7 +21,6 @@ import NotFound from "@/pages/not-found";
 import PaymentTestingPage from "@/pages/payment-testing";
 import LoyaltyPage from "@/pages/loyalty";
 import ImportPage from "@/pages/import";
-import DebugLoginPage from "@/pages/debug-login";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
@@ -183,7 +182,6 @@ function AppRoutes() {
       <Route path="/loyalty" component={LoyaltyRoute} />
       <Route path="/import" component={ImportRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
-      <Route path="/debug-login" component={DebugLoginPage} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
     </Switch>
