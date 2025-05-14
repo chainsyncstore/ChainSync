@@ -50,7 +50,10 @@ export default function SignupPage() {
       // Try to log in automatically
       try {
         const formData = new FormData(document.querySelector('form')!);
-        await login(formData.get('username') as string, formData.get('password') as string);
+        await login({
+          username: formData.get('username') as string,
+          password: formData.get('password') as string
+        });
         navigate('/dashboard');
       } catch (error) {
         // If auto-login fails, redirect to login page
@@ -73,8 +76,8 @@ export default function SignupPage() {
   };
   
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-neutral-100 to-white p-4">
-      <div className="w-full max-w-xl">
+    <div className="min-h-screen w-full flex flex-col items-center bg-gradient-to-b from-neutral-100 to-white p-4 overflow-y-auto">
+      <div className="w-full max-w-xl my-8">
         {/* Back to Home Link */}
         <div className="mb-6">
           <Link href="/" className="text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center">
