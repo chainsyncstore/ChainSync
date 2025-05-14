@@ -662,9 +662,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Logout failed" });
       }
       
-      res.clearCookie("connect.sid");
+      res.clearCookie("chainsync.sid");
       return res.status(200).json({ message: "Logged out successfully" });
     });
+  });
+  
+  // Password reset request endpoint
+  app.post(`${apiPrefix}/auth/forgot-password`, async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Email is required" 
+        });
+      }
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // We return success even if the email doesn't exist for security reasons
+        return res.status(200).json({ 
+          success: true,
+          message: "If a user with that email exists, a password reset link has been sent" 
+        });
+      }
+      
+      // Create a password reset token
+      const resetToken = await storage.createPasswordResetToken(user.id);
+      
+      // Import the email service
+      const { sendPasswordResetEmail } = await import('./services/email');
+      
+      // Send the password reset email
+      const emailSent = await sendPasswordResetEmail(
+        user.email,
+        resetToken.token,
+        user.username
+      );
+      
+      if (!emailSent) {
+        console.error(`Failed to send password reset email to ${user.email}`);
+        return res.status(500).json({ 
+          success: false,
+          message: "Failed to send password reset email. Please try again later." 
+        });
+      }
+      
+      return res.status(200).json({
+        success: true,
+        message: "Password reset email sent successfully"
+      });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Internal server error"
+      });
+    }
+  });
+  
+  // Validate reset token (used to check if token is valid before showing reset form)
+  app.get(`${apiPrefix}/auth/validate-reset-token/:token`, async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ 
+          valid: false,
+          message: "Token is required" 
+        });
+      }
+      
+      const isValid = await storage.isPasswordResetTokenValid(token);
+      
+      return res.status(200).json({
+        valid: isValid,
+        message: isValid 
+          ? "Token is valid" 
+          : "Token is invalid or expired"
+      });
+    } catch (error) {
+      console.error("Token validation error:", error);
+      return res.status(500).json({ 
+        valid: false,
+        message: "Internal server error" 
+      });
+    }
+  });
+  
+  // Reset password endpoint
+  app.post(`${apiPrefix}/auth/reset-password`, async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Token and password are required" 
+        });
+      }
+      
+      // Check if token is valid
+      const isValid = await storage.isPasswordResetTokenValid(token);
+      
+      if (!isValid) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid or expired token" 
+        });
+      }
+      
+      // Get the token from database to find the associated user
+      const resetToken = await storage.getPasswordResetToken(token);
+      
+      if (!resetToken) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid token" 
+        });
+      }
+      
+      // Update the user's password
+      await storage.updateUser(resetToken.userId, { password });
+      
+      // Mark the token as used
+      await storage.markPasswordResetTokenAsUsed(token);
+      
+      return res.status(200).json({
+        success: true,
+        message: "Password reset successful. You can now login with your new password."
+      });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      return res.status(500).json({ 
+        success: false,
+        message: "Internal server error" 
+      });
+    }
   });
   
   app.get(`${apiPrefix}/auth/me`, async (req, res) => {

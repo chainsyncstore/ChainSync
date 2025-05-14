@@ -1,41 +1,61 @@
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 
-// Initialize SendGrid with API key
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-} else {
-  console.warn('SENDGRID_API_KEY is not set. Email functionality will not work.');
+// Email configuration
+const emailConfig = {
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.EMAIL_PORT || '587'),
+  secure: process.env.EMAIL_SECURE === 'true',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+};
+
+// Create a transporter object
+let transporter: nodemailer.Transporter;
+
+try {
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+    transporter = nodemailer.createTransport(emailConfig);
+    console.log('Email transporter created successfully');
+  } else {
+    console.warn('EMAIL_USER and/or EMAIL_PASSWORD are not set. Email functionality will not work.');
+  }
+} catch (error) {
+  console.error('Failed to create email transporter:', error);
 }
 
 export interface EmailOptions {
   to: string;
-  from: string;
+  from?: string;
   subject: string;
   text?: string;
   html?: string;
 }
 
 /**
- * Send an email using SendGrid
+ * Send an email using Nodemailer
  * @param options Email options including to, from, subject, text, and html
- * @returns Promise that resolves with the SendGrid response or rejects with an error
+ * @returns Promise that resolves to true if email was sent successfully, false otherwise
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
-    if (!process.env.SENDGRID_API_KEY) {
-      console.error('Cannot send email: SENDGRID_API_KEY is not set');
+    if (!transporter) {
+      console.error('Cannot send email: Email transporter not initialized');
       return false;
     }
     
-    await sgMail.send({
+    const mailOptions = {
+      from: options.from || `"ChainSync" <${process.env.EMAIL_USER}>`,
       to: options.to,
-      from: options.from || 'no-reply@chainsync.com', // Default sender
       subject: options.subject,
       text: options.text || '',
       html: options.html || ''
-    });
+    };
     
-    console.log(`Email sent successfully to ${options.to}`);
+    const info = await transporter.sendMail(mailOptions);
+    
+    console.log(`Email sent successfully to ${options.to}. Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
@@ -48,7 +68,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
  * @param email Recipient email address
  * @param resetToken Reset token to include in the reset link
  * @param username Username of the user
- * @returns Promise that resolves with the SendGrid response or rejects with an error
+ * @returns Promise that resolves to true if email was sent successfully, false otherwise
  */
 export async function sendPasswordResetEmail(
   email: string,
@@ -59,7 +79,6 @@ export async function sendPasswordResetEmail(
   
   const emailOptions: EmailOptions = {
     to: email,
-    from: 'support@chainsync.com',
     subject: 'ChainSync Password Reset',
     text: `Hello ${username},\n\nYou requested a password reset for your ChainSync account. Please click the following link to reset your password: ${resetUrl}\n\nIf you didn't request this, please ignore this email.\n\nRegards,\nChainSync Team`,
     html: `
@@ -85,4 +104,23 @@ export async function sendPasswordResetEmail(
   };
   
   return await sendEmail(emailOptions);
+}
+
+/**
+ * For testing purposes only - verify if the email connection is working
+ */
+export async function verifyEmailConnection(): Promise<boolean> {
+  try {
+    if (!transporter) {
+      console.error('Cannot verify email connection: Email transporter not initialized');
+      return false;
+    }
+    
+    await transporter.verify();
+    console.log('Email connection verified successfully');
+    return true;
+  } catch (error) {
+    console.error('Email connection verification failed:', error);
+    return false;
+  }
 }
