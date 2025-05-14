@@ -164,9 +164,6 @@ export function LoginForm() {
             </span>
           </Link>
         </p>
-        <p className="text-sm text-neutral-500">
-          {process.env.NODE_ENV === 'development' && 'Admin/admin123 or Manager/manager123'}
-        </p>
       </CardFooter>
     </Card>
   );
