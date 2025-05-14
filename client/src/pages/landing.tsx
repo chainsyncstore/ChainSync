@@ -70,9 +70,9 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-neutral-50">
-        <div className="container mx-auto max-w-screen-xl grid gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+        <div className="container mx-auto max-w-screen-xl grid gap-6 px-4 md:px-6 lg:grid-cols-1 lg:gap-12 xl:gap-16">
           <div className="flex flex-col justify-center space-y-6">
-            <div className="space-y-3">
+            <div className="space-y-3 text-center">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-700">
                 AI-Powered Retail Management for Single Stores & Multi-Location Chains
               </h1>
@@ -80,7 +80,7 @@ export default function LandingPage() {
                 Try ChainSync free for 2 weeks—verify your card, no upfront payment.
               </p>
             </div>
-            <div className="flex flex-col gap-2 min-[400px]:flex-row">
+            <div className="flex flex-col items-center gap-2 min-[400px]:flex-row justify-center">
               <Link href="/signup?plan=basic" className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-white shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                 Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4" />
