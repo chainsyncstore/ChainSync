@@ -90,29 +90,7 @@ export default function LandingPage() {
               </a>
             </div>
           </div>
-          <div className="mx-auto flex justify-center">
-            {/* Placeholder for dashboard preview - replace with actual image later */}
-            <div className="w-full max-w-[600px] overflow-hidden rounded-lg border bg-white shadow-xl">
-              <div className="flex h-14 items-center border-b px-4">
-                <div className="flex space-x-2">
-                  <div className="h-3 w-3 rounded-full bg-red-500" />
-                  <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                  <div className="h-3 w-3 rounded-full bg-green-500" />
-                </div>
-                <div className="ml-4 h-4 w-40 rounded-full bg-neutral-100" />
-              </div>
-              <div className="grid grid-cols-12 gap-4 p-4">
-                <div className="col-span-3 h-[300px] rounded-md bg-neutral-100" />
-                <div className="col-span-9 grid gap-4">
-                  <div className="h-32 rounded-md bg-neutral-100" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="h-40 rounded-md bg-neutral-100" />
-                    <div className="h-40 rounded-md bg-neutral-100" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Dashboard preview section removed as requested */}
         </div>
       </section>
 
