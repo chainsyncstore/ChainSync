@@ -656,9 +656,7 @@ export default function LandingPage() {
                 <button className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-600 transition-colors">
                   Sign In
                 </button>
-                <div className="mt-4 text-center">
-                  <a href="#" className="text-sm text-primary hover:underline">Don't have an account? Sign up</a>
-                </div>
+                {/* Removed "Don't have an account? Sign up" text */}
               </div>
             </div>
           </div>

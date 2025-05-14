@@ -402,16 +402,8 @@ export default function AffiliatePage() {
                   </form>
                 </Form>
               </CardContent>
-              <CardFooter className="flex flex-col space-y-4">
-                <div className="text-center w-full">
-                  <Button 
-                    variant="link" 
-                    onClick={() => setIsRegistering(true)}
-                    className="text-sm"
-                  >
-                    Don't have an account? Sign up
-                  </Button>
-                </div>
+              <CardFooter>
+                {/* Removed "Don't have an account? Sign up" button */}
               </CardFooter>
             </Card>
           )}
