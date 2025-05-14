@@ -804,6 +804,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Test email endpoint (only available in development)
+  if (process.env.NODE_ENV !== 'production') {
+    app.get(`${apiPrefix}/test/email`, async (req, res) => {
+      try {
+        const { sendEmail, verifyEmailConnection } = await import('./services/email');
+        
+        // First verify the connection
+        const isConnected = await verifyEmailConnection();
+        
+        if (!isConnected) {
+          return res.status(500).json({ 
+            success: false,
+            message: "Email connection failed. Check your EMAIL_USER and EMAIL_PASSWORD environment variables." 
+          });
+        }
+        
+        // Then try to send a test email
+        const result = await sendEmail({
+          to: process.env.EMAIL_USER || '',
+          subject: "ChainSync Test Email",
+          text: "This is a test email from ChainSync to verify the email service is working correctly.",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: linear-gradient(120deg, #4f46e5, #8b5cf6); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0;">ChainSync</h1>
+              </div>
+              <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+                <p>Hello,</p>
+                <p>This is a test email from ChainSync to verify the email service is working correctly.</p>
+                <p>If you're seeing this, then your email service is properly configured!</p>
+                <p>Regards,<br>ChainSync Team</p>
+              </div>
+            </div>
+          `
+        });
+        
+        if (result) {
+          return res.status(200).json({ 
+            success: true,
+            message: `Test email sent successfully to ${process.env.EMAIL_USER}`
+          });
+        } else {
+          return res.status(500).json({ 
+            success: false,
+            message: "Failed to send test email"
+          });
+        }
+      } catch (error) {
+        console.error("Test email error:", error);
+        return res.status(500).json({ 
+          success: false,
+          message: `Error testing email service: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+      }
+    });
+  }
+  
   app.get(`${apiPrefix}/auth/me`, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ 

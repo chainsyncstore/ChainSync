@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth, LoginCredentials } from '@/providers/auth-provider';
+import { Link } from 'wouter';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -102,7 +103,14 @@ export function LoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Password</FormLabel>
+                    <Link href="/forgot-password">
+                      <span className="text-xs text-primary hover:underline cursor-pointer">
+                        Forgot Password?
+                      </span>
+                    </Link>
+                  </div>
                   <FormControl>
                     <Input 
                       type="password" 
@@ -147,7 +155,15 @@ export function LoginForm() {
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex justify-center">
+      <CardFooter className="flex flex-col items-center gap-2">
+        <p className="text-sm text-muted-foreground">
+          Don't have an account?{' '}
+          <Link href="/signup">
+            <span className="text-primary hover:underline cursor-pointer">
+              Sign up
+            </span>
+          </Link>
+        </p>
         <p className="text-sm text-neutral-500">
           {process.env.NODE_ENV === 'development' && 'Admin/admin123 or Manager/manager123'}
         </p>
