@@ -37,20 +37,40 @@ export const formatCurrency = (
   value: number | string | null | undefined, 
   currencyCode?: CurrencyCode
 ) => {
-  if (value === null || value === undefined) return `${currencies[currentCurrency].symbol}0.00`;
+  // Fallback to current currency, making sure it's valid 
+  const validCurrencyCode = 
+    (currencyCode && Object.keys(currencies).includes(currencyCode)) ? currencyCode : 
+    Object.keys(currencies).includes(currentCurrency) ? currentCurrency : 'USD';
+  
+  // Get a valid currency object with fallback
+  const defaultCurrency = currencies[validCurrencyCode] || currencies.USD;
+  
+  if (value === null || value === undefined) {
+    return `${defaultCurrency.symbol}0.00`;
+  }
   
   const numberValue = typeof value === "string" ? parseFloat(value) : value;
   
-  if (isNaN(numberValue)) return `${currencies[currentCurrency].symbol}0.00`;
+  if (isNaN(numberValue)) {
+    return `${defaultCurrency.symbol}0.00`;
+  }
   
-  const currency = currencyCode ? currencies[currencyCode] : currencies[currentCurrency];
+  // Use requested currency if available, otherwise use default
+  const currency = 
+    (currencyCode && currencies[currencyCode]) ? currencies[currencyCode] : defaultCurrency;
   
-  return new Intl.NumberFormat(currency.locale, {
-    style: "currency",
-    currency: currency.code,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numberValue);
+  // Use a try-catch as Intl.NumberFormat can throw with invalid locales
+  try {
+    return new Intl.NumberFormat(currency.locale, {
+      style: "currency",
+      currency: currency.code,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numberValue);
+  } catch (error) {
+    // Fallback to a simple format with the symbol if NumberFormat fails
+    return `${currency.symbol}${numberValue.toFixed(2)}`;
+  }
 };
 
 export const formatNumber = (value: number | string | null | undefined, decimals = 0) => {

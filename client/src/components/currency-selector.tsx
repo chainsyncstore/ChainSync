@@ -6,11 +6,12 @@ import {
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { currencies, CurrencyCode, formatCurrency } from '@/lib/utils';
+import { currencies, CurrencyCode } from '@/lib/utils';
 import { useCurrency } from '@/providers/currency-provider';
+import { Loader2 } from 'lucide-react';
 
 const CurrencySelector = () => {
-  const { currency, setCurrency, currencySymbol } = useCurrency();
+  const { currency, setCurrency, currencySymbol, isDetectingLocation } = useCurrency();
   
   // Use a memoized callback to prevent unnecessary re-renders
   const handleCurrencyChange = useCallback((code: CurrencyCode) => {
@@ -21,8 +22,14 @@ const CurrencySelector = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="h-8 gap-1 px-2">
-          <span className="text-sm font-medium">{currencySymbol}</span>
-          <span className="text-xs text-muted-foreground">{currency}</span>
+          {isDetectingLocation ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <span className="text-sm font-medium">{currencySymbol}</span>
+              <span className="text-xs text-muted-foreground">{currency}</span>
+            </>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
