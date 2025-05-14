@@ -59,6 +59,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchInterval: false,
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/auth/me', {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json",
+            "Cache-Control": "no-cache, no-store",
+            "Pragma": "no-cache"
+          },
+          cache: "no-store"
+        });
+        
+        // Return null when not authenticated (401)
+        if (res.status === 401) {
+          console.log("401 response in query, returning null as configured");
+          return { authenticated: false, user: null };
+        }
+        
+        if (!res.ok) {
+          throw new Error(`${res.status}: ${res.statusText}`);
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Error fetching auth status:", error);
+        return { authenticated: false, user: null };
+      }
+    }
   });
 
   // Extract and convert user from auth data
