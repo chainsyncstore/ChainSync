@@ -352,7 +352,7 @@ export default function AffiliatePage() {
           ) : (
             <Card className="w-full max-w-md mx-auto">
               <CardHeader>
-                <CardTitle>Affiliate Login</CardTitle>
+                <CardTitle>Login to your Affiliate Account</CardTitle>
                 <CardDescription>
                   Log in to access your affiliate dashboard
                 </CardDescription>

@@ -634,7 +634,7 @@ export default function LandingPage() {
                 </Link>
               </div>
               <div className="w-full lg:w-1/2 bg-white p-8 rounded-lg shadow-lg border border-neutral-200">
-                <h3 className="text-xl font-bold mb-6 text-center text-primary">Sign Up or Log In to Your Affiliate Account</h3>
+                <h3 className="text-xl font-bold mb-6 text-center text-primary">Login to your Affiliate Account</h3>
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-1" htmlFor="affiliate-email">Email</label>
                   <input 
