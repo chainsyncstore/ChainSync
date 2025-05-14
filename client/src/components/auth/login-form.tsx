@@ -73,7 +73,10 @@ export function LoginForm() {
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription>
-              {formError || (error instanceof Error ? error.message : 'Authentication error')}
+              {formError?.includes('401:') ? 'Invalid Username or Password' : 
+              (formError || (error instanceof Error ? 
+                (error.message.includes('401:') ? 'Invalid Username or Password' : error.message) 
+                : 'Authentication error'))}
             </AlertDescription>
           </Alert>
         )}

@@ -184,9 +184,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onError: (error: Error) => {
+      const errorMessage = error.message?.includes('401:') ? 
+        'Invalid Username or Password' : 
+        (error.message || 'Invalid Username or Password');
+        
       toast({
         title: 'Login failed',
-        description: error.message || 'Invalid username or password',
+        description: errorMessage,
         variant: 'destructive',
         duration: 5000,
       });
