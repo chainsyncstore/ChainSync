@@ -14,6 +14,8 @@ import InventoryPage from "@/pages/inventory";
 import UsersPage from "@/pages/users";
 import SettingsPage from "@/pages/settings";
 import PosPage from "@/pages/pos";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import LandingPage from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 import PaymentTestingPage from "@/pages/payment-testing";
@@ -167,6 +169,8 @@ function AppRoutes() {
     <Switch>
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupRoute} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/dashboard" component={DashboardRoute} />
       <Route path="/stores" component={StoresRoute} />
       <Route path="/analytics" component={AnalyticsRoute} />
