@@ -39,10 +39,25 @@ export default function StoresPage() {
           </Button>
           
           {user?.role === 'admin' && (
-            <Button>
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Add New Store
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusIcon className="w-4 h-4 mr-2" />
+                  Add New Store
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Store</DialogTitle>
+                  <DialogDescription>
+                    Create a new store location in your retail chain.
+                  </DialogDescription>
+                </DialogHeader>
+                <AddStoreForm onSuccess={() => {
+                  refetch();
+                }} />
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </div>
