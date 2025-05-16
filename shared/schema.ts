@@ -78,11 +78,12 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  sku: text("sku").notNull().unique(),
   description: text("description"),
-  barcode: text("barcode").notNull().unique(),
+  barcode: text("barcode"),
   categoryId: integer("category_id").references(() => categories.id).notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
+  cost: decimal("cost", { precision: 10, scale: 2 }).default("0"),
   isPerishable: boolean("is_perishable").notNull().default(false),
   imageUrl: text("image_url"),
   bonusPoints: decimal("bonus_points", { precision: 10, scale: 2 }).default("0"), // For loyalty program bonus points
@@ -320,11 +321,12 @@ export const categoryInsertSchema = createInsertSchema(categories, {
 
 export const productInsertSchema = createInsertSchema(products, {
   name: (schema) => schema.min(2, "Product name must be at least 2 characters"),
-  barcode: (schema) => schema.min(4, "Barcode must be at least 4 characters"),
+  sku: (schema) => schema.min(2, "SKU must be at least 2 characters"),
+  barcode: (schema) => schema.optional(),
   price: (schema) => schema.refine(val => parseFloat(val) >= 0, {
     message: "Price must be a positive number"
   }),
-  cost: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+  cost: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
     message: "Cost must be a positive number"
   }),
 });
