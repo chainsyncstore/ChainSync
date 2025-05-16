@@ -25,9 +25,8 @@ import {
   validateInventoryData,
   importLoyaltyData,
   importInventoryData,
-  formatErrorsAsCsv,
-  formatMissingFieldsAsCsv
-} from "./services/import";
+  generateErrorReport
+} from "./services/import-enhanced";
 
 import { db } from "@db";
 import { eq, and, desc, sql } from "drizzle-orm";
