@@ -730,6 +730,8 @@ export const storage = {
         productId: row.inventory.productId,
         quantity: row.inventory.quantity,
         minimumLevel: row.inventory.minimumLevel,
+        expiryDate: row.inventory.expiryDate,
+        batchNumber: row.inventory.batchNumber,
         product: {
           id: row.product.id,
           name: row.product.name,
@@ -746,6 +748,165 @@ export const storage = {
       }));
     } catch (error) {
       console.error("Error in getLowStockItems:", error);
+      return [];
+    }
+  },
+  
+  /**
+   * Get inventory items that will expire within the specified number of days
+   * @param days Number of days to check for expiring items (default: 30)
+   * @param storeId Optional store ID to filter by
+   */
+  async getExpiringItems(days = 30, storeId?: number) {
+    try {
+      // Calculate the date range for expiring items
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + days);
+      
+      // Query inventory items where expiry date is within the specified range
+      let query = db
+        .select({
+          inventory: schema.inventory,
+          product: schema.products,
+          store: schema.stores,
+          category: schema.categories
+        })
+        .from(schema.inventory)
+        .innerJoin(
+          schema.products, 
+          eq(schema.inventory.productId, schema.products.id)
+        )
+        .innerJoin(
+          schema.stores,
+          eq(schema.inventory.storeId, schema.stores.id)
+        )
+        .innerJoin(
+          schema.categories,
+          eq(schema.products.categoryId, schema.categories.id)
+        )
+        .where(
+          and(
+            isNull(schema.inventory.expiryDate).not(),
+            gte(schema.inventory.expiryDate, today),
+            lte(schema.inventory.expiryDate, futureDate),
+            gt(schema.inventory.quantity, 0) // Only include items with stock
+          )
+        )
+        .orderBy(asc(schema.inventory.expiryDate));
+      
+      // Apply store filter if specified
+      if (storeId) {
+        query = query.where(eq(schema.inventory.storeId, storeId));
+      }
+      
+      const results = await query;
+      
+      // Transform results to match the expected format
+      return results.map(row => ({
+        id: row.inventory.id,
+        storeId: row.inventory.storeId,
+        productId: row.inventory.productId,
+        quantity: row.inventory.quantity,
+        minimumLevel: row.inventory.minimumLevel,
+        expiryDate: row.inventory.expiryDate,
+        batchNumber: row.inventory.batchNumber,
+        daysUntilExpiry: Math.ceil(
+          (new Date(row.inventory.expiryDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        ),
+        product: {
+          id: row.product.id,
+          name: row.product.name,
+          barcode: row.product.barcode || '',
+          category: {
+            id: row.category.id,
+            name: row.category.name
+          }
+        },
+        store: {
+          id: row.store.id,
+          name: row.store.name
+        }
+      }));
+    } catch (error) {
+      console.error("Error in getExpiringItems:", error);
+      return [];
+    }
+  },
+  
+  /**
+   * Get expired inventory items
+   * @param storeId Optional store ID to filter by
+   */
+  async getExpiredItems(storeId?: number) {
+    try {
+      const today = new Date();
+      
+      // Query inventory items where expiry date has passed
+      let query = db
+        .select({
+          inventory: schema.inventory,
+          product: schema.products,
+          store: schema.stores,
+          category: schema.categories
+        })
+        .from(schema.inventory)
+        .innerJoin(
+          schema.products, 
+          eq(schema.inventory.productId, schema.products.id)
+        )
+        .innerJoin(
+          schema.stores,
+          eq(schema.inventory.storeId, schema.stores.id)
+        )
+        .innerJoin(
+          schema.categories,
+          eq(schema.products.categoryId, schema.categories.id)
+        )
+        .where(
+          and(
+            isNull(schema.inventory.expiryDate).not(),
+            lt(schema.inventory.expiryDate, today),
+            gt(schema.inventory.quantity, 0) // Only include items with stock
+          )
+        )
+        .orderBy(asc(schema.inventory.expiryDate));
+      
+      // Apply store filter if specified
+      if (storeId) {
+        query = query.where(eq(schema.inventory.storeId, storeId));
+      }
+      
+      const results = await query;
+      
+      // Transform results to match the expected format
+      return results.map(row => ({
+        id: row.inventory.id,
+        storeId: row.inventory.storeId,
+        productId: row.inventory.productId,
+        quantity: row.inventory.quantity,
+        minimumLevel: row.inventory.minimumLevel,
+        expiryDate: row.inventory.expiryDate,
+        batchNumber: row.inventory.batchNumber,
+        daysExpired: Math.ceil(
+          (today.getTime() - new Date(row.inventory.expiryDate).getTime()) / (1000 * 60 * 60 * 24)
+        ),
+        product: {
+          id: row.product.id,
+          name: row.product.name,
+          barcode: row.product.barcode || '',
+          category: {
+            id: row.category.id,
+            name: row.category.name
+          }
+        },
+        store: {
+          id: row.store.id,
+          name: row.store.name
+        }
+      }));
+    } catch (error) {
+      console.error("Error in getExpiredItems:", error);
       return [];
     }
   },

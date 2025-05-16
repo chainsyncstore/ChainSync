@@ -1243,6 +1243,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get(`${apiPrefix}/inventory/expiring`, isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, userRole } = req.session;
+      
+      // Admins can see expiring items for all stores or a specific store
+      const targetStoreId = userRole === 'admin' 
+        ? (req.query.storeId ? parseInt(req.query.storeId as string) : undefined) 
+        : storeId;
+      
+      // Default to 30 days if not specified
+      const days = req.query.days ? parseInt(req.query.days as string) : 30;
+      
+      const expiringItems = await storage.getExpiringItems(days, targetStoreId);
+      return res.status(200).json(expiringItems);
+    } catch (error) {
+      console.error("Get expiring items error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/inventory/expired`, isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, userRole } = req.session;
+      
+      // Admins can see expired items for all stores or a specific store
+      const targetStoreId = userRole === 'admin' 
+        ? (req.query.storeId ? parseInt(req.query.storeId as string) : undefined) 
+        : storeId;
+      
+      const expiredItems = await storage.getExpiredItems(targetStoreId);
+      return res.status(200).json(expiredItems);
+    } catch (error) {
+      console.error("Get expired items error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   app.put(`${apiPrefix}/inventory/:inventoryId`, isManagerOrAdmin, async (req, res) => {
     try {
       const inventoryId = parseInt(req.params.inventoryId);
