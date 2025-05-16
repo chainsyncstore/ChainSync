@@ -19,9 +19,10 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(), // Changed to varchar for Replit Auth user ID
   email: varchar("email").unique(),
+  name: varchar("name"), // Added for Replit Auth which might provide a single name
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
-  fullName: varchar("full_name"), // Added for display purposes, computed from firstName + lastName
+  fullName: varchar("full_name"), // Added for display purposes, computed from name or firstName/lastName
   profileImageUrl: varchar("profile_image_url"),
   role: text("role").notNull().default("cashier"), // cashier, manager, admin
   storeId: integer("store_id"), // null for admin (chain-wide access)
@@ -465,6 +466,7 @@ export const transactionItemInsertSchema = createInsertSchema(transactionItems, 
 export const userSchema = createSelectSchema(users);
 export const userInsertSchema = createInsertSchema(users, {
   email: (schema) => schema.nullable().optional(),
+  name: (schema) => schema.nullable().optional(),
   firstName: (schema) => schema.nullable().optional(),
   lastName: (schema) => schema.nullable().optional(),
   fullName: (schema) => schema.nullable().optional(),

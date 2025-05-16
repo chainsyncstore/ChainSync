@@ -12,10 +12,11 @@ export const storage = {
   },
   
   async upsertUser(userData: schema.UserInsert): Promise<schema.User> {
-    // Calculate the full name based on firstName and lastName
-    const fullName = [userData.firstName, userData.lastName]
-      .filter(Boolean)
-      .join(' ') || userData.email || `User-${userData.id.substring(0, 8)}`;
+    // Calculate the full name from Replit auth data
+    // Handle both firstName/lastName scenario and Replit's standard "name" field
+    const fullName = userData.firstName && userData.lastName 
+      ? `${userData.firstName} ${userData.lastName}`
+      : userData.name || userData.email || `User-${userData.id.substring(0, 8)}`;
 
     const [user] = await db
       .insert(schema.users)
