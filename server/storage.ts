@@ -1155,26 +1155,13 @@ export const storage = {
           // Continue with other items even if one fails
         }
       }
-      const batchSales: { batchId: number, quantity: number, batchNumber: string, expiryDate: Date | null }[] = [];
       
-      // Allocate quantities from batches in FIFO order (earliest expiry first)
-      for (const batch of batches) {
-        if (remainingQuantity <= 0) break;
-        
-        const quantityFromBatch = Math.min(batch.quantity, remainingQuantity);
-        
-        if (quantityFromBatch > 0) {
-          batchSales.push({
-            batchId: batch.id,
-            quantity: quantityFromBatch,
-            batchNumber: batch.batchNumber,
-            expiryDate: batch.expiryDate
-          });
-          
-          // Update batch quantity
-          await this.updateInventoryBatch(batch.id, {
-            quantity: batch.quantity - quantityFromBatch
-          });
+      return { transaction, items };
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+      throw error;
+    }
+  },
           
           remainingQuantity -= quantityFromBatch;
         }
