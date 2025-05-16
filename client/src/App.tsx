@@ -29,43 +29,33 @@ import ProfilePage from "@/pages/profile";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Use effect for navigation after component mounts
+  // Check role-based access when user is authenticated
   useEffect(() => {
-    // Redirect to landing page if not authenticated
-    if (!isLoading && !isAuthenticated) {
-      setLocation("/");
-      return;
+    if (isAuthenticated && user) {
+      // Check for admin access if required
+      if (adminOnly && user.role !== "admin") {
+        setLocation("/dashboard");
+        return;
+      }
+      
+      // Check for manager or admin access if required
+      if (isManagerOrAdmin && 
+          user.role !== "admin" && user.role !== "manager") {
+        setLocation("/dashboard");
+        return;
+      }
     }
+  }, [isAuthenticated, user, adminOnly, isManagerOrAdmin, setLocation]);
 
-    // Check for admin access if required
-    if (!isLoading && isAuthenticated && adminOnly && user?.role !== "admin") {
-      setLocation("/dashboard");
-      return;
-    }
-    
-    // Check for manager or admin access if required
-    if (!isLoading && isAuthenticated && isManagerOrAdmin && 
-        user?.role !== "admin" && user?.role !== "manager") {
-      setLocation("/dashboard");
-      return;
-    }
-  }, [isAuthenticated, isLoading, user, adminOnly, isManagerOrAdmin, setLocation]);
-
-  // Handle loading state
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  // Don't render during redirects
-  if (!isAuthenticated || (adminOnly && user?.role !== "admin")) {
-    return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
-  }
-
-  // Render component if authorized
-  return <Component {...rest} />;
+  // Use AuthLayout to handle authentication, loading states, and redirects
+  return (
+    <AuthLayout>
+      {isAuthenticated && <Component {...rest} />}
+    </AuthLayout>
+  );
 }
 
 function DefaultRoute() {
@@ -84,13 +74,12 @@ function DefaultRoute() {
     }
   }, [user, isAuthenticated, setLocation]);
   
-  // If not authenticated, show the landing page
-  if (!isAuthenticated) {
-    return <LandingPage />;
-  }
-  
-  // Return a loading indicator while redirecting
-  return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
+  // Use AuthLayout for the landing page to handle authentication
+  return (
+    <AuthLayout showLanding={true}>
+      <LandingPage />
+    </AuthLayout>
+  );
 }
 
 function DashboardRoute() {

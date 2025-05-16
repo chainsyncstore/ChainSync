@@ -4,9 +4,10 @@ import { Link } from "wouter";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
+  showLanding?: boolean;
 }
 
-export function AuthLayout({ children }: AuthLayoutProps) {
+export function AuthLayout({ children, showLanding = false }: AuthLayoutProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
@@ -20,7 +21,14 @@ export function AuthLayout({ children }: AuthLayoutProps) {
     );
   }
 
+  // If showing landing page or user is not authenticated
   if (!isAuthenticated) {
+    // If showLanding is true, allow the landing page to display
+    if (showLanding) {
+      return <>{children}</>;
+    }
+    
+    // Otherwise show login UI
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center gap-6">
         <h1 className="text-3xl font-bold">ChainSync</h1>
@@ -34,5 +42,6 @@ export function AuthLayout({ children }: AuthLayoutProps) {
     );
   }
 
+  // User is authenticated, render children
   return <>{children}</>;
 }
