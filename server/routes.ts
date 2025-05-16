@@ -1590,6 +1590,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ----------- Product Routes -----------
   
+  // Get all categories
+  app.get(`${apiPrefix}/products/categories`, isAuthenticated, async (req, res) => {
+    try {
+      const categories = await storage.getAllCategories();
+      return res.status(200).json(categories);
+    } catch (error) {
+      console.error("Get categories error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Create new category
+  app.post(`${apiPrefix}/products/categories`, isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { name, description } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Category name is required" });
+      }
+      
+      const categoryData = {
+        name,
+        description: description || ""
+      };
+      
+      const newCategory = await db.insert(schema.categories)
+        .values(categoryData)
+        .returning();
+        
+      return res.status(201).json(newCategory[0]);
+    } catch (error) {
+      console.error("Create category error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Update category
+  app.patch(`${apiPrefix}/products/categories/:id`, isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Category name is required" });
+      }
+      
+      const categoryData = {
+        name,
+        description: description || "",
+        updatedAt: new Date()
+      };
+      
+      const updatedCategory = await db.update(schema.categories)
+        .set(categoryData)
+        .where(eq(schema.categories.id, parseInt(id)))
+        .returning();
+        
+      if (!updatedCategory.length) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+        
+      return res.status(200).json(updatedCategory[0]);
+    } catch (error) {
+      console.error("Update category error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Delete category
+  app.delete(`${apiPrefix}/products/categories/:id`, isAuthenticated, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if category is in use by any products
+      const products = await db.query.products.findMany({
+        where: eq(schema.products.categoryId, parseInt(id))
+      });
+      
+      if (products.length > 0) {
+        return res.status(400).json({
+          message: "Cannot delete category that is in use by products",
+          inUseCount: products.length
+        });
+      }
+      
+      const deletedCategory = await db.delete(schema.categories)
+        .where(eq(schema.categories.id, parseInt(id)))
+        .returning();
+        
+      if (!deletedCategory.length) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+        
+      return res.status(200).json({ message: "Category deleted successfully" });
+    } catch (error) {
+      console.error("Delete category error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   app.get(`${apiPrefix}/products`, isAuthenticated, async (req, res) => {
     try {
       const products = await storage.getAllProducts();
