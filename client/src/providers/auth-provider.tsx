@@ -6,13 +6,14 @@ import { useToast } from '@/hooks/use-toast';
 import type { AuthResponse } from '@shared/schema';
 
 // Define User interface for the auth context
-// We remove password for security reasons
+// Updated for Replit Auth
 export interface User {
-  id: number;
-  username: string;
-  fullName: string;
-  email: string;
-  phone?: string;
+  id: string; // Changed to string for Replit Auth user ID
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  profileImageUrl: string | null;
   role: 'admin' | 'manager' | 'cashier' | 'affiliate';
   storeId?: number;
   lastLogin?: Date;
@@ -20,10 +21,9 @@ export interface User {
   updatedAt: Date;
 }
 
-// Define login credentials type
+// With Replit Auth, traditional login credentials are no longer needed
+// The auth is handled by Replit's OpenID Connect provider
 export interface LoginCredentials {
-  username: string;
-  password: string;
   rememberMe?: boolean;
 }
 
@@ -47,14 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  // Query to check authentication status
+  // Query to check authentication status - updated for Replit Auth
   const { 
     data: authData,
     isLoading: authLoading,
     error: authError,
     refetch: refetchAuth,
   } = useQuery<AuthResponse>({
-    queryKey: ['/api/auth/me'],
+    queryKey: ['/api/auth/user'],
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnMount: true,
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchInterval: false,
     queryFn: async () => {
       try {
-        const res = await fetch('/api/auth/me', {
+        const res = await fetch('/api/auth/user', {
           credentials: "include",
           headers: {
             "Accept": "application/json",
@@ -83,7 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(`${res.status}: ${res.statusText}`);
         }
         
-        return await res.json();
+        const userData = await res.json();
+        return { authenticated: true, user: userData };
       } catch (error) {
         console.error("Error fetching auth status:", error);
         return { authenticated: false, user: null };
