@@ -1028,6 +1028,30 @@ export const storage = {
     
     return updatedBatch;
   },
+  
+  async deleteInventoryBatch(batchId: number) {
+    // First get the batch to retrieve its inventory ID before deleting
+    const batch = await this.getInventoryBatchById(batchId);
+    if (!batch) {
+      throw new Error('Batch not found');
+    }
+    
+    const inventoryId = batch.inventoryId;
+    
+    // Delete the batch
+    const deleted = await db.delete(schema.inventoryBatches)
+      .where(eq(schema.inventoryBatches.id, batchId))
+      .returning();
+      
+    if (deleted.length === 0) {
+      throw new Error('Failed to delete batch');
+    }
+    
+    // Update the total quantity in the inventory record
+    await this.updateInventoryTotalQuantity(inventoryId);
+    
+    return deleted[0];
+  },
 
   async updateInventoryTotalQuantity(inventoryId: number) {
     // Get all batches for this inventory
