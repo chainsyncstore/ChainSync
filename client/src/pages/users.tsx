@@ -292,7 +292,17 @@ export default function UsersPage() {
                     />
                   )}
                   
-                  <DialogFooter>
+                  <DialogFooter className="flex justify-between">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsOpen(false);
+                        form.reset();
+                      }}
+                    >
+                      Cancel
+                    </Button>
                     <Button 
                       type="submit" 
                       disabled={createUserMutation.isPending}
