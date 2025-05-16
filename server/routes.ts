@@ -1588,6 +1588,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ----------- Category Management Routes -----------
+  // Get all categories
+  app.get('/api/products/categories', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const categories = await db.select().from(schema.categories).orderBy(schema.categories.name);
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ message: 'Failed to fetch categories' });
+    }
+  });
+
+  // Create new category
+  app.post('/api/products/categories', isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const data = schema.categoryInsertSchema.parse(req.body);
+      
+      const [newCategory] = await db.insert(schema.categories)
+        .values({
+          name: data.name,
+          description: data.description || null,
+        })
+        .returning();
+      
+      res.status(201).json(newCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: 'Validation error', errors: error.errors });
+      } else {
+        console.error('Error creating category:', error);
+        res.status(500).json({ message: 'Failed to create category' });
+      }
+    }
+  });
+
+  // Update category
+  app.patch('/api/products/categories/:id', isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid category ID' });
+      }
+
+      const data = schema.categoryInsertSchema.parse(req.body);
+      
+      const [updatedCategory] = await db.update(schema.categories)
+        .set({
+          name: data.name,
+          description: data.description || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.categories.id, id))
+        .returning();
+      
+      if (!updatedCategory) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+      
+      res.json(updatedCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: 'Validation error', errors: error.errors });
+      } else {
+        console.error('Error updating category:', error);
+        res.status(500).json({ message: 'Failed to update category' });
+      }
+    }
+  });
+
+  // Delete category
+  app.delete('/api/products/categories/:id', isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid category ID' });
+      }
+
+      // Check if category is in use by any products
+      const products = await db.select({ count: sql`count(*)` })
+        .from(schema.products)
+        .where(eq(schema.products.categoryId, id));
+      
+      if (products.length > 0 && parseInt(products[0].count.toString()) > 0) {
+        return res.status(409).json({ 
+          message: 'Cannot delete category that is being used by products',
+          count: products[0].count 
+        });
+      }
+      
+      const [deletedCategory] = await db.delete(schema.categories)
+        .where(eq(schema.categories.id, id))
+        .returning();
+      
+      if (!deletedCategory) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+      
+      res.json({ message: 'Category deleted successfully', category: deletedCategory });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      res.status(500).json({ message: 'Failed to delete category' });
+    }
+  });
+
   // ----------- Product Routes -----------
   
   // Get all categories
