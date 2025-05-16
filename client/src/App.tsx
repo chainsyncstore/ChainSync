@@ -24,6 +24,7 @@ import ImportPage from "@/pages/import";
 import ProductImportPage from "@/pages/product-import";
 import AddProductPage from "@/pages/add-product";
 import AssistantPage from "@/pages/assistant";
+import ProfilePage from "@/pages/profile";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
@@ -190,6 +191,14 @@ function AssistantRoute() {
   );
 }
 
+function ProfileRoute() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <ProtectedRoute component={ProfilePage} />
+    </Suspense>
+  );
+}
+
 function AppRoutes() {
   return (
     <Switch>
@@ -211,6 +220,7 @@ function AppRoutes() {
       <Route path="/product-import" component={ProductImportRoute} />
       <Route path="/add-product" component={AddProductRoute} />
       <Route path="/assistant" component={AssistantRoute} />
+      <Route path="/profile" component={ProfileRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
