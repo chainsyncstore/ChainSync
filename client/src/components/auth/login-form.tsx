@@ -1,6 +1,6 @@
 import React from 'react';
 import { z } from 'zod';
-import { useAuth, LoginCredentials } from '@/providers/auth-provider';
+import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'wouter';
 
 import { Button } from '@/components/ui/button';
@@ -15,30 +15,17 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
-  const { login, isLoading, error } = useAuth();
+  const { isLoading, error } = useAuth();
   const [formError, setFormError] = React.useState<string | null>(null);
   const [rememberMe, setRememberMe] = React.useState<boolean>(false);
 
   // Handle login with Replit Auth
-  async function handleLogin() {
+  function handleLogin() {
     setFormError(null);
-    
-    try {
-      // Extract credentials (only rememberMe is used with Replit Auth)
-      const credentials: LoginCredentials = {
-        rememberMe
-      };
-      
-      // This will redirect to Replit's auth endpoint
-      await login(credentials);
-    } catch (err) {
-      // Show error in form
-      if (err instanceof Error) {
-        setFormError(err.message);
-      } else {
-        setFormError('An unknown error occurred. Please try again.');
-      }
-    }
+    // Redirect directly to the login endpoint
+    window.location.href = rememberMe 
+      ? `/api/login?remember=true` 
+      : '/api/login';
   }
 
   return (

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { CurrencyProvider } from "@/providers/currency-provider";
+import { AuthProvider } from "@/providers/auth-provider";
 
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
@@ -221,10 +222,12 @@ function AppRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <CurrencyProvider>
-        <AppRoutes />
-        <Toaster />
-      </CurrencyProvider>
+      <AuthProvider>
+        <CurrencyProvider>
+          <AppRoutes />
+          <Toaster />
+        </CurrencyProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
