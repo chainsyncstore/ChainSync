@@ -35,8 +35,8 @@ export function AuthLayout({ children, showLanding = false }: AuthLayoutProps) {
         <p className="text-xl text-muted-foreground">
           Sign in to access your retail management dashboard
         </p>
-        <Button asChild className="mt-4">
-          <a href="/api/login">Sign in with Replit</a>
+        <Button className="mt-4" onClick={() => window.location.href = '/api/login'}>
+          Sign in with Replit
         </Button>
       </div>
     );
