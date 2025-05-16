@@ -34,6 +34,8 @@ import { db } from "@db";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Import the setupSecureServer to return either HTTP or HTTPS server based on environment
+  const { setupSecureServer } = await import('./config/https');
   // Set up PostgreSQL session store
   const PostgresStore = pgSession(session);
   
@@ -4056,7 +4058,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
+  // Create secure server based on environment
+  const httpServer = setupSecureServer(app);
 
   return httpServer;
 }

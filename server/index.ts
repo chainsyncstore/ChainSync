@@ -1,8 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupSecureServer, enforceHttpsForPaymentRoutes } from "./config/https";
+import { logNgrokInstructions } from "./config/ngrok";
 
 const app = express();
+
+// Enforce HTTPS for payment routes in production
+app.use(enforceHttpsForPaymentRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -37,6 +42,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Use secure server configuration instead of plain HTTP server
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -53,6 +59,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   } else {
     await setupVite(app, server);
+    // In development mode, show ngrok instructions for webhook testing
+    logNgrokInstructions();
   }
 
   // ALWAYS serve the app on port 5000
@@ -66,7 +74,8 @@ app.use((req, res, next) => {
     host,
     reusePort: true,
   }, () => {
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
-    log(`Listening on http://${host}:${port}`);
+    log(`Listening on ${protocol}://${host}:${port}`);
   });
 })();
