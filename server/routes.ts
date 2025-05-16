@@ -18,6 +18,7 @@ import * as affiliateService from './services/affiliate';
 import * as webhookService from './services/webhooks';
 import * as paymentService from './services/payment';
 import * as loyaltyService from "./services/loyalty";
+import * as analyticsService from "./services/analytics";
 import { 
   processImportFile, 
   applyColumnMapping, 
@@ -1044,12 +1045,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get transactions - passing storeId will filter to just that store
       // For admin users with no storeId specified, it will return transactions across all stores
-      const transactions = await storage.getRecentTransactions(limit, targetStoreId);
+      const transactions = await storage.getRecentTransactions(targetStoreId, limit);
       
       return res.status(200).json(transactions);
     } catch (error) {
       console.error("Recent transactions error:", error);
       return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Sales Trend Analysis API
+  app.get(`${apiPrefix}/analytics/sales-trends`, isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, userRole } = req.session;
+      const { 
+        startDate, 
+        endDate, 
+        groupBy = 'day',
+        store: queryStoreId
+      } = req.query;
+      
+      // For non-admin users, enforce using their assigned store
+      let targetStoreId = undefined;
+      if (userRole !== 'admin') {
+        // Non-admin users can only see their assigned store
+        targetStoreId = storeId;
+      } else if (queryStoreId) {
+        // Admin users can specify a store ID
+        targetStoreId = parseInt(queryStoreId as string);
+      }
+      
+      // Parse dates
+      let parsedStartDate: Date | undefined;
+      let parsedEndDate: Date | undefined;
+      
+      if (startDate) {
+        parsedStartDate = new Date(startDate as string);
+      }
+      
+      if (endDate) {
+        parsedEndDate = new Date(endDate as string);
+        // Set end date to end of day
+        parsedEndDate.setHours(23, 59, 59, 999);
+      }
+      
+      // Validate groupBy (must be 'day', 'week', or 'month')
+      const validGroupBy = ['day', 'week', 'month'].includes(groupBy as string) 
+        ? groupBy as 'day' | 'week' | 'month' 
+        : 'day';
+      
+      const salesTrends = await analyticsService.getSalesTrendsAnalysis(
+        targetStoreId,
+        parsedStartDate,
+        parsedEndDate,
+        validGroupBy
+      );
+      
+      // Add date range description
+      const dateRangeDescription = analyticsService.getDateRangeDescription(parsedStartDate, parsedEndDate);
+      
+      return res.json({
+        ...salesTrends,
+        dateRangeDescription
+      });
+    } catch (error) {
+      console.error('Sales trends analysis error:', error);
+      return res.status(500).json({ message: 'Internal server error' });
     }
   });
 
