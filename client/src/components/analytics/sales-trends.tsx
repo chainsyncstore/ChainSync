@@ -26,6 +26,8 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatCurrency } from '@/lib/utils';
+import { useCurrency } from '@/providers/currency-provider';
 
 // Type definitions
 interface SalesTrend {
@@ -119,13 +121,9 @@ export const SalesTrends = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Currency formatter
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
-  };
+  // Import formatCurrency from utils
+  import { formatCurrency } from '@/lib/utils';
+  import { useCurrency } from '@/providers/currency-provider';
 
   // Display data with the chosen chart type
   const renderChart = () => {
