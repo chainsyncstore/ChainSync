@@ -3708,6 +3708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete(`${apiPrefix}/inventory/batches/:batchId`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
     try {
       const batchId = parseInt(req.params.batchId);
+      const forceDelete = req.query.force === 'true';
       
       if (isNaN(batchId)) {
         return res.status(400).json({
@@ -3723,6 +3724,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Prevent deletion of batch with non-zero quantity
+      if (currentBatch.quantity > 0 && !forceDelete) {
+        return res.status(400).json({
+          message: 'Cannot delete batch with non-zero quantity. Adjust quantity to zero first or use force=true parameter.',
+          nonZeroQuantity: true,
+          currentQuantity: currentBatch.quantity
+        });
+      }
+      
+      // Get inventory details for the audit log
+      const inventory = await storage.getInventoryItemById(currentBatch.inventoryId);
+      if (!inventory) {
+        return res.status(404).json({
+          message: 'Inventory record not found'
+        });
+      }
+      
+      // Get product details for the audit log
+      const product = await storage.getProductById(inventory.productId);
+      
+      // Create audit log entry before deletion
+      await storage.createBatchAuditLog({
+        batchId: currentBatch.id,
+        userId: req.session.userId,
+        action: 'delete',
+        details: {
+          batchNumber: currentBatch.batchNumber,
+          productName: product ? product.name : 'Unknown Product',
+          wasForceDeleted: forceDelete,
+          quantityLost: currentBatch.quantity > 0 ? currentBatch.quantity : 0
+        },
+        quantityBefore: currentBatch.quantity,
+        quantityAfter: 0
+      });
+      
       // Delete the batch
       await storage.deleteInventoryBatch(batchId);
       
@@ -3736,6 +3772,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error deleting batch:', error);
       return res.status(500).json({
         message: error instanceof Error ? error.message : 'Failed to delete batch'
+      });
+    }
+  });
+  
+  // Get batch audit logs
+  app.get(`${apiPrefix}/inventory/batches/:batchId/audit-logs`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const batchId = parseInt(req.params.batchId);
+      
+      if (isNaN(batchId)) {
+        return res.status(400).json({
+          message: 'Invalid batch ID'
+        });
+      }
+      
+      // Check if batch exists
+      const batch = await storage.getInventoryBatchById(batchId);
+      if (!batch) {
+        return res.status(404).json({
+          message: 'Batch not found'
+        });
+      }
+      
+      // Get audit logs for the batch
+      const auditLogs = await storage.getBatchAuditLogs(batchId);
+      
+      return res.json(auditLogs);
+    } catch (error) {
+      console.error('Error fetching batch audit logs:', error);
+      return res.status(500).json({
+        message: 'Failed to fetch batch audit logs'
       });
     }
   });
