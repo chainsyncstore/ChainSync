@@ -27,6 +27,7 @@ import {
   importInventoryData,
   generateErrorReport
 } from "./services/import-enhanced";
+import { validateProductImportCSV, importProducts } from "./services/product-import";
 
 import { db } from "@db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -3220,6 +3221,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error generating error report:', error);
       return res.status(500).json({ error: error.message || 'Failed to generate error report' });
+    }
+  });
+
+  // Product Import Routes
+  app.post(`${apiPrefix}/products/import/validate`, isAuthenticated, isManagerOrAdmin, upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      
+      // Read the uploaded file
+      const fileContent = req.file.buffer.toString();
+      
+      // Use the user's store ID if they're not an admin
+      const storeId = req.user?.role === 'admin' ? 1 : (req.user?.storeId || 1);
+      
+      // Validate the CSV
+      const { validProducts, summary } = await validateProductImportCSV(fileContent, storeId);
+      
+      res.status(200).json({ 
+        validProducts,
+        summary,
+        message: 'Validation completed'
+      });
+    } catch (error) {
+      console.error('Error validating product import:', error);
+      res.status(500).json({ 
+        message: 'Error validating CSV file', 
+        error: error.message 
+      });
+    }
+  });
+  
+  // Process product import
+  app.post(`${apiPrefix}/products/import/process`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { products, storeId, createCategories } = req.body;
+      
+      if (!products || !Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ message: 'No valid products to import' });
+      }
+      
+      if (!storeId) {
+        return res.status(400).json({ message: 'Store ID is required' });
+      }
+      
+      // Import products
+      const result = await importProducts(products, storeId);
+      
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error importing products:', error);
+      res.status(500).json({ 
+        message: 'Error importing products', 
+        error: error.message,
+        success: false,
+        importedCount: 0,
+        failedProducts: []
+      });
+    }
+  });
+  
+  // Generate error report for product import
+  app.post(`${apiPrefix}/products/import/error-report`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { errors } = req.body;
+      
+      if (!Array.isArray(errors)) {
+        return res.status(400).json({ message: 'Invalid error data format' });
+      }
+      
+      // Generate the CSV content
+      const csvStringify = require('csv-stringify/sync').stringify;
+      const csvContent = csvStringify(errors, {
+        header: true,
+        columns: ['row', 'field', 'value', 'message']
+      });
+      
+      // Set the appropriate headers for a CSV file download
+      res.setHeader('Content-Disposition', `attachment; filename=product-import-errors-${Date.now()}.csv`);
+      res.setHeader('Content-Type', 'text/csv');
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Error generating product import error report:', error);
+      res.status(500).json({ message: 'Failed to generate error report' });
     }
   });
 
