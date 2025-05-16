@@ -1295,15 +1295,15 @@ export const storage = {
     let whereClause = sql`1=1`;
     
     if (storeId) {
-      whereClause = and(whereClause, eq(schema.transactions.storeId, storeId));
+      whereClause = sql`${whereClause} AND ${schema.transactions.storeId} = ${storeId}`;
     }
     
     if (startDate) {
-      whereClause = and(whereClause, gte(schema.transactions.createdAt, startDate));
+      whereClause = sql`${whereClause} AND ${schema.transactions.createdAt} >= ${startDate}`;
     }
     
     if (endDate) {
-      whereClause = and(whereClause, lte(schema.transactions.createdAt, endDate));
+      whereClause = sql`${whereClause} AND ${schema.transactions.createdAt} <= ${endDate}`;
     }
     
     // Define the date format expression based on groupBy
@@ -1341,19 +1341,32 @@ export const storage = {
     // If storeId is not specified, also get per-store breakdown
     let storeBreakdown = [];
     
+    // Get store list first to ensure we have store names
+    const stores = await db.select().from(schema.stores);
+    const storeMap = stores.reduce((acc, store) => {
+      acc[store.id] = store.name;
+      return acc;
+    }, {} as Record<number, string>);
+    
     if (!storeId) {
-      storeBreakdown = await db.select({
+      const storeResults = await db.select({
         storeId: schema.transactions.storeId,
-        storeName: schema.stores.name,
         totalSales: sql`SUM(${schema.transactions.total})`,
         transactionCount: count(),
         averageTransaction: sql`AVG(${schema.transactions.total})`,
       })
       .from(schema.transactions)
-      .leftJoin(schema.stores, eq(schema.transactions.storeId, schema.stores.id))
       .where(whereClause)
-      .groupBy(schema.transactions.storeId, schema.stores.name)
+      .groupBy(schema.transactions.storeId)
       .orderBy(desc(sql`SUM(${schema.transactions.total})`));
+      
+      storeBreakdown = storeResults.map(store => ({
+        storeId: store.storeId,
+        storeName: storeMap[store.storeId] || `Store #${store.storeId}`,
+        totalSales: store.totalSales,
+        transactionCount: store.transactionCount,
+        averageTransaction: store.averageTransaction,
+      }));
     }
     
     // Get overall totals
@@ -1365,25 +1378,37 @@ export const storage = {
     .from(schema.transactions)
     .where(whereClause);
     
+    // Get payment methods for mapping
+    const paymentMethods = await db.select().from(schema.paymentMethods);
+    const paymentMethodMap = paymentMethods.reduce((acc, method) => {
+      acc[method.id] = method.name;
+      return acc; 
+    }, {} as Record<number, string>);
+    
     // Get payment method breakdown
-    const paymentMethodBreakdown = await db.select({
+    const paymentMethodQuery = await db.select({
       paymentMethodId: schema.transactions.paymentMethodId,
-      paymentMethodName: schema.paymentMethods.name,
       total: sql`SUM(${schema.transactions.total})`,
       count: count(),
     })
     .from(schema.transactions)
-    .leftJoin(schema.paymentMethods, eq(schema.transactions.paymentMethodId, schema.paymentMethods.id))
     .where(whereClause)
-    .groupBy(schema.transactions.paymentMethodId, schema.paymentMethods.name)
+    .groupBy(schema.transactions.paymentMethodId)
     .orderBy(desc(sql`SUM(${schema.transactions.total})`));
+    
+    const paymentMethodBreakdown = paymentMethodQuery.map(method => ({
+      paymentMethodId: method.paymentMethodId,
+      paymentMethodName: paymentMethodMap[method.paymentMethodId] || 'Unknown',
+      total: method.total,
+      count: method.count,
+    }));
     
     // Process results for trend analysis
     const trendData = salesByDateGroup.map(item => ({
       dateGroup: item.dateGroup,
-      totalSales: parseFloat(item.totalSales as string),
-      transactionCount: Number(item.transactionCount),
-      averageTransaction: parseFloat(item.averageTransaction as string),
+      totalSales: parseFloat(item.totalSales as string) || 0,
+      transactionCount: Number(item.transactionCount) || 0,
+      averageTransaction: parseFloat(item.averageTransaction as string) || 0,
     }));
     
     // Return compiled analytics
@@ -1392,9 +1417,9 @@ export const storage = {
       storeBreakdown: storeBreakdown.map(store => ({
         storeId: store.storeId,
         storeName: store.storeName,
-        totalSales: parseFloat(store.totalSales as string),
-        transactionCount: Number(store.transactionCount),
-        averageTransaction: parseFloat(store.averageTransaction as string),
+        totalSales: parseFloat(store.totalSales as string) || 0,
+        transactionCount: Number(store.transactionCount) || 0,
+        averageTransaction: parseFloat(store.averageTransaction as string) || 0,
       })),
       totals: {
         totalSales: parseFloat(totals[0]?.totalSales as string) || 0,
@@ -1403,9 +1428,9 @@ export const storage = {
       },
       paymentMethodBreakdown: paymentMethodBreakdown.map(method => ({
         paymentMethodId: method.paymentMethodId,
-        paymentMethodName: method.paymentMethodName || 'Unknown',
-        total: parseFloat(method.total as string),
-        count: Number(method.count),
+        paymentMethodName: method.paymentMethodName,
+        total: parseFloat(method.total as string) || 0,
+        count: Number(method.count) || 0,
       })),
     };
   },

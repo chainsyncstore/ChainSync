@@ -1113,6 +1113,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: 'Internal server error' });
     }
   });
+  
+  // Store Performance Comparison API
+  app.get(`${apiPrefix}/analytics/store-performance`, isAuthenticated, async (req, res) => {
+    try {
+      const { userRole } = req.session;
+      
+      // Only admin users can access store comparison data
+      if (userRole !== 'admin') {
+        return res.status(403).json({ message: 'Unauthorized: Admin access required' });
+      }
+      
+      const { startDate, endDate } = req.query;
+      
+      // Parse dates
+      let parsedStartDate: Date | undefined;
+      let parsedEndDate: Date | undefined;
+      
+      if (startDate) {
+        parsedStartDate = new Date(startDate as string);
+      }
+      
+      if (endDate) {
+        parsedEndDate = new Date(endDate as string);
+        // Set end date to end of day
+        parsedEndDate.setHours(23, 59, 59, 999);
+      }
+      
+      const storePerformance = await analyticsService.getStorePerformanceComparison(
+        parsedStartDate,
+        parsedEndDate
+      );
+      
+      // Add date range description
+      const dateRangeDescription = analyticsService.getDateRangeDescription(parsedStartDate, parsedEndDate);
+      
+      return res.json({
+        ...storePerformance,
+        dateRangeDescription
+      });
+    } catch (error) {
+      console.error('Store performance comparison error:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
   // ----------- Store Routes -----------
   
