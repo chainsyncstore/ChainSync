@@ -950,3 +950,40 @@ export interface DialogflowMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
+
+// Notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  storeId: integer("store_id").references(() => stores.id),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean("is_read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  readAt: timestamp("read_at"),
+  link: text("link"), // Optional link to navigate when clicked
+  metadata: jsonb("metadata"), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationsInsertSchema = createInsertSchema(notifications, {
+  title: (schema) => schema.min(3, "Title must be at least 3 characters"),
+  message: (schema) => schema.min(5, "Message must be at least 5 characters"),
+  type: (schema) => schema.refine(val => ["alert", "info", "warning", "success"].includes(val), {
+    message: "Type must be one of: alert, info, warning, success"
+  })
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationsInsertSchema>;
