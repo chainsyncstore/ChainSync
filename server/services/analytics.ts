@@ -64,7 +64,7 @@ export async function getStorePerformanceComparison(
         productId: schema.transactionItems.productId,
         productName: schema.products.name,
         quantity: sql`SUM(${schema.transactionItems.quantity})`,
-        total: sql`SUM(${schema.transactionItems.quantity} * ${schema.transactionItems.price})`,
+        total: sql`SUM(${schema.transactionItems.subtotal})`,
       })
       .from(schema.transactionItems)
       .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))
