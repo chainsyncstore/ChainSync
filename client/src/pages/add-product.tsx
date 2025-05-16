@@ -247,11 +247,16 @@ export default function AddProductPage() {
                               Loading categories...
                             </SelectItem>
                           ) : (
-                            categories && Array.isArray(categories) ? categories.map((category: any) => (
-                              <SelectItem key={category.id} value={category.id.toString()}>
-                                {category.name}
+                            categories && Array.isArray(categories) && categories.length > 0 ? 
+                              categories.map((category: any) => (
+                                <SelectItem key={category.id} value={category.id.toString()}>
+                                  {category.name}
+                                </SelectItem>
+                              )) 
+                            : 
+                              <SelectItem value="none" disabled>
+                                Add category in settings
                               </SelectItem>
-                            )) : <SelectItem value="none">No categories available</SelectItem>
                           )}
                         </SelectContent>
                       </Select>
