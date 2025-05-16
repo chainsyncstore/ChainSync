@@ -34,6 +34,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
+import CategoryManagement from '@/components/inventory/category-management';
 
 // Profile settings form schema
 const profileFormSchema = z.object({
@@ -229,6 +230,7 @@ export default function SettingsPage() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
         </TabsList>
         
         {/* Profile Settings */}
@@ -663,6 +665,11 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        {/* Categories Management */}
+        <TabsContent value="categories">
+          <CategoryManagement />
         </TabsContent>
 
       </Tabs>
