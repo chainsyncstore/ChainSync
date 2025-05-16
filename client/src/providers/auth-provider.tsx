@@ -35,6 +35,7 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<User>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<User | null>;
+  refreshUser: () => Promise<void>;
   error: Error | null;
 }
 
@@ -272,6 +273,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   };
 
+  // Refresh user function
+  const refreshUser = async (): Promise<void> => {
+    await refetchAuth();
+    // Force a revalidation of the auth query
+    queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -281,6 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         checkAuth,
+        refreshUser,
         error: authError as Error,
       }}
     >
