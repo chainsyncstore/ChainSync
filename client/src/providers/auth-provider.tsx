@@ -6,14 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 import type { AuthResponse } from '@shared/schema';
 
 // Define User interface for the auth context
-// Updated for Replit Auth
+// We remove password for security reasons
 export interface User {
-  id: string; // Changed to string for Replit Auth user ID
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  fullName: string | null;
-  profileImageUrl: string | null;
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
   role: 'admin' | 'manager' | 'cashier' | 'affiliate';
   storeId?: number;
   lastLogin?: Date;
@@ -21,9 +19,10 @@ export interface User {
   updatedAt: Date;
 }
 
-// With Replit Auth, traditional login credentials are no longer needed
-// The auth is handled by Replit's OpenID Connect provider
+// Define login credentials type
 export interface LoginCredentials {
+  username: string;
+  password: string;
   rememberMe?: boolean;
 }
 
@@ -35,7 +34,6 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<User>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<User | null>;
-  refreshUser: () => Promise<void>;
   error: Error | null;
 }
 
@@ -47,14 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  // Query to check authentication status - updated for Replit Auth
+  // Query to check authentication status
   const { 
     data: authData,
     isLoading: authLoading,
     error: authError,
     refetch: refetchAuth,
   } = useQuery<AuthResponse>({
-    queryKey: ['/api/auth/user'],
+    queryKey: ['/api/auth/me'],
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnMount: true,
@@ -63,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchInterval: false,
     queryFn: async () => {
       try {
-        const res = await fetch('/api/auth/user', {
+        const res = await fetch('/api/auth/me', {
           credentials: "include",
           headers: {
             "Accept": "application/json",
@@ -83,8 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(`${res.status}: ${res.statusText}`);
         }
         
-        const userData = await res.json();
-        return { authenticated: true, user: userData };
+        return await res.json();
       } catch (error) {
         console.error("Error fetching auth status:", error);
         return { authenticated: false, user: null };
@@ -92,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  // Extract and convert user from auth data - Updated for Replit Auth
+  // Extract and convert user from auth data
   const user: User | null = (() => {
     if (authData?.authenticated && authData?.user) {
       // Get role and ensure it's one of our valid types
@@ -107,11 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return {
         id: authData.user.id,
-        email: authData.user.email,
-        firstName: authData.user.firstName,
-        lastName: authData.user.lastName,
+        username: authData.user.username,
         fullName: authData.user.fullName,
-        profileImageUrl: authData.user.profileImageUrl,
+        email: authData.user.email,
         role: validRole,
         storeId,
         lastLogin,
@@ -124,50 +119,113 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const isAuthenticated = !!user;
   
-  // Login function - updated for Replit Auth
-  // With Replit Auth, we don't use a mutation, we simply redirect to Replit's auth endpoint
-  const loginMutation = {
-    isPending: false,
-    mutateAsync: async (credentials: LoginCredentials): Promise<User> => {
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginCredentials): Promise<User> => {
       // Extract rememberMe if present
-      const { rememberMe } = credentials;
+      const { rememberMe, ...loginCredentials } = credentials;
       
-      // For Replit Auth, redirect to the login endpoint
-      // The rememberMe parameter can be handled server-side if needed
+      // Send rememberMe as query param if true
       const endpoint = rememberMe 
-        ? `/api/login?remember=true` 
-        : '/api/login';
+        ? `/api/auth/login?remember=true` 
+        : '/api/auth/login';
       
-      // Redirect to Replit's auth endpoint
-      window.location.href = endpoint;
+      const response = await apiRequest('POST', endpoint, loginCredentials);
+      const data = await response.json();
       
-      // This promise never resolves as we redirect away
-      return new Promise<User>((resolve) => {
-        // This is just a placeholder since we redirect before resolution
-        setTimeout(() => {
-          resolve({} as User);
-        }, 1000);
-      });
-    }
-  };
+      if (!data.authenticated || !data.user) {
+        throw new Error(data.message || 'Authentication failed');
+      }
+      
+      // Transform the user data to match our User interface
+      const user = data.user;
+      
+      // Get role and ensure it's one of our valid types
+      const role = user.role as string;
+      const validRole = ['admin', 'manager', 'cashier', 'affiliate'].includes(role) 
+          ? role as 'admin' | 'manager' | 'cashier' | 'affiliate'
+          : 'cashier'; // Default role as fallback
 
-  // Logout function - updated for Replit Auth
-  // With Replit Auth, we don't use a mutation, we simply redirect to Replit's logout endpoint
-  const logoutMutation = {
-    isPending: false,
-    mutateAsync: async (): Promise<void> => {
-      // For Replit Auth, we simply redirect to the logout endpoint
-      window.location.href = '/api/logout';
+      // Convert possibly null values to undefined
+      const storeId = user.storeId === null ? undefined : user.storeId;
+      const lastLogin = user.lastLogin === null ? undefined : user.lastLogin;
       
-      // This promise never resolves as we redirect away
-      return new Promise<void>((resolve) => {
-        // This is just a placeholder since we redirect before resolution
-        setTimeout(() => {
-          resolve();
-        }, 1000);
+      // Return properly typed user object
+      return {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        role: validRole,
+        storeId,
+        lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
+    },
+    onSuccess: (userData) => {
+      // Invalidate and refetch auth query
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      
+      // Show success toast
+      toast({
+        title: 'Login successful',
+        description: `Welcome back, ${userData.fullName || userData.username}!`,
+        duration: 3000,
       });
-    }
-  };
+      
+      // Redirect based on user role
+      if (userData.role === 'cashier') {
+        setLocation('/pos');
+      } else if (userData.role === 'affiliate') {
+        setLocation('/affiliates');
+      } else {
+        setLocation('/dashboard');
+      }
+    },
+    onError: (error: Error) => {
+      const errorMessage = error.message?.includes('401:') ? 
+        'Invalid Username or Password' : 
+        (error.message || 'Invalid Username or Password');
+        
+      toast({
+        title: 'Login failed',
+        description: errorMessage,
+        variant: 'destructive',
+        duration: 5000,
+      });
+    },
+  });
+
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async (): Promise<void> => {
+      await apiRequest('POST', '/api/auth/logout');
+    },
+    onSuccess: () => {
+      // Clear auth data from cache
+      queryClient.setQueryData(['/api/auth/me'], { authenticated: false, user: null });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      
+      // Show success toast
+      toast({
+        title: 'Logged out',
+        description: 'You have been successfully logged out.',
+        duration: 3000,
+      });
+      
+      // Redirect to login page
+      setLocation('/login');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Logout failed',
+        description: error.message || 'Failed to log out. Please try again.',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    },
+  });
 
   // Login function wrapper
   const login = async (credentials: LoginCredentials): Promise<User> => {
@@ -179,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await logoutMutation.mutateAsync();
   };
 
-  // Auth check function wrapper that returns the user (or null) - Updated for Replit Auth
+  // Auth check function wrapper that returns the user (or null)
   const checkAuth = async (): Promise<User | null> => {
     const result = await refetchAuth();
     const data = result.data;
@@ -198,11 +256,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Type conversion to match our User interface
       const user: User = {
         id: data.user.id,
-        email: data.user.email,
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
+        username: data.user.username,
         fullName: data.user.fullName,
-        profileImageUrl: data.user.profileImageUrl,
+        email: data.user.email,
         role: validRole,
         storeId,
         lastLogin,
@@ -215,13 +271,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   };
 
-  // Refresh user function - Updated for Replit Auth
-  const refreshUser = async (): Promise<void> => {
-    await refetchAuth();
-    // Force a revalidation of the auth query using the new endpoint
-    queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -231,7 +280,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         checkAuth,
-        refreshUser,
         error: authError as Error,
       }}
     >

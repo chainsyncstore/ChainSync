@@ -8,8 +8,7 @@ import { ZodError } from "zod-validation-error";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { pool } from "@db";
-import { isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from "./middleware/auth";
-import { setupAuth, isAuthenticated } from "./auth/replitAuth";
+import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from "./middleware/auth";
 import { getAIResponse } from "./services/ai";
 import multer from "multer";
 import path from "path";
@@ -37,21 +36,32 @@ import { eq, and, desc, sql } from "drizzle-orm";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Import the setupSecureServer to return either HTTP or HTTPS server based on environment
   const { setupSecureServer } = await import('./config/https');
+  // Set up PostgreSQL session store
+  const PostgresStore = pgSession(session);
   
-  // Set up Replit auth middleware
-  await setupAuth(app);
+  // Set up session middleware
+  app.use(
+    session({
+      store: new PostgresStore({
+        pool,
+        createTableIfMissing: true,
+        tableName: 'session'
+      }),
+      secret: process.env.SESSION_SECRET || "dev-secret-key",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: false, // Only set to true in production with HTTPS
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'lax'
+      },
+      name: 'chainsync.sid' // Custom name to avoid conflicts
+    })
+  );
   
-  // Auth route for clients to get current user
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res: Response) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Apply session validation middleware
+  app.use(validateSession);
   
   // Loyalty API Routes
   app.get('/api/loyalty/members', isAuthenticated, hasStoreAccess, async (req, res) => {

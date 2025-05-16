@@ -3,10 +3,8 @@ import { Switch, Route, Router, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { useAuth } from "@/hooks/useAuth";
-import { AuthLayout } from "@/components/layout/auth-layout";
+import { AuthProvider, useAuth } from "@/providers/auth-provider";
 import { CurrencyProvider } from "@/providers/currency-provider";
-import { AuthProvider } from "@/providers/auth-provider";
 
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
@@ -26,37 +24,46 @@ import ImportPage from "@/pages/import";
 import ProductImportPage from "@/pages/product-import";
 import AddProductPage from "@/pages/add-product";
 import AssistantPage from "@/pages/assistant";
-import ProfilePage from "@/pages/profile";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Check role-based access when user is authenticated
+  // Use effect for navigation after component mounts
   useEffect(() => {
-    if (isAuthenticated && user) {
-      // Check for admin access if required
-      if (adminOnly && user.role !== "admin") {
-        setLocation("/dashboard");
-        return;
-      }
-      
-      // Check for manager or admin access if required
-      if (isManagerOrAdmin && 
-          user.role !== "admin" && user.role !== "manager") {
-        setLocation("/dashboard");
-        return;
-      }
+    // Redirect to landing page if not authenticated
+    if (!isLoading && !isAuthenticated) {
+      setLocation("/");
+      return;
     }
-  }, [isAuthenticated, user, adminOnly, isManagerOrAdmin, setLocation]);
 
-  // Use AuthLayout to handle authentication, loading states, and redirects
-  return (
-    <AuthLayout>
-      {isAuthenticated && <Component {...rest} />}
-    </AuthLayout>
-  );
+    // Check for admin access if required
+    if (!isLoading && isAuthenticated && adminOnly && user?.role !== "admin") {
+      setLocation("/dashboard");
+      return;
+    }
+    
+    // Check for manager or admin access if required
+    if (!isLoading && isAuthenticated && isManagerOrAdmin && 
+        user?.role !== "admin" && user?.role !== "manager") {
+      setLocation("/dashboard");
+      return;
+    }
+  }, [isAuthenticated, isLoading, user, adminOnly, isManagerOrAdmin, setLocation]);
+
+  // Handle loading state
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  // Don't render during redirects
+  if (!isAuthenticated || (adminOnly && user?.role !== "admin")) {
+    return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
+  }
+
+  // Render component if authorized
+  return <Component {...rest} />;
 }
 
 function DefaultRoute() {
@@ -75,12 +82,13 @@ function DefaultRoute() {
     }
   }, [user, isAuthenticated, setLocation]);
   
-  // Use AuthLayout for the landing page to handle authentication
-  return (
-    <AuthLayout showLanding={true}>
-      <LandingPage />
-    </AuthLayout>
-  );
+  // If not authenticated, show the landing page
+  if (!isAuthenticated) {
+    return <LandingPage />;
+  }
+  
+  // Return a loading indicator while redirecting
+  return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
 }
 
 function DashboardRoute() {
@@ -182,14 +190,6 @@ function AssistantRoute() {
   );
 }
 
-function ProfileRoute() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={ProfilePage} />
-    </Suspense>
-  );
-}
-
 function AppRoutes() {
   return (
     <Switch>
@@ -211,7 +211,6 @@ function AppRoutes() {
       <Route path="/product-import" component={ProductImportRoute} />
       <Route path="/add-product" component={AddProductRoute} />
       <Route path="/assistant" component={AssistantRoute} />
-      <Route path="/profile" component={ProfileRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />

@@ -5,41 +5,6 @@ import * as bcrypt from "bcrypt";
 import crypto from "crypto";
 
 export const storage = {
-  // --------- User Authentication (Replit Auth) ---------
-  async getUser(id: string): Promise<schema.User | undefined> {
-    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id));
-    return user;
-  },
-  
-  async upsertUser(userData: schema.UserInsert): Promise<schema.User> {
-    // Calculate the full name from Replit auth data
-    // Handle both firstName/lastName scenario and Replit's standard "name" field
-    const fullName = userData.firstName && userData.lastName 
-      ? `${userData.firstName} ${userData.lastName}`
-      : userData.name || userData.email || `User-${userData.id.substring(0, 8)}`;
-
-    const [user] = await db
-      .insert(schema.users)
-      .values({
-        ...userData,
-        fullName, // Add the computed fullName
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: schema.users.id,
-        set: {
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          profileImageUrl: userData.profileImageUrl,
-          fullName, // Update the fullName in the conflict clause too
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
-  },
-  
   // --------- Cashier Sessions ---------
   async createCashierSession(data: schema.CashierSessionInsert) {
     const [session] = await db.insert(schema.cashierSessions).values(data).returning();
