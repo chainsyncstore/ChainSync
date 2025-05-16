@@ -1115,10 +1115,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Store Performance Comparison API
-  app.get(`${apiPrefix}/analytics/store-performance`, isAuthenticated, async (req, res) => {
+  app.get(`${apiPrefix}/analytics/store-performance`, isAuthenticated, async (req: Request, res: Response) => {
     try {
+      const session = req.session as any; // Access session
+      
       // Only admin users can access store comparison data
-      if (req.user.role !== 'admin') {
+      if (session.userRole !== 'admin') {
         return res.status(403).json({ message: 'Unauthorized: Admin access required' });
       }
       
