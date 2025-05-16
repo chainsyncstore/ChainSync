@@ -37,14 +37,12 @@ import { eq, and, desc, sql } from "drizzle-orm";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Import the setupSecureServer to return either HTTP or HTTPS server based on environment
   const { setupSecureServer } = await import('./config/https');
-  // Set up PostgreSQL session store
-  const PostgresStore = pgSession(session);
   
-  // Set up Replit authentication
+  // Set up Replit auth middleware
   await setupAuth(app);
   
   // Auth route for clients to get current user
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);

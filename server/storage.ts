@@ -12,10 +12,16 @@ export const storage = {
   },
   
   async upsertUser(userData: schema.UserInsert): Promise<schema.User> {
+    // Calculate the full name based on firstName and lastName
+    const fullName = [userData.firstName, userData.lastName]
+      .filter(Boolean)
+      .join(' ') || userData.email || `User-${userData.id.substring(0, 8)}`;
+
     const [user] = await db
       .insert(schema.users)
       .values({
         ...userData,
+        fullName, // Add the computed fullName
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -25,6 +31,7 @@ export const storage = {
           firstName: userData.firstName,
           lastName: userData.lastName,
           profileImageUrl: userData.profileImageUrl,
+          fullName, // Update the fullName in the conflict clause too
           updatedAt: new Date(),
         },
       })
