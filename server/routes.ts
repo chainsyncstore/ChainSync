@@ -40,29 +40,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up PostgreSQL session store
   const PostgresStore = pgSession(session);
   
-  // Set up session middleware
-  app.use(
-    session({
-      store: new PostgresStore({
-        pool,
-        createTableIfMissing: true,
-        tableName: 'session'
-      }),
-      secret: process.env.SESSION_SECRET || "dev-secret-key",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: false, // Only set to true in production with HTTPS
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: 'lax'
-      },
-      name: 'chainsync.sid' // Custom name to avoid conflicts
-    })
-  );
+  // Set up Replit authentication
+  await setupAuth(app);
   
-  // Apply session validation middleware
-  app.use(validateSession);
+  // Auth route for clients to get current user
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
   
   // Loyalty API Routes
   app.get('/api/loyalty/members', isAuthenticated, hasStoreAccess, async (req, res) => {
