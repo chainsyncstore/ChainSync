@@ -362,6 +362,12 @@ export const aiConversationsRelations = relations(aiConversations, ({ one }) => 
   }),
 }));
 
+export const aiConversationInsertSchema = createInsertSchema(aiConversations);
+export const aiConversationSelectSchema = createSelectSchema(aiConversations);
+
+export type AiConversation = typeof aiConversations.$inferSelect;
+export type AiConversationInsert = z.infer<typeof aiConversationInsertSchema>;
+
 // Validation Schemas
 // User schemas are defined later in the file
 
@@ -743,8 +749,7 @@ export const referralPaymentInsertSchema = createInsertSchema(referralPayments);
 
 export const subscriptionInsertSchema = createInsertSchema(subscriptions);
 
-export type AiConversation = typeof aiConversations.$inferSelect;
-export type AiConversationInsert = typeof aiConversations.$inferInsert;
+// AiConversation types are already defined above
 
 export type Affiliate = typeof affiliates.$inferSelect;
 export type AffiliateInsert = z.infer<typeof affiliateInsertSchema>;

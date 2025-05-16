@@ -1486,7 +1486,7 @@ export const storage = {
   async getAiConversation(userId: number) {
     return await db.query.aiConversations.findFirst({
       where: eq(schema.aiConversations.userId, userId),
-      orderBy: [desc(schema.aiConversations.lastUpdated)]
+      orderBy: [desc(schema.aiConversations.updatedAt)]
     });
   },
   
@@ -1499,7 +1499,7 @@ export const storage = {
       const [updated] = await db.update(schema.aiConversations)
         .set({
           messages: messages,
-          lastUpdated: new Date()
+          updatedAt: new Date()
         })
         .where(eq(schema.aiConversations.id, existingConversation.id))
         .returning();
@@ -1510,8 +1510,8 @@ export const storage = {
         .values({
           userId,
           messages,
-          lastUpdated: new Date(),
-          createdAt: new Date()
+          createdAt: new Date(),
+          updatedAt: new Date()
         })
         .returning();
       return conversation;

@@ -242,7 +242,7 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
               lowStockItems: {
                 stringValue: JSON.stringify(lowStockItems.map(item => ({
                   product: item.product.name,
-                  currentStock: item.quantity,
+                  currentStock: item.totalQuantity,
                   minimumLevel: item.minimumLevel,
                   store: item.store.name
                 })))
@@ -256,14 +256,18 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
           parameters: {
             fields: {
               recentTransactions: {
-                stringValue: JSON.stringify(recentTransactions.map(t => ({
-                  id: t.transactionId,
-                  store: t.store.name,
-                  cashier: t.cashier.fullName,
-                  total: t.total,
-                  items: t.items.length,
-                  date: t.createdAt
-                })))
+                stringValue: JSON.stringify(recentTransactions.map(t => {
+                  // Extract store and cashier data safely
+                  const storeName = t.store ? t.store.name : `Store ID ${t.storeId}`;
+                  
+                  // Build a safe format for the transaction data
+                  return {
+                    id: t.transactionId,
+                    store: storeName,
+                    total: t.total,
+                    date: t.createdAt
+                  };
+                }))
               }
             }
           }
