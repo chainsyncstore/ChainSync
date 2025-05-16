@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/providers/auth-provider';
 import { formatDate, formatNumber } from '@/lib/utils';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, AlertCircle, Settings } from 'lucide-react';
 import { 
   Select, 
   SelectContent, 
@@ -28,6 +28,13 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { MinimumLevelDialog } from './minimum-level-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Product {
   id: number;
