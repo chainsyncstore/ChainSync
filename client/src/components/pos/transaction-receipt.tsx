@@ -7,7 +7,9 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ReceiptPrint from './receipt-print';
+import ThermalPrinter from './thermal-printer';
 
 // Interface for transaction data
 interface TransactionItem {
@@ -98,12 +100,26 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
           <DialogTitle>Transaction Receipt: {transaction.transactionId}</DialogTitle>
         </DialogHeader>
         
-        <div className="py-4">
-          <ReceiptPrint
-            data={receiptData}
-            onClose={onClose}
-          />
-        </div>
+        <Tabs defaultValue="standard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="standard">Standard Receipt</TabsTrigger>
+            <TabsTrigger value="thermal">Thermal Printer</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="standard" className="py-4">
+            <ReceiptPrint
+              data={receiptData}
+              onClose={onClose}
+            />
+          </TabsContent>
+          
+          <TabsContent value="thermal" className="py-4">
+            <ThermalPrinter
+              transaction={transaction}
+              onClose={onClose}
+            />
+          </TabsContent>
+        </Tabs>
         
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
