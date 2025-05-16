@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { db } from '@db';
-import * as schema from '@shared/schema';
+import { transactions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 // Make sure these are available from the environment
@@ -70,9 +70,11 @@ export async function handlePaystackWebhook(
 
   try {
     // Find the transaction/order with this reference
-    const order = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.referenceId, reference),
-    });
+    const results = await db.select()
+      .from(transactions)
+      .where(eq(transactions.referenceId, reference));
+    
+    const order = results[0];
 
     if (!order) {
       console.error(`No order found with reference: ${reference}`);
@@ -94,12 +96,12 @@ export async function handlePaystackWebhook(
     }
 
     // Update the order status
-    await db.update(schema.transactions)
+    await db.update(transactions)
       .set({
         paymentStatus: 'paid',
         paymentConfirmedAt: new Date()
       })
-      .where(eq(schema.transactions.id, order.id));
+      .where(eq(transactions.id, order.id));
 
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
     
@@ -169,9 +171,11 @@ export async function handleFlutterwaveWebhook(
 
   try {
     // Find the transaction/order with this reference
-    const order = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.referenceId, reference),
-    });
+    const results = await db.select()
+      .from(transactions)
+      .where(eq(transactions.referenceId, reference));
+    
+    const order = results[0];
 
     if (!order) {
       console.error(`No order found with reference: ${reference}`);
@@ -193,12 +197,12 @@ export async function handleFlutterwaveWebhook(
     }
 
     // Update the order status
-    await db.update(schema.transactions)
+    await db.update(transactions)
       .set({
         paymentStatus: 'paid',
         paymentConfirmedAt: new Date()
       })
-      .where(eq(schema.transactions.id, order.id));
+      .where(eq(transactions.id, order.id));
 
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
     

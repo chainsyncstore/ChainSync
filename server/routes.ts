@@ -15,7 +15,7 @@ import path from "path";
 
 // Import services
 import * as affiliateService from './services/affiliate';
-import * as webhookService from './services/webhooks';
+import * as webhookService from './services/webhook';
 import * as paymentService from './services/payment';
 import * as loyaltyService from "./services/loyalty";
 import * as analyticsService from "./services/analytics";
@@ -2599,8 +2599,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Payment Webhooks for Paystack and Flutterwave
   // These routes are public and do not require authentication
-  import * as webhookService from './services/webhook';
-  
   app.post(`${apiPrefix}/webhooks/paystack`, express.raw({ type: 'application/json' }), async (req, res) => {
     try {
       const signature = req.headers['x-paystack-signature'] as string;
