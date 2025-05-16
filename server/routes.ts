@@ -3601,6 +3601,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  app.delete(`${apiPrefix}/inventory/batches/:batchId`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const batchId = parseInt(req.params.batchId);
+      
+      if (isNaN(batchId)) {
+        return res.status(400).json({
+          message: 'Invalid batch ID'
+        });
+      }
+      
+      // Get the current batch to retrieve its inventory ID
+      const currentBatch = await storage.getInventoryBatchById(batchId);
+      if (!currentBatch) {
+        return res.status(404).json({
+          message: 'Batch not found'
+        });
+      }
+      
+      // Delete the batch
+      await storage.deleteInventoryBatch(batchId);
+      
+      // Update inventory total quantity
+      await storage.updateInventoryTotalQuantity(currentBatch.inventoryId);
+      
+      return res.status(200).json({
+        message: 'Batch deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting batch:', error);
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Failed to delete batch'
+      });
+    }
+  });
 
   const httpServer = createServer(app);
 
