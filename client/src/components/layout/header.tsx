@@ -8,13 +8,13 @@ import { getInitials } from '@/lib/utils';
 import { 
   Menu, 
   Search, 
-  Bell, 
-  MessageSquare, 
   LogOut, 
   User as UserIcon,
   Store,
   Settings
 } from 'lucide-react';
+import { MessagePopover } from '@/components/ui/message-popover';
+import { NotificationPopover } from '@/components/ui/notification-popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,19 +76,11 @@ export function Header({ user, onMenuClick, isSidebarOpen }: HeaderProps) {
         <div className="flex items-center">
           {/* AI Assistant Button */}
           {user.role !== 'cashier' && (
-            <Button variant="ghost" size="icon" className="relative mr-4 text-neutral-500 hover:text-primary">
-              <span className="absolute top-0 right-0 w-2 h-2 bg-accent rounded-full"></span>
-              <Link href="/dashboard">
-                <MessageSquare className="h-6 w-6" />
-              </Link>
-            </Button>
+            <MessagePopover />
           )}
           
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative mr-4 text-neutral-500 hover:text-primary">
-            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-            <Bell className="h-6 w-6" />
-          </Button>
+          <NotificationPopover />
 
           {/* User Menu */}
           <DropdownMenu>

@@ -2034,6 +2034,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ----------- Notifications Routes -----------
+  
+  app.get(`${apiPrefix}/notifications`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { limit = 20, offset = 0, includeRead = false } = req.query;
+      
+      const notifications = await storage.getUserNotifications(
+        userId, 
+        Number(limit), 
+        Number(offset), 
+        includeRead === 'true'
+      );
+      
+      return res.status(200).json({ notifications });
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.get(`${apiPrefix}/notifications/count`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const count = await storage.getUnreadNotificationCount(userId);
+      
+      return res.status(200).json({ count });
+    } catch (error) {
+      console.error("Error counting notifications:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.patch(`${apiPrefix}/notifications/:id/read`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const notificationId = Number(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      await storage.markNotificationAsRead(notificationId);
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post(`${apiPrefix}/notifications/mark-all-read`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      await storage.markAllNotificationsAsRead(userId);
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   // ----------- AI Assistant Routes -----------
   
   app.post(`${apiPrefix}/ai/chat`, isAuthenticated, async (req, res) => {

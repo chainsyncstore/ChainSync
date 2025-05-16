@@ -1532,6 +1532,135 @@ export const storage = {
     }
   },
   
+  // --------- Notifications ---------
+  async createNotification(notificationData: schema.NotificationInsert) {
+    try {
+      const [notification] = await db.insert(schema.notifications)
+        .values(notificationData)
+        .returning();
+      return notification;
+    } catch (error) {
+      console.error("Error creating notification:", error);
+      throw error;
+    }
+  },
+  
+  async getUserNotifications(userId: number, limit = 20, offset = 0, includeRead = false) {
+    try {
+      let query = db.select()
+        .from(schema.notifications)
+        .where(eq(schema.notifications.userId, userId));
+        
+      if (!includeRead) {
+        query = query.where(eq(schema.notifications.isRead, false));
+      }
+      
+      return await query
+        .orderBy(desc(schema.notifications.createdAt))
+        .limit(limit)
+        .offset(offset);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      return [];
+    }
+  },
+  
+  async getUnreadNotificationCount(userId: number) {
+    try {
+      const result = await db.select({ count: count() })
+        .from(schema.notifications)
+        .where(and(
+          eq(schema.notifications.userId, userId),
+          eq(schema.notifications.isRead, false)
+        ));
+      
+      return result[0]?.count || 0;
+    } catch (error) {
+      console.error("Error counting unread notifications:", error);
+      return 0;
+    }
+  },
+  
+  async markNotificationAsRead(notificationId: number) {
+    try {
+      await db.update(schema.notifications)
+        .set({
+          isRead: true,
+          readAt: new Date()
+        })
+        .where(eq(schema.notifications.id, notificationId));
+      
+      return true;
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      return false;
+    }
+  },
+  
+  async markAllNotificationsAsRead(userId: number) {
+    try {
+      await db.update(schema.notifications)
+        .set({
+          isRead: true,
+          readAt: new Date()
+        })
+        .where(and(
+          eq(schema.notifications.userId, userId),
+          eq(schema.notifications.isRead, false)
+        ));
+      
+      return true;
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      return false;
+    }
+  },
+  
+  async createSystemNotifications(type: string, title: string, message: string, storeId?: number) {
+    try {
+      // Find users to notify based on role and storeId
+      let usersQuery = db.select({ id: schema.users.id })
+        .from(schema.users)
+        .where(
+          or(
+            eq(schema.users.role, "admin"),
+            eq(schema.users.role, "manager")
+          )
+        );
+      
+      // If storeId is provided, include store-specific users
+      if (storeId) {
+        usersQuery = usersQuery.where(
+          or(
+            eq(schema.users.storeId, storeId),
+            isNull(schema.users.storeId) // Admin users don't have a specific store
+          )
+        );
+      }
+      
+      const users = await usersQuery;
+      
+      // Create notifications for each user
+      const notifications = users.map(user => ({
+        userId: user.id,
+        storeId,
+        title,
+        message,
+        type,
+        isRead: false,
+      }));
+      
+      if (notifications.length > 0) {
+        await db.insert(schema.notifications).values(notifications);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error creating system notifications:", error);
+      return false;
+    }
+  },
+  
   // --------- Analytics for AI ---------
   async getStoreSalesComparison(days: number = 7) {
     const startDate = new Date();
