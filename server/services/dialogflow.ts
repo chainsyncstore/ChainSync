@@ -17,16 +17,11 @@ let dialogflowInitialized = false;
 try {
   // Only initialize if the environment variables are properly set
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.DIALOGFLOW_PROJECT_ID) {
-    // Check if the credentials file exists
-    const fs = require('fs');
-    if (fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
-      sessionClient = new SessionsClient();
-      dialogflowInitialized = true;
-      console.log("Dialogflow client initialized successfully");
-    } else {
-      console.error(`GOOGLE_APPLICATION_CREDENTIALS file not found at path: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
-      console.log("Dialogflow client will use mock responses");
-    }
+    // We don't need to check if the file exists, as SessionsClient will do that for us
+    // and throw an appropriate error if it can't find the credentials
+    sessionClient = new SessionsClient();
+    dialogflowInitialized = true;
+    console.log("Dialogflow client initialized successfully");
   } else {
     if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       console.log("GOOGLE_APPLICATION_CREDENTIALS not found. Dialogflow client will use mock responses.");

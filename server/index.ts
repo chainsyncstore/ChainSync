@@ -44,6 +44,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Verify Dialogflow configuration on startup
+  const dialogflowConfigured = verifyDialogflowConfig();
+  if (dialogflowConfigured) {
+    log("Dialogflow configuration verified successfully");
+  } else {
+    log("Warning: Dialogflow not properly configured, will use fallback responses");
+  }
+  
   // Use secure server configuration instead of plain HTTP server
   const server = await registerRoutes(app);
 
