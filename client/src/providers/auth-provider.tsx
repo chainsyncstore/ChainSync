@@ -12,6 +12,7 @@ export interface User {
   username: string;
   fullName: string;
   email: string;
+  phone?: string;
   role: 'admin' | 'manager' | 'cashier' | 'affiliate';
   storeId?: number;
   lastLogin?: Date;
