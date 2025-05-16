@@ -256,6 +256,10 @@ export const transactions = pgTable("transactions", {
   rewardId: integer("reward_id").references(() => loyaltyRewards.id),
   paymentMethod: text("payment_method").notNull(), // cash, credit_card, debit_card, etc.
   status: text("status").notNull().default("completed"), // completed, pending, voided
+  paymentStatus: text("payment_status").default("pending"), // pending, paid, failed
+  referenceId: text("reference_id").unique(), // Payment gateway reference ID
+  paymentProcessor: text("payment_processor"), // paystack, flutterwave
+  paymentConfirmedAt: timestamp("payment_confirmed_at"),
   isOfflineTransaction: boolean("is_offline_transaction").notNull().default(false),
   syncedAt: timestamp("synced_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

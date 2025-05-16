@@ -2598,49 +2598,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Payment Webhooks for Paystack and Flutterwave
-  app.post(`${apiPrefix}/webhooks/paystack`, async (req, res) => {
+  // These routes are public and do not require authentication
+  import * as webhookService from './services/webhook';
+  
+  app.post(`${apiPrefix}/webhooks/paystack`, express.raw({ type: 'application/json' }), async (req, res) => {
     try {
       const signature = req.headers['x-paystack-signature'] as string;
-      const payload = JSON.stringify(req.body);
+      // Since we're using express.raw, req.body is a Buffer
+      const payload = req.body.toString();
       
       if (!signature) {
         return res.status(400).json({ message: "Missing signature header" });
       }
       
       // Process webhook
-      const success = await webhookService.handlePaystackWebhook(signature, payload);
+      const result = await webhookService.handlePaystackWebhook(signature, payload);
       
-      if (success) {
-        return res.status(200).json({ message: "Webhook processed successfully" });
-      } else {
-        return res.status(400).json({ message: "Failed to process webhook" });
-      }
+      // Always return 200 OK to prevent payment gateway retries, even if we couldn't process it
+      // This is a common practice with webhook handlers to avoid unnecessary retries
+      return res.status(200).json({ 
+        success: result.success, 
+        message: result.message,
+        reference: result.reference,
+        orderId: result.orderId
+      });
     } catch (error) {
       console.error("Paystack webhook error:", error);
-      return res.status(500).json({ message: "Internal server error" });
+      // Still return 200 OK to prevent retries
+      return res.status(200).json({ 
+        success: false, 
+        message: "Error processing webhook" 
+      });
     }
   });
   
-  app.post(`${apiPrefix}/webhooks/flutterwave`, async (req, res) => {
+  app.post(`${apiPrefix}/webhooks/flutterwave`, express.raw({ type: 'application/json' }), async (req, res) => {
     try {
       const signature = req.headers['verif-hash'] as string;
-      const payload = JSON.stringify(req.body);
+      // Since we're using express.raw, req.body is a Buffer
+      const payload = req.body.toString();
       
       if (!signature) {
         return res.status(400).json({ message: "Missing signature header" });
       }
       
       // Process webhook
-      const success = await webhookService.handleFlutterwaveWebhook(signature, payload);
+      const result = await webhookService.handleFlutterwaveWebhook(signature, payload);
       
-      if (success) {
-        return res.status(200).json({ message: "Webhook processed successfully" });
-      } else {
-        return res.status(400).json({ message: "Failed to process webhook" });
-      }
+      // Always return 200 OK to prevent payment gateway retries
+      return res.status(200).json({ 
+        success: result.success, 
+        message: result.message,
+        reference: result.reference,
+        orderId: result.orderId
+      });
     } catch (error) {
       console.error("Flutterwave webhook error:", error);
-      return res.status(500).json({ message: "Internal server error" });
+      // Still return 200 OK to prevent retries
+      return res.status(200).json({ 
+        success: false, 
+        message: "Error processing webhook" 
+      });
     }
   });
   
