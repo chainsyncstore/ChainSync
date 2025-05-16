@@ -736,7 +736,9 @@ export default function ImportPage() {
                         </div>
                         <div className="text-left">
                           <div className="text-sm text-muted-foreground">Store</div>
-                          <div className="font-medium">Store #{selectedStore}</div>
+                          <div className="font-medium">
+                            {stores?.find(store => store.id === parseInt(selectedStore))?.name || `Store #${selectedStore}`}
+                          </div>
                         </div>
                         <div className="text-left">
                           <div className="text-sm text-muted-foreground">Total Rows</div>
@@ -746,6 +748,14 @@ export default function ImportPage() {
                           <div className="text-sm text-muted-foreground">Imported Rows</div>
                           <div className="font-medium">{importResult.importedRows}</div>
                         </div>
+                        {importResult.lastUpdated && (
+                        <div className="text-left col-span-2">
+                          <div className="text-sm text-muted-foreground">Last Updated</div>
+                          <div className="font-medium">
+                            {new Date(importResult.lastUpdated).toLocaleString()}
+                          </div>
+                        </div>
+                        )}
                       </div>
                     </div>
                     
