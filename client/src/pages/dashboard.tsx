@@ -2,7 +2,6 @@ import React from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { QuickStats } from '@/components/dashboard/quick-stats';
 import { StorePerformance } from '@/components/dashboard/store-performance';
-import { AiAssistant } from '@/components/dashboard/ai-assistant';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { LowStockAlerts } from '@/components/inventory/low-stock-alerts';
 import { useAuth } from '@/providers/auth-provider';
@@ -46,11 +45,6 @@ export default function DashboardPage() {
         {/* Store Performance - hidden on mobile, visible on desktop */}
         <div className="hidden md:block col-span-12 lg:col-span-8">
           <StorePerformance />
-        </div>
-
-        {/* AI Assistant Panel - full width on mobile, partial on desktop */}
-        <div className="col-span-12 lg:col-span-4 md:col-span-4">
-          <AiAssistant />
         </div>
         
         {/* Low Stock Alerts */}

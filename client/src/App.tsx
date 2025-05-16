@@ -23,6 +23,7 @@ import LoyaltyPage from "@/pages/loyalty";
 import ImportPage from "@/pages/import";
 import ProductImportPage from "@/pages/product-import";
 import AddProductPage from "@/pages/add-product";
+import AssistantPage from "@/pages/assistant";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
@@ -177,6 +178,14 @@ function AddProductRoute() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
       <ProtectedRoute component={AddProductPage} isManagerOrAdmin={true} />
+    </Suspense>
+  );
+}
+
+function AssistantRoute() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <ProtectedRoute component={AssistantPage} />
     </Suspense>
   );
 }

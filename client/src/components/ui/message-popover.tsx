@@ -85,7 +85,7 @@ export function MessagePopover() {
           <div className="flex items-center justify-between border-b p-3">
             <h3 className="font-medium">AI Assistant</h3>
             <div className="flex space-x-2">
-              <Link href="/dashboard">
+              <Link href="/assistant">
                 <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground">
                   Full View <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
