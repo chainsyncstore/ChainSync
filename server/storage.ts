@@ -689,27 +689,54 @@ export const storage = {
   },
 
   async getLowStockItems(storeId?: number) {
-    const query = storeId 
-      ? and(
-          lte(schema.inventory.quantity, schema.inventory.minimumLevel),
-          eq(schema.inventory.storeId, storeId)
-        )
-      : lte(schema.inventory.quantity, schema.inventory.minimumLevel);
+    try {
+      // Use a simpler query approach to avoid SQL generation issues
+      let queryBuilder = db.select().from(schema.inventory);
     
-    return await db.query.inventory.findMany({
-      where: query,
-      with: {
+      // Include relations
+      queryBuilder = queryBuilder
+        .innerJoin(schema.products, eq(schema.inventory.productId, schema.products.id))
+        .innerJoin(schema.stores, eq(schema.inventory.storeId, schema.stores.id))
+        .innerJoin(schema.categories, eq(schema.products.categoryId, schema.categories.id));
+      
+      // Apply condition for low stock
+      queryBuilder = queryBuilder.where(lte(schema.inventory.quantity, schema.inventory.minimumLevel));
+      
+      // Filter by store if specified
+      if (storeId) {
+        queryBuilder = queryBuilder.where(eq(schema.inventory.storeId, storeId));
+      }
+      
+      // Order by quantity ascending (lowest first)
+      queryBuilder = queryBuilder.orderBy(asc(schema.inventory.quantity));
+      
+      const results = await queryBuilder;
+      
+      // Transform results to match the expected format
+      return results.map(row => ({
+        id: row.inventory.id,
+        storeId: row.inventory.storeId,
+        productId: row.inventory.productId,
+        quantity: row.inventory.quantity,
+        minimumLevel: row.inventory.minimumLevel,
         product: {
-          with: {
-            category: true
+          id: row.products.id,
+          name: row.products.name,
+          barcode: row.products.barcode || '',
+          category: {
+            id: row.categories.id,
+            name: row.categories.name
           }
         },
-        store: true
-      },
-      orderBy: [
-        schema.inventory.quantity
-      ]
-    });
+        store: {
+          id: row.stores.id,
+          name: row.stores.name
+        }
+      }));
+    } catch (error) {
+      console.error("Error in getLowStockItems:", error);
+      return [];
+    }
   },
 
   async getLowStockCount(storeId?: number) {
