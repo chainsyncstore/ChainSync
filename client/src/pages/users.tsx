@@ -136,12 +136,23 @@ export default function UsersPage() {
     createUserMutation.mutate(data);
   };
   
+  // Define user type interface for better TypeScript support
+  interface UserType {
+    id: number;
+    username: string;
+    fullName: string;
+    email: string;
+    role: string;
+    store?: { name: string };
+    lastLogin?: string;
+  }
+  
   // Filter users based on search term
-  const filteredUsers = users?.filter((user: any) => 
+  const filteredUsers = users ? (users as UserType[]).filter((user) => 
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
   
   return (
     <AppShell>
@@ -162,7 +173,7 @@ export default function UsersPage() {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
                 <DialogDescription>
@@ -400,7 +411,7 @@ export default function UsersPage() {
         </CardContent>
         <CardFooter className="flex justify-between items-center border-t p-4">
           <div className="text-sm text-muted-foreground">
-            Showing {filteredUsers?.length || 0} of {users?.length || 0} users
+            Showing {filteredUsers.length || 0} of {users ? users.length : 0} users
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" size="sm" disabled>
