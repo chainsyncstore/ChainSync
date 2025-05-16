@@ -139,7 +139,6 @@ export default function SettingsPage() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
         
         {/* Profile Settings */}
@@ -607,44 +606,8 @@ export default function SettingsPage() {
                 </div>
               </div>
               
-              <Separator />
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Density</h3>
-                
-                <div className="flex flex-col space-y-2">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input type="radio" name="density" className="form-radio" defaultChecked />
-                    <span>Comfortable (Default)</span>
-                  </label>
-                  
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input type="radio" name="density" className="form-radio" />
-                    <span>Compact</span>
-                  </label>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Font Size</h3>
-                
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm">A</span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="3"
-                    defaultValue="2"
-                    className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <span className="text-lg">A</span>
-                </div>
-              </div>
-              
               <div className="pt-4">
-                <Button>Save Appearance</Button>
+                <Button>Save Preferences</Button>
               </div>
             </CardContent>
           </Card>
