@@ -1,6 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/providers/auth-provider";
+import { AppShell } from "@/components/layout/app-shell";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import SalesTrends from "@/components/analytics/sales-trends";
 import StoreComparison from "@/components/analytics/store-comparison";
 
@@ -9,9 +13,18 @@ export default function AnalyticsPage() {
   const isAdmin = user?.role === "admin";
   
   return (
-    <main className="flex-1 p-6 overflow-y-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+    <AppShell>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-800">Analytics Dashboard</h1>
+          <p className="text-neutral-500 mt-1">View and analyze store performance metrics</p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/dashboard">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </Button>
       </div>
       
       <Tabs defaultValue="sales" className="mb-6">
@@ -60,6 +73,6 @@ export default function AnalyticsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </main>
+    </AppShell>
   );
 }
