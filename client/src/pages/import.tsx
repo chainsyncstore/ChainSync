@@ -11,10 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { Loader2, FileUp, FileWarning, FileCheck, FileX, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ColumnMapping {
   source: string;
@@ -41,6 +42,13 @@ interface MissingField {
   isRequired: boolean;
 }
 
+interface Store {
+  id: number;
+  name: string;
+  address: string;
+  isActive: boolean;
+}
+
 interface ImportResult {
   success: boolean;
   totalRows: number;
@@ -48,6 +56,7 @@ interface ImportResult {
   errors: ImportError[];
   mappedData: any[];
   missingFields: MissingField[];
+  lastUpdated?: Date;
 }
 
 export default function ImportPage() {
@@ -71,6 +80,12 @@ export default function ImportPage() {
   const [importResult, setImportResult] = useState<any | null>(null);
   const [currentStep, setCurrentStep] = useState<'upload' | 'mapping' | 'validation' | 'import' | 'complete'>('upload');
   const [selectedStore, setSelectedStore] = useState<string>('');
+  
+  // Fetch available stores
+  const { data: stores, isLoading: isLoadingStores } = useQuery<Store[]>({
+    queryKey: ['/api/stores'],
+    enabled: user?.role === 'admin' || currentStep === 'import', // Only fetch for admins or when needed
+  });
   
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
