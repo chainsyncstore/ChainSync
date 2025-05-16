@@ -1287,5 +1287,164 @@ export const storage = {
       reasonsBreakdown,
       restockedBreakdown
     };
+  },
+  
+  // Sales Trend Analysis
+  async getSalesTrends(storeId?: number, startDate?: Date, endDate?: Date, groupBy: 'day' | 'week' | 'month' = 'day') {
+    // Base query conditions
+    let whereClause = sql`1=1`;
+    
+    if (storeId) {
+      whereClause = and(whereClause, eq(schema.transactions.storeId, storeId));
+    }
+    
+    if (startDate) {
+      whereClause = and(whereClause, gte(schema.transactions.createdAt, startDate));
+    }
+    
+    if (endDate) {
+      whereClause = and(whereClause, lte(schema.transactions.createdAt, endDate));
+    }
+    
+    // Define the date format expression based on groupBy
+    let dateGroupExpr;
+    
+    switch (groupBy) {
+      case 'day':
+        // Format: YYYY-MM-DD
+        dateGroupExpr = sql`TO_CHAR(${schema.transactions.createdAt}, 'YYYY-MM-DD')`;
+        break;
+      case 'week':
+        // Format: YYYY-WW (year and week number)
+        dateGroupExpr = sql`TO_CHAR(${schema.transactions.createdAt}, 'YYYY-IW')`;
+        break;
+      case 'month':
+        // Format: YYYY-MM (year and month)
+        dateGroupExpr = sql`TO_CHAR(${schema.transactions.createdAt}, 'YYYY-MM')`;
+        break;
+      default:
+        dateGroupExpr = sql`TO_CHAR(${schema.transactions.createdAt}, 'YYYY-MM-DD')`;
+    }
+    
+    // Get sales by date group
+    const salesByDateGroup = await db.select({
+      dateGroup: dateGroupExpr,
+      totalSales: sql`SUM(${schema.transactions.total})`,
+      transactionCount: count(),
+      averageTransaction: sql`AVG(${schema.transactions.total})`,
+    })
+    .from(schema.transactions)
+    .where(whereClause)
+    .groupBy(dateGroupExpr)
+    .orderBy(dateGroupExpr);
+    
+    // If storeId is not specified, also get per-store breakdown
+    let storeBreakdown = [];
+    
+    if (!storeId) {
+      storeBreakdown = await db.select({
+        storeId: schema.transactions.storeId,
+        storeName: schema.stores.name,
+        totalSales: sql`SUM(${schema.transactions.total})`,
+        transactionCount: count(),
+        averageTransaction: sql`AVG(${schema.transactions.total})`,
+      })
+      .from(schema.transactions)
+      .leftJoin(schema.stores, eq(schema.transactions.storeId, schema.stores.id))
+      .where(whereClause)
+      .groupBy(schema.transactions.storeId, schema.stores.name)
+      .orderBy(desc(sql`SUM(${schema.transactions.total})`));
+    }
+    
+    // Get overall totals
+    const totals = await db.select({
+      totalSales: sql`SUM(${schema.transactions.total})`,
+      transactionCount: count(),
+      averageTransaction: sql`AVG(${schema.transactions.total})`,
+    })
+    .from(schema.transactions)
+    .where(whereClause);
+    
+    // Get payment method breakdown
+    const paymentMethodBreakdown = await db.select({
+      paymentMethodId: schema.transactions.paymentMethodId,
+      paymentMethodName: schema.paymentMethods.name,
+      total: sql`SUM(${schema.transactions.total})`,
+      count: count(),
+    })
+    .from(schema.transactions)
+    .leftJoin(schema.paymentMethods, eq(schema.transactions.paymentMethodId, schema.paymentMethods.id))
+    .where(whereClause)
+    .groupBy(schema.transactions.paymentMethodId, schema.paymentMethods.name)
+    .orderBy(desc(sql`SUM(${schema.transactions.total})`));
+    
+    // Process results for trend analysis
+    const trendData = salesByDateGroup.map(item => ({
+      dateGroup: item.dateGroup,
+      totalSales: parseFloat(item.totalSales as string),
+      transactionCount: Number(item.transactionCount),
+      averageTransaction: parseFloat(item.averageTransaction as string),
+    }));
+    
+    // Return compiled analytics
+    return {
+      trendData,
+      storeBreakdown: storeBreakdown.map(store => ({
+        storeId: store.storeId,
+        storeName: store.storeName,
+        totalSales: parseFloat(store.totalSales as string),
+        transactionCount: Number(store.transactionCount),
+        averageTransaction: parseFloat(store.averageTransaction as string),
+      })),
+      totals: {
+        totalSales: parseFloat(totals[0]?.totalSales as string) || 0,
+        transactionCount: Number(totals[0]?.transactionCount) || 0,
+        averageTransaction: parseFloat(totals[0]?.averageTransaction as string) || 0,
+      },
+      paymentMethodBreakdown: paymentMethodBreakdown.map(method => ({
+        paymentMethodId: method.paymentMethodId,
+        paymentMethodName: method.paymentMethodName || 'Unknown',
+        total: parseFloat(method.total as string),
+        count: Number(method.count),
+      })),
+    };
+  },
+  
+  // Get recent transactions for dashboard
+  async getRecentTransactions(storeId?: number, limit: number = 5) {
+    let query = db.query.transactions.findMany({
+      orderBy: [desc(schema.transactions.createdAt)],
+      limit,
+      with: {
+        cashier: true,
+        store: true,
+        items: {
+          with: {
+            product: true
+          }
+        },
+        paymentMethod: true
+      }
+    });
+    
+    if (storeId) {
+      query = db.query.transactions.findMany({
+        where: eq(schema.transactions.storeId, storeId),
+        orderBy: [desc(schema.transactions.createdAt)],
+        limit,
+        with: {
+          cashier: true,
+          store: true,
+          items: {
+            with: {
+              product: true
+            }
+          },
+          paymentMethod: true
+        }
+      });
+    }
+    
+    return await query;
   }
 };
