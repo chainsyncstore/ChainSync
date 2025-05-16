@@ -1,4 +1,4 @@
-import { db } from "@db";
+import { db, pool } from "@db";
 import * as schema from "@shared/schema";
 import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL, inArray, asc } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
@@ -690,27 +690,38 @@ export const storage = {
 
   async getLowStockItems(storeId?: number) {
     try {
-      // Use a simpler query approach to avoid SQL generation issues
-      let queryBuilder = db.select().from(schema.inventory);
-    
-      // Include relations
-      queryBuilder = queryBuilder
-        .innerJoin(schema.products, eq(schema.inventory.productId, schema.products.id))
-        .innerJoin(schema.stores, eq(schema.inventory.storeId, schema.stores.id))
-        .innerJoin(schema.categories, eq(schema.products.categoryId, schema.categories.id));
+      // Query inventory items where quantity is below the minimum level
+      let query = db
+        .select({
+          inventory: schema.inventory,
+          product: schema.products,
+          store: schema.stores,
+          category: schema.categories
+        })
+        .from(schema.inventory)
+        .innerJoin(
+          schema.products, 
+          eq(schema.inventory.productId, schema.products.id)
+        )
+        .innerJoin(
+          schema.stores,
+          eq(schema.inventory.storeId, schema.stores.id)
+        )
+        .innerJoin(
+          schema.categories,
+          eq(schema.products.categoryId, schema.categories.id)
+        )
+        .where(
+          lte(schema.inventory.quantity, schema.inventory.minimumLevel)
+        )
+        .orderBy(asc(schema.inventory.quantity));
       
-      // Apply condition for low stock
-      queryBuilder = queryBuilder.where(lte(schema.inventory.quantity, schema.inventory.minimumLevel));
-      
-      // Filter by store if specified
+      // Apply store filter if specified
       if (storeId) {
-        queryBuilder = queryBuilder.where(eq(schema.inventory.storeId, storeId));
+        query = query.where(eq(schema.inventory.storeId, storeId));
       }
       
-      // Order by quantity ascending (lowest first)
-      queryBuilder = queryBuilder.orderBy(asc(schema.inventory.quantity));
-      
-      const results = await queryBuilder;
+      const results = await query;
       
       // Transform results to match the expected format
       return results.map(row => ({
@@ -720,17 +731,17 @@ export const storage = {
         quantity: row.inventory.quantity,
         minimumLevel: row.inventory.minimumLevel,
         product: {
-          id: row.products.id,
-          name: row.products.name,
-          barcode: row.products.barcode || '',
+          id: row.product.id,
+          name: row.product.name,
+          barcode: row.product.barcode || '',
           category: {
-            id: row.categories.id,
-            name: row.categories.name
+            id: row.category.id,
+            name: row.category.name
           }
         },
         store: {
-          id: row.stores.id,
-          name: row.stores.name
+          id: row.store.id,
+          name: row.store.name
         }
       }));
     } catch (error) {
@@ -740,19 +751,24 @@ export const storage = {
   },
 
   async getLowStockCount(storeId?: number) {
-    const query = storeId 
-      ? and(
-          lte(schema.inventory.quantity, schema.inventory.minimumLevel),
-          eq(schema.inventory.storeId, storeId)
-        )
-      : lte(schema.inventory.quantity, schema.inventory.minimumLevel);
-    
-    const result = await db
-      .select({ count: count() })
-      .from(schema.inventory)
-      .where(query);
-    
-    return result[0]?.count || 0;
+    try {
+      // Build query to count low stock items
+      let queryBuilder = db
+        .select({ count: count() })
+        .from(schema.inventory)
+        .where(lte(schema.inventory.quantity, schema.inventory.minimumLevel));
+      
+      // Apply store filter if provided
+      if (storeId) {
+        queryBuilder = queryBuilder.where(eq(schema.inventory.storeId, storeId));
+      }
+      
+      const result = await queryBuilder;
+      return result[0]?.count || 0;
+    } catch (error) {
+      console.error("Error in getLowStockCount:", error);
+      return 0;
+    }
   },
 
   async getStoreProductInventory(storeId: number, productId: number) {
