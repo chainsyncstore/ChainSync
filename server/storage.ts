@@ -5,6 +5,85 @@ import * as bcrypt from "bcrypt";
 import crypto from "crypto";
 
 export const storage = {
+  // --------- Cashier Sessions ---------
+  async createCashierSession(data: schema.CashierSessionInsert) {
+    const [session] = await db.insert(schema.cashierSessions).values(data).returning();
+    return session;
+  },
+  
+  async getCashierSessionById(sessionId: number) {
+    return await db.query.cashierSessions.findFirst({
+      where: eq(schema.cashierSessions.id, sessionId),
+      with: {
+        user: true,
+        store: true
+      }
+    });
+  },
+  
+  async getActiveCashierSession(userId: number) {
+    return await db.query.cashierSessions.findFirst({
+      where: and(
+        eq(schema.cashierSessions.userId, userId),
+        eq(schema.cashierSessions.status, "active")
+      ),
+      with: {
+        user: true,
+        store: true
+      }
+    });
+  },
+  
+  async updateCashierSession(sessionId: number, data: Partial<schema.CashierSessionInsert>) {
+    const [updated] = await db.update(schema.cashierSessions)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.cashierSessions.id, sessionId))
+      .returning();
+    return updated;
+  },
+  
+  async getCashierSessionHistory(userId: number, page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+    
+    const sessions = await db.query.cashierSessions.findMany({
+      where: eq(schema.cashierSessions.userId, userId),
+      orderBy: [desc(schema.cashierSessions.startTime)],
+      limit,
+      offset,
+      with: {
+        store: true
+      }
+    });
+    
+    const totalCount = await db.select({ count: count() })
+      .from(schema.cashierSessions)
+      .where(eq(schema.cashierSessions.userId, userId));
+    
+    return {
+      sessions,
+      pagination: {
+        total: totalCount[0].count,
+        page,
+        limit,
+        pages: Math.ceil(totalCount[0].count / limit)
+      }
+    };
+  },
+  
+  async updateSessionStats(sessionId: number, amount: number) {
+    const session = await this.getCashierSessionById(sessionId);
+    if (!session) return null;
+    
+    const newTotalSales = parseFloat(session.totalSales.toString()) + amount;
+    
+    return await this.updateCashierSession(sessionId, {
+      transactionCount: session.transactionCount + 1,
+      totalSales: newTotalSales.toFixed(2)
+    });
+  },
   // --------- Loyalty Program ---------
   async getLoyaltyMemberById(memberId: number) {
     return await db.query.loyaltyMembers.findFirst({

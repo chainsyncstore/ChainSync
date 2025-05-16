@@ -1333,6 +1333,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ----------- POS Routes -----------
   
+  // ----------- Cashier Session Management -----------
+  
+  // Start a cashier session
+  app.post(`${apiPrefix}/pos/cashier-sessions/start`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { storeId, notes } = req.body;
+      
+      // Validate input
+      if (!storeId) {
+        return res.status(400).json({ message: "Store ID is required" });
+      }
+      
+      // Check if user already has an active session
+      const activeSession = await storage.getActiveCashierSession(userId);
+      if (activeSession) {
+        return res.status(400).json({ 
+          message: "You already have an active session", 
+          session: activeSession 
+        });
+      }
+      
+      // Create new session
+      const session = await storage.createCashierSession({
+        userId,
+        storeId,
+        notes: notes || null,
+        status: "active",
+        transactionCount: 0,
+        totalSales: "0.00"
+      });
+      
+      return res.status(201).json(session);
+    } catch (error) {
+      console.error("Error starting cashier session:", error);
+      return res.status(500).json({ message: "Failed to start cashier session" });
+    }
+  });
+  
+  // End a cashier session
+  app.post(`${apiPrefix}/pos/cashier-sessions/end`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { sessionId, notes } = req.body;
+      
+      // Validate input
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+      
+      // Get session
+      const session = await storage.getCashierSessionById(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Verify ownership
+      if (session.userId !== userId) {
+        return res.status(403).json({ message: "You don't have permission to end this session" });
+      }
+      
+      // Check if already ended
+      if (session.status === "closed") {
+        return res.status(400).json({ message: "This session is already closed" });
+      }
+      
+      // End session
+      const updatedSession = await storage.updateCashierSession(sessionId, {
+        endTime: new Date(),
+        status: "closed",
+        notes: notes ? (session.notes ? `${session.notes}\n${notes}` : notes) : session.notes
+      });
+      
+      return res.status(200).json(updatedSession);
+    } catch (error) {
+      console.error("Error ending cashier session:", error);
+      return res.status(500).json({ message: "Failed to end cashier session" });
+    }
+  });
+  
+  // Get active cashier session
+  app.get(`${apiPrefix}/pos/cashier-sessions/active`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const session = await storage.getActiveCashierSession(userId);
+      return res.status(200).json({ session });
+    } catch (error) {
+      console.error("Error getting active cashier session:", error);
+      return res.status(500).json({ message: "Failed to get active cashier session" });
+    }
+  });
+  
+  // Get cashier session by ID
+  app.get(`${apiPrefix}/pos/cashier-sessions/:id`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const sessionId = parseInt(req.params.id);
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+      
+      const session = await storage.getCashierSessionById(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Check if user is authorized (either own session or manager/admin)
+      const userRole = req.session.userRole;
+      if (session.userId !== userId && userRole !== "admin" && userRole !== "manager") {
+        return res.status(403).json({ message: "You don't have permission to view this session" });
+      }
+      
+      return res.status(200).json(session);
+    } catch (error) {
+      console.error("Error getting cashier session:", error);
+      return res.status(500).json({ message: "Failed to get cashier session" });
+    }
+  });
+  
+  // Get cashier session history
+  app.get(`${apiPrefix}/pos/cashier-sessions`, isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userRole = req.session.userRole;
+      let targetUserId = userId;
+      
+      // Managers and admins can view sessions for any user
+      if (userRole === "admin" || userRole === "manager") {
+        if (req.query.userId) {
+          targetUserId = parseInt(req.query.userId as string);
+          if (isNaN(targetUserId)) {
+            return res.status(400).json({ message: "Invalid user ID" });
+          }
+        }
+      }
+      
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const sessions = await storage.getCashierSessionHistory(targetUserId, page, limit);
+      
+      return res.status(200).json(sessions);
+    } catch (error) {
+      console.error("Error getting cashier session history:", error);
+      return res.status(500).json({ message: "Failed to get cashier session history" });
+    }
+  });
+  
   app.post(`${apiPrefix}/pos/transactions`, isAuthenticated, async (req, res) => {
     try {
       const { storeId, userId } = req.session;
@@ -1345,6 +1512,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "Transaction items are required" });
+      }
+      
+      // Check for active cashier session
+      const activeSession = await storage.getActiveCashierSession(userId);
+      if (!activeSession && !transactionData.isOfflineTransaction) {
+        return res.status(400).json({ 
+          message: "No active cashier session found. Please start a session before processing transactions." 
+        });
       }
       
       // Process loyalty ID if provided
@@ -1367,17 +1542,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         loyaltyMemberId
       });
       
-      // Validate each item
+      // Validate products in inventory before completing transaction
+      const validationErrors = [];
       const validatedItems = [];
+      
       for (const item of items) {
         const validatedItem = schema.transactionItemInsertSchema.parse(item);
+        
+        // Check if product exists and has sufficient inventory
+        const product = await storage.getProductById(item.productId);
+        if (!product) {
+          validationErrors.push(`Product with ID ${item.productId} not found`);
+          continue;
+        }
+        
+        // Check if product has a valid barcode
+        if (!product.barcode) {
+          validationErrors.push(`Product ${product.name} does not have a valid barcode`);
+          continue;
+        }
+        
+        // Check if product has a valid price
+        if (parseFloat(product.price.toString()) <= 0) {
+          validationErrors.push(`Product ${product.name} does not have a valid price`);
+          continue;
+        }
+        
+        // Check inventory levels
+        const inventory = await storage.getStoreProductInventory(storeId, item.productId);
+        if (!inventory) {
+          validationErrors.push(`Product ${product.name} is not in this store's inventory`);
+          continue;
+        }
+        
+        // Check if there's enough stock
+        if (inventory.quantity < item.quantity) {
+          validationErrors.push(`Insufficient stock for ${product.name}. Available: ${inventory.quantity}, Requested: ${item.quantity}`);
+          continue;
+        }
+        
         validatedItems.push(validatedItem);
       }
       
+      // If there are validation errors, return them
+      if (validationErrors.length > 0) {
+        return res.status(400).json({ 
+          message: "Product validation failed", 
+          errors: validationErrors 
+        });
+      }
+      
+      // Create the transaction
       const result = await storage.createTransaction(
         validatedTransaction,
         validatedItems
       );
+      
+      // Update cashier session stats if not an offline transaction
+      if (activeSession && !transactionData.isOfflineTransaction) {
+        await storage.updateSessionStats(
+          activeSession.id, 
+          parseFloat(validatedTransaction.total.toString())
+        );
+      }
       
       return res.status(201).json(result);
     } catch (error) {
