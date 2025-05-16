@@ -67,15 +67,15 @@ export async function getStorePerformanceComparison(
           quantity: sql`SUM(${schema.transactionItems.quantity})`,
           total: sql`SUM(${schema.transactionItems.subtotal})`,
         })
-      .from(schema.transactionItems)
-      .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))
-      .leftJoin(schema.transactions, eq(schema.transactionItems.transactionId, schema.transactions.id))
-      .where(
-        sql`${schema.transactions.storeId} = ${store.id} AND ${transactionWhereClause}`
-      )
-      .groupBy(schema.transactionItems.productId, schema.products.name)
-      .orderBy(desc(sql`SUM(${schema.transactionItems.quantity})`))
-      .limit(5);
+        .from(schema.transactionItems)
+        .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))
+        .leftJoin(schema.transactions, eq(schema.transactionItems.transactionId, schema.transactions.id))
+        .where(
+          sql`${schema.transactions.storeId} = ${store.id} AND ${transactionWhereClause}`
+        )
+        .groupBy(schema.transactionItems.productId, schema.products.name)
+        .orderBy(desc(sql`SUM(${schema.transactionItems.quantity})`))
+        .limit(5);
       
         return {
           storeId: store.id,

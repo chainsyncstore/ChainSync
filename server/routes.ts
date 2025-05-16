@@ -1054,6 +1054,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Store Performance Comparison API
+  app.get(`${apiPrefix}/analytics/store-performance`, isAuthenticated, async (req, res) => {
+    try {
+      const { storeId, userRole } = req.session;
+      
+      // Parse dates from query parameters
+      let startDate: Date | undefined;
+      let endDate: Date | undefined;
+      
+      if (req.query.startDate) {
+        startDate = new Date(req.query.startDate as string);
+      }
+      
+      if (req.query.endDate) {
+        endDate = new Date(req.query.endDate as string);
+        // Set end date to end of day for inclusive comparison
+        endDate.setHours(23, 59, 59, 999);
+      }
+      
+      // Get all stores
+      const stores = await storage.getAllStores();
+      
+      // For non-admin users, filter to only show their store
+      const filteredStores = userRole !== 'admin' && storeId 
+        ? stores.filter(store => store.id === storeId)
+        : stores;
+      
+      // Get store-level metrics with date filtering
+      const storePerformanceData = await Promise.all(
+        filteredStores.map(async (store) => {
+          try {
+            // Get transactions for this store within date range
+            const transactions = await storage.getStoreTransactions(
+              store.id,
+              startDate,
+              endDate,
+              1, // page
+              1000 // limit - using a high number to get all transactions in the date range
+            );
+            
+            // Calculate total revenue and other metrics
+            const totalRevenue = transactions.data.reduce(
+              (sum, t) => sum + parseFloat(t.total.toString()), 
+              0
+            );
+            
+            const transactionCount = transactions.data.length;
+            const averageTransaction = transactionCount > 0 
+              ? totalRevenue / transactionCount 
+              : 0;
+            
+            // Get top products for this store
+            const topProducts = await storage.getSalesTrends(
+              store.id,
+              startDate,
+              endDate
+            );
+            
+            return {
+              ...store,
+              metrics: {
+                totalRevenue,
+                averageTransaction,
+                transactionCount
+              },
+              topProducts: topProducts.slice(0, 5).map(p => ({
+                productId: p.productId,
+                productName: p.productName || 'Unknown Product',
+                quantity: parseInt(p.quantity?.toString() || '0'),
+                total: parseFloat(p.total?.toString() || '0')
+              }))
+            };
+          } catch (error) {
+            console.error(`Error processing store ${store.id}:`, error);
+            return {
+              ...store,
+              metrics: {
+                totalRevenue: 0,
+                averageTransaction: 0,
+                transactionCount: 0
+              },
+              topProducts: []
+            };
+          }
+        })
+      );
+      
+      // Calculate global metrics
+      const globalMetrics = {
+        totalRevenue: storePerformanceData.reduce(
+          (sum, store) => sum + store.metrics.totalRevenue, 
+          0
+        ),
+        transactionCount: storePerformanceData.reduce(
+          (sum, store) => sum + store.metrics.transactionCount, 
+          0
+        ),
+        averageTransaction: 0
+      };
+      
+      // Calculate global average transaction
+      if (globalMetrics.transactionCount > 0) {
+        globalMetrics.averageTransaction = 
+          globalMetrics.totalRevenue / globalMetrics.transactionCount;
+      }
+      
+      // Generate date range description
+      let dateRangeDescription = 'All time performance comparison';
+      
+      if (startDate && endDate) {
+        dateRangeDescription = `Performance from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+      } else if (startDate) {
+        dateRangeDescription = `Performance since ${startDate.toLocaleDateString()}`;
+      } else if (endDate) {
+        dateRangeDescription = `Performance until ${endDate.toLocaleDateString()}`;
+      }
+      
+      return res.status(200).json({
+        storePerformance: storePerformanceData,
+        globalMetrics,
+        dateRangeDescription
+      });
+    } catch (error) {
+      console.error('Store performance comparison error:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Sales Trend Analysis API
   app.get(`${apiPrefix}/analytics/sales-trends`, isAuthenticated, async (req, res) => {
     try {
