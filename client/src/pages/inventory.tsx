@@ -5,8 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { InventoryList } from '@/components/inventory/inventory-list';
 import { LowStockAlerts } from '@/components/inventory/low-stock-alerts';
+import { ExpiringItems } from '@/components/inventory/expiring-items';
+import { ExpiredItems } from '@/components/inventory/expired-items';
 import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
+import { PlusIcon, AlertCircle } from 'lucide-react';
 
 export default function InventoryPage() {
   const { user } = useAuth();
@@ -36,6 +38,7 @@ export default function InventoryPage() {
               <TabsTrigger value="all">All Inventory</TabsTrigger>
               <TabsTrigger value="low-stock">Low Stock</TabsTrigger>
               <TabsTrigger value="expiring">Expiring Soon</TabsTrigger>
+              <TabsTrigger value="expired">Expired Items</TabsTrigger>
               <TabsTrigger value="categories">By Category</TabsTrigger>
             </TabsList>
             
@@ -58,17 +61,11 @@ export default function InventoryPage() {
             </TabsContent>
             
             <TabsContent value="expiring" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Expiring Soon</CardTitle>
-                  <CardDescription>
-                    Perishable products that will expire within the next 7 days
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <InventoryList />
-                </CardContent>
-              </Card>
+              <ExpiringItems />
+            </TabsContent>
+            
+            <TabsContent value="expired" className="space-y-4">
+              <ExpiredItems />
             </TabsContent>
             
             <TabsContent value="categories" className="space-y-4">
@@ -90,6 +87,25 @@ export default function InventoryPage() {
         <div className="md:col-span-1">
           <div className="space-y-6">
             <LowStockAlerts />
+            
+            <Card className="border-orange-200 bg-orange-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-orange-800 text-sm">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Expiry Tracking
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-orange-700">
+                  <p className="mb-2">Products with expiration dates are monitored automatically.</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Items expiring within 30 days are highlighted</li>
+                    <li>Expired items are blocked at checkout</li>
+                    <li>Set expiry dates when adding inventory</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
             
             {user?.role !== 'cashier' && (
               <Card>

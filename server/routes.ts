@@ -1368,14 +1368,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/products/barcode/:barcode`, isAuthenticated, async (req, res) => {
     try {
       const { barcode } = req.params;
+      const { storeId } = req.session;
+      
+      if (!storeId) {
+        return res.status(400).json({ error: "Store ID is required in session" });
+      }
       
       const product = await storage.getProductByBarcode(barcode);
       
       if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+        return res.status(404).json({ error: "Product not found" });
       }
       
-      return res.status(200).json(product);
+      // Check if the product has expired inventory in the current store
+      const inventory = await storage.getStoreProductInventory(storeId, product.id);
+      
+      if (!inventory) {
+        return res.status(404).json({ error: "Product not found in current store inventory" });
+      }
+      
+      // Check if inventory has an expiry date and if it has expired
+      const today = new Date();
+      if (inventory.expiryDate && new Date(inventory.expiryDate) < today) {
+        return res.status(400).json({ 
+          error: "Product has expired and cannot be sold",
+          product: product,
+          isExpired: true,
+          expiryDate: inventory.expiryDate
+        });
+      }
+      
+      // Include inventory information in the response
+      return res.status(200).json({
+        product: product,
+        inventory: {
+          quantity: inventory.quantity,
+          expiryDate: inventory.expiryDate
+        }
+      });
     } catch (error) {
       console.error("Get product by barcode error:", error);
       return res.status(500).json({ message: "Internal server error" });
