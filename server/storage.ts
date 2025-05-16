@@ -1237,20 +1237,6 @@ export const storage = {
       throw error;
     }
   },
-          .values({
-            ...item,
-            transactionId: transaction.id,
-            quantity: saleQuantity,
-            subtotal: (itemUnitPrice * saleQuantity).toFixed(2),
-            batchId: batchSale.batchId,
-            batchNumber: batchSale.batchNumber,
-            expiryDate: batchSale.expiryDate
-          });
-      }
-    }
-    
-    // Process loyalty points if this is a loyalty member transaction
-    if (transaction.loyaltyMemberId) {
       try {
         // Get the loyalty member
         const loyaltyMember = await this.getLoyaltyMemberById(transaction.loyaltyMemberId);
