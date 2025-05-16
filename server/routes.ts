@@ -3437,6 +3437,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Batch inventory management routes
+  app.get(`${apiPrefix}/inventory/batches`, isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const storeId = parseInt(req.query.storeId as string);
+      const productId = parseInt(req.query.productId as string);
+      const includeExpired = req.query.includeExpired === 'true';
+      
+      if (isNaN(storeId) || isNaN(productId)) {
+        return res.status(400).json({
+          message: 'Invalid store ID or product ID'
+        });
+      }
+      
+      const batches = await storage.getInventoryBatchesByProduct(storeId, productId, includeExpired);
+      return res.json(batches);
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+      return res.status(500).json({
+        message: 'Failed to fetch batch inventory data'
+      });
+    }
+  });
+  
+  app.post(`${apiPrefix}/inventory/batches`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const { storeId, productId, batchNumber, quantity, expiryDate, manufacturingDate, costPerUnit } = req.body;
+      
+      if (!storeId || !productId || !batchNumber || quantity === undefined) {
+        return res.status(400).json({
+          message: 'Missing required fields: storeId, productId, batchNumber, and quantity are required'
+        });
+      }
+      
+      if (isNaN(parseInt(quantity)) || parseInt(quantity) <= 0) {
+        return res.status(400).json({
+          message: 'Quantity must be a positive number'
+        });
+      }
+      
+      const batchService = await import('./services/inventory-batch');
+      const newBatch = await batchService.addBatch({
+        storeId: parseInt(storeId),
+        productId: parseInt(productId),
+        batchNumber,
+        quantity: parseInt(quantity),
+        expiryDate,
+        manufacturingDate,
+        costPerUnit
+      });
+      
+      return res.status(201).json(newBatch);
+    } catch (error) {
+      console.error('Error adding batch:', error);
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Failed to add batch'
+      });
+    }
+  });
+  
+  app.post(`${apiPrefix}/inventory/batches/import`, isAuthenticated, isManagerOrAdmin, upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+      }
+      
+      const batchService = await import('./services/batch-inventory');
+      const validationResult = await batchService.validateBatchImportFile(req.file.path);
+      
+      if (!validationResult.valid) {
+        return res.status(400).json({
+          success: false,
+          message: 'File validation failed',
+          errors: validationResult.errors.map(e => `Row ${e.row}: ${e.errors.join(', ')}`)
+        });
+      }
+      
+      const importResult = await batchService.importBatchInventory(validationResult.data);
+      return res.json(importResult);
+    } catch (error) {
+      console.error('Error importing batch inventory:', error);
+      return res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to import batch inventory data'
+      });
+    }
+  });
+  
+  app.patch(`${apiPrefix}/inventory/batches/:batchId`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const batchId = parseInt(req.params.batchId);
+      
+      if (isNaN(batchId)) {
+        return res.status(400).json({
+          message: 'Invalid batch ID'
+        });
+      }
+      
+      const { quantity, expiryDate, costPerUnit } = req.body;
+      const updateData: Record<string, any> = {};
+      
+      if (quantity !== undefined) {
+        if (isNaN(parseInt(quantity)) || parseInt(quantity) < 0) {
+          return res.status(400).json({
+            message: 'Quantity must be a non-negative number'
+          });
+        }
+        updateData.quantity = parseInt(quantity);
+      }
+      
+      if (expiryDate !== undefined) {
+        updateData.expiryDate = expiryDate;
+      }
+      
+      if (costPerUnit !== undefined) {
+        updateData.costPerUnit = costPerUnit;
+      }
+      
+      const batchService = await import('./services/inventory-batch');
+      const updatedBatch = await batchService.updateBatch(batchId, updateData);
+      
+      return res.json(updatedBatch);
+    } catch (error) {
+      console.error('Error updating batch:', error);
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Failed to update batch'
+      });
+    }
+  });
+  
+  app.post(`${apiPrefix}/inventory/batches/:batchId/adjust`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const batchId = parseInt(req.params.batchId);
+      const { quantity, reason } = req.body;
+      
+      if (isNaN(batchId)) {
+        return res.status(400).json({
+          message: 'Invalid batch ID'
+        });
+      }
+      
+      if (quantity === undefined || isNaN(parseInt(quantity))) {
+        return res.status(400).json({
+          message: 'Quantity must be a number'
+        });
+      }
+      
+      const batchService = await import('./services/inventory-batch');
+      const updatedBatch = await batchService.adjustBatchStock({
+        batchId,
+        quantity: parseInt(quantity),
+        reason: reason || 'Manual adjustment'
+      });
+      
+      return res.json(updatedBatch);
+    } catch (error) {
+      console.error('Error adjusting batch stock:', error);
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : 'Failed to adjust batch stock'
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
