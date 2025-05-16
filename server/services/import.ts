@@ -38,6 +38,64 @@ export interface ColumnMapping {
   required: boolean;
 }
 
+// Define expected schema for each data type
+export const expectedSchemas = {
+  inventory: {
+    name: { required: true, type: 'string', description: 'Product name' },
+    barcode: { required: true, type: 'string', description: 'Product barcode or SKU' },
+    description: { required: false, type: 'string', description: 'Product description' },
+    price: { required: true, type: 'number', description: 'Product price' },
+    categoryId: { required: true, type: 'any', description: 'Category ID or name' },
+    quantity: { required: true, type: 'number', description: 'Current stock quantity' },
+    minStockLevel: { required: false, type: 'number', description: 'Minimum stock level for alerts' },
+    isPerishable: { required: false, type: 'boolean', description: 'Whether product is perishable' },
+    expiryDate: { required: false, type: 'date', description: 'Expiry date for perishable products' }
+  },
+  loyalty: {
+    loyaltyId: { required: true, type: 'string', description: 'Unique loyalty member ID' },
+    name: { required: true, type: 'string', description: 'Customer name' },
+    email: { required: false, type: 'string', description: 'Customer email address' },
+    phone: { required: false, type: 'string', description: 'Customer phone number' },
+    points: { required: false, type: 'number', description: 'Current loyalty points balance' },
+    enrollmentDate: { required: false, type: 'date', description: 'Date customer enrolled in program' }
+  }
+};
+
+// Validate a data value against expected type
+export function validateDataType(value: any, expectedType: string): boolean {
+  if (value === null || value === undefined) return false;
+  
+  switch (expectedType) {
+    case 'string':
+      return typeof value === 'string' && value.trim().length > 0;
+    case 'number':
+      if (typeof value === 'number') return !isNaN(value);
+      if (typeof value === 'string') {
+        const num = parseFloat(value);
+        return !isNaN(num);
+      }
+      return false;
+    case 'boolean':
+      if (typeof value === 'boolean') return true;
+      if (typeof value === 'string') {
+        const lowered = value.toLowerCase();
+        return ['true', 'false', 'yes', 'no', '1', '0'].includes(lowered);
+      }
+      return false;
+    case 'date':
+      if (value instanceof Date) return !isNaN(value.getTime());
+      if (typeof value === 'string') {
+        const date = new Date(value);
+        return !isNaN(date.getTime());
+      }
+      return false;
+    case 'any':
+      return value !== null && value !== undefined;
+    default:
+      return false;
+  }
+}
+
 // This is the main function for processing import files
 export async function processImportFile(
   fileBuffer: Buffer,
@@ -47,32 +105,81 @@ export async function processImportFile(
   data: any[]; 
   columnSuggestions: ColumnMapping[];
   sampleData: any[];
+  headerValidation: {
+    missingRequired: string[];
+    foundHeaders: string[];
+    expectedHeaders: string[];
+  }
 }> {
   // Parse file based on type
   let parsedData: any[] = [];
+  let originalHeaders: string[] = [];
   
-  if (fileType.includes('csv')) {
-    parsedData = csvParse(fileBuffer, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-    });
-  } else if (
-    fileType.includes('spreadsheetml') || 
-    fileType.includes('excel') || 
-    fileType.includes('xls')
-  ) {
-    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    parsedData = xlsx.utils.sheet_to_json(worksheet);
-  } else {
-    throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
+  try {
+    if (fileType.includes('csv')) {
+      // First parse with { columns: false } to get the raw headers
+      const result = csvParse(fileBuffer.toString(), {
+        columns: false,
+        skip_empty_lines: true,
+        trim: true,
+      });
+      
+      if (result.length > 0) {
+        originalHeaders = result[0];
+      }
+      
+      // Then parse normally with { columns: true }
+      parsedData = csvParse(fileBuffer.toString(), {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      });
+    } else if (
+      fileType.includes('spreadsheetml') || 
+      fileType.includes('excel') || 
+      fileType.includes('xls')
+    ) {
+      const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Get headers from the first row
+      const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1');
+      originalHeaders = [];
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddress = xlsx.utils.encode_cell({ r: range.s.r, c: col });
+        if (worksheet[cellAddress]) {
+          originalHeaders.push(worksheet[cellAddress].v);
+        }
+      }
+      
+      parsedData = xlsx.utils.sheet_to_json(worksheet);
+    } else {
+      throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
+    }
+  } catch (error: any) {
+    console.error('Error parsing file:', error);
+    throw new Error(`Failed to parse file: ${error.message || 'Unknown error'}`);
   }
 
   if (parsedData.length === 0) {
     throw new Error('No data found in the uploaded file.');
   }
+
+  // Validate headers against expected schema
+  const expectedSchema = expectedSchemas[dataType];
+  const expectedHeaders = Object.keys(expectedSchema);
+  const foundHeaders = originalHeaders.filter(header => 
+    expectedHeaders.includes(header) || 
+    expectedHeaders.find(eh => eh.toLowerCase() === header.toLowerCase())
+  );
+  
+  // Find required headers that are missing
+  const missingRequired = Object.entries(expectedSchema)
+    .filter(([key, value]) => value.required && !foundHeaders.find(h => 
+      h === key || h.toLowerCase() === key.toLowerCase()
+    ))
+    .map(([key]) => key);
 
   // Get column mapping suggestions based on data type (AI-enhanced)
   const columnSuggestions = await getColumnMappingSuggestions(parsedData[0], dataType);
@@ -84,6 +191,11 @@ export async function processImportFile(
     data: parsedData,
     columnSuggestions,
     sampleData,
+    headerValidation: {
+      missingRequired,
+      foundHeaders,
+      expectedHeaders
+    }
   };
 }
 
@@ -669,7 +781,7 @@ export async function validateInventoryData(
 
 // Basic inventory data validation
 /**
- * Basic validation for inventory data with improved field handling
+ * Basic validation for inventory data with improved field handling and data type verification
  * 
  * @param data - The inventory data to validate
  * @param result - The import result object to update with validation results
@@ -679,47 +791,83 @@ export function basicValidateInventoryData(
   data: any[],
   result: ImportResult
 ): ImportResult {
-  
   const processedBarcodes = new Set<string>();
+  const schema = expectedSchemas.inventory;
   
   data.forEach((row, index) => {
     const rowNumber = index + 1;
     const cleanedRow = { ...row };
     let hasErrors = false;
     
-    // Check required fields
-    if (!cleanedRow.name) {
-      result.missingFields.push({
-        row: rowNumber,
-        field: 'name',
-        isRequired: true
-      });
-      hasErrors = true;
-    } else if (typeof cleanedRow.name === 'string' && cleanedRow.name.trim().length < 2) {
-      result.errors.push({
-        row: rowNumber,
-        field: 'name',
-        value: row.name,
-        reason: 'Product name must be at least 2 characters long'
-      });
-      hasErrors = true;
-    }
-    
-    if (!cleanedRow.barcode) {
-      result.missingFields.push({
-        row: rowNumber,
-        field: 'barcode',
-        isRequired: true
-      });
-      hasErrors = true;
-    } else if (typeof cleanedRow.barcode === 'string' && cleanedRow.barcode.trim().length < 4) {
-      result.errors.push({
-        row: rowNumber,
-        field: 'barcode',
-        value: row.barcode,
-        reason: 'Barcode must be at least 4 characters long'
-      });
-      hasErrors = true;
+    // Validate each field against the expected schema
+    Object.entries(schema).forEach(([field, definition]) => {
+      const value = cleanedRow[field];
+      
+      // Check required fields
+      if (definition.required && (value === null || value === undefined || value === '')) {
+        result.missingFields.push({
+          row: rowNumber,
+          field,
+          isRequired: true
+        });
+        hasErrors = true;
+        return; // Skip further validation for this field
+      }
+      
+      // Skip validation for optional empty fields
+      if (!definition.required && (value === null || value === undefined || value === '')) {
+        return;
+      }
+      
+      // Validate data type
+      if (!validateDataType(value, definition.type)) {
+        result.errors.push({
+          row: rowNumber,
+          field,
+          value: String(value),
+          reason: `Invalid data type for ${field}. Expected ${definition.type}.`
+        });
+        hasErrors = true;
+        return;
+      }
+      
+      // Field-specific validation
+      switch (field) {
+        case 'name':
+          if (typeof value === 'string' && value.trim().length < 2) {
+            result.errors.push({
+              row: rowNumber,
+              field,
+              value,
+              reason: 'Product name must be at least 2 characters long'
+            });
+            hasErrors = true;
+          }
+          break;
+          
+        case 'barcode':
+          if (typeof value === 'string') {
+            if (value.trim().length < 4) {
+              result.errors.push({
+                row: rowNumber,
+                field,
+                value,
+                reason: 'Barcode must be at least 4 characters long'
+              });
+              hasErrors = true;
+            } else if (processedBarcodes.has(value)) {
+              result.errors.push({
+                row: rowNumber,
+                field,
+                value,
+                reason: 'Duplicate barcode found in import file'
+              });
+              hasErrors = true;
+            } else {
+              processedBarcodes.add(value);
+            }
+          }
+          break;
     } else {
       // Check duplicate barcodes
       if (processedBarcodes.has(cleanedRow.barcode)) {
