@@ -51,7 +51,7 @@ interface Product {
   id: number;
   name: string;
   sku: string;
-  barcode?: string;
+  barcode?: string | null;
 }
 
 interface Batch {
@@ -61,9 +61,10 @@ interface Batch {
   expiryDate: string | null;
   manufacturingDate: string | null;
   costPerUnit: string | null;
-  inventoryId: number;
-  createdAt: string;
-  updatedAt: string;
+  inventoryId?: number;
+  receivedDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BatchDetailsProps {
@@ -272,13 +273,18 @@ export function BatchDetails({ batch, product, onBatchUpdated, isManagerOrAdmin 
           </div>
           
           <div className="flex flex-col">
-            <span className="text-muted-foreground">Created</span>
-            <span className="font-medium">{format(new Date(batch.createdAt), 'PP')}</span>
+            <span className="text-muted-foreground">Received</span>
+            <span className="font-medium">
+              {batch.receivedDate ? format(new Date(batch.receivedDate), 'PP') : 
+               batch.createdAt ? format(new Date(batch.createdAt), 'PP') : 'N/A'}
+            </span>
           </div>
           
           <div className="flex flex-col">
             <span className="text-muted-foreground">Last Updated</span>
-            <span className="font-medium">{format(new Date(batch.updatedAt), 'PP')}</span>
+            <span className="font-medium">
+              {batch.updatedAt ? format(new Date(batch.updatedAt), 'PP') : 'N/A'}
+            </span>
           </div>
         </div>
       </CardContent>

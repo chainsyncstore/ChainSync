@@ -307,35 +307,7 @@ export default function BatchInventoryPage() {
 
               {importMutation.isSuccess && importMutation.data && (
                 <div className="mt-6">
-                  <Alert variant={importMutation.data.success ? "default" : "destructive"}>
-                    {importMutation.data.success ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : (
-                      <AlertCircle className="h-4 w-4" />
-                    )}
-                    <AlertTitle>
-                      {importMutation.data.success ? 'Import Successful' : 'Import Failed'}
-                    </AlertTitle>
-                    <AlertDescription>
-                      {importMutation.data.message}
-                      {importMutation.data.results && (
-                        <div className="mt-2">
-                          <p>Imported: {importMutation.data.results.imported}</p>
-                          <p>Failed: {importMutation.data.results.failed}</p>
-                        </div>
-                      )}
-                      {importMutation.data.errors && importMutation.data.errors.length > 0 && (
-                        <div className="mt-2">
-                          <p>Errors:</p>
-                          <ul className="list-disc pl-5">
-                            {importMutation.data.errors.map((error, index) => (
-                              <li key={index}>{error}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </AlertDescription>
-                  </Alert>
+                  <BatchImportResult result={importMutation.data} />
                 </div>
               )}
             </CardContent>

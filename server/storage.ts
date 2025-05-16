@@ -1237,23 +1237,6 @@ export const storage = {
       throw error;
     }
   },
-          
-          remainingQuantity -= quantityFromBatch;
-        }
-      }
-      
-      // If we couldn't fulfill from batches (shouldn't happen but just in case)
-      if (remainingQuantity > 0) {
-        console.warn(`Insufficient batch quantity for product ${item.productId}. Short by ${remainingQuantity} units.`);
-      }
-      
-      // Record sales from each batch as separate transaction items
-      for (const batchSale of batchSales) {
-        const itemUnitPrice = parseFloat(item.unitPrice);
-        const saleQuantity = batchSale.quantity;
-        
-        // Insert transaction item with batch info
-        await db.insert(schema.transactionItems)
           .values({
             ...item,
             transactionId: transaction.id,
