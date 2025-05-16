@@ -145,16 +145,28 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                   <Button
                     key={product.id}
                     variant="outline"
-                    className="h-auto p-3 flex flex-col items-start justify-start text-left"
-                    onClick={() => onProductSelect(product)}
+                    className={`h-auto p-3 flex flex-col items-start justify-start text-left ${product.isExpired ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : ''}`}
+                    onClick={() => handleProductSelect(product)}
                   >
-                    <span className="text-sm font-medium truncate w-full">{product.name}</span>
+                    <div className="flex justify-between w-full items-start gap-1">
+                      <span className="text-sm font-medium truncate">{product.name}</span>
+                      {product.isExpired && (
+                        <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                      )}
+                    </div>
                     <div className="flex w-full justify-between items-center mt-1">
                       <Badge variant="secondary" className="text-xs">
                         {product.category?.name || "N/A"}
                       </Badge>
                       <span className="text-sm font-bold">{formatCurrency(product.price)}</span>
                     </div>
+                    {product.isExpired && (
+                      <div className="w-full mt-1">
+                        <Badge variant="destructive" className="text-xs w-full justify-center">
+                          Expired on {new Date(product.expiryDate).toLocaleDateString()}
+                        </Badge>
+                      </div>
+                    )}
                   </Button>
                 ))
               )}
