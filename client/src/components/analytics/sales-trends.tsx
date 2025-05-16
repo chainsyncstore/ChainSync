@@ -121,9 +121,7 @@ export const SalesTrends = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Import formatCurrency from utils
-  import { formatCurrency } from '@/lib/utils';
-  import { useCurrency } from '@/providers/currency-provider';
+  const { currency } = useCurrency();
 
   // Display data with the chosen chart type
   const renderChart = () => {
