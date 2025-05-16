@@ -143,7 +143,7 @@ export function PaymentModal({
                     variant="outline"
                     onClick={() => setCashAmount(amount.toFixed(2))}
                   >
-                    ${amount}
+                    {formatCurrency(amount)}
                   </Button>
                 ))}
                 <Button

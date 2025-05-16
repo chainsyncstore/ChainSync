@@ -9,6 +9,7 @@ import { ExpiringItems } from '@/components/inventory/expiring-items';
 import { ExpiredItems } from '@/components/inventory/expired-items';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, AlertCircle } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 export default function InventoryPage() {
   const { user } = useAuth();
@@ -168,7 +169,7 @@ export default function InventoryPage() {
                 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Inventory Value</p>
-                  <p className="text-2xl font-bold">$124,568.75</p>
+                  <p className="text-2xl font-bold">{formatCurrency(124568.75)}</p>
                 </div>
               </CardContent>
             </Card>
