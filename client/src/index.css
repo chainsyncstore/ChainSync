@@ -50,66 +50,6 @@
     --radius: 0.5rem;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 9.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 220 81% 39%; /* Keep primary color consistent */
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 174 46% 35%; /* Slightly darker in dark mode */
-    --secondary-foreground: 210 40% 98%;
-
-    --accent: 30 95% 60%; /* Adjusted for dark mode */
-    --accent-foreground: 222.2 84% 4.9%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-
-    /* Chart colors remain consistent for data visualization clarity */
-    --chart-1: 220 81% 45%; /* primary - slightly brighter */
-    --chart-2: 174 46% 55%; /* secondary - slightly brighter */
-    --chart-3: 30 100% 70%; /* accent - slightly brighter */
-    --chart-4: 142 72% 55%; /* success - slightly brighter */
-    --chart-5: 48 96% 65%; /* warning - slightly brighter */
-
-    /* Sidebar colors in dark mode */
-    --sidebar-background: 222.2 84% 9.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 220 81% 39%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222.2 84% 15%;
-    --sidebar-ring: 212.7 26.8% 83.9%;
-  }
-
-  /* Density settings */
-  .comfortable {
-    --spacing-base: 1rem;
-    --spacing-tight: 0.75rem;
-    --spacing-loose: 1.5rem;
-  }
-
-  .compact {
-    --spacing-base: 0.75rem;
-    --spacing-tight: 0.5rem;
-    --spacing-loose: 1rem;
-  }
-
   * {
     @apply border-border;
   }
@@ -144,50 +84,7 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Density-based spacing */
+/* Ensure consistent spacing */
 .card-body {
-  padding: var(--spacing-base, 1rem);
-}
-
-/* Apply density settings to common components */
-.compact .card {
-  margin-bottom: var(--spacing-tight);
-}
-
-.comfortable .card {
-  margin-bottom: var(--spacing-base);
-}
-
-.compact .form-item {
-  margin-bottom: var(--spacing-tight);
-}
-
-.comfortable .form-item {
-  margin-bottom: var(--spacing-base);
-}
-
-/* Apply spacing to content areas */
-.card-header {
-  padding: var(--spacing-base, 1rem);
-}
-
-.card-footer {
-  padding: var(--spacing-base, 1rem);
-}
-
-.compact .card-header,
-.compact .card-footer,
-.compact .card-content {
-  padding: var(--spacing-tight);
-}
-
-/* Table density adjustments */
-.compact table th,
-.compact table td {
-  padding: var(--spacing-tight);
-}
-
-.comfortable table th,
-.comfortable table td {
-  padding: var(--spacing-base);
+  padding: 1rem;
 }

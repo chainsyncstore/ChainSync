@@ -1,7 +1,6 @@
 import React from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useAuth } from '@/providers/auth-provider';
-import { useTheme } from '@/providers/theme-provider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Card,
@@ -35,8 +34,6 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
-import { Slider } from '@/components/ui/slider';
-import { Minus, Plus } from 'lucide-react';
 
 // Profile settings form schema
 const profileFormSchema = z.object({
@@ -84,7 +81,6 @@ const systemFormSchema = z.object({
 export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme, density, setDensity, fontSize, setFontSize } = useTheme();
   
   // Profile form
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
@@ -576,16 +572,7 @@ export default function SettingsPage() {
                 <h3 className="text-lg font-medium">Theme</h3>
                 
                 <div className="grid grid-cols-3 gap-4">
-                  <div 
-                    className={`rounded-lg ${theme === 'light' ? 'border-2 border-primary' : 'border'} p-4 cursor-pointer`}
-                    onClick={() => {
-                      setTheme('light');
-                      toast({
-                        title: "Theme Updated",
-                        description: "Light mode has been applied.",
-                      });
-                    }}
-                  >
+                  <div className="rounded-lg border-2 border-primary p-4 cursor-pointer">
                     <div className="space-y-2">
                       <div className="h-10 rounded-md bg-primary"></div>
                       <div className="space-y-1">
@@ -596,16 +583,7 @@ export default function SettingsPage() {
                     <div className="mt-2 font-medium text-center">Light Mode</div>
                   </div>
                   
-                  <div 
-                    className={`rounded-lg ${theme === 'dark' ? 'border-2 border-primary' : 'border'} p-4 cursor-pointer`}
-                    onClick={() => {
-                      setTheme('dark');
-                      toast({
-                        title: "Theme Updated",
-                        description: "Dark mode has been applied.",
-                      });
-                    }}
-                  >
+                  <div className="rounded-lg border p-4 cursor-pointer">
                     <div className="space-y-2">
                       <div className="h-10 rounded-md bg-neutral-800"></div>
                       <div className="space-y-1">
@@ -616,18 +594,9 @@ export default function SettingsPage() {
                     <div className="mt-2 font-medium text-center">Dark Mode</div>
                   </div>
                   
-                  <div 
-                    className={`rounded-lg ${theme === 'system' ? 'border-2 border-primary' : 'border'} p-4 cursor-pointer`}
-                    onClick={() => {
-                      setTheme('system');
-                      toast({
-                        title: "Theme Updated",
-                        description: "System theme preference has been applied.",
-                      });
-                    }}
-                  >
+                  <div className="rounded-lg border p-4 cursor-pointer">
                     <div className="space-y-2">
-                      <div className="h-10 rounded-md bg-gradient-to-r from-primary to-neutral-800"></div>
+                      <div className="h-10 rounded-md bg-neutral-200"></div>
                       <div className="space-y-1">
                         <div className="h-2 w-[80%] rounded-lg bg-neutral-400"></div>
                         <div className="h-2 w-[60%] rounded-lg bg-neutral-400"></div>
@@ -644,43 +613,13 @@ export default function SettingsPage() {
                 <h3 className="text-lg font-medium">Density</h3>
                 
                 <div className="flex flex-col space-y-2">
-                  <label 
-                    className="flex items-center space-x-2 cursor-pointer" 
-                    onClick={() => {
-                      setDensity('comfortable');
-                      toast({
-                        title: "Density Updated",
-                        description: "Comfortable spacing has been applied.",
-                      });
-                    }}
-                  >
-                    <input 
-                      type="radio" 
-                      name="density" 
-                      className="form-radio text-primary" 
-                      checked={density === 'comfortable'} 
-                      onChange={() => {}}
-                    />
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="density" className="form-radio" defaultChecked />
                     <span>Comfortable (Default)</span>
                   </label>
                   
-                  <label 
-                    className="flex items-center space-x-2 cursor-pointer"
-                    onClick={() => {
-                      setDensity('compact');
-                      toast({
-                        title: "Density Updated",
-                        description: "Compact spacing has been applied.",
-                      });
-                    }}
-                  >
-                    <input 
-                      type="radio" 
-                      name="density" 
-                      className="form-radio text-primary" 
-                      checked={density === 'compact'} 
-                      onChange={() => {}}
-                    />
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="density" className="form-radio" />
                     <span>Compact</span>
                   </label>
                 </div>
@@ -691,66 +630,16 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Font Size</h3>
                 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span>Current size: {fontSize}px</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => {
-                        const newSize = Math.max(12, fontSize - 1);
-                        setFontSize(newSize);
-                        toast({
-                          title: "Font Size Updated",
-                          description: `Font size changed to ${newSize}px`,
-                        });
-                      }}
-                      disabled={fontSize <= 12}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    
-                    <Slider
-                      value={[fontSize]}
-                      min={12}
-                      max={20}
-                      step={1}
-                      className="flex-1"
-                      onValueChange={(values) => {
-                        setFontSize(values[0]);
-                      }}
-                      onValueCommit={(values) => {
-                        toast({
-                          title: "Font Size Updated",
-                          description: `Font size changed to ${values[0]}px`,
-                        });
-                      }}
-                    />
-                    
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => {
-                        const newSize = Math.min(20, fontSize + 1);
-                        setFontSize(newSize);
-                        toast({
-                          title: "Font Size Updated",
-                          description: `Font size changed to ${newSize}px`,
-                        });
-                      }}
-                      disabled={fontSize >= 20}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="p-3 border rounded-md mt-2">
-                    <p className="font-medium mb-1">Preview:</p>
-                    <p>The quick brown fox jumps over the lazy dog.</p>
-                  </div>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm">A</span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="3"
+                    defaultValue="2"
+                    className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-lg">A</span>
                 </div>
               </div>
               
