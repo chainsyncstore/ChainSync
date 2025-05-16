@@ -142,11 +142,35 @@ export const inventoryRelations = relations(inventory, ({ one, many }) => ({
   batches: many(inventoryBatches),
 }));
 
-export const inventoryBatchesRelations = relations(inventoryBatches, ({ one }) => ({
+export const inventoryBatchesRelations = relations(inventoryBatches, ({ one, many }) => ({
   inventory: one(inventory, {
     fields: [inventoryBatches.inventoryId],
     references: [inventory.id],
   }),
+  auditLogs: many(batchAuditLogs)
+}));
+
+// Batch audit logs to track changes
+export const batchAuditLogs = pgTable("batch_audit_logs", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").references(() => inventoryBatches.id, { onDelete: 'set null' }),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  action: text("action").notNull(), // 'create', 'update', 'delete', 'adjust'
+  details: json("details").notNull(), // Store details about the change
+  quantityBefore: integer("quantity_before"),
+  quantityAfter: integer("quantity_after"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const batchAuditLogsRelations = relations(batchAuditLogs, ({ one }) => ({
+  batch: one(inventoryBatches, {
+    fields: [batchAuditLogs.batchId],
+    references: [inventoryBatches.id],
+  }),
+  user: one(users, {
+    fields: [batchAuditLogs.userId],
+    references: [users.id],
+  })
 }));
 
 // Suppliers
