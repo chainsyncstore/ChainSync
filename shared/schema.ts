@@ -264,6 +264,32 @@ export const transactionItemsRelations = relations(transactionItems, ({ one }) =
   }),
 }));
 
+// Cashier Sessions
+export const cashierSessions = pgTable("cashier_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  storeId: integer("store_id").references(() => stores.id).notNull(),
+  startTime: timestamp("start_time").defaultNow().notNull(),
+  endTime: timestamp("end_time"),
+  transactionCount: integer("transaction_count").default(0),
+  totalSales: decimal("total_sales", { precision: 10, scale: 2 }).default("0.00"),
+  notes: text("notes"),
+  status: text("status").notNull().default("active"), // active, closed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const cashierSessionsRelations = relations(cashierSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [cashierSessions.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [cashierSessions.storeId],
+    references: [stores.id],
+  }),
+}));
+
 // AI Assistant Conversations
 export const aiConversations = pgTable("ai_conversations", {
   id: serial("id").primaryKey(),
@@ -411,6 +437,19 @@ export type TransactionInsert = z.infer<typeof transactionInsertSchema>;
 
 export type TransactionItem = typeof transactionItems.$inferSelect;
 export type TransactionItemInsert = z.infer<typeof transactionItemInsertSchema>;
+
+export const cashierSessionInsertSchema = createInsertSchema(cashierSessions, {
+  userId: (schema) => schema.positive("User ID must be positive"),
+  storeId: (schema) => schema.positive("Store ID must be positive"),
+  status: (schema) => schema.refine(val => ["active", "closed"].includes(val), {
+    message: "Status must be either 'active' or 'closed'"
+  }),
+  notes: (schema) => schema.optional()
+});
+
+export const cashierSessionSchema = createSelectSchema(cashierSessions);
+export type CashierSession = typeof cashierSessions.$inferSelect;
+export type CashierSessionInsert = z.infer<typeof cashierSessionInsertSchema>;
 
 // Returns and Refunds System
 export const customers = pgTable("customers", {
