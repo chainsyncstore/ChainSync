@@ -137,7 +137,7 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                   </NavItem>
                   
                   <ExternalLink 
-                    href="/#affiliate" 
+                    href="https://chainsync.store/affiliates" 
                     icon={<Share2 className="w-5 h-5" />} 
                     onClick={isMobile ? onClose : undefined}
                   >
@@ -223,7 +223,7 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                   )}
                   
                   <ExternalLink 
-                    href="/#affiliate" 
+                    href="https://chainsync.store/affiliates" 
                     icon={<Share2 className="w-5 h-5" />} 
                     onClick={isMobile ? onClose : undefined}
                   >
