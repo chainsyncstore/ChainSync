@@ -438,7 +438,7 @@ function ReturnProcessForm() {
                         <p className="text-sm text-gray-500">Barcode: {product.barcode}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">${parseFloat(product.price).toFixed(2)}</p>
+                        <p className="font-medium">{formatCurrency(parseFloat(product.price))}</p>
                         <Badge variant={product.isPerishable ? "destructive" : "outline"}>
                           {product.isPerishable ? "Perishable" : "Non-Perishable"}
                         </Badge>
@@ -529,7 +529,7 @@ function ReturnProcessForm() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          ${(parseFloat(product.price) * product.quantity).toFixed(2)}
+                          {formatCurrency(parseFloat(product.price) * product.quantity)}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -547,7 +547,7 @@ function ReturnProcessForm() {
                         Total Refund
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        ${totalRefundAmount.toFixed(2)}
+                        {formatCurrency(totalRefundAmount)}
                       </TableCell>
                       <TableCell></TableCell>
                     </TableRow>
@@ -785,9 +785,9 @@ function ReturnsHistory() {
                                       {item.returnReason?.name || "Not specified"}
                                     </TableCell>
                                     <TableCell>{item.quantity}</TableCell>
-                                    <TableCell>${parseFloat(item.unitPrice).toFixed(2)}</TableCell>
+                                    <TableCell>{formatCurrency(parseFloat(item.unitPrice))}</TableCell>
                                     <TableCell className="text-right">
-                                      ${parseFloat(item.refundAmount).toFixed(2)}
+                                      {formatCurrency(parseFloat(item.refundAmount))}
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -796,7 +796,7 @@ function ReturnsHistory() {
                                     Total Refund
                                   </TableCell>
                                   <TableCell className="text-right font-bold">
-                                    ${parseFloat(returnItem.totalRefundAmount).toFixed(2)}
+                                    {formatCurrency(parseFloat(returnItem.totalRefundAmount))}
                                   </TableCell>
                                 </TableRow>
                               </TableBody>
@@ -848,7 +848,7 @@ function ReturnsHistory() {
                       </TableCell>
                       
                       <TableCell className="text-right">
-                        ${parseFloat(returnItem.totalRefundAmount).toFixed(2)}
+                        {formatCurrency(parseFloat(returnItem.totalRefundAmount))}
                       </TableCell>
                       
                       <TableCell>
@@ -923,7 +923,7 @@ function ReturnAnalytics() {
               <Skeleton className="h-7 w-20" />
             ) : (
               <div className="text-2xl font-bold">
-                ${(analytics?.totalRefundAmount || 0).toFixed(2)}
+                {formatCurrency(analytics?.totalRefundAmount || 0)}
               </div>
             )}
           </CardContent>
@@ -999,7 +999,7 @@ function ReturnAnalytics() {
                       <TableRow key={index}>
                         <TableCell>{store.storeName}</TableCell>
                         <TableCell>{store.returnCount}</TableCell>
-                        <TableCell className="text-right">${store.refundAmount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(store.refundAmount)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
