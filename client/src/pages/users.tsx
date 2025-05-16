@@ -136,7 +136,7 @@ export default function UsersPage() {
     createUserMutation.mutate(data);
   };
   
-  // Define user type interface for better TypeScript support
+  // Define user and store type interfaces for better TypeScript support
   interface UserType {
     id: number;
     username: string;
@@ -145,6 +145,11 @@ export default function UsersPage() {
     role: string;
     store?: { name: string };
     lastLogin?: string;
+  }
+  
+  interface StoreType {
+    id: number;
+    name: string;
   }
   
   // Filter users based on search term
@@ -285,11 +290,11 @@ export default function UsersPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {stores?.map((store: any) => (
+                              {stores ? (stores as StoreType[]).map((store) => (
                                 <SelectItem key={store.id} value={store.id.toString()}>
                                   {store.name}
                                 </SelectItem>
-                              ))}
+                              )) : null}
                             </SelectContent>
                           </Select>
                           <FormDescription>
@@ -371,14 +376,14 @@ export default function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers?.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center">
                       No users found matching your search.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers?.map((user: any) => (
+                  filteredUsers.map((user: UserType) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.fullName}</TableCell>
                       <TableCell>{user.username}</TableCell>
@@ -411,7 +416,7 @@ export default function UsersPage() {
         </CardContent>
         <CardFooter className="flex justify-between items-center border-t p-4">
           <div className="text-sm text-muted-foreground">
-            Showing {filteredUsers.length || 0} of {users ? users.length : 0} users
+            Showing {filteredUsers.length || 0} of {(users as UserType[] | undefined)?.length || 0} users
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" size="sm" disabled>
