@@ -4,6 +4,7 @@ import { QuickStats } from '@/components/dashboard/quick-stats';
 import { StorePerformance } from '@/components/dashboard/store-performance';
 import { AiAssistant } from '@/components/dashboard/ai-assistant';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
+import { LowStockAlerts } from '@/components/inventory/low-stock-alerts';
 import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, PrinterIcon } from 'lucide-react';
@@ -51,9 +52,14 @@ export default function DashboardPage() {
         <div className="col-span-12 lg:col-span-4 md:col-span-4">
           <AiAssistant />
         </div>
+        
+        {/* Low Stock Alerts */}
+        <div className="col-span-12 md:col-span-4">
+          <LowStockAlerts />
+        </div>
 
         {/* Recent Transactions */}
-        <div className="col-span-12">
+        <div className="col-span-12 md:col-span-8">
           <RecentTransactions />
         </div>
       </div>
