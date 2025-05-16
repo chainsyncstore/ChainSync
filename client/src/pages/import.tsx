@@ -259,8 +259,8 @@ export default function ImportPage() {
     
     try {
       const response = await apiRequest('POST', '/api/import/error-report', {
-        errors: validationResult.errors,
-        missingFields: validationResult.missingFields,
+        validationResult,
+        dataType
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -674,16 +674,26 @@ export default function ImportPage() {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="text-sm font-medium">Destination Store</label>
-                        <Select value={selectedStore} onValueChange={setSelectedStore}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a store" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">Main Store</SelectItem>
-                            <SelectItem value="2">Branch Store</SelectItem>
-                            <SelectItem value="3">Downtown Store</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        {isLoadingStores ? (
+                          <Skeleton className="h-10 w-full rounded-md" />
+                        ) : (
+                          <Select value={selectedStore} onValueChange={setSelectedStore}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a store" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {stores && stores.length > 0 ? (
+                                stores.map(store => (
+                                  <SelectItem key={store.id} value={String(store.id)}>
+                                    {store.name}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="" disabled>No stores available</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       
                       <div>
