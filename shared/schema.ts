@@ -1,15 +1,27 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, json, jsonb, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, json, jsonb, unique, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
+import { index } from "drizzle-orm/pg-core";
+
+// Session storage table required for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
 
 // Users & Authentication
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  fullName: text("full_name").notNull(),
-  email: text("email").notNull(),
+  id: varchar("id").primaryKey().notNull(), // Changed to varchar for Replit Auth user ID
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
   role: text("role").notNull().default("cashier"), // cashier, manager, admin
   storeId: integer("store_id"), // null for admin (chain-wide access)
   lastLogin: timestamp("last_login"),
@@ -19,7 +31,7 @@ export const users = pgTable("users", {
 
 export const passwordResetTokens = pgTable("password_reset_tokens", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").notNull().default(false),
@@ -451,25 +463,30 @@ export const transactionItemInsertSchema = createInsertSchema(transactionItems, 
 // Schema for user operations
 export const userSchema = createSelectSchema(users);
 export const userInsertSchema = createInsertSchema(users, {
-  username: (schema) => schema.min(3, "Username must be at least 3 characters"),
-  password: (schema) => schema.min(6, "Password must be at least 6 characters"),
-  fullName: (schema) => schema.min(2, "Full name is required"),
-  email: (schema) => schema.email("Please provide a valid email address"),
+  email: (schema) => schema.nullable().optional(),
+  firstName: (schema) => schema.nullable().optional(),
+  lastName: (schema) => schema.nullable().optional(),
+  profileImageUrl: (schema) => schema.nullable().optional(),
   role: (schema) => schema.refine(val => ["admin", "manager", "cashier", "affiliate"].includes(val), {
     message: "Role must be one of: admin, manager, cashier, affiliate"
   })
 });
 
-// Auth schemas
-export const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().optional()
-});
-
+// Auth schemas for Replit Auth
 export const authResponseSchema = z.object({
   authenticated: z.boolean(),
-  user: userSchema.omit({ password: true }).optional(),
+  user: z.object({
+    id: z.string(),
+    email: z.string().nullable().optional(),
+    firstName: z.string().nullable().optional(),
+    lastName: z.string().nullable().optional(),
+    profileImageUrl: z.string().nullable().optional(),
+    role: z.string(),
+    storeId: z.number().nullable().optional(),
+    lastLogin: z.date().nullable().optional(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+  }).optional(),
   message: z.string().optional(),
 });
 
@@ -479,7 +496,7 @@ export type UserInsert = z.infer<typeof userInsertSchema>;
 
 export const passwordResetTokenInsertSchema = createInsertSchema(passwordResetTokens, {
   token: (schema) => schema.min(1, "Token is required"),
-  userId: (schema) => schema.positive("User ID must be positive"),
+  userId: (schema) => schema.min(1, "User ID is required"),
 });
 
 export const passwordResetTokenSchema = createSelectSchema(passwordResetTokens);
