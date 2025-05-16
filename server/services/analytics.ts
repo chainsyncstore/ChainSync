@@ -56,16 +56,17 @@ export async function getStorePerformanceComparison(
   .groupBy(schema.transactions.storeId)
   .orderBy(desc(sql`SUM(${schema.transactions.total})`));
   
-  // Get top products by store
+  // Get top products by store with robust error handling
   const topProductsByStore = await Promise.all(
     stores.map(async (store) => {
-      // For transaction items, we need to join with transactions to apply the date filtering
-      const topProducts = await db.select({
-        productId: schema.transactionItems.productId,
-        productName: schema.products.name,
-        quantity: sql`SUM(${schema.transactionItems.quantity})`,
-        total: sql`SUM(${schema.transactionItems.subtotal})`,
-      })
+      try {
+        // For transaction items, we need to join with transactions to apply the date filtering
+        const topProducts = await db.select({
+          productId: schema.transactionItems.productId,
+          productName: schema.products.name,
+          quantity: sql`SUM(${schema.transactionItems.quantity})`,
+          total: sql`SUM(${schema.transactionItems.subtotal})`,
+        })
       .from(schema.transactionItems)
       .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))
       .leftJoin(schema.transactions, eq(schema.transactionItems.transactionId, schema.transactions.id))
@@ -76,10 +77,17 @@ export async function getStorePerformanceComparison(
       .orderBy(desc(sql`SUM(${schema.transactionItems.quantity})`))
       .limit(5);
       
-      return {
-        storeId: store.id,
-        topProducts
-      };
+        return {
+          storeId: store.id,
+          topProducts
+        };
+      } catch (error) {
+        console.error(`Error fetching top products for store ${store.id}:`, error);
+        return {
+          storeId: store.id,
+          topProducts: []
+        };
+      }
     })
   );
   
