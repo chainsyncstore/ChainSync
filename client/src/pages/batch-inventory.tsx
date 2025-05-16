@@ -11,8 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Info, AlertCircle, CheckCircle, Calendar, Package, Truck, BarChart4 } from 'lucide-react';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import { format } from 'date-fns';
+import { format, isPast, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { BatchDetails } from '@/components/inventory/batch-details';
+import { BatchImportResult } from '@/components/inventory/batch-import-result';
 
 // Helper to format dates
 const formatDate = (dateString: string | null | undefined) => {
@@ -41,14 +43,20 @@ const getExpiryStatus = (expiryDate: string | null | undefined) => {
   }
 };
 
+interface ImportError {
+  row: number;
+  field: string;
+  message: string;
+}
+
 interface BatchImportResponse {
   message: string;
   success: boolean;
-  errors?: string[];
-  results?: {
-    imported: number;
-    failed: number;
-  };
+  processedRows?: number;
+  successfulRows?: number;
+  failedRows?: number;
+  errors?: ImportError[];
+  warnings?: ImportError[];
 }
 
 interface Batch {
@@ -108,10 +116,9 @@ export default function BatchInventoryPage() {
   // Import batches mutation
   const importMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await apiRequest('POST', '/api/inventory/batches/import', null, {
-        customConfig: {
-          body: formData
-        }
+      const response = await fetch('/api/inventory/batches/import', {
+        method: 'POST',
+        body: formData
       });
       return await response.json() as BatchImportResponse;
     },
@@ -512,52 +519,52 @@ export default function BatchInventoryPage() {
               </div>
 
               {selectedStore && selectedProduct ? (
+                <div className="mb-4">
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-500" />
+                    <AlertTitle>Batch Management</AlertTitle>
+                    <AlertDescription>
+                      <ul className="list-disc list-inside text-sm">
+                        <li>Expired batches are highlighted in red</li>
+                        <li>Batches expiring within 30 days are highlighted in amber</li>
+                        <li>Click on a batch card to view details, audit logs, or perform actions</li>
+                        <li>FIFO (First In, First Out) is automatically applied when selling products</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              ) : null}
+
+              {selectedStore && selectedProduct ? (
                 batchesLoading ? (
                   <div className="flex justify-center items-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : batches.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Batch Number</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Expiry Date</TableHead>
-                        <TableHead>Received</TableHead>
-                        <TableHead>Cost Per Unit</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {batches.map((batch) => {
-                        const expiryStatus = getExpiryStatus(batch.expiryDate);
-                        return (
-                          <TableRow key={batch.id}>
-                            <TableCell className="font-medium">{batch.batchNumber}</TableCell>
-                            <TableCell>{batch.quantity}</TableCell>
-                            <TableCell>
-                              <span 
-                                className={`flex items-center ${
-                                  expiryStatus.status === 'expired' 
-                                    ? 'text-red-500' 
-                                    : expiryStatus.status === 'expiring-soon' 
-                                      ? 'text-amber-500' 
-                                      : ''
-                                }`}
-                              >
-                                <Calendar className="mr-1 h-4 w-4" />
-                                {expiryStatus.label}
-                              </span>
-                            </TableCell>
-                            <TableCell>{formatDate(batch.receivedDate)}</TableCell>
-                            <TableCell>{batch.costPerUnit || 'N/A'}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {batches.map((batch) => {
+                      // Find the associated product
+                      const product = products.find(p => p.id === parseInt(selectedProduct));
+                      if (!product) return null;
+                      
+                      return (
+                        <div key={batch.id} className="transition-all duration-200 hover:scale-[1.01]">
+                          <BatchDetails 
+                            batch={batch} 
+                            product={product}
+                            onBatchUpdated={refetchBatches}
+                            isManagerOrAdmin={true} // This should ideally be based on actual user role
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    No batches found for this product.
+                    <div className="bg-muted/20 rounded-lg p-8">
+                      <p className="text-muted-foreground">No batches found for this product.</p>
+                      <p className="mt-2">Use the 'Add Single Batch' tab to create a new batch.</p>
+                    </div>
                   </div>
                 )
               ) : (
