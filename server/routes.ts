@@ -2960,6 +2960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalRows: importResult.totalRows,
         importedRows: importResult.importedRows,
         errors: importResult.errors,
+        lastUpdated: importResult.lastUpdated || new Date(),
         message: importResult.success 
           ? `Successfully imported ${importResult.importedRows} of ${importResult.totalRows} rows` 
           : 'Import completed with errors'
@@ -2973,34 +2974,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download error report
   app.post(`${apiPrefix}/import/error-report`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
     try {
-      const { errors, missingFields } = req.body;
+      const { validationResult, dataType } = req.body;
       
-      if ((!errors || !Array.isArray(errors)) && (!missingFields || !Array.isArray(missingFields))) {
+      if (!validationResult || (!validationResult.errors?.length && !validationResult.missingFields?.length)) {
         return res.status(400).json({ error: 'No error data provided' });
       }
       
-      let errorsCsv = '';
-      let missingFieldsCsv = '';
-      
-      if (errors && errors.length > 0) {
-        errorsCsv = formatErrorsAsCsv(errors);
+      if (!dataType || !['loyalty', 'inventory'].includes(dataType)) {
+        return res.status(400).json({ error: 'Invalid data type. Must be either "loyalty" or "inventory"' });
       }
       
-      if (missingFields && missingFields.length > 0) {
-        missingFieldsCsv = formatMissingFieldsAsCsv(missingFields);
-      }
-      
-      // Create a combined CSV if both are present
-      let combinedCsv = '';
-      if (errorsCsv && missingFieldsCsv) {
-        combinedCsv = errorsCsv + '\n\nMissing Fields:\n' + missingFieldsCsv;
-      } else {
-        combinedCsv = errorsCsv || missingFieldsCsv;
-      }
+      // Generate a comprehensive error report
+      const errorReport = generateErrorReport(validationResult, dataType as 'loyalty' | 'inventory');
       
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename="import-errors.csv"');
-      return res.status(200).send(combinedCsv);
+      return res.status(200).send(errorReport);
     } catch (error) {
       console.error('Error generating error report:', error);
       return res.status(500).json({ error: error.message || 'Failed to generate error report' });
