@@ -70,7 +70,7 @@ export default function ProfilePage() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Replit User ID</Label>
+              <Label className="text-muted-foreground">User ID</Label>
               <p className="text-lg">{user.id}</p>
             </div>
           </CardContent>
