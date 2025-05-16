@@ -556,62 +556,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
-        {/* Appearance Settings */}
-        <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance</CardTitle>
-              <CardDescription>
-                Customize the look and feel of your ChainSync experience
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Theme</h3>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="rounded-lg border-2 border-primary p-4 cursor-pointer">
-                    <div className="space-y-2">
-                      <div className="h-10 rounded-md bg-primary"></div>
-                      <div className="space-y-1">
-                        <div className="h-2 w-[80%] rounded-lg bg-neutral-200"></div>
-                        <div className="h-2 w-[60%] rounded-lg bg-neutral-200"></div>
-                      </div>
-                    </div>
-                    <div className="mt-2 font-medium text-center">Light Mode</div>
-                  </div>
-                  
-                  <div className="rounded-lg border p-4 cursor-pointer">
-                    <div className="space-y-2">
-                      <div className="h-10 rounded-md bg-neutral-800"></div>
-                      <div className="space-y-1">
-                        <div className="h-2 w-[80%] rounded-lg bg-neutral-600"></div>
-                        <div className="h-2 w-[60%] rounded-lg bg-neutral-700"></div>
-                      </div>
-                    </div>
-                    <div className="mt-2 font-medium text-center">Dark Mode</div>
-                  </div>
-                  
-                  <div className="rounded-lg border p-4 cursor-pointer">
-                    <div className="space-y-2">
-                      <div className="h-10 rounded-md bg-neutral-200"></div>
-                      <div className="space-y-1">
-                        <div className="h-2 w-[80%] rounded-lg bg-neutral-400"></div>
-                        <div className="h-2 w-[60%] rounded-lg bg-neutral-400"></div>
-                      </div>
-                    </div>
-                    <div className="mt-2 font-medium text-center">System Default</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="pt-4">
-                <Button>Save Preferences</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+
       </Tabs>
     </AppShell>
   );
