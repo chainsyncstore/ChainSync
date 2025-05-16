@@ -1415,13 +1415,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(`${apiPrefix}/products/search`, isAuthenticated, async (req, res) => {
     try {
       const searchTerm = req.query.q as string;
+      const { storeId } = req.session;
       
       if (!searchTerm) {
         return res.status(400).json({ message: "Search term is required" });
       }
       
+      if (!storeId) {
+        return res.status(400).json({ error: "Store ID is required in session" });
+      }
+      
       const products = await storage.searchProducts(searchTerm);
-      return res.status(200).json(products);
+      
+      // Check for expired products and mark them
+      const today = new Date();
+      const productsWithInventory = await Promise.all(
+        products.map(async (product) => {
+          const inventory = await storage.getStoreProductInventory(storeId, product.id);
+          
+          if (!inventory) {
+            return {
+              ...product,
+              inStock: false,
+              isExpired: false
+            };
+          }
+          
+          const isExpired = inventory.expiryDate && new Date(inventory.expiryDate) < today;
+          
+          return {
+            ...product,
+            inStock: inventory.quantity > 0,
+            quantity: inventory.quantity,
+            expiryDate: inventory.expiryDate,
+            isExpired: isExpired
+          };
+        })
+      );
+      
+      return res.status(200).json(productsWithInventory);
     } catch (error) {
       console.error("Search products error:", error);
       return res.status(500).json({ message: "Internal server error" });

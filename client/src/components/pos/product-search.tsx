@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Barcode, ShoppingBag, Loader2 } from 'lucide-react';
+import { Search, Barcode, ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import { debounce } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import BarcodeScanner from './barcode-scanner';
 
 interface ProductSearchProps {
@@ -18,9 +19,19 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('search');
   
+  const { toast } = useToast();
+  
   // Search products query
   const searchQuery = useQuery({
-    queryKey: ['/api/products/search', { q: searchTerm }],
+    queryKey: ['/api/products/search', searchTerm],
+    queryFn: async () => {
+      if (searchTerm.length < 2) return [];
+      const response = await fetch(`/api/products/search?q=${encodeURIComponent(searchTerm)}`);
+      if (!response.ok) {
+        throw new Error('Failed to search products');
+      }
+      return response.json();
+    },
     enabled: searchTerm.length >= 2,
   });
   
@@ -28,14 +39,31 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
   const popularProductsQuery = useQuery({
     queryKey: ['/api/products/popular'],
     // This endpoint may not exist yet, fallback to getting all products
-    onError: () => {
-      console.log('Popular products endpoint not available, fetching all products instead');
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/products/popular');
+        if (!response.ok) {
+          console.log('Popular products endpoint not available, fetching all products instead');
+          throw new Error('Popular products endpoint not available');
+        }
+        return response.json();
+      } catch (error) {
+        console.log('Error fetching popular products:', error);
+        throw error;
+      }
     }
   });
   
   // All products fallback query
   const allProductsQuery = useQuery({
     queryKey: ['/api/products'],
+    queryFn: async () => {
+      const response = await fetch('/api/products');
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      return response.json();
+    },
     enabled: !popularProductsQuery.data && popularProductsQuery.isError,
   });
   
@@ -55,6 +83,24 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
     }
     
     return popularProductsQuery.data || allProductsQuery.data || [];
+  };
+  
+  // Handle product selection with expiry check
+  const handleProductSelect = (product: any) => {
+    if (product.isExpired) {
+      // Don't allow adding expired products to cart
+      const expiryDate = product.expiryDate ? new Date(product.expiryDate) : null;
+      const formattedDate = expiryDate ? expiryDate.toLocaleDateString() : 'unknown date';
+      
+      toast({
+        title: "Product Expired",
+        description: `This product expired on ${formattedDate} and cannot be sold.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    onProductSelect(product);
   };
   
   return (

@@ -180,15 +180,26 @@ export default function BarcodeScanner({ onProductFound, disabled = false }: Bar
     try {
       // Look up the product by barcode
       const response = await apiRequest('GET', `/api/products/barcode/${encodeURIComponent(barcode)}`);
-      const data: BarcodeResponse = await response.json();
+      const data = await response.json();
       
-      if (data.error || !data.product) {
-        // Product not found
+      if (response.status === 400 && data.isExpired) {
+        // Product is expired
+        if (errorBeep.current) errorBeep.current.play();
+        
+        // Format the expiry date for display
+        const expiryDate = new Date(data.expiryDate);
+        const formattedDate = expiryDate.toLocaleDateString();
+        
+        setErrorMessage(`This product expired on ${formattedDate} and cannot be sold.`);
+        setShowError(true);
+        setFoundProduct(data.product);
+      } else if (data.error || !data.product) {
+        // Product not found or other error
         if (errorBeep.current) errorBeep.current.play();
         setErrorMessage(data.error || 'Product not found. Please check the barcode and try again.');
         setShowError(true);
       } else {
-        // Product found
+        // Product found and not expired
         setFoundProduct(data.product);
         if (successBeep.current) successBeep.current.play();
         
