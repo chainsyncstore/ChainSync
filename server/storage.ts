@@ -1378,27 +1378,36 @@ export const storage = {
     .from(schema.transactions)
     .where(whereClause);
     
-    // Get payment methods for mapping
-    const paymentMethods = await db.select().from(schema.paymentMethods);
-    const paymentMethodMap = paymentMethods.reduce((acc, method) => {
-      acc[method.id] = method.name;
-      return acc; 
-    }, {} as Record<number, string>);
+    // Get payment methods for mapping, with safety checks
+    let paymentMethodMap: Record<number, string> = {};
+    try {
+      // Handle potential missing schema definition
+      if ('paymentMethods' in schema) {
+        const paymentMethods = await db.select().from(schema.paymentMethods);
+        paymentMethodMap = paymentMethods.reduce((acc, method) => {
+          acc[method.id] = method.name || 'Unknown';
+          return acc; 
+        }, {} as Record<number, string>);
+      }
+    } catch (error) {
+      console.error('Error fetching payment methods:', error);
+      // Continue execution even if payment methods can't be fetched
+    }
     
     // Get payment method breakdown
     const paymentMethodQuery = await db.select({
-      paymentMethodId: schema.transactions.paymentMethodId,
+      paymentMethod: schema.transactions.paymentMethod, // Use paymentMethod field instead of paymentMethodId
       total: sql`SUM(${schema.transactions.total})`,
       count: count(),
     })
     .from(schema.transactions)
     .where(whereClause)
-    .groupBy(schema.transactions.paymentMethodId)
+    .groupBy(schema.transactions.paymentMethod)
     .orderBy(desc(sql`SUM(${schema.transactions.total})`));
     
     const paymentMethodBreakdown = paymentMethodQuery.map(method => ({
-      paymentMethodId: method.paymentMethodId,
-      paymentMethodName: paymentMethodMap[method.paymentMethodId] || 'Unknown',
+      paymentMethod: method.paymentMethod,
+      paymentMethodName: method.paymentMethod || 'Unknown',
       total: method.total,
       count: method.count,
     }));
