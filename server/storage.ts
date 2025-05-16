@@ -1,6 +1,6 @@
 import { db, pool } from "@db";
 import * as schema from "@shared/schema";
-import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL, inArray, asc } from "drizzle-orm";
+import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL, inArray, asc, gt, lt } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 import crypto from "crypto";
 
@@ -920,7 +920,12 @@ export const storage = {
       let queryBuilder = db
         .select({ count: count() })
         .from(schema.inventory)
-        .where(lte(schema.inventory.quantity, schema.inventory.minimumLevel));
+        .where(
+          and(
+            lte(schema.inventory.totalQuantity, schema.inventory.minimumLevel),
+            gt(schema.inventory.minimumLevel, 0)
+          )
+        );
       
       // Apply store filter if provided
       if (storeId) {
