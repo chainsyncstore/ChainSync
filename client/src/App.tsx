@@ -210,6 +210,7 @@ function AppRoutes() {
       <Route path="/import" component={ImportRoute} />
       <Route path="/product-import" component={ProductImportRoute} />
       <Route path="/add-product" component={AddProductRoute} />
+      <Route path="/assistant" component={AssistantRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />
