@@ -9,23 +9,35 @@ export interface DialogflowMessage {
 }
 
 // Set up the Dialogflow client
-// Note: For production, you'd use service account credentials
-// For demonstration, we're using the GOOGLE_APPLICATION_CREDENTIALS environment variable
-// which should point to a service account JSON file
+// In production, we use service account credentials from GOOGLE_APPLICATION_CREDENTIALS
+// This should point to a JSON file with the service account credentials
 let sessionClient: SessionsClient | null = null;
 let dialogflowInitialized = false;
 
 try {
-  // Only initialize if the environment variable is set
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    sessionClient = new SessionsClient();
-    dialogflowInitialized = true;
-    console.log("Dialogflow client initialized successfully");
+  // Only initialize if the environment variables are properly set
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.DIALOGFLOW_PROJECT_ID) {
+    // Check if the credentials file exists
+    const fs = require('fs');
+    if (fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+      sessionClient = new SessionsClient();
+      dialogflowInitialized = true;
+      console.log("Dialogflow client initialized successfully");
+    } else {
+      console.error(`GOOGLE_APPLICATION_CREDENTIALS file not found at path: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
+      console.log("Dialogflow client will use mock responses");
+    }
   } else {
-    console.log("GOOGLE_APPLICATION_CREDENTIALS not found. Dialogflow client will use mock responses.");
+    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      console.log("GOOGLE_APPLICATION_CREDENTIALS not found. Dialogflow client will use mock responses.");
+    }
+    if (!process.env.DIALOGFLOW_PROJECT_ID) {
+      console.log("DIALOGFLOW_PROJECT_ID not found. Dialogflow client will use mock responses.");
+    }
   }
 } catch (error) {
   console.error("Failed to initialize Dialogflow client:", error);
+  console.error("Error details:", error instanceof Error ? error.message : String(error));
 }
 
 // Helper function to get a formatted Dialogflow session ID

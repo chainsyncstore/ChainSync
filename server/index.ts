@@ -2,12 +2,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSecureServer, enforceHttpsForPaymentRoutes } from "./config/https";
+import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./config/dialogflow-security";
 import { logNgrokInstructions } from "./config/ngrok";
 
 const app = express();
 
-// Enforce HTTPS for payment routes in production
+// Enforce HTTPS for secure routes in production
 app.use(enforceHttpsForPaymentRoutes);
+app.use(enforceHttpsForDialogflowRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
