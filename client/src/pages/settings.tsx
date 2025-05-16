@@ -81,6 +81,12 @@ const systemFormSchema = z.object({
 export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [lowStockAlerts, setLowStockAlerts] = React.useState(true);
+  const [salesSummary, setSalesSummary] = React.useState(true);
+  const [securityAlerts, setSecurityAlerts] = React.useState(true);
+  const [salesMilestones, setSalesMilestones] = React.useState(true);
+  const [inventoryAlerts, setInventoryAlerts] = React.useState(true);
+  const [userActivity, setUserActivity] = React.useState(false);
   
   // Profile form
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
@@ -109,22 +115,69 @@ export default function SettingsPage() {
     },
   });
   
-  // Handle profile form submission
-  const onProfileSubmit = (data: z.infer<typeof profileFormSchema>) => {
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully.",
-    });
-    console.log(data);
+  // Handle profile form submission with temporary real password functionality
+  const onProfileSubmit = async (data: z.infer<typeof profileFormSchema>) => {
+    try {
+      // Store password in localStorage for testing purposes
+      if (data.newPassword) {
+        // In a real app, we'd make an API call to update the password
+        localStorage.setItem('tempTestPassword', data.newPassword);
+        
+        // Reset password fields after successful submission
+        profileForm.setValue('currentPassword', '');
+        profileForm.setValue('newPassword', '');
+        profileForm.setValue('confirmPassword', '');
+      }
+      
+      // Update user profile info in localStorage for testing
+      localStorage.setItem('userProfile', JSON.stringify({
+        fullName: data.fullName,
+        email: data.email,
+        updatedAt: new Date().toISOString()
+      }));
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully. Password is now stored for testing.",
+        duration: 5000,
+      });
+      
+      console.log("Updated profile data:", data);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your profile.",
+        variant: "destructive",
+      });
+    }
   };
   
-  // Handle system settings form submission
-  const onSystemSubmit = (data: z.infer<typeof systemFormSchema>) => {
-    toast({
-      title: "Settings updated",
-      description: "System settings have been updated successfully.",
-    });
-    console.log(data);
+  // Handle system settings form submission with enhanced functionality for testing
+  const onSystemSubmit = async (data: z.infer<typeof systemFormSchema>) => {
+    try {
+      // In a real app, we'd send these settings to an API
+      // Store system settings in localStorage for testing purposes
+      localStorage.setItem('systemSettings', JSON.stringify({
+        ...data,
+        updatedAt: new Date().toISOString()
+      }));
+      
+      toast({
+        title: "Settings updated",
+        description: "System settings have been saved and are ready for testing.",
+        duration: 5000,
+      });
+      
+      console.log("Updated system settings:", data);
+    } catch (error) {
+      console.error("Error updating system settings:", error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating system settings.",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -551,7 +604,7 @@ export default function SettingsPage() {
               </div>
               
               <div className="pt-4">
-                <Button>Save Preferences</Button>
+                <Button onClick={saveNotificationPreferences}>Save Preferences</Button>
               </div>
             </CardContent>
           </Card>
