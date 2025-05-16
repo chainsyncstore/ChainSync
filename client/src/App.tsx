@@ -173,6 +173,14 @@ function ProductImportRoute() {
   );
 }
 
+function AddProductRoute() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <ProtectedRoute component={AddProductPage} isManagerOrAdmin={true} />
+    </Suspense>
+  );
+}
+
 function AppRoutes() {
   return (
     <Switch>
@@ -192,6 +200,7 @@ function AppRoutes() {
       <Route path="/loyalty" component={LoyaltyRoute} />
       <Route path="/import" component={ImportRoute} />
       <Route path="/product-import" component={ProductImportRoute} />
+      <Route path="/add-product" component={AddProductRoute} />
       <Route path="/payment-testing" component={PaymentTestingRoute} />
       <Route path="/" component={DefaultRoute} />
       <Route component={NotFound} />

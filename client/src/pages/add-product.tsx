@@ -150,7 +150,7 @@ export default function AddProductPage() {
       form.reset();
       
       // Navigate to inventory page
-      navigate('/inventory');
+      setLocation('/inventory');
     },
     onError: (error: Error) => {
       toast({
@@ -172,7 +172,7 @@ export default function AddProductPage() {
           <h1 className="text-2xl font-bold text-neutral-800">Add New Product</h1>
           <p className="text-neutral-500 mt-1">Create a new product in your inventory</p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/inventory')}>
+        <Button variant="outline" onClick={() => setLocation('/inventory')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Inventory
         </Button>

@@ -23,9 +23,11 @@ export default function InventoryPage() {
         
         {user?.role !== 'cashier' && (
           <div className="flex space-x-2">
-            <Button>
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Add Product
+            <Button asChild>
+              <a href="/add-product">
+                <PlusIcon className="w-4 h-4 mr-2" />
+                Add Product
+              </a>
             </Button>
           </div>
         )}
