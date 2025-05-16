@@ -180,6 +180,43 @@ export default function SettingsPage() {
     }
   };
   
+  // Handle notification preferences saving
+  const saveNotificationPreferences = () => {
+    try {
+      // Store notification preferences in localStorage for testing
+      const notificationSettings = {
+        emailNotifications: {
+          lowStockAlerts,
+          salesSummary,
+          securityAlerts
+        },
+        inAppNotifications: {
+          salesMilestones,
+          inventoryAlerts,
+          userActivity
+        },
+        updatedAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('notificationPreferences', JSON.stringify(notificationSettings));
+      
+      toast({
+        title: "Notification preferences updated",
+        description: "Your notification preferences have been saved and are ready for testing.",
+        duration: 5000,
+      });
+      
+      console.log("Updated notification preferences:", notificationSettings);
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your notification preferences.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <AppShell>
       <div className="mb-6">
@@ -540,7 +577,10 @@ export default function SettingsPage() {
                         Receive emails when inventory items reach their minimum stock level
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={lowStockAlerts}
+                      onCheckedChange={setLowStockAlerts}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -550,7 +590,10 @@ export default function SettingsPage() {
                         Receive a daily summary of sales across all stores
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={salesSummary}
+                      onCheckedChange={setSalesSummary}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -560,7 +603,10 @@ export default function SettingsPage() {
                         Receive notifications about security events like login attempts
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={securityAlerts}
+                      onCheckedChange={setSecurityAlerts}
+                    />
                   </div>
                 </div>
               </div>
@@ -578,7 +624,10 @@ export default function SettingsPage() {
                         Receive notifications when sales targets are reached
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={salesMilestones}
+                      onCheckedChange={setSalesMilestones}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -588,7 +637,10 @@ export default function SettingsPage() {
                         Notifications for low stock, expiring items, and other inventory events
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={inventoryAlerts}
+                      onCheckedChange={setInventoryAlerts}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -598,7 +650,10 @@ export default function SettingsPage() {
                         Notifications about user logins and important account activities
                       </p>
                     </div>
-                    <Switch />
+                    <Switch 
+                      checked={userActivity}
+                      onCheckedChange={setUserActivity}
+                    />
                   </div>
                 </div>
               </div>
