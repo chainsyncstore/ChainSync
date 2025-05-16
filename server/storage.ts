@@ -1237,17 +1237,6 @@ export const storage = {
       throw error;
     }
   },
-      try {
-        // Get the loyalty member
-        const loyaltyMember = await this.getLoyaltyMemberById(transaction.loyaltyMemberId);
-        
-        if (loyaltyMember) {
-          // Get the loyalty program for this store
-          const loyaltyProgram = await this.getLoyaltyProgram(transaction.storeId);
-          
-          if (loyaltyProgram) {
-            // Calculate points based on transaction amount
-            const pointsRate = parseFloat(loyaltyProgram.pointsPerAmount || "0.01"); // Default to 1 point per $100 if not set
             const pointsEarned = parseFloat(transaction.total) * pointsRate;
             const pointsEarnedStr = pointsEarned.toString();
             
