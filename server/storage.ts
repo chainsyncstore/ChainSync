@@ -1480,5 +1480,96 @@ export const storage = {
     }
     
     return await query;
+  },
+  
+  // --------- AI Conversations ---------
+  async getAiConversation(userId: number) {
+    return await db.query.aiConversations.findFirst({
+      where: eq(schema.aiConversations.userId, userId),
+      orderBy: [desc(schema.aiConversations.lastUpdated)]
+    });
+  },
+  
+  async saveAiConversation(userId: number, messages: schema.DialogflowMessage[]) {
+    // First check if a conversation already exists
+    const existingConversation = await this.getAiConversation(userId);
+    
+    if (existingConversation) {
+      // Update existing conversation
+      const [updated] = await db.update(schema.aiConversations)
+        .set({
+          messages: messages,
+          lastUpdated: new Date()
+        })
+        .where(eq(schema.aiConversations.id, existingConversation.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new conversation
+      const [conversation] = await db.insert(schema.aiConversations)
+        .values({
+          userId,
+          messages,
+          lastUpdated: new Date(),
+          createdAt: new Date()
+        })
+        .returning();
+      return conversation;
+    }
+  },
+  
+  // --------- Analytics for AI ---------
+  async getStoreSalesComparison(days: number = 7) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const results = await db.query.stores.findMany({
+      with: {
+        transactions: {
+          where: gte(schema.transactions.createdAt, startDate),
+          columns: {
+            id: true,
+            total: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+    
+    // Format results for AI processing
+    return results.map(store => ({
+      storeName: store.name,
+      salesCount: store.transactions.length,
+      salesTotal: store.transactions.reduce((sum, t) => sum + parseFloat(t.total), 0),
+      salesAverage: store.transactions.length > 0 
+        ? store.transactions.reduce((sum, t) => sum + parseFloat(t.total), 0) / store.transactions.length 
+        : 0
+    }));
+  },
+  
+  async getDailySalesData(storeId: number, days: number = 7) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const transactions = await db.query.transactions.findMany({
+      where: and(
+        eq(schema.transactions.storeId, storeId),
+        gte(schema.transactions.createdAt, startDate)
+      ),
+      orderBy: [asc(schema.transactions.createdAt)]
+    });
+    
+    // Group by day
+    const dailyData: Record<string, {date: string, count: number, total: number}> = {};
+    transactions.forEach(t => {
+      const dateStr = t.createdAt.toISOString().split('T')[0];
+      if (!dailyData[dateStr]) {
+        dailyData[dateStr] = {date: dateStr, count: 0, total: 0};
+      }
+      dailyData[dateStr].count++;
+      dailyData[dateStr].total += parseFloat(t.total);
+    });
+    
+    return Object.values(dailyData);
   }
 };

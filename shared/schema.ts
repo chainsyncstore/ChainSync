@@ -939,3 +939,9 @@ export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
 export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
 
 export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
