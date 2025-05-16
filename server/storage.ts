@@ -944,6 +944,24 @@ export const storage = {
       }
     });
   },
+  
+  async createInventory(data: schema.InventoryInsert) {
+    const [newInventory] = await db.insert(schema.inventory)
+      .values(data)
+      .returning();
+      
+    return newInventory;
+  },
+  
+  async getInventoryItemById(inventoryId: number) {
+    return await db.query.inventory.findFirst({
+      where: eq(schema.inventory.id, inventoryId),
+      with: {
+        product: true,
+        batches: true
+      }
+    });
+  },
 
   async updateInventory(inventoryId: number, data: Partial<schema.InventoryInsert>) {
     const [updatedInventory] = await db.update(schema.inventory)
