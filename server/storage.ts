@@ -1063,6 +1063,49 @@ export const storage = {
     // Update the main inventory record
     await this.updateInventory(inventoryId, { totalQuantity });
   },
+  
+  async createBatchAuditLog(data: {
+    batchId: number,
+    userId: number,
+    action: string,
+    details: any,
+    quantityBefore?: number,
+    quantityAfter?: number
+  }) {
+    try {
+      const [logEntry] = await db.insert(schema.batchAuditLogs)
+        .values({
+          batchId: data.batchId,
+          userId: data.userId,
+          action: data.action,
+          details: data.details,
+          quantityBefore: data.quantityBefore,
+          quantityAfter: data.quantityAfter
+        })
+        .returning();
+        
+      return logEntry;
+    } catch (error) {
+      console.error("Error creating batch audit log:", error);
+      // Don't throw the error to prevent disrupting main operations
+    }
+  },
+  
+  async getBatchAuditLogs(batchId: number) {
+    return await db.query.batchAuditLogs.findMany({
+      where: eq(schema.batchAuditLogs.batchId, batchId),
+      orderBy: [desc(schema.batchAuditLogs.createdAt)],
+      with: {
+        user: {
+          columns: {
+            id: true,
+            username: true,
+            role: true
+          }
+        }
+      }
+    });
+  },
 
   async getInventoryBatchesByProduct(storeId: number, productId: number, includeExpired = false) {
     // First get the inventory record
