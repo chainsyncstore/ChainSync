@@ -1,341 +1,236 @@
-import { db } from "../../db";
-import * as schema from "@shared/schema";
-import { and, eq, gt, gte, isNull, lt, lte, or } from "drizzle-orm";
-import { storage } from "../storage";
+import { storage } from '../storage';
+import * as schema from '@shared/schema';
+import { db } from '@db';
+import { eq, and, desc } from 'drizzle-orm';
+
+export interface BatchInsertData {
+  inventoryId: number;
+  batchNumber: string;
+  quantity: number;
+  expiryDate: string | null;
+  receivedDate: string;
+  manufacturingDate: string | null;
+  costPerUnit: string | null;
+}
+
+export interface BatchStockAdjustment {
+  batchId: number;
+  quantity: number;
+  reason: string;
+}
+
+export interface BatchData {
+  id?: number;
+  storeId: number;
+  productId: number;
+  batchNumber: string;
+  quantity: number;
+  expiryDate?: string | null;
+  manufacturingDate?: string | null;
+  costPerUnit?: string | null;
+}
 
 /**
- * Helper service for managing batch-level inventory
- * This allows tracking different batches of the same product with different expiry dates
+ * Add a new inventory batch
  */
-
-/**
- * Add a new batch of inventory for a product
- */
-export async function addInventoryBatch(
-  storeId: number,
-  productId: number,
-  batchData: {
-    batchNumber: string;
-    quantity: number;
-    expiryDate?: Date | null;
-    manufacturingDate?: Date | null;
-    costPerUnit?: number;
-  }
-) {
+export async function addBatch(batchData: BatchData) {
   try {
-    // Get the inventory item for this product at this store
-    let inventory = await storage.getStoreProductInventory(storeId, productId);
+    // Check if inventory exists
+    let inventory = await storage.getStoreProductInventory(
+      batchData.storeId,
+      batchData.productId
+    );
 
-    // If no inventory record exists, create one
+    // Create inventory if it doesn't exist
     if (!inventory) {
-      const product = await storage.getProductById(productId);
-      if (!product) {
-        throw new Error(`Product with ID ${productId} not found`);
-      }
-
-      const store = await storage.getStoreById(storeId);
-      if (!store) {
-        throw new Error(`Store with ID ${storeId} not found`);
-      }
-
-      // Create a new inventory record
       inventory = await storage.createInventory({
-        storeId,
-        productId,
+        storeId: batchData.storeId,
+        productId: batchData.productId,
         totalQuantity: 0,
-        minimumLevel: 10 // Default minimum level
+        minimumLevel: 5
       });
     }
 
-    // Create the new batch
+    // Create batch
     const batch = await storage.createInventoryBatch({
       inventoryId: inventory.id,
       batchNumber: batchData.batchNumber,
       quantity: batchData.quantity,
-      expiryDate: batchData.expiryDate,
-      manufacturingDate: batchData.manufacturingDate,
-      costPerUnit: batchData.costPerUnit,
-      receivedDate: new Date()
+      expiryDate: batchData.expiryDate || null,
+      receivedDate: new Date().toISOString(),
+      manufacturingDate: batchData.manufacturingDate || null,
+      costPerUnit: batchData.costPerUnit?.toString() || null
     });
 
-    // Get the updated inventory record
-    const updatedInventory = await storage.getInventoryItemById(inventory.id);
-
-    return {
-      batch,
-      inventory: updatedInventory
-    };
+    // Update inventory total quantity
+    await storage.updateInventoryTotalQuantity(inventory.id);
+    
+    return batch;
   } catch (error) {
-    console.error("Error adding inventory batch:", error);
-    throw error;
+    console.error('Error adding batch:', error);
+    throw new Error('Failed to add inventory batch');
   }
 }
 
 /**
- * Get all batches for a product at a store
+ * Get all batches for a product in a store
  */
-export async function getProductBatches(
-  storeId: number,
-  productId: number,
-  includeExpired: boolean = false
-) {
+export async function getBatches(storeId: number, productId: number, includeExpired = false) {
   try {
-    // Get the inventory record
-    const inventory = await storage.getStoreProductInventory(storeId, productId);
-    
-    if (!inventory) {
-      return {
-        inventory: null,
-        batches: []
-      };
+    return await storage.getInventoryBatchesByProduct(storeId, productId, includeExpired);
+  } catch (error) {
+    console.error('Error getting batches:', error);
+    throw new Error('Failed to retrieve inventory batches');
+  }
+}
+
+/**
+ * Get a specific batch by ID
+ */
+export async function getBatchById(batchId: number) {
+  try {
+    return await storage.getInventoryBatchById(batchId);
+  } catch (error) {
+    console.error('Error getting batch by ID:', error);
+    throw new Error('Failed to retrieve inventory batch');
+  }
+}
+
+/**
+ * Update a batch's details
+ */
+export async function updateBatch(batchId: number, updateData: Partial<BatchInsertData>) {
+  try {
+    // Get the current batch to retrieve its inventory ID
+    const currentBatch = await storage.getInventoryBatchById(batchId);
+    if (!currentBatch) {
+      throw new Error('Batch not found');
     }
+
+    // Update batch
+    await storage.updateInventoryBatch(batchId, updateData);
+
+    // Update inventory total quantity
+    await storage.updateInventoryTotalQuantity(currentBatch.inventoryId);
+
+    return await storage.getInventoryBatchById(batchId);
+  } catch (error) {
+    console.error('Error updating batch:', error);
+    throw new Error('Failed to update inventory batch');
+  }
+}
+
+/**
+ * Adjust batch quantity (increase or decrease)
+ */
+export async function adjustBatchStock(adjustment: BatchStockAdjustment) {
+  try {
+    // Get the current batch
+    const currentBatch = await storage.getInventoryBatchById(adjustment.batchId);
+    if (!currentBatch) {
+      throw new Error('Batch not found');
+    }
+
+    // Calculate new quantity
+    const newQuantity = currentBatch.quantity + adjustment.quantity;
     
-    // Get all batches for this inventory
-    let batches = await db.query.inventoryBatches.findMany({
-      where: eq(schema.inventoryBatches.inventoryId, inventory.id)
+    // Ensure quantity doesn't go below zero
+    if (newQuantity < 0) {
+      throw new Error('Adjustment would result in negative stock');
+    }
+
+    // Update batch quantity
+    await storage.updateInventoryBatch(adjustment.batchId, { 
+      quantity: newQuantity 
     });
+
+    // Update inventory total quantity
+    await storage.updateInventoryTotalQuantity(currentBatch.inventoryId);
+
+    // TODO: In a more advanced version, we would log this adjustment
+    // with the reason in a stock_adjustments table
+
+    return await storage.getInventoryBatchById(adjustment.batchId);
+  } catch (error) {
+    console.error('Error adjusting batch stock:', error);
+    throw new Error('Failed to adjust batch stock');
+  }
+}
+
+/**
+ * Sell from a specific batch (reduce quantity)
+ */
+export async function sellFromBatch(batchId: number, quantity: number) {
+  try {
+    return await adjustBatchStock({
+      batchId,
+      quantity: -Math.abs(quantity), // Ensure quantity is negative for selling
+      reason: 'Sale'
+    });
+  } catch (error) {
+    console.error('Error selling from batch:', error);
+    throw new Error('Failed to sell from batch');
+  }
+}
+
+/**
+ * Return to a specific batch (increase quantity)
+ */
+export async function returnToBatch(batchId: number, quantity: number) {
+  try {
+    return await adjustBatchStock({
+      batchId,
+      quantity: Math.abs(quantity), // Ensure quantity is positive for returns
+      reason: 'Return'
+    });
+  } catch (error) {
+    console.error('Error returning to batch:', error);
+    throw new Error('Failed to process return to batch');
+  }
+}
+
+/**
+ * Automatically sell from batches using FIFO logic
+ * Prioritize batches closest to expiration first
+ */
+export async function sellFromBatchesFIFO(storeId: number, productId: number, quantity: number) {
+  try {
+    // Get all non-expired batches for this product, ordered by expiry date (ascending)
+    const batches = await storage.getInventoryBatchesByProduct(storeId, productId, false);
     
-    // Filter out expired batches if needed
-    if (!includeExpired) {
-      const today = new Date();
-      batches = batches.filter(batch => {
-        if (!batch.expiryDate) return true;
-        return new Date(batch.expiryDate) > today;
-      });
-    }
-    
-    // Sort by expiry date (soonest first)
-    batches.sort((a, b) => {
+    // Sort batches by expiry date (closest expiry first)
+    // Batches without expiry dates will go last
+    const sortedBatches = batches.sort((a, b) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
       if (!b.expiryDate) return -1;
       return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
     });
-    
-    return {
-      inventory,
-      batches
-    };
-  } catch (error) {
-    console.error("Error getting product batches:", error);
-    throw error;
-  }
-}
 
-/**
- * Sell a specified quantity of a product from inventory using FIFO
- * (First In, First Out) to prioritize batches with the soonest expiry dates
- */
-export async function sellProductFromBatches(
-  storeId: number,
-  productId: number,
-  quantity: number
-) {
-  try {
-    // Get the inventory record with batches
-    const { inventory, batches } = await getProductBatches(storeId, productId);
-    
-    if (!inventory) {
-      return {
-        success: false,
-        message: "Product not found in inventory"
-      };
-    }
-    
-    // Check if we have enough total quantity
-    if (inventory.totalQuantity < quantity) {
-      return {
-        success: false,
-        message: `Insufficient inventory. Required: ${quantity}, Available: ${inventory.totalQuantity}`
-      };
-    }
-    
-    // Check for expired batches that would block the sale
-    const expiredBatches = batches.filter(batch => {
-      if (!batch.expiryDate) return false;
-      return new Date(batch.expiryDate) < new Date();
-    });
-    
-    if (expiredBatches.length > 0 && expiredBatches.some(b => b.quantity > 0)) {
-      return {
-        success: false,
-        message: "Cannot sell expired products. Please remove expired batches from inventory."
-      };
-    }
-    
-    // Sort by expiry date (null dates at the end)
-    const validBatches = batches.filter(batch => {
-      if (!batch.expiryDate) return true;
-      return new Date(batch.expiryDate) >= new Date();
-    });
-    
-    validBatches.sort((a, b) => {
-      if (!a.expiryDate && !b.expiryDate) return 0;
-      if (!a.expiryDate) return 1;
-      if (!b.expiryDate) return -1;
-      return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
-    });
-    
-    let remainingQuantity = quantity;
-    const batchesSold = [];
-    
-    // Go through batches in order of expiry date (FIFO)
-    for (const batch of validBatches) {
-      if (remainingQuantity <= 0) break;
-      
-      // Calculate how much to take from this batch
-      const quantityFromBatch = Math.min(batch.quantity, remainingQuantity);
-      
-      if (quantityFromBatch > 0) {
-        // Update batch quantity
-        await storage.updateInventoryBatch(batch.id, {
-          quantity: batch.quantity - quantityFromBatch
-        });
-        
-        batchesSold.push({
-          batchId: batch.id,
-          quantity: quantityFromBatch,
-          expiryDate: batch.expiryDate
-        });
-        
-        remainingQuantity -= quantityFromBatch;
-      }
-    }
-    
-    // If we couldn't sell the full quantity, this is a logic error
-    if (remainingQuantity > 0) {
-      // Rollback all batch modifications
-      for (const soldItem of batchesSold) {
-        const batch = await storage.getInventoryBatchById(soldItem.batchId);
-        if (batch) {
-          await storage.updateInventoryBatch(batch.id, {
-            quantity: batch.quantity + soldItem.quantity
-          });
-        }
-      }
-      
-      return {
-        success: false,
-        message: "Failed to allocate product quantity from available batches. Please check inventory."
-      };
-    }
-    
-    return {
-      success: true,
-      batchesSold
-    };
-  } catch (error) {
-    console.error("Error selling product from batches:", error);
-    return {
-      success: false,
-      message: "Error processing inventory: " + error.message
-    };
-  }
-}
+    let remainingQty = quantity;
+    const updatedBatches = [];
 
-/**
- * Return a product to inventory, either to an existing batch or a new batch
- */
-export async function returnProductToBatch(
-  storeId: number,
-  productId: number,
-  quantity: number,
-  options?: {
-    batchId?: number;
-    expiryDate?: Date;
-    batchNumber?: string;
-  }
-) {
-  try {
-    // Get the inventory record
-    const inventory = await storage.getStoreProductInventory(storeId, productId);
-    
-    if (!inventory) {
-      // Need to create a new inventory record
-      const product = await storage.getProductById(productId);
-      if (!product) {
-        return {
-          success: false,
-          message: "Product not found"
-        };
+    // Iterate through batches to fulfill the quantity needed
+    for (const batch of sortedBatches) {
+      if (remainingQty <= 0) break;
+
+      const qtyToSell = Math.min(batch.quantity, remainingQty);
+      
+      if (qtyToSell > 0) {
+        // Sell from this batch
+        const updatedBatch = await sellFromBatch(batch.id, qtyToSell);
+        updatedBatches.push(updatedBatch);
+        remainingQty -= qtyToSell;
       }
-      
-      const store = await storage.getStoreById(storeId);
-      if (!store) {
-        return {
-          success: false,
-          message: "Store not found"
-        };
-      }
-      
-      // Create new inventory record
-      const newInventory = await storage.createInventory({
-        storeId,
-        productId,
-        totalQuantity: 0,
-        minimumLevel: 10
-      });
-      
-      // Create new batch
-      const batchNumber = options?.batchNumber || `RETURN-${Date.now()}`;
-      const newBatch = await storage.createInventoryBatch({
-        inventoryId: newInventory.id,
-        batchNumber,
-        quantity,
-        expiryDate: options?.expiryDate,
-        receivedDate: new Date()
-      });
-      
-      return {
-        success: true,
-        inventory: await storage.getInventoryItemById(newInventory.id),
-        batch: newBatch
-      };
     }
-    
-    // If a specific batch ID is provided, add the quantity back to that batch
-    if (options?.batchId) {
-      const batch = await storage.getInventoryBatchById(options.batchId);
-      
-      if (!batch || batch.inventoryId !== inventory.id) {
-        return {
-          success: false,
-          message: "Specified batch not found or doesn't belong to this product"
-        };
-      }
-      
-      // Add quantity back to batch
-      const updatedBatch = await storage.updateInventoryBatch(batch.id, {
-        quantity: batch.quantity + quantity
-      });
-      
-      return {
-        success: true,
-        inventory: await storage.getInventoryItemById(inventory.id),
-        batch: updatedBatch
-      };
+
+    if (remainingQty > 0) {
+      throw new Error(`Insufficient stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`);
     }
-    
-    // If no batch ID provided, create a new batch
-    const batchNumber = options?.batchNumber || `RETURN-${Date.now()}`;
-    const newBatch = await storage.createInventoryBatch({
-      inventoryId: inventory.id,
-      batchNumber,
-      quantity,
-      expiryDate: options?.expiryDate,
-      receivedDate: new Date()
-    });
-    
-    return {
-      success: true,
-      inventory: await storage.getInventoryItemById(inventory.id),
-      batch: newBatch
-    };
+
+    return updatedBatches;
   } catch (error) {
-    console.error("Error returning product to batch:", error);
-    return {
-      success: false,
-      message: "Error processing inventory return: " + error.message
-    };
+    console.error('Error selling with FIFO logic:', error);
+    throw new Error('Failed to process sale with FIFO logic');
   }
 }

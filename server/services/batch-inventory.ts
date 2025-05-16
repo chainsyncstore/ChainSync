@@ -1,172 +1,243 @@
-import { db } from "../../db";
-import * as schema from "@shared/schema";
-import { and, eq, gt, lt, sql } from "drizzle-orm";
-import { storage } from "../storage";
+import { parse } from 'csv-parse/sync';
+import { storage } from '../storage';
+import * as schema from '@shared/schema';
+import { db } from '@db';
+import { eq, and } from 'drizzle-orm';
+import * as fs from 'fs';
+
+interface BatchImportData {
+  product_name: string;
+  sku: string;
+  category: string;
+  batch_id: string;
+  quantity: string;
+  expiry_date?: string;
+  unit_price?: string;
+  store_id: string;
+  manufacturing_date?: string;
+}
+
+interface ValidationError {
+  row: number;
+  errors: string[];
+}
+
+interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+  data: BatchImportData[];
+}
+
+interface ImportResult {
+  success: boolean;
+  message: string;
+  errors?: string[];
+  results?: {
+    imported: number;
+    failed: number;
+  };
+}
 
 /**
- * Handles selling items using FIFO (First In, First Out) approach
- * This ensures that the items with the soonest expiry dates are sold first
+ * Parse and validate a CSV file for batch inventory import
+ * @param filePath Path to the CSV file
  */
-export async function sellProductFromBatches(
-  storeId: number,
-  productId: number, 
-  quantity: number
-): Promise<{ success: boolean; message?: string; batchesSold?: any[] }> {
+export async function validateBatchImportFile(filePath: string): Promise<ValidationResult> {
   try {
-    // Get the inventory item
-    const inventory = await storage.getStoreProductInventory(storeId, productId);
-    
-    if (!inventory) {
-      return {
-        success: false,
-        message: `Product not found in store inventory`
-      };
-    }
-    
-    // Check if there's enough total quantity
-    if (inventory.totalQuantity < quantity) {
-      return {
-        success: false,
-        message: `Not enough inventory. Required: ${quantity}, Available: ${inventory.totalQuantity}`
-      };
-    }
-
-    // Get all batches for this product in this store
-    const batches = await storage.getInventoryBatchesByProduct(storeId, productId);
-    
-    // Sort batches by expiry date (FIFO - soonest expiry first)
-    const sortedBatches = [...batches].sort((a, b) => {
-      // Non-expired batches first
-      if (!a.expiryDate && !b.expiryDate) return 0;
-      if (!a.expiryDate) return 1; // Items without expiry date go last
-      if (!b.expiryDate) return -1;
-      
-      // Sort by expiry date
-      return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const records = parse(fileContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true
     });
 
-    // Filter out expired batches
-    const today = new Date();
-    const validBatches = sortedBatches.filter(batch => {
-      if (!batch.expiryDate) return true;
-      return new Date(batch.expiryDate) >= today;
-    });
+    const requiredFields = ['product_name', 'sku', 'batch_id', 'quantity', 'store_id'];
+    const errors: ValidationError[] = [];
+    const validRecords: BatchImportData[] = [];
 
-    if (validBatches.length === 0) {
-      return {
-        success: false,
-        message: "No valid inventory batches available"
-      };
-    }
+    records.forEach((record: any, index: number) => {
+      const rowErrors: string[] = [];
 
-    // Allocate quantity from batches
-    let remainingQuantity = quantity;
-    const batchSales = [];
-
-    for (const batch of validBatches) {
-      if (remainingQuantity <= 0) break;
-      
-      const quantityFromBatch = Math.min(batch.quantity, remainingQuantity);
-      
-      if (quantityFromBatch > 0) {
-        // Update batch quantity
-        await storage.updateInventoryBatch(batch.id, {
-          quantity: batch.quantity - quantityFromBatch
-        });
-        
-        batchSales.push({
-          batchId: batch.id,
-          quantity: quantityFromBatch,
-          batchNumber: batch.batchNumber,
-          expiryDate: batch.expiryDate
-        });
-        
-        remainingQuantity -= quantityFromBatch;
-      }
-    }
-
-    // If we weren't able to allocate all quantity, rollback
-    if (remainingQuantity > 0) {
-      // Revert all the batch quantity changes
-      for (const sale of batchSales) {
-        const batch = await storage.getInventoryBatchById(sale.batchId);
-        if (batch) {
-          await storage.updateInventoryBatch(batch.id, {
-            quantity: batch.quantity + sale.quantity
-          });
+      // Check required fields
+      requiredFields.forEach(field => {
+        if (!record[field] || record[field].trim() === '') {
+          rowErrors.push(`Missing required field: ${field}`);
         }
+      });
+
+      // Validate quantity is a positive number
+      if (record.quantity && !/^\d+$/.test(record.quantity)) {
+        rowErrors.push('Quantity must be a positive number');
+      } else if (record.quantity && parseInt(record.quantity) <= 0) {
+        rowErrors.push('Quantity must be greater than zero');
       }
-      
-      return {
-        success: false,
-        message: `Could not allocate full quantity from available batches. Please check inventory.`
-      };
-    }
+
+      // Validate expiry_date format if present
+      if (record.expiry_date && !isValidDate(record.expiry_date)) {
+        rowErrors.push('Invalid expiry date format (should be YYYY-MM-DD)');
+      }
+
+      // Validate manufacturing_date format if present
+      if (record.manufacturing_date && !isValidDate(record.manufacturing_date)) {
+        rowErrors.push('Invalid manufacturing date format (should be YYYY-MM-DD)');
+      }
+
+      // Validate unit_price is a valid decimal if present
+      if (record.unit_price && !/^\d+(\.\d{1,2})?$/.test(record.unit_price)) {
+        rowErrors.push('Unit price must be a valid decimal number (e.g., 10.99)');
+      }
+
+      // Validate store_id is a number
+      if (record.store_id && !/^\d+$/.test(record.store_id)) {
+        rowErrors.push('Store ID must be a number');
+      }
+
+      if (rowErrors.length > 0) {
+        errors.push({
+          row: index + 2, // +2 because index is 0-based and we have a header row
+          errors: rowErrors
+        });
+      } else {
+        validRecords.push(record as BatchImportData);
+      }
+    });
 
     return {
-      success: true,
-      batchesSold: batchSales
+      valid: errors.length === 0,
+      errors,
+      data: validRecords
     };
   } catch (error) {
-    console.error(`Error selling product from batches:`, error);
+    console.error('Error validating batch import file:', error);
     return {
-      success: false,
-      message: `Error processing inventory: ${error.message}`
+      valid: false,
+      errors: [{
+        row: 0,
+        errors: ['Failed to parse CSV file. Make sure it has the correct format.']
+      }],
+      data: []
     };
   }
 }
 
 /**
- * Handles returning items to inventory by adding to existing batches or creating new batches
+ * Import batch inventory data from validated records
+ * @param data Validated batch data records
  */
-export async function returnProductToBatches(
-  storeId: number,
-  productId: number,
-  quantity: number,
-  expiryDate?: Date
-): Promise<{ success: boolean; message?: string; batchId?: number }> {
-  try {
-    // Check if the product exists
-    const product = await storage.getProductById(productId);
-    if (!product) {
-      return {
-        success: false,
-        message: `Product with ID ${productId} not found`
-      };
-    }
+export async function importBatchInventory(data: BatchImportData[]): Promise<ImportResult> {
+  let imported = 0;
+  let failed = 0;
+  const errors: string[] = [];
 
-    // Get or create inventory record
-    let inventory = await storage.getStoreProductInventory(storeId, productId);
-    
-    if (!inventory) {
-      // Create a new inventory record
-      inventory = await storage.createInventory({
-        storeId,
-        productId,
-        totalQuantity: 0,
-        minimumLevel: 10 // Default value
+  for (const record of data) {
+    try {
+      // Find or create product
+      let product = await db.query.products.findFirst({
+        where: and(
+          eq(schema.products.sku, record.sku)
+        )
       });
+
+      if (!product) {
+        // Find or create category
+        let category = await db.query.categories.findFirst({
+          where: eq(schema.categories.name, record.category)
+        });
+
+        if (!category) {
+          const [newCategory] = await db.insert(schema.categories)
+            .values({ name: record.category })
+            .returning();
+          category = newCategory;
+        }
+
+        // Create product
+        const [newProduct] = await db.insert(schema.products)
+          .values({
+            name: record.product_name,
+            sku: record.sku,
+            price: record.unit_price || '0',
+            categoryId: category.id
+          })
+          .returning();
+        product = newProduct;
+      }
+
+      // Find or create inventory
+      let inventory = await storage.getStoreProductInventory(
+        parseInt(record.store_id),
+        product.id
+      );
+
+      if (!inventory) {
+        inventory = await storage.createInventory({
+          storeId: parseInt(record.store_id),
+          productId: product.id,
+          totalQuantity: 0,
+          minimumLevel: 5
+        });
+      }
+
+      // Create batch
+      await storage.createInventoryBatch({
+        inventoryId: inventory.id,
+        batchNumber: record.batch_id,
+        quantity: parseInt(record.quantity),
+        expiryDate: record.expiry_date || null,
+        receivedDate: new Date().toISOString(),
+        manufacturingDate: record.manufacturing_date || null,
+        costPerUnit: record.unit_price || null
+      });
+
+      // Update inventory total quantity
+      await storage.updateInventoryTotalQuantity(inventory.id);
+      
+      imported++;
+    } catch (error) {
+      failed++;
+      errors.push(`Row with product ${record.product_name} (SKU: ${record.sku}): ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
 
-    // Create a new batch for the returned items
-    const batchNumber = `RETURN-${Date.now()}`;
-    const batch = await storage.createInventoryBatch({
-      inventoryId: inventory.id,
-      batchNumber,
-      quantity,
-      expiryDate,
-      receivedDate: new Date()
-    });
-
+  if (failed === 0) {
     return {
       success: true,
-      batchId: batch.id
+      message: `Successfully imported ${imported} batch records.`,
+      results: { imported, failed }
     };
-  } catch (error) {
-    console.error(`Error returning product to inventory:`, error);
+  } else {
     return {
-      success: false,
-      message: `Error processing return: ${error.message}`
+      success: imported > 0,
+      message: `Imported ${imported} records with ${failed} failures.`,
+      errors,
+      results: { imported, failed }
     };
+  }
+}
+
+/**
+ * Check if a string is a valid date in YYYY-MM-DD format
+ */
+function isValidDate(dateString: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
+  
+  const date = new Date(dateString);
+  return !isNaN(date.getTime());
+}
+
+/**
+ * Get batches for a specific product in a store
+ */
+export async function getProductBatches(storeId: number, productId: number, includeExpired: boolean = false) {
+  try {
+    const inventory = await storage.getStoreProductInventory(storeId, productId);
+    if (!inventory) {
+      return [];
+    }
+    
+    return await storage.getInventoryBatchesByProduct(storeId, productId, includeExpired);
+  } catch (error) {
+    console.error('Error getting product batches:', error);
+    throw new Error('Failed to retrieve product batches');
   }
 }
