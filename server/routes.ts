@@ -3476,6 +3476,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Validate expiry date if provided
+      if (expiryDate) {
+        const expiryDateObj = new Date(expiryDate);
+        const today = new Date();
+        
+        if (isNaN(expiryDateObj.getTime())) {
+          return res.status(400).json({
+            message: 'Invalid expiry date format'
+          });
+        }
+        
+        if (expiryDateObj < today) {
+          return res.status(400).json({
+            message: 'Expiry date cannot be in the past'
+          });
+        }
+      }
+      
+      // Get product details for the audit log
+      const product = await storage.getProductById(parseInt(productId));
+      if (!product) {
+        return res.status(404).json({
+          message: 'Product not found'
+        });
+      }
+      
+      // Get store details for the audit log
+      const store = await storage.getStoreById(parseInt(storeId));
+      if (!store) {
+        return res.status(404).json({
+          message: 'Store not found'
+        });
+      }
+      
       const batchService = await import('./services/inventory-batch');
       const newBatch = await batchService.addBatch({
         storeId: parseInt(storeId),
@@ -3485,6 +3519,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiryDate,
         manufacturingDate,
         costPerUnit
+      });
+      
+      // Create audit log entry
+      await storage.createBatchAuditLog({
+        batchId: newBatch.id,
+        userId: req.session.userId,
+        action: 'create',
+        details: {
+          batchNumber,
+          productName: product.name,
+          storeName: store.name,
+          expiryDate: expiryDate || 'Not specified'
+        },
+        quantityBefore: 0,
+        quantityAfter: parseInt(quantity)
       });
       
       return res.status(201).json(newBatch);
@@ -3537,6 +3586,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Get the current batch for audit logging and validation
+      const currentBatch = await storage.getInventoryBatchById(batchId);
+      if (!currentBatch) {
+        return res.status(404).json({
+          message: 'Batch not found'
+        });
+      }
+      
       const { quantity, expiryDate, costPerUnit } = req.body;
       const updateData: Record<string, any> = {};
       
@@ -3550,6 +3607,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (expiryDate !== undefined) {
+        // Validate expiry date if provided
+        if (expiryDate) {
+          const expiryDateObj = new Date(expiryDate);
+          const today = new Date();
+          
+          if (isNaN(expiryDateObj.getTime())) {
+            return res.status(400).json({
+              message: 'Invalid expiry date format'
+            });
+          }
+          
+          if (expiryDateObj < today) {
+            return res.status(400).json({
+              message: 'Expiry date cannot be in the past'
+            });
+          }
+        }
         updateData.expiryDate = expiryDate;
       }
       
@@ -3557,8 +3631,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.costPerUnit = costPerUnit;
       }
       
+      // Get inventory details for the audit log
+      const inventory = await storage.getInventoryItemById(currentBatch.inventoryId);
+      if (!inventory) {
+        return res.status(404).json({
+          message: 'Inventory record not found'
+        });
+      }
+      
+      // Get product details for the audit log
+      const product = await storage.getProductById(inventory.productId);
+      
       const batchService = await import('./services/inventory-batch');
       const updatedBatch = await batchService.updateBatch(batchId, updateData);
+      
+      // Create audit log entry
+      await storage.createBatchAuditLog({
+        batchId: updatedBatch.id,
+        userId: req.session.userId,
+        action: 'update',
+        details: {
+          batchNumber: updatedBatch.batchNumber,
+          productName: product ? product.name : 'Unknown Product',
+          changes: Object.keys(updateData).map(key => ({
+            field: key,
+            oldValue: currentBatch[key],
+            newValue: updateData[key]
+          }))
+        },
+        quantityBefore: quantity !== undefined ? currentBatch.quantity : undefined,
+        quantityAfter: quantity !== undefined ? parseInt(quantity) : undefined
+      });
       
       return res.json(updatedBatch);
     } catch (error) {
