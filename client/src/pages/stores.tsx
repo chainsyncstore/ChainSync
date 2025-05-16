@@ -291,7 +291,7 @@ export default function StoresPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stores && Array.isArray(stores) ? stores.map((store: any) => (
+          {Array.isArray(stores) ? stores.map((store: any) => (
             <Card key={store.id}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -308,7 +308,7 @@ export default function StoresPage() {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-sm">
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{store.address}, {store.city}, {store.state} {store.zipCode}</span>
+                    <span className="break-words">{store.address}, {store.city}, {store.state} {store.zipCode}</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -327,7 +327,11 @@ export default function StoresPage() {
                 </Button>
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No stores found. Add a store to get started.
+            </div>
+          )}
         </div>
       )}
     </AppShell>

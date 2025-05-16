@@ -247,11 +247,11 @@ export default function AddProductPage() {
                               Loading categories...
                             </SelectItem>
                           ) : (
-                            categories?.map((category: any) => (
+                            categories && Array.isArray(categories) ? categories.map((category: any) => (
                               <SelectItem key={category.id} value={category.id.toString()}>
                                 {category.name}
                               </SelectItem>
-                            ))
+                            )) : <SelectItem value="none">No categories available</SelectItem>
                           )}
                         </SelectContent>
                       </Select>
@@ -377,11 +377,11 @@ export default function AddProductPage() {
                                 Loading stores...
                               </SelectItem>
                             ) : (
-                              stores?.map((store: any) => (
+                              stores && Array.isArray(stores) ? stores.map((store: any) => (
                                 <SelectItem key={store.id} value={store.id.toString()}>
                                   {store.name}
                                 </SelectItem>
-                              ))
+                              )) : <SelectItem value="none">No stores available</SelectItem>
                             )}
                           </SelectContent>
                         </Select>
