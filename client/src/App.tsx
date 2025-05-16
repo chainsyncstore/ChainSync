@@ -22,6 +22,7 @@ import PaymentTestingPage from "@/pages/payment-testing";
 import LoyaltyPage from "@/pages/loyalty";
 import ImportPage from "@/pages/import";
 import ProductImportPage from "@/pages/product-import";
+import AddProductPage from "@/pages/add-product";
 
 // Protected route component
 function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
