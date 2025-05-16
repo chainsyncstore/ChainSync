@@ -211,7 +211,14 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
           )}
         />
         
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-between pt-4">
+          <Button 
+            type="button"
+            variant="outline"
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </Button>
           <Button type="submit" disabled={createStoreMutation.isPending}>
             {createStoreMutation.isPending ? (
               <>
@@ -252,7 +259,7 @@ export default function StoresPage() {
                   Add New Store
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Add New Store</DialogTitle>
                   <DialogDescription>
