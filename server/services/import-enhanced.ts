@@ -874,9 +874,19 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
 
 // Generate error report for failed imports
 export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 'inventory'): string {
-  const rows = [
+  const timestamp = result.lastUpdated ? new Date(result.lastUpdated).toLocaleString() : new Date().toLocaleString();
+  const headerInfo = [
+    [`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} Data Import Error Report`],
+    [`Generated: ${timestamp}`],
+    [`Total Rows: ${result.totalRows}`],
+    [`Successfully Imported: ${result.importedRows}`],
+    [`Failed: ${result.totalRows - result.importedRows}`],
+    [''],
     ['Row', 'Field', 'Value', 'Error Reason']
   ];
+  
+  // Start with header rows
+  const rows = [...headerInfo];
   
   // Add errors to report
   result.errors.forEach(error => {
@@ -898,11 +908,20 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
     ]);
   });
   
-  // Sort by row number
-  rows.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+  // Sort data rows by row number (preserve header rows)
+  const headerRows = rows.slice(0, 7); // First 7 rows are header info
+  const dataRows = rows.slice(7).sort((a: any[], b: any[]) => {
+    // Check if the values are parseable numbers
+    const numA = !isNaN(parseInt(a[0])) ? parseInt(a[0]) : 0;
+    const numB = !isNaN(parseInt(b[0])) ? parseInt(b[0]) : 0;
+    return numA - numB;
+  });
+  
+  // Combine header and sorted data rows
+  const sortedRows = [...headerRows, ...dataRows];
   
   // Convert to CSV
-  return csvStringify(rows);
+  return csvStringify(sortedRows);
 }
 
 // This function analyzes the headers and suggests mappings
