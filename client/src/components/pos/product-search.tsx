@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Barcode, ShoppingBag, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import { debounce } from '@/lib/utils';
+import BarcodeScanner from './barcode-scanner';
 
 interface ProductSearchProps {
   onProductSelect: (product: any) => void;
@@ -16,19 +16,12 @@ interface ProductSearchProps {
 
 export function ProductSearch({ onProductSelect }: ProductSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [barcode, setBarcode] = useState('');
   const [activeTab, setActiveTab] = useState('search');
   
   // Search products query
   const searchQuery = useQuery({
     queryKey: ['/api/products/search', { q: searchTerm }],
     enabled: searchTerm.length >= 2,
-  });
-  
-  // Barcode lookup query
-  const barcodeQuery = useQuery({
-    queryKey: ['/api/products/barcode', barcode],
-    enabled: false, // Only triggered manually
   });
   
   // Popular products query
@@ -54,36 +47,6 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     debouncedSearch(e.target.value);
   };
-  
-  // Handle barcode submission
-  const handleBarcodeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!barcode) return;
-    
-    barcodeQuery.refetch().then(({ data }) => {
-      if (data) {
-        onProductSelect(data);
-        setBarcode('');
-      }
-    });
-  };
-  
-  // Automatically handle barcode scanner input (typically ends with Enter)
-  const handleBarcodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleBarcodeSubmit(e as unknown as React.FormEvent);
-    }
-  };
-  
-  // Focus barcode input when tab changes
-  useEffect(() => {
-    if (activeTab === 'barcode') {
-      const barcodeInput = document.getElementById('barcode-input');
-      if (barcodeInput) {
-        barcodeInput.focus();
-      }
-    }
-  }, [activeTab]);
   
   // Get products to display
   const getProductsToDisplay = () => {
@@ -176,61 +139,30 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
             </div>
           </TabsContent>
           
-          <TabsContent value="barcode">
-            <form onSubmit={handleBarcodeSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="barcode-input">Scan or enter product barcode</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="barcode-input"
-                    value={barcode}
-                    onChange={(e) => setBarcode(e.target.value)}
-                    onKeyDown={handleBarcodeKeyDown}
-                    placeholder="Enter barcode number"
-                    className="flex-1"
-                    autoComplete="off"
-                  />
-                  <Button 
-                    type="submit" 
-                    disabled={!barcode || barcodeQuery.isFetching}
-                  >
-                    {barcodeQuery.isFetching ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+          <TabsContent value="barcode" className="space-y-4">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Scan Product Barcode</h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Simply scan a barcode with your scanner or type it in below.
+                  The input field is always focused and ready to receive input.
+                </p>
+                <BarcodeScanner 
+                  onProductFound={onProductSelect} 
+                  disabled={activeTab !== 'barcode'} 
+                />
               </div>
               
-              {barcodeQuery.isError && (
-                <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-                  Product with barcode "{barcode}" not found
-                </div>
-              )}
-              
-              {barcodeQuery.data && (
-                <div className="border rounded-md p-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{barcodeQuery.data.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {barcodeQuery.data.category?.name} • Barcode: {barcodeQuery.data.barcode}
-                      </p>
-                    </div>
-                    <div className="text-lg font-bold">
-                      {formatCurrency(barcodeQuery.data.price)}
-                    </div>
-                  </div>
-                  <Button 
-                    className="w-full mt-3" 
-                    onClick={() => onProductSelect(barcodeQuery.data)}
-                  >
-                    Add to Cart
-                  </Button>
-                </div>
-              )}
-            </form>
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-medium mb-2">Scanning Tips</h3>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• Make sure the barcode scanner is connected and powered on</li>
+                  <li>• Position the scanner 4-8 inches from the barcode</li>
+                  <li>• For manual entry, type the barcode and press Enter</li>
+                  <li>• Successful scans will be automatically added to cart</li>
+                </ul>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>
