@@ -100,15 +100,13 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   transactionItems: many(transactionItems),
 }));
 
-// Inventory
+// Inventory (master record for each product in a store)
 export const inventory = pgTable("inventory", {
   id: serial("id").primaryKey(),
   storeId: integer("store_id").references(() => stores.id).notNull(),
   productId: integer("product_id").references(() => products.id).notNull(),
-  quantity: integer("quantity").notNull().default(0),
+  totalQuantity: integer("total_quantity").notNull().default(0), // Sum of all batch quantities
   minimumLevel: integer("minimum_level").notNull().default(10),
-  batchNumber: text("batch_number"),
-  expiryDate: timestamp("expiry_date"),
   lastStockUpdate: timestamp("last_stock_update").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -118,7 +116,21 @@ export const inventory = pgTable("inventory", {
   }
 });
 
-export const inventoryRelations = relations(inventory, ({ one }) => ({
+// Inventory Batches - tracking different batches with their expiry dates
+export const inventoryBatches = pgTable("inventory_batches", {
+  id: serial("id").primaryKey(),
+  inventoryId: integer("inventory_id").references(() => inventory.id).notNull(),
+  batchNumber: text("batch_number").notNull(),
+  quantity: integer("quantity").notNull().default(0),
+  expiryDate: timestamp("expiry_date"),
+  manufacturingDate: timestamp("manufacturing_date"),
+  costPerUnit: decimal("cost_per_unit", { precision: 10, scale: 2 }),
+  receivedDate: timestamp("received_date").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const inventoryRelations = relations(inventory, ({ one, many }) => ({
   store: one(stores, {
     fields: [inventory.storeId],
     references: [stores.id],
@@ -126,6 +138,14 @@ export const inventoryRelations = relations(inventory, ({ one }) => ({
   product: one(products, {
     fields: [inventory.productId],
     references: [products.id],
+  }),
+  batches: many(inventoryBatches),
+}));
+
+export const inventoryBatchesRelations = relations(inventoryBatches, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryBatches.inventoryId],
+    references: [inventory.id],
   }),
 }));
 
@@ -247,10 +267,13 @@ export const transactionItems = pgTable("transaction_items", {
   id: serial("id").primaryKey(),
   transactionId: integer("transaction_id").references(() => transactions.id).notNull(),
   productId: integer("product_id").references(() => products.id).notNull(),
+  batchId: integer("batch_id").references(() => inventoryBatches.id),
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   returnedQuantity: integer("returned_quantity").default(0),
+  expiryDate: timestamp("expiry_date"), // Store the expiry date at time of sale for reference
+  batchNumber: text("batch_number"), // Store the batch number at time of sale for reference
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -262,6 +285,10 @@ export const transactionItemsRelations = relations(transactionItems, ({ one }) =
   product: one(products, {
     fields: [transactionItems.productId],
     references: [products.id],
+  }),
+  batch: one(inventoryBatches, {
+    fields: [transactionItems.batchId],
+    references: [inventoryBatches.id],
   }),
 }));
 
@@ -332,11 +359,21 @@ export const productInsertSchema = createInsertSchema(products, {
 });
 
 export const inventoryInsertSchema = createInsertSchema(inventory, {
-  quantity: (schema) => schema.refine(val => val >= 0, {
-    message: "Quantity must be a positive number"
+  totalQuantity: (schema) => schema.refine(val => val >= 0, {
+    message: "Total quantity must be a positive number"
   }),
   minimumLevel: (schema) => schema.refine(val => val >= 0, {
     message: "Minimum level must be a positive number"
+  }),
+});
+
+export const inventoryBatchInsertSchema = createInsertSchema(inventoryBatches, {
+  batchNumber: (schema) => schema.min(1, "Batch number is required"),
+  quantity: (schema) => schema.refine(val => val >= 0, {
+    message: "Quantity must be a positive number"
+  }),
+  costPerUnit: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+    message: "Cost per unit must be a positive number"
   }),
 });
 
@@ -424,6 +461,9 @@ export type ProductInsert = z.infer<typeof productInsertSchema>;
 
 export type Inventory = typeof inventory.$inferSelect;
 export type InventoryInsert = z.infer<typeof inventoryInsertSchema>;
+
+export type InventoryBatch = typeof inventoryBatches.$inferSelect;
+export type InventoryBatchInsert = z.infer<typeof inventoryBatchInsertSchema>;
 
 export type Supplier = typeof suppliers.$inferSelect;
 export type SupplierInsert = typeof suppliers.$inferSelect;
