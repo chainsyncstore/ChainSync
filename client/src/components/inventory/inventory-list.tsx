@@ -80,6 +80,16 @@ export function InventoryList() {
       : ''
   );
   
+  // State for minimum level dialog
+  const [minLevelDialogOpen, setMinLevelDialogOpen] = useState(false);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<{
+    id: number;
+    productId: number;
+    productName: string;
+    currentQuantity: number;
+    minimumLevel: number;
+  } | null>(null);
+  
   // Fetch inventory data
   const { data: inventoryData, isLoading: isLoadingInventory, refetch } = useQuery<InventoryItem[]>({
     queryKey: ['/api/inventory', { storeId: storeId ? parseInt(storeId) : undefined }],
@@ -287,9 +297,32 @@ export function InventoryList() {
                     {user?.role !== 'cashier' && (
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            Update
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedInventoryItem({
+                                      id: item.id,
+                                      productId: item.product.id,
+                                      productName: item.product.name,
+                                      currentQuantity: item.quantity,
+                                      minimumLevel: item.minimumLevel
+                                    });
+                                    setMinLevelDialogOpen(true);
+                                  }}
+                                >
+                                  <Settings className="w-4 h-4 mr-1" />
+                                  Min Level
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Set minimum stock level alert threshold
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
                     )}
@@ -299,7 +332,33 @@ export function InventoryList() {
             </TableBody>
           </Table>
         </div>
+        
+        {/* Visual indicator for stock level thresholds */}
+        <div className="mt-4 flex flex-col sm:flex-row gap-3 items-start">
+          <div className="text-sm font-medium">Stock Level Indicators:</div>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center">
+              <Badge variant="destructive">Out of Stock</Badge>
+              <span className="ml-2 text-sm text-muted-foreground">Quantity = 0</span>
+            </div>
+            <div className="flex items-center">
+              <Badge variant="destructive">Low Stock</Badge>
+              <span className="ml-2 text-sm text-muted-foreground">Quantity &le; Minimum Level</span>
+            </div>
+            <div className="flex items-center">
+              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">In Stock</Badge>
+              <span className="ml-2 text-sm text-muted-foreground">Quantity &gt; Minimum Level</span>
+            </div>
+          </div>
+        </div>
       </CardContent>
+      
+      {/* Minimum level dialog */}
+      <MinimumLevelDialog 
+        open={minLevelDialogOpen} 
+        onOpenChange={setMinLevelDialogOpen}
+        inventoryItem={selectedInventoryItem}
+      />
     </Card>
   );
 }

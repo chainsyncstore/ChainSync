@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
+  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import {
   Table,
@@ -18,20 +19,26 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ArrowUpRight } from 'lucide-react';
-import { Link } from 'wouter';
 import { useAuth } from '@/providers/auth-provider';
-import { formatNumber } from '@/lib/utils';
+import { Settings, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { MinimumLevelDialog } from './minimum-level-dialog';
+import { Link } from 'wouter';
 
-interface LowStockItem {
+interface Product {
+  id: number;
+  name: string;
+  barcode: string;
+  category: {
+    id: number;
+    name: string;
+  };
+}
+
+interface InventoryItem {
   id: number;
   quantity: number;
   minimumLevel: number;
-  product: {
-    id: number;
-    name: string;
-    barcode: string;
-  };
+  product: Product;
   store: {
     id: number;
     name: string;
@@ -40,32 +47,42 @@ interface LowStockItem {
 
 export function LowStockAlerts() {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const [minLevelDialogOpen, setMinLevelDialogOpen] = useState(false);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<{
+    id: number;
+    productId: number;
+    productName: string;
+    currentQuantity: number;
+    minimumLevel: number;
+  } | null>(null);
   
-  const { data, isLoading } = useQuery<LowStockItem[]>({
-    queryKey: ['/api/inventory/low-stock', { storeId: !isAdmin ? user?.storeId : undefined }],
-    refetchInterval: 60000, // Refetch every minute to keep alerts current
+  // Get query parameter for store ID (admin can view specific store)
+  const storeIdParam = user?.role === 'admin' 
+    ? undefined 
+    : user?.storeId;
+  
+  const { data: lowStockItems, isLoading, refetch } = useQuery<InventoryItem[]>({
+    queryKey: ['/api/inventory/low-stock', { storeId: storeIdParam }],
   });
-
+  
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <Skeleton className="h-6 w-40 mb-2" />
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <Skeleton className="h-7 w-40 mb-2" />
           <Skeleton className="h-4 w-64" />
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="divide-y">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="space-y-1">
-                    <Skeleton className="h-4 w-40" />
-                    <Skeleton className="h-3 w-24" />
+              <div key={i} className="py-3">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <Skeleton className="h-5 w-32 mb-1" />
+                    <Skeleton className="h-4 w-20" />
                   </div>
+                  <Skeleton className="h-8 w-16" />
                 </div>
-                <Skeleton className="h-8 w-16" />
               </div>
             ))}
           </div>
@@ -73,98 +90,107 @@ export function LowStockAlerts() {
       </Card>
     );
   }
-
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-medium flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2 text-green-500" />
-            Inventory Status
-          </CardTitle>
-          <CardDescription>
-            All products are well-stocked
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="rounded-full bg-green-100 p-3 mb-4">
-              <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              There are no low stock items at this time.
-            </p>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/inventory">
-                <span>View All Inventory</span>
-                <ArrowUpRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  
+  const itemCount = lowStockItems?.length || 0;
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-medium flex items-center">
-          <AlertTriangle className="w-5 h-5 mr-2 text-amber-500" />
-          Low Stock Alerts
-        </CardTitle>
-        <CardDescription>
-          {data.length} {data.length === 1 ? 'product needs' : 'products need'} attention 
-          {!isAdmin && user?.storeId ? ' in your store' : ''}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="max-h-[300px] overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Store</TableHead>
-                <TableHead className="text-right">Current</TableHead>
-                <TableHead className="text-right">Minimum</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.isArray(data) && data.map((item: LowStockItem) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">
-                    {item.product.name}
-                  </TableCell>
-                  <TableCell>{item.store.name}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    {formatNumber(item.quantity)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {formatNumber(item.minimumLevel)}
-                  </TableCell>
-                  <TableCell>
-                    {item.quantity <= 0 ? (
-                      <Badge variant="destructive">Out of Stock</Badge>
-                    ) : (
-                      <Badge variant="destructive">Low Stock</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Low Stock Alerts</CardTitle>
+            <CardDescription>
+              {itemCount === 0 
+                ? 'All inventory items are above minimum stock levels' 
+                : `${itemCount} ${itemCount === 1 ? 'item' : 'items'} need attention`}
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            className="h-8 px-2"
+          >
+            Refresh
+          </Button>
         </div>
-        {user?.role !== 'cashier' && (
-          <div className="mt-4 flex justify-end">
-            <Button asChild>
-              <Link href="/inventory">View All Inventory</Link>
-            </Button>
+      </CardHeader>
+      
+      <CardContent>
+        {itemCount === 0 ? (
+          <div className="py-8 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
+              <AlertCircle className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="text-lg font-medium">All Stock Levels Healthy</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              There are currently no items below their minimum stock thresholds.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {lowStockItems?.map((item) => (
+              <div key={item.id} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="font-medium">
+                      {item.product.name}
+                      {user?.role === 'admin' && (
+                        <span className="text-sm text-muted-foreground ml-2">
+                          ({item.store.name})
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm flex items-center mt-1">
+                      <Badge variant="destructive" className="mr-2">
+                        {item.quantity === 0 ? 'Out of Stock' : 'Low Stock'}
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        Current: {item.quantity} / Min: {item.minimumLevel}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedInventoryItem({
+                          id: item.id,
+                          productId: item.product.id,
+                          productName: item.product.name,
+                          currentQuantity: item.quantity,
+                          minimumLevel: item.minimumLevel
+                        });
+                        setMinLevelDialogOpen(true);
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
+      
+      {itemCount > 0 && (
+        <CardFooter className="pt-1">
+          <Link href="/inventory" className="hover:underline text-sm text-primary flex items-center">
+            View all inventory
+            <ArrowUpRight className="ml-1 h-3 w-3" />
+          </Link>
+        </CardFooter>
+      )}
+      
+      {/* Minimum level dialog */}
+      <MinimumLevelDialog 
+        open={minLevelDialogOpen} 
+        onOpenChange={setMinLevelDialogOpen}
+        inventoryItem={selectedInventoryItem}
+      />
     </Card>
   );
 }

@@ -1287,6 +1287,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint specifically for setting minimum stock levels
+  app.post(`${apiPrefix}/inventory/minimum-level`, isManagerOrAdmin, async (req, res) => {
+    try {
+      const { inventoryId, minimumLevel } = req.body;
+      
+      if (!inventoryId || inventoryId <= 0) {
+        return res.status(400).json({ message: "Invalid inventory ID" });
+      }
+      
+      if (minimumLevel === undefined || minimumLevel < 0) {
+        return res.status(400).json({ message: "Minimum level must be a non-negative number" });
+      }
+      
+      // Update only the minimum level
+      const updatedInventory = await storage.updateInventory(inventoryId, {
+        minimumLevel: minimumLevel
+      });
+      
+      if (!updatedInventory) {
+        return res.status(404).json({ message: "Inventory item not found" });
+      }
+      
+      return res.status(200).json(updatedInventory);
+    } catch (error) {
+      console.error("Update minimum level error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // ----------- Product Routes -----------
   
   app.get(`${apiPrefix}/products`, isAuthenticated, async (req, res) => {
