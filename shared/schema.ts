@@ -409,6 +409,9 @@ export const transactionItemInsertSchema = createInsertSchema(transactionItems, 
   subtotal: (schema) => schema.refine(val => parseFloat(val) >= 0, {
     message: "Subtotal must be a positive number"
   }),
+  batchId: (schema) => schema.optional(),
+  batchNumber: (schema) => schema.optional(),
+  expiryDate: (schema) => schema.optional(),
 });
 
 // Schema for user operations

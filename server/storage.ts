@@ -939,7 +939,8 @@ export const storage = {
         eq(schema.inventory.productId, productId)
       ),
       with: {
-        product: true
+        product: true,
+        batches: true
       }
     });
   },
@@ -957,16 +958,146 @@ export const storage = {
     return updatedInventory;
   },
 
+  async getInventoryBatches(inventoryId: number) {
+    return await db.query.inventoryBatches.findMany({
+      where: eq(schema.inventoryBatches.inventoryId, inventoryId),
+      orderBy: [
+        // Sort by expiry date (null values last)
+        sql`CASE WHEN ${schema.inventoryBatches.expiryDate} IS NULL THEN 1 ELSE 0 END`,
+        asc(schema.inventoryBatches.expiryDate)
+      ]
+    });
+  },
+
+  async getInventoryBatchById(batchId: number) {
+    return await db.query.inventoryBatches.findFirst({
+      where: eq(schema.inventoryBatches.id, batchId)
+    });
+  },
+
+  async createInventoryBatch(data: schema.InventoryBatchInsert) {
+    const [newBatch] = await db.insert(schema.inventoryBatches)
+      .values(data)
+      .returning();
+    
+    // Update the total quantity in the main inventory record
+    await this.updateInventoryTotalQuantity(data.inventoryId);
+    
+    return newBatch;
+  },
+
+  async updateInventoryBatch(batchId: number, data: Partial<schema.InventoryBatchInsert>) {
+    const [updatedBatch] = await db.update(schema.inventoryBatches)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.inventoryBatches.id, batchId))
+      .returning();
+    
+    // If quantity was updated, recalculate the total quantity
+    if (data.quantity !== undefined) {
+      await this.updateInventoryTotalQuantity(updatedBatch.inventoryId);
+    }
+    
+    return updatedBatch;
+  },
+
+  async updateInventoryTotalQuantity(inventoryId: number) {
+    // Get all batches for this inventory
+    const batches = await this.getInventoryBatches(inventoryId);
+    
+    // Calculate the total quantity
+    const totalQuantity = batches.reduce((sum, batch) => sum + batch.quantity, 0);
+    
+    // Update the main inventory record
+    await this.updateInventory(inventoryId, { totalQuantity });
+  },
+
+  async getInventoryBatchesByProduct(storeId: number, productId: number, includeExpired = false) {
+    // First get the inventory record
+    const inventory = await this.getStoreProductInventory(storeId, productId);
+    
+    if (!inventory) {
+      return [];
+    }
+    
+    // Build the query for batches
+    let query = db.select()
+      .from(schema.inventoryBatches)
+      .where(eq(schema.inventoryBatches.inventoryId, inventory.id));
+    
+    // Filter out expired batches if requested
+    if (!includeExpired) {
+      const today = new Date();
+      
+      // Only include batches that either have no expiry date or have not expired
+      query = query.where(
+        or(
+          isNull(schema.inventoryBatches.expiryDate),
+          gt(schema.inventoryBatches.expiryDate, today)
+        )
+      );
+    }
+    
+    // Order by expiry date (FIFO - soonest expiring first)
+    query = query.orderBy(
+      sql`CASE WHEN ${schema.inventoryBatches.expiryDate} IS NULL THEN 1 ELSE 0 END`,
+      asc(schema.inventoryBatches.expiryDate)
+    );
+    
+    return await query;
+  },
+
   async updateProductInventory(storeId: number, productId: number, quantity: number) {
     const inventory = await this.getStoreProductInventory(storeId, productId);
     
-    if (inventory) {
-      return await this.updateInventory(inventory.id, { 
-        quantity: Math.max(0, inventory.quantity + quantity) 
-      });
+    if (!inventory) {
+      return null;
     }
     
-    return null;
+    // Get all non-expired batches
+    const batches = await this.getInventoryBatchesByProduct(storeId, productId);
+    
+    let remainingQuantity = quantity;
+    
+    // For positive quantities (adding inventory), just create a new batch
+    if (quantity > 0) {
+      // Create a new batch with the added quantity
+      const today = new Date();
+      const batchNumber = `BATCH-${Date.now()}`;
+      
+      await this.createInventoryBatch({
+        inventoryId: inventory.id,
+        batchNumber,
+        quantity,
+        receivedDate: today
+      });
+      
+      // Total quantity will be updated by createInventoryBatch
+      return await this.getStoreProductInventory(storeId, productId);
+    }
+    
+    // For negative quantities (removing inventory), use FIFO approach
+    remainingQuantity = Math.abs(remainingQuantity); // Convert to positive for calculations
+    
+    // Iterate through batches from soonest expiring to latest
+    for (const batch of batches) {
+      if (remainingQuantity <= 0) break;
+      
+      // How much we can take from this batch
+      const deductible = Math.min(batch.quantity, remainingQuantity);
+      
+      // Update batch quantity
+      await this.updateInventoryBatch(batch.id, {
+        quantity: batch.quantity - deductible
+      });
+      
+      remainingQuantity -= deductible;
+    }
+    
+    // Total quantity will be updated by updateInventoryBatch
+    return await this.getStoreProductInventory(storeId, productId);
   },
 
   // --------- Transactions ---------
@@ -976,30 +1107,85 @@ export const storage = {
       .values(transactionData)
       .returning();
     
-    // Create transaction items
-    const transactionItems = await Promise.all(
-      items.map(async (item) => {
-        const [transactionItem] = await db.insert(schema.transactionItems)
+    // Process items with batch-level inventory tracking
+    for (const item of items) {
+      // Get the product's inventory with all its batches
+      const inventory = await this.getStoreProductInventory(transaction.storeId, item.productId);
+      
+      if (!inventory) {
+        console.error(`No inventory found for product ${item.productId} in store ${transaction.storeId}`);
+        // Insert the transaction item anyway, but without batch info
+        await db.insert(schema.transactionItems)
           .values({
             ...item,
             transactionId: transaction.id
-          })
-          .returning();
+          });
+        continue;
+      }
+      
+      // Get all non-expired batches sorted by expiry date (FIFO)
+      const batches = await this.getInventoryBatchesByProduct(transaction.storeId, item.productId);
+      
+      if (batches.length === 0) {
+        console.warn(`No valid batches found for product ${item.productId}`);
+        // Insert the transaction item without batch info
+        await db.insert(schema.transactionItems)
+          .values({
+            ...item,
+            transactionId: transaction.id
+          });
+        continue;
+      }
+      
+      let remainingQuantity = item.quantity;
+      const batchSales: { batchId: number, quantity: number, batchNumber: string, expiryDate: Date | null }[] = [];
+      
+      // Allocate quantities from batches in FIFO order (earliest expiry first)
+      for (const batch of batches) {
+        if (remainingQuantity <= 0) break;
         
-        return transactionItem;
-      })
-    );
-    
-    // Update inventory for each item
-    await Promise.all(
-      items.map(async (item) => {
-        await this.updateProductInventory(
-          transaction.storeId,
-          item.productId,
-          -item.quantity
-        );
-      })
-    );
+        const quantityFromBatch = Math.min(batch.quantity, remainingQuantity);
+        
+        if (quantityFromBatch > 0) {
+          batchSales.push({
+            batchId: batch.id,
+            quantity: quantityFromBatch,
+            batchNumber: batch.batchNumber,
+            expiryDate: batch.expiryDate
+          });
+          
+          // Update batch quantity
+          await this.updateInventoryBatch(batch.id, {
+            quantity: batch.quantity - quantityFromBatch
+          });
+          
+          remainingQuantity -= quantityFromBatch;
+        }
+      }
+      
+      // If we couldn't fulfill from batches (shouldn't happen but just in case)
+      if (remainingQuantity > 0) {
+        console.warn(`Insufficient batch quantity for product ${item.productId}. Short by ${remainingQuantity} units.`);
+      }
+      
+      // Record sales from each batch as separate transaction items
+      for (const batchSale of batchSales) {
+        const itemUnitPrice = parseFloat(item.unitPrice);
+        const saleQuantity = batchSale.quantity;
+        
+        // Insert transaction item with batch info
+        await db.insert(schema.transactionItems)
+          .values({
+            ...item,
+            transactionId: transaction.id,
+            quantity: saleQuantity,
+            subtotal: (itemUnitPrice * saleQuantity).toFixed(2),
+            batchId: batchSale.batchId,
+            batchNumber: batchSale.batchNumber,
+            expiryDate: batchSale.expiryDate
+          });
+      }
+    }
     
     // Process loyalty points if this is a loyalty member transaction
     if (transaction.loyaltyMemberId) {
