@@ -5,6 +5,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { PosTerminal } from '@/components/pos/pos-terminal';
+import { CashierSessionManager } from '@/components/pos/cashier-session';
 import { Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -160,6 +161,9 @@ export default function PosPage() {
             </AlertDescription>
           </Alert>
         )}
+        
+        {/* Cashier Session Manager */}
+        <CashierSessionManager />
         
         {/* POS Terminal */}
         <PosTerminal />

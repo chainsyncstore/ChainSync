@@ -175,3 +175,36 @@ export function truncate(str: string, length: number) {
   
   return `${str.substring(0, length)}...`;
 }
+
+export function formatDateTime(date: Date | string | null | undefined) {
+  if (!date) return "";
+  
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  
+  if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+    return "";
+  }
+  
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(dateObj);
+}
+
+export function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  } else {
+    return `${seconds}s`;
+  }
+}
