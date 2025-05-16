@@ -712,9 +712,12 @@ export const storage = {
           eq(schema.products.categoryId, schema.categories.id)
         )
         .where(
-          lte(schema.inventory.quantity, schema.inventory.minimumLevel)
+          and(
+            lte(schema.inventory.totalQuantity, schema.inventory.minimumLevel),
+            gt(schema.inventory.minimumLevel, 0)
+          )
         )
-        .orderBy(asc(schema.inventory.quantity));
+        .orderBy(asc(schema.inventory.totalQuantity));
       
       // Apply store filter if specified
       if (storeId) {
