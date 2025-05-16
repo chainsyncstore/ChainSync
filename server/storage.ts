@@ -1446,40 +1446,54 @@ export const storage = {
   
   // Get recent transactions for dashboard
   async getRecentTransactions(storeId?: number, limit: number = 5) {
-    let query = db.query.transactions.findMany({
-      orderBy: [desc(schema.transactions.createdAt)],
-      limit,
-      with: {
-        cashier: true,
-        store: true,
-        items: {
-          with: {
-            product: true
-          }
-        },
-        paymentMethod: true
+    try {
+      // Simplified query that doesn't rely on relations
+      let query = db.select({
+        id: schema.transactions.id,
+        total: schema.transactions.total,
+        subtotal: schema.transactions.subtotal,
+        tax: schema.transactions.tax,
+        createdAt: schema.transactions.createdAt,
+        storeId: schema.transactions.storeId,
+        cashierId: schema.transactions.cashierId,
+        paymentMethodId: schema.transactions.paymentMethodId
+      })
+      .from(schema.transactions)
+      .orderBy(desc(schema.transactions.createdAt))
+      .limit(limit);
+      
+      if (storeId) {
+        query = query.where(eq(schema.transactions.storeId, storeId));
       }
-    });
-    
-    if (storeId) {
-      query = db.query.transactions.findMany({
-        where: eq(schema.transactions.storeId, storeId),
-        orderBy: [desc(schema.transactions.createdAt)],
-        limit,
-        with: {
-          cashier: true,
-          store: true,
-          items: {
-            with: {
-              product: true
-            }
-          },
-          paymentMethod: true
+      
+      const transactions = await query;
+      
+      // Enhance the transactions with store and cashier info if needed
+      const enhancedTransactions = await Promise.all(transactions.map(async (t) => {
+        // Get store information separately if needed
+        let storeName = "Unknown";
+        if (t.storeId) {
+          try {
+            const store = await db.query.stores.findFirst({
+              where: eq(schema.stores.id, t.storeId)
+            });
+            if (store) storeName = store.name;
+          } catch (error) {
+            console.error("Error fetching store:", error);
+          }
         }
-      });
+        
+        return {
+          ...t,
+          store: { name: storeName }
+        };
+      }));
+      
+      return enhancedTransactions;
+    } catch (error) {
+      console.error("Error in getRecentTransactions:", error);
+      return [];
     }
-    
-    return await query;
   },
   
   // --------- AI Conversations ---------
