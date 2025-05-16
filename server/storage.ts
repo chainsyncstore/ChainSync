@@ -1120,42 +1120,41 @@ export const storage = {
 
   // --------- Transactions ---------
   async createTransaction(transactionData: schema.TransactionInsert, items: schema.TransactionItemInsert[]) {
-    // Create transaction
-    const [transaction] = await db.insert(schema.transactions)
-      .values(transactionData)
-      .returning();
+    try {
+      // Import the batch inventory service
+      const { sellProductFromBatches } = await import('./services/batch-inventory');
     
-    // Process items with batch-level inventory tracking
-    for (const item of items) {
-      // Get the product's inventory with all its batches
-      const inventory = await this.getStoreProductInventory(transaction.storeId, item.productId);
+      // Create transaction
+      const [transaction] = await db.insert(schema.transactions)
+        .values(transactionData)
+        .returning();
       
-      if (!inventory) {
-        console.error(`No inventory found for product ${item.productId} in store ${transaction.storeId}`);
-        // Insert the transaction item anyway, but without batch info
-        await db.insert(schema.transactionItems)
-          .values({
-            ...item,
-            transactionId: transaction.id
-          });
-        continue;
+      // Process items with batch-level inventory tracking
+      for (const item of items) {
+        try {
+          // Add the item to the transaction first
+          const [transactionItem] = await db.insert(schema.transactionItems)
+            .values({
+              ...item,
+              transactionId: transaction.id
+            })
+            .returning();
+          
+          // Deduct inventory using batch-aware FIFO approach
+          const result = await sellProductFromBatches(
+            transaction.storeId,
+            item.productId,
+            item.quantity
+          );
+          
+          if (!result.success) {
+            console.error(`Failed to update inventory for item ${item.productId}: ${result.message}`);
+          }
+        } catch (error) {
+          console.error(`Error processing transaction item ${item.productId}:`, error);
+          // Continue with other items even if one fails
+        }
       }
-      
-      // Get all non-expired batches sorted by expiry date (FIFO)
-      const batches = await this.getInventoryBatchesByProduct(transaction.storeId, item.productId);
-      
-      if (batches.length === 0) {
-        console.warn(`No valid batches found for product ${item.productId}`);
-        // Insert the transaction item without batch info
-        await db.insert(schema.transactionItems)
-          .values({
-            ...item,
-            transactionId: transaction.id
-          });
-        continue;
-      }
-      
-      let remainingQuantity = item.quantity;
       const batchSales: { batchId: number, quantity: number, batchNumber: string, expiryDate: Date | null }[] = [];
       
       // Allocate quantities from batches in FIFO order (earliest expiry first)
