@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  fullName: varchar("full_name"), // Added for display purposes, computed from firstName + lastName
   profileImageUrl: varchar("profile_image_url"),
   role: text("role").notNull().default("cashier"), // cashier, manager, admin
   storeId: integer("store_id"), // null for admin (chain-wide access)
@@ -466,6 +467,7 @@ export const userInsertSchema = createInsertSchema(users, {
   email: (schema) => schema.nullable().optional(),
   firstName: (schema) => schema.nullable().optional(),
   lastName: (schema) => schema.nullable().optional(),
+  fullName: (schema) => schema.nullable().optional(),
   profileImageUrl: (schema) => schema.nullable().optional(),
   role: (schema) => schema.refine(val => ["admin", "manager", "cashier", "affiliate"].includes(val), {
     message: "Role must be one of: admin, manager, cashier, affiliate"
@@ -478,8 +480,9 @@ export const authResponseSchema = z.object({
   user: z.object({
     id: z.string(),
     email: z.string().nullable().optional(),
-    firstName: z.string().nullable().optional(),
+    firstName: z.string().nullable().optional(), 
     lastName: z.string().nullable().optional(),
+    fullName: z.string().nullable().optional(),
     profileImageUrl: z.string().nullable().optional(),
     role: z.string(),
     storeId: z.number().nullable().optional(),
@@ -496,7 +499,7 @@ export type UserInsert = z.infer<typeof userInsertSchema>;
 
 export const passwordResetTokenInsertSchema = createInsertSchema(passwordResetTokens, {
   token: (schema) => schema.min(1, "Token is required"),
-  userId: (schema) => schema.min(1, "User ID is required"),
+  userId: (schema) => schema, // User ID is a string with Replit Auth, so no min() needed
 });
 
 export const passwordResetTokenSchema = createSelectSchema(passwordResetTokens);
