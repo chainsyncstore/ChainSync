@@ -257,7 +257,7 @@ export class AnalyticsService extends BaseService {
               totalUsers: sql<number>`COUNT(*)`,
               activeUsers: sql<number>`COUNT(*) filter (where ${schema.users.status} = 'active')`,
               averageTransactions: sql<number>`AVG(
-                (SELECT COUNT(*) FROM ${schema.transactions} WHERE ${schema.transactions.userId} = ${schema.users.id)
+                (SELECT COUNT(*) FROM ${schema.transactions} WHERE ${schema.transactions.userId} = ${schema.users.id})
               )`
             })
             .from(schema.users)
@@ -314,8 +314,8 @@ export class AnalyticsService extends BaseService {
             .select({
               date: sql<string>`DATE(${schema.products.createdAt})`,
               totalProducts: sql<number>`COUNT(*)`,
-              inStock: sql<number>`COUNT(*) filter (where ${schema.products.stockQuantity} > 0)`,
-              outOfStock: sql<number>`COUNT(*) filter (where ${schema.products.stockQuantity} = 0)`,
+              inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.stockQuantity} > 0)`,
+              outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.stockQuantity} = 0)`,
               averagePrice: sql<number>`AVG(${schema.products.price})`
             })
             .from(schema.products)

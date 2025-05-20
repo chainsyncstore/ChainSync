@@ -1,34 +1,40 @@
-import { ImportExportConfig } from '../../config/import-export';
-import { ErrorCategory, ErrorCode } from '@shared/types/errors';
-import { Request } from 'express';
-import { MulterFile } from '../../types/multer';
+import { AppError, ErrorCategory } from '@shared/types/errors';
+import { Express } from 'express';
 
-// Type definitions
-export type File = MulterFile;
-
-// Extend Express types
+// Use Express types instead of custom File interface
 declare global {
   namespace Express {
     interface Request {
-      file?: MulterFile;
-      files?: MulterFile[];
+      file?: Express.Multer.File;
+      files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
     }
   }
 }
 
-export interface ImportExportResult {
-  success: boolean;
-  message?: string;
-  data?: any;
-  errors?: any[];
-  validCount?: number;
-  invalidCount?: number;
-  totalProcessed?: number;
-  totalErrors: number;
+export interface IES {
+  validateData(data: any[], options?: ValidationOptions): Promise<ImportExportResult>;
+  importData(userId: number, data: any[], entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
+  exportData(userId: number, entityType: string, options?: ExportOptions): Promise<Buffer>;
+  validateFile(file: File): Promise<{ type: string; data: any[] }>;
+  processImport(data: any[], options: ImportExportOptions, importId: string): Promise<ImportExportResult>;
+  processBatch(data: any[], importId: string): Promise<ImportExportResult>;
 }
 
+export interface ImportExportConfig {
+  batchSize: number;
+}
+
+export type ImportExportServiceErrors = {
+  INVALID_FILE_FORMAT: AppError;
+  FILE_TOO_LARGE: AppError;
+  INVALID_DATA: AppError;
+  PROCESSING_ERROR: AppError;
+  STORAGE_ERROR: AppError;
+  PROGRESS_ERROR: AppError;
+};
+
 export interface ImportExportProgress {
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
   message: string;
   total: number;
   processed: number;
@@ -36,90 +42,32 @@ export interface ImportExportProgress {
 }
 
 export interface ValidationOptions {
+  requiredFields?: string[];
+  filters?: Record<string, any>;
+}
+
+export interface ImportExportResult {
+  success: boolean;
+  message: string;
+  data?: any[];
+  errors?: any[];
+  validCount: number;
+  invalidCount: number;
+  totalProcessed: number;
+  totalErrors: number;
+  importId?: string;
+}
+
+export interface ImportExportOptions {
   batchSize?: number;
-  validateOnly?: boolean;
-  filters?: any;
+  delimiter?: string;
+  includeHeaders?: boolean;
+  format?: string;
+  filters?: Record<string, any>;
 }
 
-export interface ImportExportServiceErrors {
-  INVALID_FILE: string;
-  PROCESSING_ERROR: string;
-  INVALID_FORMAT: string;
-  EXPORT_ERROR: string;
-  DATABASE_ERROR: string;
-}
-
-export interface ImportExportService {
-  // Import Methods
-  importProducts(
-    userId: number,
-    file: Express.MulterFile,
-    options?: {
-      validateOnly?: boolean;
-      batchSize?: number;
-    }
-  ): Promise<ImportExportResult>;
-
-  importUsers(
-    userId: number,
-    file: Express.Multer.File,
-    options?: {
-      validateOnly?: boolean;
-      batchSize?: number;
-    }
-  ): Promise<ImportExportResult>;
-
-  importTransactions(
-    userId: number,
-    file: Express.Multer.File,
-    options?: {
-      validateOnly?: boolean;
-      batchSize?: number;
-    }
-  ): Promise<ImportExportResult>;
-
-  // Export Methods
-  exportProducts(
-    userId: number,
-    options?: {
-      includeInactive?: boolean;
-      format?: 'csv' | 'excel';
-    }
-  ): Promise<Buffer>;
-
-  exportUsers(
-    userId: number,
-    options?: {
-      format?: 'csv' | 'xlsx' | 'json';
-      filters?: any;
-    }
-  ): Promise<Buffer>;
-
-  exportTransactions(
-    userId: number,
-    options?: {
-      format?: 'csv' | 'xlsx' | 'json';
-      filters?: any;
-    }
-  ): Promise<Buffer>;
-
-  // Progress Tracking
-  getImportProgress(
-    importId: string
-  ): Promise<ImportExportProgress>;
-
-  getExportProgress(
-    exportId: string
-  ): Promise<ImportExportProgress>;
-
-  // Validation
-  validateFile(
-    file: Express.Multer.File
-  ): Promise<void>;
-
-  validateData(
-    data: any[],
-    type: 'products' | 'users' | 'transactions',
-    options?: ValidationOptions
-  ): Promise<{ valid: any[]; invalid: { index: number; errors: string[]; }[] }>;
+export interface ExportOptions {
+  format: string;
+  includeHeaders: boolean;
+  delimiter?: string;
 }

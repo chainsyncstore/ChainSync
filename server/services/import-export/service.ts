@@ -1,32 +1,18 @@
-import { BaseService } from '../base/service';
-import { ImportExportConfig, ImportExportServiceErrors } from '../../config/import-export';
-import { ImportExportService as IES, ImportExportProgress, ValidationOptions, ImportExportResult } from './types';
-import { Express, MulterFile } from 'express';
-import { createReadStream } from 'fs';
-import { csvParse } from 'csv-parse';
-import * as xlsx from 'xlsx';
-import * as json2csv from 'json2csv';
-import * as ExcelJS from 'exceljs';
-import * as crypto from 'crypto';
-import { Express } from 'express';
+import { Request, Express } from 'express';
+import * as multer from 'multer';
+import { AppError, ErrorCategory } from '@shared/types/errors';
+import { ImportExportConfig, ImportExportServiceErrors, ImportExportProgress, ImportExportResult, ImportExportOptions, ExportOptions, ValidationOptions } from './types';
+import { ValidationService as ValidationServiceImpl } from './validation';
+import { ImportExportRepository } from './repository';
+import * as fs from 'fs';
 import * as path from 'path';
+import { promisify } from 'util';
+import { Parser } from 'json2csv';
+import { parse } from 'csv-parse';
+import * as ExcelJS from 'exceljs';
+import * as xlsx from 'xlsx';
 
-interface ImportExportOptions {
-  validateOnly?: boolean;
-  batchSize?: number;
-}
-
-interface ExportOptions {
-  format?: 'csv' | 'xlsx' | 'json';
-  filters?: Record<string, any>;
-}
-
-interface FileData {
-  type: string;
-  data: any[];
-}
-
-// Utility function to chunk arrays
+// Helper function to chunk arrays
 type Chunk<T> = T[][];
 
 function chunkArray<T>(array: T[], size: number): Chunk<T> {
@@ -45,1151 +31,349 @@ function chunkArray<T>(array: T[], size: number): Chunk<T> {
   }, [] as Chunk<T>);
 }
 
-// Helper method to generate unique IDs
-function generateProgressId(): string {
-  return crypto.randomUUID();
-}
-
-// Helper method to update progress
-function updateProgress(progressMap: Map<string, ImportExportProgress>, importId: string, progress: Partial<ImportExportProgress>): void {
-  const currentProgress = progressMap.get(importId) || {
-    status: 'pending',
-    message: '',
-    total: 0,
-    processed: 0,
-    errors: 0
+export class ImportExportService {
+  private config: {
+    batchSize: number;
   };
 
-  progressMap.set(importId, {
-    ...currentProgress,
-    ...progress
-  });
-}
+  private errors: {
+    INVALID_FILE_FORMAT: AppError;
+    FILE_TOO_LARGE: AppError;
+    INVALID_DATA: AppError;
+    PROCESSING_ERROR: AppError;
+    STORAGE_ERROR: AppError;
+    PROGRESS_ERROR: AppError;
+  };
 
-export class ImportExportService extends BaseService implements IES {
-  private config: ImportExportConfig;
-  private validationService: ValidationService;
-  private progressMap: Map<string, ImportExportProgress>;
-  private db: any;
+  private repository: ImportExportRepository;
+  private validationService: ValidationServiceImpl;
 
-  constructor(config: ImportExportConfig, validationService: ValidationService, db: any) {
-    super();
-    this.config = config;
-    this.validationService = validationService;
-    this.db = db;
-    this.progressMap = new Map();
-  }
-
-  private async validateFile(file: Express.Multer.File): Promise<FileData> {
-    if (!file) {
-      throw new AppError('Invalid file', ErrorCategory.IMPORT_EXPORT, 'INVALID_FILE', { error: 'File is empty or invalid' }, 400);
-    }
-
-    const fileExtension = path.extname(file.originalname).toLowerCase();
-    const allowedExtensions = ['.csv', '.xlsx', '.json'];
-
-    if (!allowedExtensions.includes(fileExtension)) {
-      throw new AppError('Unsupported file format', ErrorCategory.IMPORT_EXPORT, 'INVALID_FILE_FORMAT', { error: 'File format not supported' }, 400);
-    }
-
-    let data: any[] = [];
-    let type: string = '';
-
-    try {
-      switch (fileExtension) {
-        case '.csv':
-          type = 'csv';
-          data = await this.parseCSV(file);
-          break;
-
-        case '.xlsx':
-          type = 'xlsx';
-          data = await this.parseXLSX(file);
-          break;
-
-        case '.json':
-          type = 'json';
-          data = await this.parseJSON(file);
-          break;
-      }
-
-      if (!data || !Array.isArray(data)) {
-        throw new AppError('Invalid file data', ErrorCategory.IMPORT_EXPORT, 'INVALID_FILE_DATA', { error: 'File contains invalid data' }, 400);
-      }
-
-      return { type, data };
-    } catch (error) {
-      throw new AppError(
-        'Failed to parse file',
-        ErrorCategory.IMPORT_EXPORT,
-        'FILE_PARSE_ERROR',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        400
-      );
-    }
-  }
-
-  private async parseCSV(file: Express.Multer.File): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      const parser = csvParse({
-        columns: true,
-        skip_empty_lines: true,
-        trim: true
-      });
-
-      const stream = file.buffer.toString();
-      parser.on('data', (data) => resolve(data));
-      parser.on('error', reject);
-      parser.write(stream);
-      parser.end();
-    });
-  }
-
-  private async parseXLSX(file: Express.Multer.File): Promise<any[]> {
-    const workbook = xlsx.read(file.buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    return xlsx.utils.sheet_to_json(worksheet);
-  }
-
-  private async parseJSON(file: Express.Multer.File): Promise<any[]> {
-    try {
-      const content = file.buffer.toString();
-      const data = JSON.parse(content);
-      return Array.isArray(data) ? data : [data];
-    } catch (error) {
-      throw new Error('Invalid JSON format');
-    }
-  }
-
-  private async importData(
-    userId: number,
-    data: any[],
-    entityType: string,
-    options: ImportExportOptions = {}
-  ): Promise<ImportExportResult> {
-    const { validateOnly = false, batchSize = 100 } = options;
-    const total = data.length;
-    let processed = 0;
-    let errors = 0;
-    const errorDetails: string[] = [];
-    const importId = generateProgressId();
-
-    // Initialize progress tracking
-    this.progressMap.set(importId, {
-      status: 'processing',
-      message: 'Starting import process...',
-      total,
-      processed: 0,
-      errors: 0
-    });
-
-    const chunks = chunkArray(data, batchSize);
-
-    for (const chunk of chunks) {
-      try {
-        const chunkErrors = await this.processChunk(userId, chunk, entityType, validateOnly);
-        errors += chunkErrors.length;
-        errorDetails.push(...chunkErrors);
-        processed += chunk.length;
-
-        // Update progress
-        this.progressMap.set(importId, {
-          status: 'processing',
-          message: `Processing chunk ${processed}/${total}...`,
-          total,
-          processed,
-          errors
-        });
-
-        if (errors > 0 && validateOnly) {
-          break;
-        }
-      } catch (error) {
-        errors++;
-        errorDetails.push(error instanceof Error ? error.message : 'Unknown error');
-        this.progressMap.set(importId, {
-          status: 'failed',
-          message: 'Import failed',
-          total,
-          processed,
-          errors
-        });
-        throw error;
-      }
-    }
-
-    const status = errors > 0 ? 'failed' : 'completed';
-    const message = errors > 0 ? 'Import completed with errors' : 'Import completed successfully';
-
-    this.progressMap.set(importId, {
-      status,
-      message,
-      total,
-      processed,
-      errors
-    });
-
-    return {
-      importId,
-      status,
-      total,
-      processed,
-      errors,
-      errorDetails
+  constructor() {
+    this.config = {
+      batchSize: 1000
     };
+
+    this.errors = {
+      INVALID_FILE_FORMAT: new AppError('Invalid file format', ErrorCategory.IMPORT_EXPORT, 'INVALID_FILE_FORMAT'),
+      FILE_TOO_LARGE: new AppError('File size exceeds maximum allowed size', ErrorCategory.IMPORT_EXPORT, 'FILE_TOO_LARGE'),
+      INVALID_DATA: new AppError('Invalid data format', ErrorCategory.IMPORT_EXPORT, 'INVALID_DATA'),
+      PROCESSING_ERROR: new AppError('Processing failed', ErrorCategory.IMPORT_EXPORT, 'PROCESSING_ERROR'),
+      STORAGE_ERROR: new AppError('Storage operation failed', ErrorCategory.IMPORT_EXPORT, 'STORAGE_ERROR'),
+      PROGRESS_ERROR: new AppError('Progress tracking failed', ErrorCategory.IMPORT_EXPORT, 'PROGRESS_ERROR')
+    };
+
+    this.repository = new ImportExportRepository();
+    this.validationService = new ValidationServiceImpl();
   }
 
-  private async processChunk(
-    userId: number,
-    chunk: any[],
-    entityType: string,
-    validateOnly: boolean
-  ): Promise<string[]> {
-    const errors: string[] = [];
-
-    for (const item of chunk) {
-      try {
-        await this.validationService.validateEntity(entityType, item);
-        if (!validateOnly) {
-          await this.db.saveEntity(entityType, item, userId);
-        }
-      } catch (error) {
-        errors.push(error instanceof Error ? error.message : 'Unknown error');
+  async validateData(data: any[], options?: ValidationOptions): Promise<{
+    success: boolean;
+    message: string;
+    data?: any[];
+    errors?: { record: any; errors: string[] }[];
+    validCount: number;
+    invalidCount: number;
+    totalProcessed: number;
+    totalErrors: number;
+  }> {
+    try {
+      if (!Array.isArray(data)) {
+        throw this.errors.INVALID_DATA;
       }
-    }
 
-    return errors;
-  }
-
-  async importUsers(
-    userId: number,
-    file: Express.Multer.File,
-    options?: ImportExportOptions
-  ): Promise<ImportExportResult> {
-    const fileData = await this.validateFile(file);
-    return this.importData(userId, fileData.data, 'user', options);
-  }
-
-  async importProducts(
-    userId: number,
-    file: Express.Multer.File,
-    options?: ImportExportOptions
-  ): Promise<ImportExportResult> {
-    const fileData = await this.validateFile(file);
-    return this.importData(userId, fileData.data, 'product', options);
-  }
-
-  async importTransactions(
-    userId: number,
-    file: Express.Multer.File,
-    options?: ImportExportOptions
-  ): Promise<ImportExportResult> {
-    const fileData = await this.validateFile(file);
-    return this.importData(userId, fileData.data, 'transaction', options);
-  }
-
-  getImportProgress(importId: string): ImportExportProgress | null {
-    return this.progressMap.get(importId) || null;
-  }
-
-  async exportData(
-    userId: number,
-    entityType: string,
-    options: ExportOptions = {}
-  ): Promise<Buffer> {
-    const { format = 'csv', filters = {} } = options;
-    const data = await this.getDataForExport(userId, entityType, filters);
-
-    switch (format) {
-      case 'csv':
-        return await this.generateCSV(data);
-      case 'xlsx':
-        return await this.generateXLSX(data);
-      case 'json':
-        return await this.generateJSON(data);
-      default:
-        throw new AppError(
-          'Unsupported export format',
-          ErrorCategory.IMPORT_EXPORT,
-          'INVALID_EXPORT_FORMAT',
-          { error: 'Export format not supported' },
-          400
-        );
+      const result = await this.validationService.validate(data, options);
+      
+      return {
+        success: result.invalidCount === 0,
+        message: result.invalidCount === 0 ? 'Validation successful' : 'Validation failed',
+        data: result.validRecords,
+        errors: result.invalidRecords.map((record, index) => ({ record, errors: result.invalidRecords[index].errors })),
+        validCount: result.validCount,
+        invalidCount: result.invalidCount,
+        totalProcessed: result.validCount + result.invalidCount,
+        totalErrors: result.invalidCount
+      };
+    } catch (error) {
+      throw this.errors.INVALID_DATA;
     }
   }
 
-  private async getDataForExport(
-    userId: number,
-    entityType: string,
-    filters: Record<string, any>
-  ): Promise<any[]> {
-    switch (entityType) {
-      case 'user':
-        return await this.db.getUsers(userId, filters);
-      case 'product':
-        return await this.db.getProducts(userId, filters);
-      case 'transaction':
-        return await this.db.getTransactions(userId, filters);
-      default:
-        throw new AppError(
-          'Invalid entity type',
-          ErrorCategory.IMPORT_EXPORT,
-          'INVALID_ENTITY_TYPE',
-          { error: 'Entity type not supported' },
-          400
-        );
+  async importData(userId: number, data: any[], entityType: string, options?: {
+    batchSize?: number;
+    delimiter?: string;
+    includeHeaders?: boolean;
+    format?: string;
+    filters?: Record<string, any>;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    data?: any[];
+    errors?: any[];
+    validCount: number;
+    invalidCount: number;
+    totalProcessed: number;
+    totalErrors: number;
+    importId?: string;
+  }> {
+    try {
+      const importId = await this.repository.createImport(userId, entityType, options);
+      
+      return await this.processImport(data, options, importId);
+    } catch (error) {
+      throw this.errors.PROCESSING_ERROR;
     }
   }
 
-  private async generateCSV(data: any[]): Promise<Buffer> {
-    const fields = Object.keys(data[0] || {});
-    const csv = json2csv.parse(data, { fields });
-    return Buffer.from(csv);
+  async exportData(userId: number, entityType: string, options: ExportOptions): Promise<Buffer> {
+    try {
+      const data = await this.repository.getExportData(userId, entityType, options);
+      
+      switch (options.format) {
+        case 'csv':
+          return await this.generateCSV(data, options);
+        case 'json':
+          return await this.generateJSON(data);
+        case 'xlsx':
+          return await this.generateExcel(data, options);
+        default:
+          throw this.errors.INVALID_FILE_FORMAT;
+      }
+    } catch (error) {
+      throw this.errors.PROCESSING_ERROR;
+    }
   }
 
-  private async generateXLSX(data: any[]): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Data');
-    
-    // Add headers
-    const headers = Object.keys(data[0] || {});
-    worksheet.addRow(headers);
-    
-    // Add data rows
-    data.forEach(row => {
-      worksheet.addRow(Object.values(row));
-    });
-    
-    return workbook.xlsx.writeBuffer();
+  async validateFile(file: Express.Multer.File): Promise<{ type: string; data: any[] }> {
+    try {
+      // Check file size
+      if (file.size > 50 * 1024 * 1024) { // 50MB
+        throw this.errors.FILE_TOO_LARGE;
+      }
+
+      // Check file format
+      const extension = file.originalname.split('.').pop()?.toLowerCase();
+      const validFormats = ['csv', 'json', 'xlsx'];
+      if (!validFormats.includes(extension || '')) {
+        throw this.errors.INVALID_FILE_FORMAT;
+      }
+
+      let parsedData: any[] = [];
+
+      switch (extension) {
+        case 'csv':
+          parsedData = await this.parseCSV(file.buffer);
+          break;
+        case 'json':
+          parsedData = await this.parseJSON(file.buffer);
+          break;
+        case 'xlsx':
+          parsedData = await this.parseExcel(file.buffer);
+          break;
+        default:
+          throw this.errors.INVALID_FILE_FORMAT;
+      }
+
+      return {
+        type: extension || '',
+        data: parsedData
+      };
+    } catch (error) {
+      throw this.errors.INVALID_DATA;
+    }
+  }
+
+  async processImport(data: any[], options: {
+    batchSize?: number;
+    delimiter?: string;
+    includeHeaders?: boolean;
+    format?: string;
+    filters?: Record<string, any>;
+  }, importId: string): Promise<{
+    success: boolean;
+    message: string;
+    validCount: number;
+    invalidCount: number;
+    totalProcessed: number;
+    totalErrors: number;
+    importId: string;
+  }> {
+    try {
+      const batchSize = options.batchSize || this.config.batchSize;
+      const totalBatches = Math.ceil(data.length / batchSize);
+      
+      let processed = 0;
+      let errors = 0;
+      
+      for (let i = 0; i < totalBatches; i++) {
+        const batchStart = i * batchSize;
+        const batchEnd = Math.min(batchStart + batchSize, data.length);
+        const batch = data.slice(batchStart, batchEnd);
+        
+        const result = await this.processBatch(batch, importId);
+        processed += result.totalProcessed;
+        errors += result.totalErrors;
+      }
+
+      return {
+        success: errors === 0,
+        message: errors === 0 ? 'Import successful' : 'Import completed with errors',
+        validCount: processed - errors,
+        invalidCount: errors,
+        totalProcessed: processed,
+        totalErrors: errors,
+        importId
+      };
+    } catch (error) {
+      throw this.errors.PROCESSING_ERROR;
+    }
+  }
+
+  async processBatch(data: any[], importId: string): Promise<{
+    success: boolean;
+    message: string;
+    validCount: number;
+    invalidCount: number;
+    totalProcessed: number;
+    totalErrors: number;
+    importId: string;
+  }> {
+    try {
+      const result = await this.repository.processBatch(data, importId);
+      
+      return {
+        success: result.errors.length === 0,
+        message: result.errors.length === 0 ? 'Batch processed successfully' : 'Batch processed with errors',
+        validCount: data.length - result.errors.length,
+        invalidCount: result.errors.length,
+        totalProcessed: data.length,
+        totalErrors: result.errors.length,
+        importId
+      };
+    } catch (error) {
+      throw this.errors.STORAGE_ERROR;
+    }
+  }
+
+  private async generateCSV(data: any[], options: {
+    format: string;
+    includeHeaders: boolean;
+    delimiter?: string;
+  }): Promise<Buffer> {
+    try {
+      const config = {
+        format: options.format,
+        includeHeaders: options.includeHeaders,
+        delimiter: options.delimiter || ','
+      };
+
+      const parser = new Parser(config);
+      const csv = parser.stringify(data);
+      return Buffer.from(csv, 'utf8');
+    } catch (error) {
+      throw this.errors.PROCESSING_ERROR;
+    }
   }
 
   private async generateJSON(data: any[]): Promise<Buffer> {
-    return Buffer.from(JSON.stringify(data, null, 2));
-  }
-
-  cancelImport(importId: string): void {
-    const progress = this.progressMap.get(importId);
-    if (progress && progress.status === 'processing') {
-      progress.status = 'cancelled';
-      progress.message = 'Import cancelled by user';
-      this.progressMap.set(importId, progress);
-    }
-  }
-}
-    // TODO: Implement actual import record creation logic
-    return '';
-  }
-
-  private async processImportChunk(chunk: any[], importId: string): Promise<void> {
-    // TODO: Implement actual import chunk processing logic
-  }
-
-  private async validateFile(file: Express.Multer.File): Promise<{ type: string; data: any[] }> {
-    if (file.mimetype.startsWith('text/csv')) {
-      const content = await new Promise<string>((resolve, reject) => {
-        createReadStream(file.path)
-          .pipe(parse({ columns: true, skip_empty_lines: true }))
-          .on('data', (data) => resolve(data))
-          .on('error', reject);
-      return [];
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.RETRIEVAL_ERROR,
-        'Failed to retrieve transactions',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  private async getProducts(userId: number, filters: any = {}): Promise<any[]> {
-    try {
-      // TODO: Implement actual product retrieval logic
-      return [];
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.RETRIEVAL_ERROR,
-        'Failed to retrieve products',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-          createReadStream(file.path)
-            .pipe(parse({ columns: true, skip_empty_lines: true }))
-            .on('data', (data) => resolve({ type: 'csv', data }))
-            .on('error', reject);
-        });
-      } else if (file.mimetype.startsWith('application/json')) {
-        const content = await new Promise<string>((resolve, reject) => {
-          createReadStream(file.path)
-            .on('data', resolve)
-            .on('error', (error) => reject(new AppError(
-              ErrorCategory.IMPORT_EXPORT,
-              ImportExportErrorCode.PROCESSING_ERROR,
-              'Failed to process JSON file',
-              { error: error instanceof Error ? error.message : 'Unknown error' },
-              500
-            )));
-        });
-        return JSON.parse(content);
-      } else {
-        throw new AppError(
-          ErrorCategory.IMPORT_EXPORT,
-          ImportExportErrorCode.INVALID_FILE_FORMAT,
-          'Unsupported file format',
-          undefined,
-          400
-        );
-      }
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.PROCESSING_ERROR,
-        'Failed to process file',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  private async validateFile(file: Express.Multer.File): Promise<{ format: string; data: any[] }> {
-    try {
-      if (!file) {
-        throw new AppError(
-          'Invalid file',
-          ErrorCategory.IMPORT_EXPORT,
-          ImportExportErrorCode.INVALID_FILE,
-          { error: 'File is empty or invalid' },
-          400
-        );
-      }
-
-      const format = file.mimetype.startsWith('application/json') ? 'json' : 'csv';
-
-  private async getProducts(userId: number, filters: any = {}): Promise<any[]> {
-    try {
-      // TODO: Implement actual product retrieval logic
-      return [];
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.RETRIEVAL_ERROR,
-        'Failed to retrieve products',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  // Import Methods
-  async importUsers(userId: number, file: Express.Multer.File, options: { validateOnly?: boolean; batchSize?: number } = {}): Promise<ImportExportResult> {
-    const { validateOnly = false, batchSize = this.config.batchSize } = options;
-    const importId = this.generateProgressId();
-
-    const results: ImportExportResult = {
-      success: true,
-      totalProcessed: 0,
-      totalErrors: 0,
-      errors: [],
-      validCount: 0,
-      invalidCount: 0
-    };
-
-    try {
-      this.updateProgress(importId, { status: 'processing', message: 'Starting user import...' });
-
-      // Validate file
-      if (!file) {
-        throw new AppError(
-          'IMPORT_ERROR',
-          'INVALID_FILE',
-          'No file provided for import'
-        );
-      }
-
-      // Process file and validate data
-      const data = await this.processFile(file, userId);
-      const { valid, invalid } = await this.validationService.validateBatch(data.data, 'users', options);
-
-      results.validCount = valid.length;
-      results.invalidCount = invalid.length;
-      results.totalProcessed = valid.length + invalid.length;
-      results.totalErrors = invalid.length;
-      results.errors = invalid.map(i => i.errors.join(', '));
-
-      if (!validateOnly) {
-        // Process valid users
-        for (const batch of this.chunkArray(valid, batchSize)) {
-          await this.processBatch(batch, userId);
-          results.totalProcessed += batch.length;
-        }
-      }
-
-      this.updateProgress(importId, {
-        status: 'completed',
-        message: 'Import completed successfully',
-        total: results.totalProcessed,
-        processed: results.totalProcessed,
-        errors: results.totalErrors
-      });
-
-      return results;
-    } catch (error) {
-      this.updateProgress(importId, {
-        status: 'failed',
-        message: error instanceof Error ? error.message : 'Import failed',
-        total: results.totalProcessed,
-        processed: results.totalProcessed,
-        errors: results.totalErrors
-      });
-
-      throw error;
-    }
-  }
-
-  async importTransactions(userId: number, file: Express.Multer.File, options: { validateOnly?: boolean; batchSize?: number } = {}): Promise<ImportExportResult> {
-    const { validateOnly = false, batchSize = this.config.batchSize } = options;
-    const importId = this.generateProgressId();
-
-    const results: ImportExportResult = {
-      success: true,
-      totalProcessed: 0,
-      totalErrors: 0,
-      errors: [],
-      validCount: 0,
-      invalidCount: 0
-    };
-
-    try {
-      this.updateProgress(importId, { status: 'processing', message: 'Starting transaction import...' });
-
-      // Validate file
-      if (!file) {
-        throw new AppError(
-          'IMPORT_ERROR',
-          'INVALID_FILE',
-          'No file provided for import'
-        );
-      }
-
-      // Process file and validate data
-      const data = await this.processFile(file, userId);
-      const { valid, invalid } = await this.validationService.validateBatch(data.data, 'transactions', options);
-
-      results.validCount = valid.length;
-      results.invalidCount = invalid.length;
-      results.totalProcessed = valid.length + invalid.length;
-      results.totalErrors = invalid.length;
-      results.errors = invalid.map(i => i.errors.join(', '));
-
-      if (!validateOnly) {
-        // Process valid transactions
-        for (const batch of this.chunkArray(valid, batchSize)) {
-          await this.processBatch(batch, userId);
-          results.totalProcessed += batch.length;
-        }
-      }
-
-      this.updateProgress(importId, {
-        status: 'completed',
-        message: 'Import completed successfully',
-        total: results.totalProcessed,
-        processed: results.totalProcessed,
-        errors: results.totalErrors
-      });
-
-      return results;
-    } catch (error) {
-      this.updateProgress(importId, {
-        status: 'failed',
-        message: error instanceof Error ? error.message : 'Import failed',
-        total: results.totalProcessed,
-        processed: results.totalProcessed,
-        errors: results.totalErrors
-      });
-
-      throw error;
-    }
-  }
-
-  async importProducts(userId: number, file: Express.Multer.File, options: { validateOnly?: boolean; batchSize?: number } = {}): Promise<ImportExportResult> {
-    const { validateOnly = false, batchSize = this.config.batchSize } = options;
-    const importId = this.generateProgressId();
-
-    const results: ImportExportResult = {
-      success: true,
-      totalProcessed: 0,
-      totalErrors: 0,
-      errors: [],
-      validCount: 0,
-      invalidCount: 0
-    };
-
-    try {
-      this.updateProgress(importId, { status: 'processing', message: 'Starting product import...' });
-
-      // Validate file
-      if (!file) {
-        throw new AppError(
-          'IMPORT_ERROR',
-          'INVALID_FILE',
-          'No file provided for import'
-        );
-      }
-
-      // Process file and validate data
-      const data = await this.processFile(file, userId);
-      const { valid, invalid } = await this.validationService.validateBatch(data.data, 'products', options);
-
-      results.validCount = valid.length;
-      results.invalidCount = invalid.length;
-      results.totalProcessed = valid.length + invalid.length;
-      results.totalErrors = invalid.length;
-      results.errors = invalid.map(i => i.errors.join(', '));
-
-      if (!validateOnly) {
-        // Process valid products
-        for (const batch of this.chunkArray(valid, batchSize)) {
-          await this.processBatch(batch, userId);
-          results.totalProcessed += batch.length;
-        }
-      }
-
-      this.updateProgress(importId, {
-        status: 'completed',
-        message: 'Import completed successfully',
-        total: results.totalProcessed,
-        processed: results.totalProcessed,
-        errors: results.totalErrors
-      });
-
-      return results;
-    } catch (error) {
-      this.updateProgress(importId, {
-        status: 'failed',
-        message: error instanceof Error ? error.message : 'Import failed',
-        total: results.totalProcessed,
-        processed: results.totalProcessed,
-        errors: results.totalErrors
-      });
-
-      throw error;
-    }
-  }
-
-  // Export Methods
-  async exportUsers(userId: number, options: { format?: 'csv' | 'xlsx' | 'json' } = {}): Promise<Buffer> {
-    try {
-      const { format = 'csv' } = options;
-      const users = await this.getUsers(userId);
-
-      switch (format) {
-        case 'csv':
-          const csv = json2csv.parse(users);
-          return Buffer.from(csv);
-        case 'xlsx':
-          const workbook = xlsx.utils.book_new();
-          const worksheet = xlsx.utils.json_to_sheet(users);
-          xlsx.utils.book_append_sheet(workbook, worksheet, 'Users');
-          const xlsxBuffer = xlsx.write(workbook, { type: 'buffer' });
-          return xlsxBuffer;
-        case 'json':
-          return Buffer.from(JSON.stringify(users, null, 2));
-        default:
-          throw new AppError(
-            ErrorCategory.IMPORT_EXPORT,
-            ImportExportErrorCode.INVALID_FILE_FORMAT,
-            `Unsupported format: ${format}`,
-            { format },
-            400
-          );
-      }
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.EXPORT_ERROR,
-        'Failed to export users',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  async exportTransactions(userId: number, options: { format?: 'csv' | 'xlsx' | 'json' } = {}): Promise<Buffer> {
-    try {
-      const { format = 'csv' } = options;
-      const transactions = await this.getTransactions(userId);
-
-      switch (format) {
-        case 'csv':
-          const csv = json2csv.parse(transactions);
-          return Buffer.from(csv);
-        case 'xlsx':
-          const workbook = xlsx.utils.book_new();
-          const worksheet = xlsx.utils.json_to_sheet(transactions);
-          xlsx.utils.book_append_sheet(workbook, worksheet, 'Transactions');
-          const xlsxBuffer = xlsx.write(workbook, { type: 'buffer' });
-          return xlsxBuffer;
-        case 'json':
-          return Buffer.from(JSON.stringify(transactions, null, 2));
-        default:
-          throw new AppError(
-            ErrorCategory.IMPORT_EXPORT,
-            ImportExportErrorCode.INVALID_FILE_FORMAT,
-            `Unsupported format: ${format}`,
-            { format },
-            400
-          );
-      }
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.EXPORT_ERROR,
-        'Failed to export transactions',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  async exportProducts(userId: number, options: { format?: 'csv' | 'xlsx' | 'json' } = {}): Promise<Buffer> {
-    try {
-      const { format = 'csv' } = options;
-      const products = await this.getProducts(userId);
-
-      switch (format) {
-        case 'csv':
-          const csv = json2csv.parse(products);
-          return Buffer.from(csv);
-        case 'xlsx':
-          const workbook = xlsx.utils.book_new();
-          const worksheet = xlsx.utils.json_to_sheet(products);
-          xlsx.utils.book_append_sheet(workbook, worksheet, 'Products');
-          const xlsxBuffer = xlsx.write(workbook, { type: 'buffer' });
-          return xlsxBuffer;
-        case 'json':
-          return Buffer.from(JSON.stringify(products, null, 2));
-        default:
-          throw new AppError(
-            ErrorCategory.IMPORT_EXPORT,
-            ImportExportErrorCode.INVALID_FILE_FORMAT,
-            `Unsupported format: ${format}`,
-            { format },
-            400
-          );
-      }
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.EXPORT_ERROR,
-        'Failed to export products',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  async getImportProgress(importId: string): Promise<ImportExportProgress> {
-    const progress = this.progressMap.get(importId);
-    if (!progress) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.PROCESSING_ERROR,
-        'Import progress not found',
-        undefined,
-        404
-      );
-    }
-    return progress;
-  }
-
-  // Progress Tracking
-  async getExportProgress(exportId: string): Promise<ImportExportProgress> {
-    const progress = this.progressMap.get(exportId);
-    if (!progress) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.PROCESSING_ERROR,
-        'Export progress not found',
-        undefined,
-        404
-      );
-    }
-    return progress;
-  }
-
-  // Helper Methods
-        'Failed to process file',
-        'Failed to process file.',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  private chunkArray<T>(array: T[], size: number): T[][] {
-    return array.reduce((chunks, item, index) => {
-      const chunkIndex = Math.floor(index / size);
-      if (!chunks[chunkIndex]) chunks[chunkIndex] = [];
-      chunks[chunkIndex].push(item);
-      return chunks;
-    }, [] as T[][]);
-  }
-
-  // Validation
-  async validateFile(file: File): Promise<void> {
-    try {
-      if (!file) {
-        throw new AppError(
-          ErrorCategory.IMPORT_EXPORT,
-          ImportExportErrorCode.INVALID_FILE,
-          'No file provided for import',
-          undefined,
-          400
-        );
-      }
-
-      if (!file.path) {
-        throw new AppError(
-          ErrorCategory.IMPORT_EXPORT,
-          ImportExportErrorCode.INVALID_FILE,
-          'File path is missing',
-          undefined,
-          400
-        );
-      }
-
-      if (!file.mimetype) {
-        throw new AppError(
-          ErrorCategory.IMPORT_EXPORT,
-          ImportExportErrorCode.INVALID_FILE,
-          'File mimetype is missing',
-          undefined,
-          400
-        );
-      }
-
-      // Check file size
-      if (file.size > this.config.maxFileSize) {
-        throw new AppError(
-          ErrorCategory.IMPORT_EXPORT,
-          ImportExportErrorCode.INVALID_FILE_SIZE,
-          'File size exceeds maximum allowed size',
-          { maxSize: this.config.maxFileSize, actualSize: file.size },
-          400
-        );
-      }
-
-      // Validate file type
-      if (!file.mimetype.startsWith('text/csv') && !file.mimetype.startsWith('application/json')) {
-        throw new AppError(
-          ErrorCategory.IMPORT_EXPORT,
-          ImportExportErrorCode.INVALID_FILE_FORMAT,
-          'Unsupported file format. Only CSV and JSON files are allowed',
-          { allowedFormats: ['csv', 'json'] },
-          400
-        );
-      }
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.VALIDATION_ERROR,
-        'Failed to validate file',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-}
-
-async exportTransactions(userId: number, options: { format?: 'csv' | 'xlsx' | 'json'; filters?: any } = {}): Promise<Buffer> {
-try {
-  const { format = 'csv', filters = {} } = options;
-  const transactions = await this.getTransactions(userId, filters);
-  async getUsers(userId: number, filters: any = {}): Promise<any[]> {
-    try {
-      // TODO: Implement actual user retrieval logic
-      return [];
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.RETRIEVAL_ERROR,
-        'Failed to retrieve users',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  async getTransactions(userId: number, filters: any = {}): Promise<any[]> {
-    try {
-      // TODO: Implement actual transaction retrieval logic
-      return [];
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.RETRIEVAL_ERROR,
-        'Failed to retrieve transactions',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  async getProducts(userId: number, filters: any = {}): Promise<any[]> {
-    try {
-      // TODO: Implement actual product retrieval logic
-      return [];
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.RETRIEVAL_ERROR,
-        'Failed to retrieve products',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-        500
-      );
-    }
-  }
-
-  private generateProgressId(): string {
-    return `import_${Date.now()}_${this.importIdCounter++}`;
-  }
-
-  private updateProgress(importId: string, progress: Partial<ImportExportProgress>): void {
-    const currentProgress = this.progressMap.get(importId) || {
-      status: 'pending',
-      message: '',
-      total: 0,
-      processed: 0,
-      errors: 0
-    };
-
-    this.progressMap.set(importId, {
-      ...currentProgress,
-      ...progress
-    });
-  }
-
-  async validateData(data: any[], type: 'products' | 'users' | 'transactions', options?: ValidationOptions): Promise<{ valid: any[]; invalid: { index: number; errors: string[]; }[] }> {
-    try {
-      if (!data || !Array.isArray(data)) {
-        throw new AppError(
-          ErrorCategory.IMPORT_EXPORT,
-          ImportExportErrorCode.INVALID_DATA,
-          'Invalid data format',
-          { type: 'array' },
-          400
-        );
-      }
-
-      const { valid, invalid } = await this.validationService.validateBatch(data, type, options);
-      return { valid, invalid };
-    } catch (error) {
-      throw new AppError(
-        ErrorCategory.IMPORT_EXPORT,
-        ImportExportErrorCode.VALIDATION_ERROR,
-        'Failed to validate data',
-        { error: error instanceof Error ? error.message : 'Unknown error' },
-    }
-    
-    this.updateProgress(importId, { status: 'completed' });
-    
-    return {
-      importId,
-      success: true,
-      message: `Successfully imported ${data.length} products`
-      totalErrors: 0,
-      errors: [],
-      validCount: 0,
-      invalidCount: 0
-    };
-
-    try {
-      this.updateProgress(importId, { status: 'processing', message: 'Starting product import...' });
-
-      // Validate file
-      await this.validateFile(file);
-
-      // Process file and validate data
-      const data = await this.processFile(file);
-      const { valid, invalid } = await this.validateData(data, 'products', options);
-
-      results.validCount = valid.length;
-      results.invalidCount = invalid.length;
-      results.totalProcessed = valid.length + invalid.length;
-      results.totalErrors = invalid.length;
-      results.errors = invalid.map(i => i.errors.join(', '));
-
-      if (!validateOnly) {
-        // Process valid products
-        for (const batch of this.chunkArray(valid, batchSize)) {
-          await this.processBatch(batch, userId);
-          results.totalProcessed += batch.length;
-        }
-      }
-
-      this.updateProgress(importId, {
-        status: 'completed',
-        message: 'Import completed successfully',
-        total: results.totalProcessed,
-        processed: results.totalProcessed,
-        errors: results.totalErrors
-      });
-
-      return results;
-    } catch (error) {
-      this.updateProgress(importId, {
-        status: 'failed',
-        message: error instanceof Error ? error.message : 'Import failed',
-        total: results.totalProcessed,
-        processed: results.totalProcessed,
-        errors: results.totalErrors
-      });
-
-      throw error;
-    }
-  }
-          { importId }
-        );
-      }
-
-      // Validate data
-      const { valid, invalid } = await this.validateData(data, 'products', options);
-      results.validCount = valid.length;
-      results.invalidCount = invalid.length;
-      results.totalProcessed = data.length;
-      results.totalErrors = invalid.length;
-
-      if (validateOnly) {
-        this.updateProgress(importId, { status: 'completed', message: 'Validation completed' });
-        return results;
-      }
-
-      // Process valid data
-      for (let i = 0; i < valid.length; i += batchSize) {
-        const batch = valid.slice(i, i + batchSize);
-        await this.processBatch(batch, userId);
-      }
-
-      this.updateProgress(importId, { status: 'completed', message: 'Import completed successfully' });
-      return results;
-    } catch (error) {
-      if (error instanceof AppError) {
-        this.updateProgress(importId, { 
-          status: 'failed', 
-          message: error.message 
-        });
-        results.success = false;
-        results.errors.push(error.message);
-        return results;
-      } else if (error instanceof Error) {
-        this.updateProgress(importId, { 
-          status: 'failed', 
-          message: error.message 
-        });
-        results.success = false;
-        results.errors.push(error.message);
-        return results;
-      } else {
-        const errorMessage = 'An unknown error occurred during import';
-        this.updateProgress(importId, { 
-          status: 'failed', 
-          message: errorMessage 
-        });
-        results.success = false;
-        results.errors.push(errorMessage);
-        return results;
-      }
-    }
-  }
-
-  private async processBatch(data: any[], userId: number): Promise<void> {
-    try {
-      // Implementation for processing batch data
-      for (const item of data) {
-        await this.validateProduct(item);
-        // Insert/update product
-      }
-    } catch (error) {
-      throw new AppError(
-        'PROCESSING',
-        'PROCESSING_ERROR',
-        'Failed to process batch',
-        { error: error instanceof Error ? error.message : 'Unknown error' }
-      );
-    }
-  }
-
-  private async validateProduct(product: any): Promise<void> {
-    if (!product.name) {
-      throw new AppError(
-        'VALIDATION',
-        'VALIDATION_ERROR',
-        'Product name is required',
-        { product }
-      );
-    }
-
-    if (typeof product.price !== 'number' || product.price <= 0) {
-      throw new AppError(
-        'VALIDATION',
-        'VALIDATION_ERROR',
-        'Invalid product price',
-        { product }
-      );
-    }
-  }
-
-  async getImportProgress(importId: string): Promise<ImportExportProgress> {
-    const progress = this.progressMap.get(importId);
-    if (!progress) {
-      throw new AppError(
-        'NOT_FOUND',
-        'NOT_FOUND',
-        'Import not found',
-        { importId }
-      );
-    }
-    return progress;
-  }
-
-  async cancelImport(importId: string): Promise<void> {
-    this.updateProgress(importId, { 
-      status: 'cancelled', 
-      message: 'Import cancelled by user' 
-    });
-  }
-
-  async clearImport(importId: string): Promise<void> {
-    this.progressMap.delete(importId);
-  }
-
-    }
-  }
-
-  private async getProducts(userId: number): Promise<any[]> {
-    try {
-      // Implementation for fetching products
-      return [];
-    } catch (error) {
-      throw new AppError(
-        'DATABASE',
-        'DATABASE_ERROR',
-        'Failed to fetch products',
-        { error: error instanceof Error ? error.message : 'Unknown error' }
-      );
-    }
-  }
-
-  private async formatAsJson(data: any[]): Promise<Buffer> {
     try {
       return Buffer.from(JSON.stringify(data, null, 2));
     } catch (error) {
-      throw ImportExportServiceErrors.PROCESSING_ERROR;
+      throw this.errors.PROCESSING_ERROR;
     }
+  }
+
+  private async generateExcel(data: any[], options: {
+    format: string;
+    includeHeaders: boolean;
+    delimiter?: string;
+  }): Promise<Buffer> {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Data');
+
+      if (options.includeHeaders) {
+        worksheet.addRow(Object.keys(data[0]));
+      }
+
+      data.forEach(row => {
+        worksheet.addRow(Object.values(row));
+      });
+
+      return await workbook.xlsx.writeBuffer() as Buffer;
+    } catch (error) {
+      throw this.errors.PROCESSING_ERROR;
+    }
+  }
+
+  private async parseCSV(buffer: Buffer): Promise<any[]> {
+    try {
+      const parser = parse({
+        columns: true,
+        skip_empty_lines: true
+      });
+
+      return new Promise((resolve, reject) => {
+        const results: any[] = [];
+        parser.on('data', (row) => {
+          results.push(row);
+        });
+        parser.on('end', () => {
+          resolve(results);
+        });
+        parser.on('error', (error) => {
+          reject(error);
+        });
+        parser.write(buffer.toString());
+        parser.end();
+      });
+    } catch (error) {
+      throw this.errors.INVALID_DATA;
+    }
+  }
+
+  private async parseJSON(buffer: Buffer): Promise<any[]> {
+    try {
+      return JSON.parse(buffer.toString());
+    } catch (error) {
+      throw this.errors.INVALID_DATA;
+    }
+  }
+
+  private async parseExcel(buffer: Buffer): Promise<any[]> {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const worksheet = workbook.getWorksheet(1);
+      const row1 = worksheet.getRow(1).values;
+const headers = Array.isArray(row1) ? row1.slice(1) : [];
+       
+      const results: any[] = [];
+      worksheet.getRows(2, worksheet.rowCount).forEach(row => {
+        const rowData: any = {};
+        headers.forEach((header: any, index: number) => {
+          if (header) {
+            const cell = row.getCell(index + 1);
+            rowData[String(header)] = cell?.value;
+          }
+        });
+        results.push(rowData);
+      });
+      return results;
+    } catch (error) {
+      throw this.errors.INVALID_DATA;
+    }
+  }
+  private generatePrettyJSON(data: any[]): Buffer {
+    try {
+      return Buffer.from(JSON.stringify(data, null, 2));
+    } catch (error) {
+      throw new Error('Failed to generate JSON');
+    }
+  }
+
+  private getConfig(): ImportExportConfig {
+    return {
+      batchSize: 100
+    };
   }
 }
