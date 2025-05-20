@@ -1,3 +1,17 @@
+import { ZodError, ZodIssue } from 'zod';
+
+// Type definitions for database errors
+interface ValidationError extends Error {
+  name: 'ValidationError';
+  errors: any[];
+}
+
+interface MongoError extends Error {
+  name: 'MongoError';
+  code: number;
+  keyValue?: any;
+}
+
 export enum ErrorCategory {
   VALIDATION = 'VALIDATION',
   AUTHENTICATION = 'AUTHENTICATION',
@@ -9,6 +23,7 @@ export enum ErrorCategory {
   PROCESSING = 'PROCESSING',
   INVALID_FORMAT = 'INVALID_FORMAT',
   EXPORT_ERROR = 'EXPORT_ERROR',
+  DATABASE_ERROR = 'DATABASE_ERROR'
 }
 
 export enum RetryableError {
@@ -18,7 +33,7 @@ export enum RetryableError {
   TIMEOUT = 'TIMEOUT',
   NETWORK_ERROR = 'NETWORK_ERROR',
   CONNECTION_LOST = 'CONNECTION_LOST',
-  LOCKED_RESOURCE = 'LOCKED_RESOURCE',
+  LOCKED_RESOURCE = 'LOCKED_RESOURCE'
 }
 
 export enum ErrorCode {
@@ -53,14 +68,6 @@ export enum ErrorCode {
   TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
   REQUEST_HEADER_FIELDS_TOO_LARGE = 'REQUEST_HEADER_FIELDS_TOO_LARGE',
   UNAVAILABLE_FOR_LEGAL_REASONS = 'UNAVAILABLE_FOR_LEGAL_REASONS',
-
-  // Import-Export specific errors
-  INVALID_FILE = 'INVALID_FILE',
-  PROCESSING_ERROR = 'PROCESSING_ERROR',
-  INVALID_FORMAT = 'INVALID_FORMAT',
-  EXPORT_ERROR = 'EXPORT_ERROR',
-  DATABASE_ERROR = 'DATABASE_ERROR',
-}
 
   // Server errors
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
@@ -124,99 +131,35 @@ export enum ErrorCode {
   INVALID_EXPORT_FILE = 'INVALID_EXPORT_FILE',
   IMPORT_ALREADY_IN_PROGRESS = 'IMPORT_ALREADY_IN_PROGRESS',
   EXPORT_ALREADY_IN_PROGRESS = 'EXPORT_ALREADY_IN_PROGRESS',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  FOREIGN_KEY_CONSTRAINT_VIOLATION = 'FOREIGN_KEY_CONSTRAINT_VIOLATION'
 }
 
-export const BaseErrorCode = {
-  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
-  NOT_FOUND: 'NOT_FOUND',
-  BAD_REQUEST: 'BAD_REQUEST',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  DUPLICATE_ENTRY: 'DUPLICATE_ENTRY',
-  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
-  INVALID_TOKEN: 'INVALID_TOKEN',
-  EXPIRED_TOKEN: 'EXPIRED_TOKEN',
-  INVALID_REFRESH_TOKEN: 'INVALID_REFRESH_TOKEN',
-  INVALID_RESET_TOKEN: 'INVALID_RESET_TOKEN',
-  EXPIRED_RESET_TOKEN: 'EXPIRED_RESET_TOKEN',
-  INVALID_VERIFICATION_TOKEN: 'INVALID_VERIFICATION_TOKEN',
-  EXPIRED_VERIFICATION_TOKEN: 'EXPIRED_VERIFICATION_TOKEN',
-  INVALID_PASSWORD: 'INVALID_PASSWORD',
-  WEAK_PASSWORD: 'WEAK_PASSWORD',
-  USER_NOT_FOUND: 'USER_NOT_FOUND',
-  USER_ALREADY_EXISTS: 'USER_ALREADY_EXISTS',
-  EMAIL_ALREADY_EXISTS: 'EMAIL_ALREADY_EXISTS',
-  EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
-  EMAIL_VERIFICATION_FAILED: 'EMAIL_VERIFICATION_FAILED',
-  PASSWORD_RESET_FAILED: 'PASSWORD_RESET_FAILED',
-  PASSWORD_CHANGE_FAILED: 'PASSWORD_CHANGE_FAILED',
-  EMAIL_CHANGE_FAILED: 'EMAIL_CHANGE_FAILED',
-  EMAIL_CHANGE_UNAUTHORIZED: 'EMAIL_CHANGE_UNAUTHORIZED',
-  EMAIL_CHANGE_ALREADY_EXISTS: 'EMAIL_CHANGE_ALREADY_EXISTS',
-export const BaseErrorCategory = {
-  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
-  NOT_FOUND: 'NOT_FOUND',
-  BAD_REQUEST: 'BAD_REQUEST',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  VALIDATION: 'VALIDATION',
-  AUTHENTICATION: 'AUTHENTICATION',
-  DATABASE: 'DATABASE',
-  NETWORK: 'NETWORK',
-  TIMEOUT: 'TIMEOUT',
-  RATE_LIMIT: 'RATE_LIMIT',
-  THROTTLING: 'THROTTLING',
-  CONFLICT: 'CONFLICT',
-  GATEWAY_TIMEOUT: 'GATEWAY_TIMEOUT',
-  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
-} as const;
-
-export type BaseErrorCategory = typeof BaseErrorCategory[keyof typeof BaseErrorCategory];
-
-export const BaseErrorCode = {
-  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
-  NOT_FOUND: 'NOT_FOUND',
-  BAD_REQUEST: 'BAD_REQUEST',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR',
-  DATABASE_ERROR: 'DATABASE_ERROR',
-  NETWORK_ERROR: 'NETWORK_ERROR',
-  TIMEOUT_ERROR: 'TIMEOUT_ERROR',
-  RATE_LIMIT_ERROR: 'RATE_LIMIT_ERROR',
-  THROTTLING_ERROR: 'THROTTLING_ERROR',
-  CONFLICT_ERROR: 'CONFLICT_ERROR',
-  GATEWAY_TIMEOUT_ERROR: 'GATEWAY_TIMEOUT_ERROR',
-  SERVICE_UNAVAILABLE_ERROR: 'SERVICE_UNAVAILABLE_ERROR',
-} as const;
-
-export type BaseErrorCode = typeof BaseErrorCode[keyof typeof BaseErrorCode];
-
-export interface AppError extends Error {
-  code: BaseErrorCode | string;
-  category: BaseErrorCategory | string;
+export interface BaseError {
+  code: ErrorCode;
+  message: string;
+  category: ErrorCategory;
   details?: Record<string, unknown>;
   statusCode?: number;
 }
 
 export class AppError extends Error {
-  code: BaseErrorCode | string;
-  category: BaseErrorCategory | string;
+  code: ErrorCode;
+  category: ErrorCategory;
   details?: Record<string, unknown>;
   statusCode?: number;
 
   constructor(
-    category: BaseErrorCategory | string,
-    code: BaseErrorCode | string,
     message: string,
+    category: ErrorCategory | string,
+    code: ErrorCode | string,
     details?: Record<string, unknown>,
     statusCode?: number
   ) {
     super(message);
-    this.code = code;
-    this.category = category;
+    this.code = code as ErrorCode;
+    this.category = category as ErrorCategory;
     this.details = details;
     this.statusCode = statusCode;
   }
@@ -225,8 +168,7 @@ export class AppError extends Error {
     return new AppError(
       'Validation failed',
       ErrorCategory.VALIDATION,
-      undefined,
-      undefined,
+      ErrorCode.VALIDATION_ERROR,
       {
         validationErrors: error.errors.map((issue: ZodIssue) => ({
           path: issue.path,
@@ -237,65 +179,177 @@ export class AppError extends Error {
     );
   }
 
+  static isValidationError(error: Error): error is ValidationError {
+    return error.name === 'ValidationError' && 'errors' in error;
+  }
+
+  static isMongoError(error: Error): error is MongoError {
+    return error.name === 'MongoError' && 'code' in error;
+  }
+
   static fromDatabaseError(error: Error): AppError {
-    if (error.name === 'ValidationError') {
+    if (AppError.isValidationError(error)) {
       return new AppError(
-        ErrorCode.INVALID_FIELD_VALUE,
         'Database validation failed',
         ErrorCategory.VALIDATION,
-        undefined,
-        undefined,
+        ErrorCode.INVALID_FIELD_VALUE,
         {
-          validationErrors: (error as any).errors.map((e: any) => ({
-            path: e.path,
-            message: e.message,
-            type: e.type
-          }))
+          errors: error.errors
         }
       );
-    } else if (error.message.includes('duplicate key')) {
+    }
+
+    if (AppError.isMongoError(error)) {
+      if (error.code === 11000) {
+        return new AppError(
+          'Duplicate entry',
+          ErrorCategory.DATABASE,
+          ErrorCode.DUPLICATE_ENTRY,
+          {
+            keyValue: error.keyValue
+          }
+        );
+      }
+
+      // Handle other MongoDB error codes
+      if (error.code === 11001 || error.code === 11002) {
+        return new AppError(
+          'Duplicate entry',
+          ErrorCategory.DATABASE,
+          ErrorCode.DUPLICATE_ENTRY,
+          {
+            keyValue: error.keyValue
+          }
+        );
+      }
+
+      // Handle foreign key constraint violation
+      if (error.code === 11003) {
+        return new AppError(
+          'Foreign key constraint violation',
+          ErrorCategory.DATABASE,
+          ErrorCode.FOREIGN_KEY_CONSTRAINT_VIOLATION,
+          {
+            keyValue: error.keyValue
+          }
+        );
+      }
+
+      // Handle other database errors
       return new AppError(
-        ErrorCode.DUPLICATE_ENTRY,
-        'Duplicate entry',
-        ErrorCategory.DATABASE,
-        undefined,
-        undefined,
-        {
-          field: error.message.match(/"(.+?)"/)?.[1]
-        }
-      );
-    } else if (error.message.includes('foreign key')) {
-      return new AppError(
-        ErrorCode.FOREIGN_KEY_CONSTRAINT_VIOLATION,
-        'Foreign key constraint violation',
-        ErrorCategory.DATABASE,
-        undefined,
-        undefined,
-        {
-          constraint: 'foreign_key'
-        }
-      );
-    } else {
-      return new AppError(
-        ErrorCode.INTERNAL_SERVER_ERROR,
         'Database error',
         ErrorCategory.DATABASE,
-        undefined,
-        undefined,
+        ErrorCode.DATABASE_ERROR,
         {
           message: error.message
         }
       );
     }
+
+    // Handle other database errors
+    return new AppError(
+      'Database error',
+      ErrorCategory.DATABASE,
+      ErrorCode.DATABASE_ERROR,
+      {
+        message: error.message
+      }
+    );
   }
 
   static fromAuthenticationError(error: Error): AppError {
     return new AppError(
-      ErrorCode.EXPIRED_TOKEN,
-      'Authentication failed',
+      'Authentication error',
       ErrorCategory.AUTHENTICATION,
-      undefined,
-      undefined,
+      ErrorCode.UNAUTHORIZED,
+      {
+        message: error.message
+      }
+    );
+  }
+
+  static fromResourceError(error: Error): AppError {
+    return new AppError(
+      'Resource error',
+      ErrorCategory.RESOURCE,
+      ErrorCode.NOT_FOUND,
+      {
+        message: error.message
+      }
+    );
+  }
+
+  static fromBusinessError(error: Error): AppError {
+    return new AppError(
+      'Business error',
+      ErrorCategory.BUSINESS,
+      ErrorCode.BAD_REQUEST,
+      {
+        message: error.message
+      }
+    );
+  }
+
+  static fromSystemError(error: Error): AppError {
+    return new AppError(
+      'System error',
+      ErrorCategory.SYSTEM,
+      ErrorCode.INTERNAL_SERVER_ERROR,
+      {
+        message: error.message
+      }
+    );
+  }
+
+  static fromImportExportError(error: Error): AppError {
+    return new AppError(
+      'Import/export error',
+      ErrorCategory.IMPORT_EXPORT,
+      ErrorCode.BAD_REQUEST,
+      {
+        message: error.message
+      }
+    );
+  }
+
+  static fromProcessingError(error: Error): AppError {
+    return new AppError(
+      'Processing error',
+      ErrorCategory.PROCESSING,
+      ErrorCode.INTERNAL_SERVER_ERROR,
+      {
+        message: error.message
+      }
+    );
+  }
+
+  static fromInvalidFormatError(error: Error): AppError {
+    return new AppError(
+      'Invalid format error',
+      ErrorCategory.INVALID_FORMAT,
+      ErrorCode.BAD_REQUEST,
+      {
+        message: error.message
+      }
+    );
+  }
+
+  static fromExportError(error: Error): AppError {
+    return new AppError(
+      'Export error',
+      ErrorCategory.EXPORT_ERROR,
+      ErrorCode.INTERNAL_SERVER_ERROR,
+      {
+        message: error.message
+      }
+    );
+  }
+
+  static fromRetryableError(error: Error): AppError {
+    return new AppError(
+      'Retryable error',
+      ErrorCategory.SYSTEM,
+      ErrorCode.INTERNAL_SERVER_ERROR,
       {
         message: error.message
       }

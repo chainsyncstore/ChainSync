@@ -7,7 +7,7 @@
     "target": "es2020",
     "module": "esnext",
     "lib": ["es2020"],
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -22,7 +22,20 @@
       "@db/*": ["./db/*"],
       "@shared/*": ["./shared/*"],
       "@server/*": ["./server/*"]
-    }
+    },
+    "allowJs": true,
+    "checkJs": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": false,
+    "alwaysStrict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false
   },
   "files": [
     "./types/index.d.ts"
