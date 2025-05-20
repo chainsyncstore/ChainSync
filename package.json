@@ -4,17 +4,14 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "preinstall": "npm install --production=false",
-    "prebuild": "rm -rf node_modules/.cache && rm -rf dist",
     "dev": "tsx server/index.ts",
     "build:client": "node --max-old-space-size=2048 node_modules/vite/bin/vite.js build --mode production",
     "build:server": "node --max-old-space-size=2048 node_modules/esbuild/bin/esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server --tree-shaking true",
-    "build": "npm run prebuild && npm run build:client && npm run build:server",
+    "build": "npm run build:client && npm run build:server",
     "start": "NODE_ENV=production node dist/server/index.js",
     "check": "npm run tsc",
     "db:push": "npm run drizzle-kit -- push --force --config=./drizzle.config.ts",
     "db:seed": "npm run tsx -- db/seed.ts",
-    "postinstall": "npm run build",
     "start:client": "vite preview --port 8080",
     "start:server": "node dist/server/index.js"
   },
