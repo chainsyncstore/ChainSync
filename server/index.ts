@@ -1,17 +1,117 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { type Request, Response, NextFunction, Application } from "express";
+import { createRequestHandler, createErrorHandler, isMiddlewareFunction } from "./types/middleware";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSecureServer, enforceHttpsForPaymentRoutes } from "./config/https";
 import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./config/dialogflow-security";
 import { logNgrokInstructions } from "./config/ngrok";
+import { setupSecurity } from "../middleware/security";
+import { logger } from "./services/logger";
+import { env } from "./config/env";
+import { ServiceError } from "./services/base/base-service";
+import { applyRateLimiters } from "./middleware/rate-limiter";
+import { applyCORS } from "./middleware/cors";
+import { initializeDatabase } from "./database";
 
 const app = express();
 
+// Initialize database connection
+await initializeDatabase();
+
+// Setup security middleware
+setupSecurity(app);
+
+// Apply middleware
+const corsMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+  applyCORS(req, res, next);
+});
+const rateLimiterMiddleware = createRequestHandler(applyRateLimiters.applyRateLimiters);
+
+if (isMiddlewareFunction(corsMiddleware) && isMiddlewareFunction(rateLimiterMiddleware)) {
+  app.use(corsMiddleware);
+  app.use(rateLimiterMiddleware);
+}
+
 // Enforce HTTPS for secure routes in production
-app.use(enforceHttpsForPaymentRoutes);
-app.use(enforceHttpsForDialogflowRoutes);
+const paymentRoutesMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+  enforceHttpsForPaymentRoutes(req, res, next);
+});
+const dialogflowRoutesMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+  enforceHttpsForDialogflowRoutes(req, res, next);
+});
+
+if (isMiddlewareFunction(paymentRoutesMiddleware) && isMiddlewareFunction(dialogflowRoutesMiddleware)) {
+  app.use(paymentRoutesMiddleware);
+  app.use(dialogflowRoutesMiddleware);
+}
+
+// Parse request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Error handling middleware
+const errorMiddleware = createErrorHandler((err: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error(err.message, { stack: err.stack });
+
+  if (err instanceof Error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        message: err.message,
+        details: err.stack
+      }
+    });
+  }
+
+  next();
+});
+
+if (isMiddlewareFunction(errorMiddleware)) {
+  app.use(errorMiddleware);
+}
+
+// Fallback error handler
+const fallbackMiddleware = createErrorHandler((err: any, req: Request, res: Response, next: NextFunction) => {
+  logger.error('Unknown error:', err);
+  res.status(500).json({
+    success: false,
+    error: {
+      message: 'Internal server error',
+      details: 'An unexpected error occurred'
+    }
+  });
+});
+
+if (isMiddlewareFunction(fallbackMiddleware)) {
+  app.use(fallbackMiddleware);
+}
+
+// Register routes
+registerRoutes(app);
+
+export default app;
+
+// Add error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error(err.message, { stack: err.stack });
+
+  if (err instanceof Error) {
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: err.message,
+        details: err.stack
+      }
+    });
+  }
+
+  res.status(500).json({
+    success: false,
+    error: {
+      message: 'An unexpected error occurred'
+    }
+  });
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

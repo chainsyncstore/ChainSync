@@ -1,7 +1,29 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, json, jsonb, unique } from "drizzle-orm/pg-core";
+import { 
+  pgTable, 
+  serial, 
+  integer, 
+  text, 
+  boolean, 
+  timestamp, 
+  jsonb, 
+  unique, 
+  primaryKey, 
+  foreignKey, 
+  index, 
+  decimal 
+} from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
+import { 
+  paymentStatus, 
+  paymentAnalytics, 
+  paymentRefunds, 
+  paymentWebhooks, 
+  paymentStatusRelations, 
+  paymentRefundsRelations, 
+  paymentWebhooksRelations 
+} from "./payment-schema";
 
 // Users & Authentication
 export const users = pgTable("users", {
@@ -10,11 +32,14 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
   email: text("email").notNull(),
-  role: text("role").notNull().default("cashier"), // cashier, manager, admin
-  storeId: integer("store_id"), // null for admin (chain-wide access)
+  role: text("role").notNull().default("cashier"),
+  storeId: integer("store_id").references(() => stores.id),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  usernameIndex: index("idx_users_username").on((users: any) => users.username),
+  emailIndex: index("idx_users_email").on((users: any) => users.email),
+  roleIndex: index("idx_users_role").on((users: any) => users.role)
 });
 
 export const passwordResetTokens = pgTable("password_reset_tokens", {
@@ -48,11 +73,15 @@ export const stores = pgTable("stores", {
   address: text("address").notNull(),
   city: text("city").notNull(),
   state: text("state").notNull(),
-  zipCode: text("zip_code").notNull(),
+  country: text("country").notNull(),
   phone: text("phone").notNull(),
+  email: text("email").notNull(),
+  timezone: text("timezone").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  nameIndex: index("idx_stores_name").on((stores: any) => stores.name),
+  emailIndex: index("idx_stores_email").on((stores: any) => stores.email)
 });
 
 export const storesRelations = relations(stores, ({ many }) => ({
@@ -155,8 +184,8 @@ export const batchAuditLogs = pgTable("batch_audit_logs", {
   id: serial("id").primaryKey(),
   batchId: integer("batch_id").references(() => inventoryBatches.id, { onDelete: 'set null' }),
   userId: integer("user_id").references(() => users.id).notNull(),
-  action: text("action").notNull(), // 'create', 'update', 'delete', 'adjust'
-  details: json("details").notNull(), // Store details about the change
+  action: text("action").notNull(),
+  details: jsonb("details").notNull(),
   quantityBefore: integer("quantity_before"),
   quantityAfter: integer("quantity_after"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -250,12 +279,11 @@ export const transactions = pgTable("transactions", {
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }),
+  paymentMethod: text("payment_method").notNull(),
+  paymentReference: text("payment_reference"),
   pointsEarned: decimal("points_earned", { precision: 10, scale: 2 }),
   pointsRedeemed: decimal("points_redeemed", { precision: 10, scale: 2 }),
   rewardId: integer("reward_id").references(() => loyaltyRewards.id),
-  paymentMethod: text("payment_method").notNull(), // cash, credit_card, debit_card, etc.
-  status: text("status").notNull().default("completed"), // completed, pending, voided
   paymentStatus: text("payment_status").default("pending"), // pending, paid, failed
   referenceId: text("reference_id").unique(), // Payment gateway reference ID
   paymentProcessor: text("payment_processor"), // paystack, flutterwave
@@ -288,6 +316,10 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     references: [loyaltyRewards.id],
   }),
   items: many(transactionItems),
+  paymentStatus: one(paymentStatus, {
+    fields: [transactions.paymentReference],
+    references: [paymentStatus.reference],
+  }),
 }));
 
 // Transaction Items
@@ -362,8 +394,20 @@ export const aiConversationsRelations = relations(aiConversations, ({ one }) => 
   }),
 }));
 
-export const aiConversationInsertSchema = createInsertSchema(aiConversations);
-export const aiConversationSelectSchema = createSelectSchema(aiConversations);
+export const aiConversationInsertSchema = createInsertSchema(aiConversations, {
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+    timestamp: z.string().optional(),
+  })).default([])
+});
+export const aiConversationSelectSchema = createSelectSchema(aiConversations, {
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+    timestamp: z.string().optional(),
+  }))
+});
 
 export type AiConversation = typeof aiConversations.$inferSelect;
 export type AiConversationInsert = z.infer<typeof aiConversationInsertSchema>;
@@ -372,69 +416,69 @@ export type AiConversationInsert = z.infer<typeof aiConversationInsertSchema>;
 // User schemas are defined later in the file
 
 export const storeInsertSchema = createInsertSchema(stores, {
-  name: (schema) => schema.min(2, "Store name must be at least 2 characters"),
-  phone: (schema) => schema.min(10, "Phone number must be at least 10 characters"),
+  name: z.string().min(2, "Store name must be at least 2 characters"),
+  phone: z.string().min(10, "Phone number must be at least 10 characters"),
 });
 
 export const categoryInsertSchema = createInsertSchema(categories, {
-  name: (schema) => schema.min(2, "Category name must be at least 2 characters"),
+  name: z.string().min(2, "Category name must be at least 2 characters"),
 });
 
 export const productInsertSchema = createInsertSchema(products, {
-  name: (schema) => schema.min(2, "Product name must be at least 2 characters"),
-  sku: (schema) => schema.min(2, "SKU must be at least 2 characters"),
-  barcode: (schema) => schema.optional(),
-  price: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+  name: z.string().min(2, "Product name must be at least 2 characters"),
+  sku: z.string().min(2, "SKU must be at least 2 characters"),
+  barcode: z.string().optional(),
+  price: z.string().refine(val => parseFloat(val) >= 0, {
     message: "Price must be a positive number"
   }),
-  cost: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+  cost: z.string().optional().refine(val => !val || parseFloat(val) >= 0, {
     message: "Cost must be a positive number"
   }),
 });
 
 export const inventoryInsertSchema = createInsertSchema(inventory, {
-  totalQuantity: (schema) => schema.refine(val => val >= 0, {
+  totalQuantity: z.number().refine(val => val >= 0, {
     message: "Total quantity must be a positive number"
   }),
-  minimumLevel: (schema) => schema.refine(val => val >= 0, {
+  minimumLevel: z.number().refine(val => val >= 0, {
     message: "Minimum level must be a positive number"
   }),
 });
 
 export const inventoryBatchInsertSchema = createInsertSchema(inventoryBatches, {
-  batchNumber: (schema) => schema.min(1, "Batch number is required"),
-  quantity: (schema) => schema.refine(val => val >= 0, {
+  batchNumber: z.string().min(1, "Batch number is required"),
+  quantity: z.number().refine(val => val >= 0, {
     message: "Quantity must be a positive number"
   }),
-  costPerUnit: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+  costPerUnit: z.string().optional().refine(val => !val || parseFloat(val) >= 0, {
     message: "Cost per unit must be a positive number"
   }),
 });
 
 export const transactionInsertSchema = createInsertSchema(transactions, {
-  transactionId: (schema) => schema.min(5, "Transaction ID must be at least 5 characters"),
-  subtotal: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+  transactionId: z.string().min(5, "Transaction ID must be at least 5 characters"),
+  subtotal: z.string().refine(val => parseFloat(val) >= 0, {
     message: "Subtotal must be a positive number"
   }),
-  tax: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+  tax: z.string().refine(val => parseFloat(val) >= 0, {
     message: "Tax must be a positive number"
   }),
-  total: (schema) => schema.refine(val => parseFloat(val) >= 0, {
+  total: z.string().refine(val => parseFloat(val) >= 0, {
     message: "Total must be a positive number"
   }),
-  discountAmount: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+  discountAmount: z.string().optional().refine(val => !val || parseFloat(val) >= 0, {
     message: "Discount amount must be a positive number"
   }),
-  pointsEarned: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+  pointsEarned: z.string().optional().refine(val => !val || parseFloat(val) >= 0, {
     message: "Points earned must be a positive number"
   }),
-  pointsRedeemed: (schema) => schema.optional().refine(val => !val || parseFloat(val) >= 0, {
+  pointsRedeemed: z.string().optional().refine(val => !val || parseFloat(val) >= 0, {
     message: "Points redeemed must be a positive number"
   }),
 });
 
 export const transactionItemInsertSchema = createInsertSchema(transactionItems, {
-  quantity: (schema) => schema.refine(val => val > 0, {
+  quantity: z.number().refine(val => val > 0, {
     message: "Quantity must be greater than 0"
   }),
   unitPrice: (schema) => schema.refine(val => parseFloat(val) >= 0, {

@@ -1,64 +1,118 @@
-import type { Express, Request, Response } from "express";
-import { createServer, type Server } from "http";
-import express from "express";
-import session from "express-session";
-import pgSession from "connect-pg-simple";
-import { z } from "zod";
-import { ZodError } from "zod-validation-error";
-import { storage } from "./storage";
-import * as schema from "@shared/schema";
-import { pool } from "@db";
-import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from "./middleware/auth";
-import { getAIResponse } from "./services/ai";
-import multer from "multer";
-import path from "path";
-
-// Import services
+import express from 'express';
+import { env } from './config/env';
+import { logger } from './services/logger';
+import { FileUploadMiddleware } from './middleware/file-upload';
+import { AuthMiddleware } from './middleware/auth';
+import { RateLimitMiddleware } from './middleware/rate-limit';
+import { errorMiddleware } from './middleware/error-handler';
+import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { socketHandler } from './socket/socket-handler';
+import session from 'express-session';
+import pgSession from 'connect-pg-simple';
+import { Pool } from 'pg';
+import { db } from '@db';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { z } from 'zod';
+import { ZodError } from 'zod-validation-error';
+import { storage } from './storage';
+import * as schema from '@shared/schema';
+import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from './middleware/auth';
+import { getAIResponse } from './services/ai';
+import multer from 'multer';
+import path from 'path';
 import * as affiliateService from './services/affiliate';
 import * as webhookService from './services/webhook';
 import * as paymentService from './services/payment';
-import * as loyaltyService from "./services/loyalty";
-import * as analyticsService from "./services/analytics";
-import { 
-  processImportFile, 
-  applyColumnMapping, 
-  validateLoyaltyData, 
-  validateInventoryData,
-  importLoyaltyData,
-  importInventoryData,
-  generateErrorReport
-} from "./services/import-enhanced";
-import { validateProductImportCSV, importProducts } from "./services/product-import";
+import * as loyaltyService from './services/loyalty';
+import * as analyticsService from './services/analytics';
+import { processImportFile, applyColumnMapping, validateLoyaltyData, validateInventoryData, importLoyaltyData, importInventoryData, generateErrorReport } from './services/import-enhanced';
+import { validateProductImportCSV, importProducts } from './services/product-import';
+import { File } from 'multer';
+import { Request, Response, NextFunction } from 'express';
+import { SessionOptions } from 'express-session';
+import { NeonDatabase } from '@neondatabase/serverless';
+import { App, Middleware, RouteHandler, EnvConfig } from './types/app';
+import { Database } from './types/index';
 
-import { db } from "@db";
-import { eq, and, desc, sql } from "drizzle-orm";
+// Re-export env for type safety
+export const envConfig = env;
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: App): Promise<Server> {
   // Import the setupSecureServer to return either HTTP or HTTPS server based on environment
   const { setupSecureServer } = await import('./config/https');
-  // Set up PostgreSQL session store
   const PostgresStore = pgSession(session);
   
   // Set up session middleware
-  app.use(
-    session({
-      store: new PostgresStore({
-        pool,
-        createTableIfMissing: true,
-        tableName: 'session'
-      }),
-      secret: process.env.SESSION_SECRET || "dev-secret-key",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: false, // Only set to true in production with HTTPS
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: 'lax'
-      },
-      name: 'chainsync.sid' // Custom name to avoid conflicts
-    })
-  );
+  const sessionConfig: SessionOptions = {
+    store: new PostgresStore({
+      pool: (db as Database).pool,
+      createTableIfMissing: true,
+      tableName: 'sessions'
+    }),
+    secret: env.sessionSecret as string,
+    name: env.sessionCookieName,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      maxAge: 86400000,
+      sameSite: 'lax'
+    }
+  } as const;
+
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(session(sessionConfig));
+
+  app.get('/', (req: Request, res: Response) => {
+    res.json({ message: 'Welcome to ChainSync API' });
+  });
+
+  // Auth routes
+  app.post('/auth/login', AuthMiddleware.login as Middleware);
+  app.post('/auth/register', AuthMiddleware.register as Middleware);
+  app.post('/auth/refresh', AuthMiddleware.refreshToken as Middleware);
+
+  // Protected routes
+  app.use(AuthMiddleware.protect);
+
+  // File upload routes
+  app.post('/upload', FileUploadMiddleware.handleUpload as Middleware);
+  app.get('/upload/progress/:id', FileUploadMiddleware.getProgress as Middleware);
+  app.post('/upload/subscribe/:id', FileUploadMiddleware.subscribeToProgress as Middleware);
+
+  // Store routes
+  app.post('/stores', RateLimitMiddleware.protect, (req: Request, res: Response, next: NextFunction) => {
+    // Store creation logic
+    next();
+  }) as RouteHandler;
+
+  // Product routes
+  app.post('/products', RateLimitMiddleware.protect, (req: Request, res: Response, next: NextFunction) => {
+    // Product creation logic
+    next();
+  }) as RouteHandler;
+
+  // Inventory routes
+  app.post('/inventory', RateLimitMiddleware.protect, (req: Request, res: Response, next: NextFunction) => {
+    // Inventory management logic
+    next();
+  }) as RouteHandler;
+
+  // Transaction routes
+  app.post('/transactions', RateLimitMiddleware.protect, (req: Request, res: Response, next: NextFunction) => {
+    // Transaction processing logic
+    next();
+  }) as RouteHandler;
+
+  // Customer routes
+  app.post('/customers', RateLimitMiddleware.protect, (req: Request, res: Response, next: NextFunction) => {
+    // Customer management logic
+    next();
+  }) as RouteHandler;
   
   // Apply session validation middleware
   app.use(validateSession);
@@ -201,21 +255,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/loyalty/program/:storeId', isAuthenticated, isManagerOrAdmin, async (req, res) => {
+  app.post('/api/loyalty/program/:storeId', isAuthenticated, isManagerOrAdmin, async (req: express.Request, res: express.Response) => {
     try {
       const storeId = parseInt(req.params.storeId);
       const programData = req.body;
       
-      const program = await loyaltyService.upsertLoyaltyProgram(storeId, programData);
+      // Validate store access
+      if (!hasStoreAccess(req.session, storeId)) {
+        return res.status(403).json({ message: 'Access denied to this store' });
+      }
+
+      // Validate program data
+      const validatedData = schema.loyaltyProgramSchema.parse(programData);
+      
+      // Create or update loyalty program
+      const program = await loyaltyService.createOrUpdateProgram(storeId, validatedData);
       
       res.json(program);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating/updating loyalty program:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
   
-  app.post('/api/loyalty/reward', isAuthenticated, isManagerOrAdmin, async (req, res) => {
+  app.post('/api/loyalty/reward', isAuthenticated, isManagerOrAdmin, async (req: express.Request, res: express.Response) => {
     try {
       const rewardData = req.body;
       
@@ -228,13 +291,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .returning();
       
       res.json(reward[0]);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating loyalty reward:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
   
-  app.post('/api/loyalty/tier', isAuthenticated, isManagerOrAdmin, async (req, res) => {
+  app.post('/api/loyalty/tier', isAuthenticated, isManagerOrAdmin, async (req: express.Request, res: express.Response) => {
     try {
       const tierData = req.body;
       
@@ -242,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tier = await loyaltyService.createLoyaltyTier(tierData);
       
       res.json(tier);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating loyalty tier:", error);
       res.status(500).json({ message: "Internal server error" });
     }
@@ -3663,7 +3726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Data Import Routes
   
   // Upload and analyze file for import
-  app.post(`${apiPrefix}/import/analyze`, isAuthenticated, isManagerOrAdmin, upload.single('file'), async (req: Request, res: Response) => {
+  app.post(`${apiPrefix}/import/analyze`, isAuthenticated, isManagerOrAdmin, upload.single('file'), async (req: express.Request, res: express.Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -3674,21 +3737,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid data type. Must be either "loyalty" or "inventory"' });
       }
 
+      // Ensure file buffer exists
+      if (!req.file.buffer) {
+        return res.status(400).json({ error: 'File buffer is missing' });
+      }
+
       const result = await processImportFile(
-        req.file.buffer,
+        Buffer.from(req.file.buffer),
         req.file.mimetype,
         dataType as 'loyalty' | 'inventory'
       );
 
       return res.status(200).json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error analyzing import file:', error);
-      return res.status(500).json({ error: error.message || 'Failed to analyze file' });
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to analyze file' });
     }
   });
 
   // Validate mapped data
-  app.post(`${apiPrefix}/import/validate`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+  app.post(`${apiPrefix}/import/validate`, isAuthenticated, isManagerOrAdmin, async (req: express.Request, res: express.Response) => {
     try {
       const { data, mapping, dataType } = req.body;
       
@@ -3713,14 +3781,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : validateInventoryData(mappedData));
       
       return res.status(200).json(validationResult);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error validating import data:', error);
-      return res.status(500).json({ error: error.message || 'Failed to validate data' });
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to validate data' });
     }
   });
 
   // Import validated data
-  app.post(`${apiPrefix}/import/process`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+  app.post(`${apiPrefix}/import/process`, isAuthenticated, isManagerOrAdmin, async (req: express.Request, res: express.Response) => {
     try {
       const { data, dataType, storeId } = req.body;
       
@@ -3847,7 +3915,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Generate error report for product import
-  app.post(`${apiPrefix}/products/import/error-report`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+  app.post(`${apiPrefix}/products/import/error-report`, isAuthenticated, isManagerOrAdmin, async (req: express.Request, res: express.Response) => {
     try {
       const { errors } = req.body;
       
@@ -3866,14 +3934,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Disposition', `attachment; filename=product-import-errors-${Date.now()}.csv`);
       res.setHeader('Content-Type', 'text/csv');
       res.send(csvContent);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error generating product import error report:', error);
       res.status(500).json({ message: 'Failed to generate error report' });
     }
   });
 
   // Batch inventory management routes
-  app.get(`${apiPrefix}/inventory/batches`, isAuthenticated, async (req: Request, res: Response) => {
+  app.get(`${apiPrefix}/inventory/batches`, isAuthenticated, async (req: express.Request, res: express.Response) => {
     try {
       const storeId = parseInt(req.query.storeId as string);
       const productId = parseInt(req.query.productId as string);
@@ -3887,7 +3955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const batches = await storage.getInventoryBatchesByProduct(storeId, productId, includeExpired);
       return res.json(batches);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching batches:', error);
       return res.status(500).json({
         message: 'Failed to fetch batch inventory data'
@@ -3895,17 +3963,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post(`${apiPrefix}/inventory/batches`, isAuthenticated, isManagerOrAdmin, async (req: Request, res: Response) => {
+  app.post(`${apiPrefix}/inventory/batches`, isAuthenticated, isManagerOrAdmin, async (req: express.Request, res: express.Response) => {
     try {
       const { storeId, productId, batchNumber, quantity, expiryDate, manufacturingDate, costPerUnit } = req.body;
       
-      if (!storeId || !productId || !batchNumber || quantity === undefined) {
+      // Validate required fields
+      if (typeof storeId !== 'number' || typeof productId !== 'number' || !batchNumber || typeof quantity !== 'number') {
         return res.status(400).json({
           message: 'Missing required fields: storeId, productId, batchNumber, and quantity are required'
         });
       }
       
-      if (isNaN(parseInt(quantity)) || parseInt(quantity) <= 0) {
+      if (quantity <= 0) {
         return res.status(400).json({
           message: 'Quantity must be a positive number'
         });
@@ -3930,7 +3999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get product details for the audit log
-      const product = await storage.getProductById(parseInt(productId));
+      const product = await storage.getProductById(productId);
       if (!product) {
         return res.status(404).json({
           message: 'Product not found'
@@ -3938,7 +4007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get store details for the audit log
-      const store = await storage.getStoreById(parseInt(storeId));
+      const store = await storage.getStoreById(storeId);
       if (!store) {
         return res.status(404).json({
           message: 'Store not found'
@@ -3947,10 +4016,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const batchService = await import('./services/inventory-batch');
       const newBatch = await batchService.addBatch({
-        storeId: parseInt(storeId),
-        productId: parseInt(productId),
+        storeId,
+        productId,
         batchNumber,
-        quantity: parseInt(quantity),
+        quantity,
         expiryDate,
         manufacturingDate,
         costPerUnit
@@ -3968,11 +4037,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expiryDate: expiryDate || 'Not specified'
         },
         quantityBefore: 0,
-        quantityAfter: parseInt(quantity)
+        quantityAfter: quantity
       });
       
       return res.status(201).json(newBatch);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error adding batch:', error);
       return res.status(500).json({
         message: error instanceof Error ? error.message : 'Failed to add batch'

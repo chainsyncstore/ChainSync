@@ -1,25 +1,30 @@
 {
-  "include": ["client/src/**/*", "db/**/*", "server/**/*"],
+  "include": ["src/**/*", "server/**/*", "**/services/**/*.ts"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,
-    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
-    "noEmit": true,
-    "module": "ESNext",
+    "noEmit": false,
+    "target": "es2020",
+    "module": "esnext",
+    "lib": ["es2020"],
     "strict": true,
-    "lib": ["esnext", "dom", "dom.iterable"],
-    "jsx": "preserve",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": true,
-    "moduleResolution": "bundler",
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "typeRoots": ["./types", "./node_modules/@types"],
     "baseUrl": ".",
-    "types": ["node", "vite/client"],
+    "types": ["node"],
     "paths": {
+      "@/*": ["src/*"],
       "@db": ["./db/index.ts"],
       "@db/*": ["./db/*"],
-      "@/*": ["./client/src/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./shared/*"],
+      "@server/*": ["./server/*"]
     }
-  }
+  },
+  "files": [
+    "./types/index.d.ts"
+  ]
 }
