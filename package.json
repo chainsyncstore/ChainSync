@@ -4,16 +4,17 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "preinstall": "bun install --dev",
+    "preinstall": "npm install --production=false",
+    "prebuild": "rm -rf node_modules/.cache && rm -rf dist",
     "dev": "tsx server/index.ts",
-    "build:client": "bunx vite build --mode production --force",
-    "build:server": "bunx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server --tree-shaking true",
-    "build": "bun run build:client && bun run build:server",
+    "build:client": "node --max-old-space-size=2048 node_modules/vite/bin/vite.js build --mode production",
+    "build:server": "node --max-old-space-size=2048 node_modules/esbuild/bin/esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server --tree-shaking true",
+    "build": "npm run prebuild && npm run build:client && npm run build:server",
     "start": "NODE_ENV=production node dist/server/index.js",
-    "check": "bunx tsc",
-    "db:push": "bunx drizzle-kit push --force --config=./drizzle.config.ts",
-    "db:seed": "bunx tsx db/seed.ts",
-    "postinstall": "bun run build"
+    "check": "npm run tsc",
+    "db:push": "npm run drizzle-kit -- push --force --config=./drizzle.config.ts",
+    "db:seed": "npm run tsx -- db/seed.ts",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
