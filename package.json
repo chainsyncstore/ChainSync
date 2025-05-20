@@ -14,7 +14,9 @@
     "check": "npm run tsc",
     "db:push": "npm run drizzle-kit -- push --force --config=./drizzle.config.ts",
     "db:seed": "npm run tsx -- db/seed.ts",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "start:client": "vite preview --port 8080",
+    "start:server": "node dist/server/index.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
