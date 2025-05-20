@@ -5,15 +5,15 @@
   "license": "MIT",
   "scripts": {
     "dev": "tsx server/index.ts",
-    "install:dev": "npm install",
-    "build:client": "npm run install:dev && npx vite build --mode production",
-    "build:server": "npm run install:dev && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server --tree-shaking true",
+    "install:dev": "npm install --no-save vite esbuild tsx",
+    "build:client": "npm run install:dev && node --max-old-space-size=2048 node_modules/vite/bin/vite.js build --mode production",
+    "build:server": "npm run install:dev && node --max-old-space-size=2048 node_modules/esbuild/bin/esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server --tree-shaking true",
     "build": "npm run build:client && npm run build:server",
     "start": "NODE_ENV=production node dist/server/index.js",
     "check": "npm run tsc",
     "db:push": "npm run drizzle-kit -- push --force --config=./drizzle.config.ts",
     "db:seed": "npm run tsx -- db/seed.ts",
-    "start:client": "npm run install:dev && npx vite preview --port 8080",
+    "start:client": "npm run install:dev && node --max-old-space-size=2048 node_modules/vite/bin/vite.js preview --port 8080",
     "start:server": "node dist/server/index.js"
   },
   "dependencies": {
