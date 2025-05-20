@@ -7,14 +7,6 @@ export default defineConfig({
   plugins: [
     react(),
     runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
   ],
   resolve: {
     alias: {
@@ -29,7 +21,18 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/client"),
     emptyOutDir: true,
     target: 'esnext',
-    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    rollupOptions: {
+      treeshake: true,
+      output: {
+        manualChunks: undefined,
+      },
+    },
     sourcemap: true,
   },
 });

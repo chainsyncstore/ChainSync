@@ -6,8 +6,8 @@
   "scripts": {
     "preinstall": "bun install --dev",
     "dev": "tsx server/index.ts",
-    "build:client": "bunx vite build",
-    "build:server": "bunx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server",
+    "build:client": "bunx vite build --mode production --force",
+    "build:server": "bunx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server --tree-shaking true",
     "build": "bun run build:client && bun run build:server",
     "start": "NODE_ENV=production node dist/server/index.js",
     "check": "bunx tsc",
