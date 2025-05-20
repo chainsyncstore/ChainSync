@@ -4,111 +4,6 @@ import { logger } from '../logger';
 import { eq } from 'drizzle-orm';
 import db from '../../database';
 import * as schema from '@shared/schema';
-
-// Extend the schema type to include our payment tables
-// This is a TypeScript-only extension that won't affect runtime
-declare module '@shared/schema' {
-  // Define these as variables, not constants to allow assignment
-  export let payment: {
-    table: string;
-    columns: {
-      id: string;
-      reference: string;
-      userId: string;
-      amount: string;
-      currency: string;
-      provider: string;
-      status: string;
-      plan: string;
-      metadata: string;
-      createdAt: string;
-      updatedAt: string;
-    };
-  };
-  
-  export let paymentAnalytics: {
-    table: string;
-    columns: {
-      id: string;
-      reference: string;
-      provider: string;
-      amount: string;
-      currency: string;
-      status: string;
-      success: string;
-      metadata: string;
-      timestamp: string;
-      createdAt: string;
-    };
-  };
-  
-  export let paymentStatus: {
-    table: string;
-    columns: {
-      id: string;
-      reference: string;
-      status: string;
-      updatedAt: string;
-    };
-  };
-}
-
-// TODO: Define or import the correct schema tables
-// These are placeholders until the actual schema is defined
-const paymentSchema = {
-  table: 'payments',
-  columns: {
-    id: 'id',
-    reference: 'reference',
-    userId: 'user_id',
-    amount: 'amount',
-    currency: 'currency',
-    provider: 'provider',
-    status: 'status',
-    plan: 'plan',
-    metadata: 'metadata',
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
-  }
-};
-
-const paymentAnalyticsSchema = {
-  table: 'payment_analytics',
-  columns: {
-    id: 'id',
-    reference: 'reference',
-    provider: 'provider',
-    amount: 'amount',
-    currency: 'currency',
-    status: 'status',
-    success: 'success',
-    metadata: 'metadata',
-    timestamp: 'timestamp',
-    createdAt: 'created_at'
-  }
-};
-
-const paymentStatusSchema = {
-  table: 'payment_status',
-  columns: {
-    id: 'id',
-    reference: 'reference',
-    status: 'status',
-    updatedAt: 'updated_at'
-  }
-};
-
-// Use TypeScript casting to safely extend the schema object at runtime
-const extendedSchema = schema as typeof schema & {
-  payment: typeof paymentSchema;
-  paymentAnalytics: typeof paymentAnalyticsSchema;
-  paymentStatus: typeof paymentStatusSchema;
-};
-
-// Now we can safely assign without TypeScript errors
-extendedSchema.payment = paymentSchema;
-extendedSchema.paymentAnalytics = paymentAnalyticsSchema;
-extendedSchema.paymentStatus = paymentStatusSchema;
 import { Request } from 'express';
 import Paystack from 'paystack-node';
 import Flutterwave from 'flutterwave-node-v3';
@@ -297,8 +192,8 @@ export class PaymentService extends BaseService {
         
         if (response.status && response.data) {
           // Record the payment initialization in the database
-          // TODO: Update this when the actual schema is defined
-          await db.insert(extendedSchema.payment).values({
+          // TODO: Ensure schema.payment exists and has the correct structure
+          await db.insert(schema.payment).values({
             reference,
             userId,
             amount: discountedAmount,
@@ -330,8 +225,8 @@ export class PaymentService extends BaseService {
         
         if (response.status === 'success' && response.data.link) {
           // Record the payment initialization in the database
-          // TODO: Update this when the actual schema is defined
-          await db.insert(extendedSchema.payment).values({
+          // TODO: Ensure schema.payment exists and has the correct structure
+          await db.insert(schema.payment).values({
             reference,
             userId,
             amount: discountedAmount,
@@ -359,15 +254,20 @@ export class PaymentService extends BaseService {
 
   async trackPaymentStatus(reference: string, status: PaymentStatus['status']): Promise<void> {
     try {
-      // TODO: Update this when the actual schema is defined
-      // Use the extended schema with proper typing
-      await db.update(extendedSchema.paymentStatus)
-        .set({
-          status,
-          updatedAt: new Date()
-        })
-        // Use a raw SQL expression for the where clause to avoid type errors
-        .where(eq(db.sql`${extendedSchema.paymentStatus.columns.reference}`, reference));
+      await this.withTransaction(async (trx) => {
+        await db.paymentStatus.upsert({
+          where: { reference },
+          update: {
+            status,
+            updatedAt: new Date()
+          },
+          create: {
+            reference,
+            status,
+            updatedAt: new Date()
+          }
+        });
+      });
     } catch (error) {
       this.logger.error('Error tracking payment status:', error);
       throw error instanceof AppError ? error : new AppError('payment', 'PAYMENT_TRACKING_ERROR', 'Failed to track payment status', { reference, status });
@@ -420,8 +320,7 @@ export class PaymentService extends BaseService {
 
   async trackPaymentAnalytics(paymentData: PaymentAnalytics): Promise<void> {
     try {
-      // TODO: Update this when the actual schema is defined
-      await db.insert(extendedSchema.paymentAnalytics).values(paymentData);
+      await db.insert(schema.paymentAnalytics).values(paymentData);
     } catch (error: unknown) {
       this.logger.error('Error tracking payment analytics:', error);
       throw error instanceof AppError ? error : new AppError('payment', 'ANALYTICS_ERROR', 'Failed to track payment analytics', { error: error instanceof Error ? error.message : 'Unknown error' });
