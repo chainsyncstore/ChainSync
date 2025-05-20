@@ -6,14 +6,14 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "install:dev": "npm install --save-dev vite esbuild tsx",
-    "build:client": "vite build --mode production",
-    "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server --tree-shaking true",
+    "build:client": "npm run vite -- build --mode production",
+    "build:server": "npm run esbuild -- server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server --tree-shaking true",
     "build": "npm run install:dev && npm run build:client && npm run build:server",
     "start": "NODE_ENV=production node dist/server/index.js",
     "check": "npm run tsc",
     "db:push": "npm run drizzle-kit -- push --force --config=./drizzle.config.ts",
     "db:seed": "npm run tsx -- db/seed.ts",
-    "start:client": "vite preview --port 8080",
+    "start:client": "npm run vite -- preview --port 8080",
     "start:server": "node dist/server/index.js"
   },
   "dependencies": {
