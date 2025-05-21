@@ -1,10 +1,23 @@
-import { pgTable, text, boolean, integer, timestamp, unique, primaryKey, foreignKey, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { baseTable, timestampsSchema, softDeleteSchema, commonValidators } from "./base";
+import { createInsertSchema } from "drizzle-zod";
+import { baseTable } from "./base";
+import { relations } from "drizzle-orm";
 
-// Store status
-export const storeStatus = z.enum(["active", "inactive", "suspended"]);
+// Store status enum
+export const StoreStatus = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  SUSPENDED: "suspended"
+} as const;
+
+export type StoreStatus = typeof StoreStatus[keyof typeof StoreStatus];
+
+export const storeStatusSchema = z.enum([
+  StoreStatus.ACTIVE,
+  StoreStatus.INACTIVE,
+  StoreStatus.SUSPENDED
+]);
 
 // Store table
 export const stores = pgTable("stores", {
@@ -17,39 +30,39 @@ export const stores = pgTable("stores", {
   phone: text("phone").notNull(),
   email: text("email").notNull(),
   timezone: text("timezone").notNull(),
-  status: text("status").notNull().default("active"),
-  nameIndex: index("idx_stores_name").on((stores) => stores.name),
-  emailIndex: index("idx_stores_email").on((stores) => stores.email),
-  statusIndex: index("idx_stores_status").on((stores) => stores.status)
-});
+  status: text("status", { enum: ["active", "inactive", "suspended"] as const })
+    .notNull()
+    .default(StoreStatus.ACTIVE),
+}, (table) => ({
+  nameIndex: index("idx_stores_name").on(table.name),
+  emailIndex: index("idx_stores_email").on(table.email),
+  statusIndex: index("idx_stores_status").on(table.status)
+}));
+
+export type Store = typeof stores.$inferSelect;
+export type NewStore = typeof stores.$inferInsert;
 
 // Validation schemas
-export const storeInsertSchema = createInsertSchema(stores, {
-  name: commonValidators.name,
-  address: commonValidators.name,
-  city: commonValidators.name,
-  state: commonValidators.name,
-  country: commonValidators.name,
-  phone: commonValidators.phone,
-  email: commonValidators.email,
-  timezone: (schema) => schema.string().min(3, "Timezone is required"),
-  status: (schema) => schema.enum(storeStatus.enum),
-});
+export const storeInsertSchema = createInsertSchema(stores)
+  .extend({
+    name: z.string().min(1, "Name is required"),
+    address: z.string().min(1, "Address is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    country: z.string().min(1, "Country is required"),
+    phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+    email: z.string().email("Invalid email"),
+    timezone: z.string().min(3, "Timezone is required"),
+    status: storeStatusSchema.optional(), // Has a DB default
+  });
 
-export const storeUpdateSchema = storeInsertSchema.omit({
-  name: true,
-  email: true,
-});
-
-// Type exports
-export type Store = z.infer<typeof createSelectSchema(stores)>;
-export type StoreInsert = z.infer<typeof storeInsertSchema>;
-export type StoreUpdate = z.infer<typeof storeUpdateSchema>;
+export const storeUpdateSchema = storeInsertSchema.partial();
 
 // Relations
 export const storesRelations = relations(stores, ({ many }) => ({
-  users: many(() => users),
-  inventory: many(() => inventory),
-  transactions: many(() => transactions),
-  loyaltyProgram: many(() => loyaltyPrograms),
+  // These relations will be properly typed when the related tables are imported
+  // users: many(users),
+  // inventory: many(inventory),
+  // transactions: many(transactions),
+  // loyaltyPrograms: many(loyaltyPrograms),
 }));

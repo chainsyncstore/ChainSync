@@ -12,8 +12,12 @@ import { ServiceError } from "./services/base/base-service";
 import { applyRateLimiters } from "./middleware/rate-limiter";
 import { applyCORS } from "./middleware/cors";
 import { initializeDatabase } from "./database";
+import { initializeGlobals } from "@shared/db/types";
 
 const app = express();
+
+// Initialize global database references
+initializeGlobals();
 
 // Initialize database connection
 await initializeDatabase();

@@ -1,31 +1,45 @@
-import { pgTable, text, boolean, integer, decimal, timestamp, unique, primaryKey, foreignKey, index } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, integer, decimal, index } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { baseTable, timestampsSchema, softDeleteSchema, commonValidators } from "./base";
-import { stores } from "./stores";
-import { transactions, transactionItems } from "./transactions";
-import { inventory } from "./inventory";
+import { createInsertSchema } from "drizzle-zod";
+import { baseTable } from "./base";
+import { relations } from "drizzle-orm";
 
-// Product status
-export const productStatus = z.enum(["active", "inactive", "out_of_stock", "discontinued"]);
+// Product status enum
+export const ProductStatus = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  OUT_OF_STOCK: "out_of_stock",
+  DISCONTINUED: "discontinued"
+} as const;
 
-// Category table (if not already defined in stores.ts)
+export type ProductStatus = typeof ProductStatus[keyof typeof ProductStatus];
+
+export const productStatusSchema = z.enum([
+  ProductStatus.ACTIVE,
+  ProductStatus.INACTIVE,
+  ProductStatus.OUT_OF_STOCK,
+  ProductStatus.DISCONTINUED
+]);
+
+// Category table
 export const categories = pgTable("categories", {
   ...baseTable,
   name: text("name").notNull(),
   description: text("description"),
   parentCategoryId: integer("parent_category_id").references(() => categories.id),
-  nameIndex: index("idx_categories_name").on((categories) => categories.name),
-});
+}, (table) => ({
+  nameIndex: index("idx_categories_name").on(table.name)
+}));
 
-export const categoryInsertSchema = createInsertSchema(categories, {
-  name: commonValidators.name,
-  description: commonValidators.name.optional(),
-  parentCategoryId: (schema) => schema.number().int().positive().optional(),
-});
+export type Category = typeof categories.$inferSelect;
+export type NewCategory = typeof categories.$inferInsert;
 
-export type Category = z.infer<typeof createSelectSchema(categories)>;
-export type CategoryInsert = z.infer<typeof categoryInsertSchema>;
+export const categoryInsertSchema = createInsertSchema(categories)
+  .extend({
+    name: z.string().min(1, "Name is required"),
+    description: z.string().optional().nullable(), // Nullable in DB, optional for insert
+    parentCategoryId: z.number().int().positive().optional().nullable(), // Nullable FK, optional for insert
+  });
 
 // Relations for categories
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
@@ -34,10 +48,9 @@ export const categoriesRelations = relations(categories, ({ many, one }) => ({
     references: [categories.id],
   }),
   subCategories: many(categories, {
-    fields: [categories.id],
-    references: [categories.parentCategoryId],
+    relationName: "categoryHierarchy"
   }),
-  products: many(() => products),
+  products: many(products),
 }));
 
 // Product table
@@ -53,45 +66,48 @@ export const products = pgTable("products", {
   isPerishable: boolean("is_perishable").notNull().default(false),
   imageUrl: text("image_url"),
   bonusPoints: decimal("bonus_points", { precision: 10, scale: 2 }).default("0"),
-  status: text("status").notNull().default("active"),
-  skuIndex: index("idx_products_sku").on((products) => products.sku),
-  barcodeIndex: index("idx_products_barcode").on((products) => products.barcode),
-  statusIndex: index("idx_products_status").on((products) => products.status),
-  categoryIndex: index("idx_products_category").on((products) => products.categoryId),
-});
+  status: text("status", { enum: ["active", "inactive", "out_of_stock", "discontinued"] })
+    .notNull()
+    .default(ProductStatus.ACTIVE),
+}, (table) => ({
+  skuIndex: index("idx_products_sku").on(table.sku),
+  barcodeIndex: index("idx_products_barcode").on(table.barcode),
+  statusIndex: index("idx_products_status").on(table.status),
+  categoryIndex: index("idx_products_category").on(table.categoryId),
+}));
+
+export type Product = typeof products.$inferSelect;
+export type NewProduct = typeof products.$inferInsert;
 
 // Validation schemas
-export const productInsertSchema = createInsertSchema(products, {
-  name: commonValidators.name,
-  sku: (schema) => schema.string().min(1, "SKU is required"),
-  description: commonValidators.name.optional(),
-  barcode: (schema) => schema.string().optional(),
-  categoryId: (schema) => schema.number().int().positive(),
-  price: commonValidators.amount,
-  cost: commonValidators.amount,
-  isPerishable: (schema) => schema.boolean(),
-  imageUrl: (schema) => schema.string().url().optional(),
-  bonusPoints: (schema) => schema.number().min(0, "Bonus points must be non-negative"),
-  status: (schema) => schema.enum(productStatus.enum),
-});
+export const productInsertSchema = createInsertSchema(products)
+  .extend({
+    name: z.string().min(1, "Name is required"),
+    sku: z.string().min(1, "SKU is required"),
+    description: z.string().optional().nullable(), // Nullable in DB
+    barcode: z.string().optional().nullable(), // Nullable in DB
+    categoryId: z.number().int().positive(), // NOT NULL FK in DB
+    price: z.coerce.number().min(0, "Price must be non-negative"), // Drizzle-zod infers decimal as string
+    cost: z.coerce.number().min(0, "Cost must be non-negative").optional(), // DB default, optional for insert
+    isPerishable: z.boolean().optional(), // DB default, optional for insert
+    imageUrl: z.string().url().optional().nullable(), // Nullable in DB
+    bonusPoints: z.coerce.number().min(0, "Bonus points must be non-negative").optional(), // DB default
+    status: productStatusSchema.optional(), // DB default
+  });
 
-export const productUpdateSchema = productInsertSchema.omit({
-  name: true,
-  sku: true,
-  categoryId: true,
+export const productUpdateSchema = productInsertSchema.partial().extend({
+  // Retain SKU and categoryId as optional for updates, but validated if present
+  sku: productInsertSchema.shape.sku.optional(),
+  categoryId: productInsertSchema.shape.categoryId.optional(),
 });
-
-// Type exports
-export type Product = z.infer<typeof createSelectSchema(products)>;
-export type ProductInsert = z.infer<typeof productInsertSchema>;
-export type ProductUpdate = z.infer<typeof productUpdateSchema>;
 
 // Relations
-export const productsRelations = relations(products, ({ one, many }) => ({
+export const productsRelations = relations(products, ({ one }) => ({
   category: one(categories, {
     fields: [products.categoryId],
     references: [categories.id],
   }),
-  inventory: many(() => inventory),
-  transactionItems: many(() => transactionItems),
+  // Uncomment and fix these when the related tables are available
+  // inventory: many(inventory),
+  // transactionItems: many(transactionItems),
 }));
