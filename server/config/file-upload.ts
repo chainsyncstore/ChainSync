@@ -11,7 +11,7 @@ export interface FileUploadConfig {
   cleanupInterval: number;
   cacheTTL: number;
   maxUploadAttempts: number;
-  uploadRateLimit: number;
+  rateLimit: { windowMs: number; max: number; };
 }
 
 export interface FileUploadError extends AppError {
@@ -95,5 +95,5 @@ export const defaultFileUploadConfig: FileUploadConfig = {
   cleanupInterval: 3600000, // 1 hour
   cacheTTL: 86400000, // 24 hours
   maxUploadAttempts: 5,
-  uploadRateLimit: 1000000 // 1MB/s
+  rateLimit: { windowMs: 60 * 1000, max: 100 } // Default: 100 uploads per minute
 };

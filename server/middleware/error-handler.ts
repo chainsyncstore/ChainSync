@@ -18,23 +18,35 @@ export const errorHandler = (
     // monitorError(error);
   }
   if (error instanceof AppError) {
-    return res.status(error.status).json({
+    const status = error.statusCode || 500;
+    const response: any = {
       error: {
         code: error.code,
         message: formatErrorForUser(error),
         category: error.category,
-        retryable: error.retryable,
-        retryAfter: error.retryAfter,
         details: error.details,
-        validationErrors: error.validationErrors,
       },
-    });
+    };
+
+    // Only include retryable and retryAfter if they are set
+    if (error.retryable !== undefined) {
+      response.error.retryable = error.retryable;
+    }
+    if (error.retryAfter !== undefined) {
+      response.error.retryAfter = error.retryAfter;
+    }
+    if (error.validationErrors) {
+      response.error.validationErrors = error.validationErrors;
+    }
+
+    return res.status(status).json(response);
   }
 
   // Handle Zod validation errors
   if (error.name === 'ZodError') {
     const appError = AppError.fromZodError(error as any);
-    return res.status(appError.status).json({
+    const status = appError.statusCode || 400;
+    return res.status(status).json({
       error: {
         code: appError.code,
         message: formatErrorForUser(appError),

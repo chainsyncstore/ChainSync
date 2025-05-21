@@ -149,19 +149,28 @@ export class AppError extends Error {
   category: ErrorCategory;
   details?: Record<string, unknown>;
   statusCode?: number;
+  retryable?: boolean;
+  retryAfter?: number;
+  validationErrors?: any[];
 
   constructor(
     message: string,
     category: ErrorCategory | string,
     code: ErrorCode | string,
     details?: Record<string, unknown>,
-    statusCode?: number
+    statusCode?: number,
+    retryable?: boolean,
+    retryAfter?: number,
+    validationErrors?: any[]
   ) {
     super(message);
     this.code = code as ErrorCode;
     this.category = category as ErrorCategory;
     this.details = details;
     this.statusCode = statusCode;
+    this.retryable = retryable;
+    this.retryAfter = retryAfter;
+    this.validationErrors = validationErrors;
   }
 
   static fromZodError(error: ZodError): AppError {

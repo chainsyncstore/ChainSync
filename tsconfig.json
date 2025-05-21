@@ -15,7 +15,7 @@
     "resolveJsonModule": true,
     "typeRoots": ["./types", "./node_modules/@types"],
     "baseUrl": ".",
-    "types": ["node"],
+    "types": ["node", "multer"],
     "paths": {
       "@/*": ["src/*"],
       "@db": ["./db/index.ts"],

@@ -1,16 +1,18 @@
-import multer, { FileFilterCallback } from 'multer';
+import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode, ErrorCategory } from './types/error';
+
+import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
 import { FileUploadConfig } from '../config/file-upload';
 import { FileUploadProgress, ProgressSubscription } from './types/file-upload';
 import { logger } from './utils/logger';
 import { FileUtils } from './utils/file-utils';
+import { UploadMetricsTracker } from './utils/logger';
 import { LRUCache } from 'lru-cache';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
-import sanitize = require('sanitize-filename');
+import sanitize from 'sanitize-filename';
 import { fileTypeFromBuffer } from 'file-type';
-import v4 = require('uuid');
+import uuidv4 from 'uuid';
 import * as path from 'path';
 
 // Type definitions
@@ -30,7 +32,9 @@ declare global {
 
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
-  files?: Express.Multer.File[];
+  files?: {
+    [fieldname: string]: Express.Multer.File[];
+  } | Express.Multer.File[];
   user?: any;
 }
 
@@ -38,7 +42,7 @@ interface MulterRequest extends Request {
 const fileUploadConfig: FileUploadConfig = {
   maxFileSize: 10 * 1024 * 1024, // 10MB
   maxFiles: 10,
-  uploadRateLimit: 1000000, // 1MB/s
+  rateLimit: { windowMs: 15 * 60 * 1000, max: 100 }, // 100 uploads per 15 minutes
   maxTotalUploadSize: 100 * 1024 * 1024, // 100MB
   maxUploadAttempts: 5,
   allowedFileExtensions: ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'],
@@ -49,13 +53,13 @@ const fileUploadConfig: FileUploadConfig = {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ],
-  uploadDir: './uploads',
+  destination: './uploads',
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix);
+  },
   cleanupInterval: 3600000, // 1 hour
-  cacheTTL: 300000, // 5 minutes
-  rateLimit: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // max 100 uploads per 15 minutes
-  }
+  cacheTTL: 300000 // 5 minutes
 };
 
 // Cache instances
@@ -73,7 +77,7 @@ const upload = multer({
     fileSize: fileUploadConfig.maxFileSize,
     files: fileUploadConfig.maxFiles
   },
-  fileFilter: async (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+  fileFilter: async (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
     try {
       UploadMetricsTracker.getInstance().trackRequest();
       
@@ -84,18 +88,30 @@ const upload = multer({
           size: file.size,
           maxSize: fileUploadConfig.maxFileSize
         });
-        cb(null, false);
+        const error = new Error('File size too large') as any;
+        error.code = ErrorCode.BAD_REQUEST;
+        error.category = ErrorCategory.VALIDATION;
+        error.details = { maxSize: fileUploadConfig.maxFileSize };
+        error.statusCode = 400;
+        cb(error, false);
         return;
       }
 
-      // Validate file type
+      // Check file type
       const fileType = await fileTypeFromBuffer(file.buffer);
-      if (!fileType || !await FileUtils.validateFileExtension(fileType.mime)) {
-        logger.warn('Invalid file type', { 
+      const isValidType = fileType ? await FileUtils.validateFileExtension(fileType.mime) : false;
+      
+      if (!fileType || !isValidType) {
+        logger.warn('Invalid file type', {
           filename: file.originalname,
           mimeType: fileType?.mime
         });
-        cb(null, false);
+        const error = new Error('Invalid file type') as any;
+        error.code = ErrorCode.BAD_REQUEST;
+        error.category = ErrorCategory.VALIDATION;
+        error.details = { allowedTypes: await FileUtils.validateFileExtension.toString() };
+        error.statusCode = 400;
+        cb(error, false);
         return;
       }
 
@@ -172,20 +188,19 @@ export class FileUploadMiddleware {
     return FileUploadMiddleware.instance;
   }
 
-  private handleFileUpload(req: Request, res: Response, next: NextFunction): void {
+  private async handleFileUpload(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const startTime = Date.now();
       
       // First validate files synchronously
       if (!req.files) {
-        const error = {
-          category: ErrorCategory.VALIDATION,
-          code: ErrorCode.BAD_REQUEST,
-          message: 'No files uploaded',
-          data: {},
-          status: 400
-        } as AppError;
-        throw error;
+        throw new AppError(
+          'No files uploaded',
+          ErrorCategory.VALIDATION,
+          ErrorCode.BAD_REQUEST,
+          {},
+          400
+        );
       }
 
       const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
@@ -194,32 +209,30 @@ export class FileUploadMiddleware {
       // Validate files
       for (const file of files) {
         const fileTypeResult = await fileTypeFromBuffer(file.buffer);
-        if (!fileTypeResult || !FileUtils.validateFileExtension(fileTypeResult.mime)) {
-          const error = {
-            category: ErrorCategory.VALIDATION,
-            code: ErrorCode.INVALID_FILE,
-            message: 'Invalid file type',
-            data: { fileType: fileTypeResult },
-            status: 400
-          } as AppError;
-          throw error;
+        if (!fileTypeResult || !(await FileUtils.validateFileExtension(fileTypeResult.mime))) {
+          throw new AppError(
+            'Invalid file type',
+            ErrorCategory.VALIDATION,
+            ErrorCode.UNSUPPORTED_MEDIA_TYPE,
+            { fileType: fileTypeResult },
+            400
+          );
         }
 
         const fileExt = path.extname(file.originalname).toLowerCase();
         if (!fileExt || !this.fileUploadConfig.allowedFileExtensions.includes(fileExt)) {
-          const error = {
-            category: ErrorCategory.VALIDATION,
-            code: ErrorCode.INVALID_FILE,
-            message: 'Invalid file extension',
-            data: { extension: fileExt },
-            status: 400
-          } as AppError;
-          throw error;
+          throw new AppError(
+            'Invalid file extension',
+            ErrorCategory.VALIDATION,
+            ErrorCode.UNSUPPORTED_MEDIA_TYPE,
+            { extension: fileExt },
+            400
+          );
         }
       }
 
       // Create progress tracking
-      const uploadId = v4();
+      const uploadId = uuidv4();
       const progressData: FileUploadProgress = {
         id: uploadId,
         status: 'in_progress',
@@ -259,14 +272,13 @@ export class FileUploadMiddleware {
       // Process files with Multer
       this.upload.any()(req, res, (error: unknown) => {
         if (error) {
-          const errorObject = {
-            category: ErrorCategory.SYSTEM,
-            code: ErrorCode.UPLOAD_FAILED,
-            message: 'Multer error',
-            data: { error: error instanceof Error ? error.message : String(error) },
-            status: 500
-          } as AppError;
-          next(errorObject);
+          next(new AppError(
+            'Multer error',
+            ErrorCategory.SYSTEM,
+            ErrorCode.INTERNAL_SERVER_ERROR,
+            { error: error instanceof Error ? error.message : String(error) },
+            500
+          ));
           return;
         }
 
@@ -281,19 +293,18 @@ export class FileUploadMiddleware {
         });
       });
     } catch (error: unknown) {
-      const errorObject = {
-        category: ErrorCategory.SYSTEM,
-        code: ErrorCode.UPLOAD_FAILED,
-        message: 'File upload error',
-        data: { error: error instanceof Error ? error.message : String(error) },
-        status: 500
-      } as AppError;
       logger.error('File upload error:', {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       });
       this.metricsTracker.trackFailure();
-      throw errorObject;
+      throw new AppError(
+        'File upload error',
+        ErrorCategory.SYSTEM,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error: error instanceof Error ? error.message : String(error) },
+        500
+      );
     }
   }
 
@@ -301,26 +312,24 @@ export class FileUploadMiddleware {
     try {
       const progressId = req.params.id;
       if (!progressId) {
-        const error = {
-          category: ErrorCategory.VALIDATION,
-          code: ErrorCode.INVALID_REQUEST,
-          message: 'Progress ID is required',
-          data: {},
-          status: 400
-        } as AppError;
-        throw error;
+        throw new AppError(
+          'Progress ID is required',
+          ErrorCategory.VALIDATION,
+          ErrorCode.BAD_REQUEST,
+          {},
+          400
+        );
       }
 
       const progressData = progressCache.get(progressId);
       if (!progressData) {
-        const error = {
-          category: ErrorCategory.VALIDATION,
-          code: ErrorCode.NOT_FOUND,
-          message: 'Progress data not found',
-          data: {},
-          status: 404
-        } as AppError;
-        throw error;
+        throw new AppError(
+          'Progress data not found',
+          ErrorCategory.VALIDATION,
+          ErrorCode.NOT_FOUND,
+          {},
+          404
+        );
       }
 
       logger.info('Progress request', {
@@ -331,17 +340,16 @@ export class FileUploadMiddleware {
 
       res.json(progressData);
     } catch (error: unknown) {
-      const errorObject = {
-        category: ErrorCategory.SYSTEM,
-        code: ErrorCode.UPLOAD_FAILED,
-        message: 'Progress retrieval error',
-        data: { error: error instanceof Error ? error.message : String(error) },
-        status: 500
-      } as AppError;
       logger.error('Progress retrieval error:', {
         error: error instanceof Error ? error.message : String(error)
       });
-      next(errorObject);
+      next(new AppError(
+        'Progress retrieval error',
+        ErrorCategory.SYSTEM,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error: error instanceof Error ? error.message : String(error) },
+        500
+      ));
     }
   }
 
@@ -393,28 +401,26 @@ export class FileUploadMiddleware {
     try {
       // Check if user is authenticated
       if (!req.user) {
-        const error = {
-          category: ErrorCategory.AUTH,
-          code: ErrorCode.UPLOAD_LIMIT_EXCEEDED,
-          message: 'Authentication required',
-          data: {},
-          status: 401
-        } as AppError;
-        throw error;
+        throw new AppError(
+          'Authentication required',
+          ErrorCategory.AUTHENTICATION,
+          ErrorCode.UNAUTHORIZED,
+          {},
+          401
+        );
       }
 
       // Check rate limiting
       const userId = req.user.id;
       const attempts = this.uploadAttempts.get(userId) || 0;
       if (attempts >= this.fileUploadConfig.maxUploadAttempts) {
-        const error = {
-          category: ErrorCategory.AUTHENTICATION,
-          code: ErrorCode.UPLOAD_LIMIT_EXCEEDED,
-          message: 'Upload limit exceeded',
-          data: { limit: this.fileUploadConfig.maxUploadAttempts },
-          status: 403
-        } as AppError;
-        throw error;
+        throw new AppError(
+          'Upload limit exceeded',
+          ErrorCategory.AUTHENTICATION,
+          ErrorCode.TOO_MANY_REQUESTS,
+          { limit: this.fileUploadConfig.maxUploadAttempts },
+          403
+        );
       }
 
       // Validate files
@@ -436,7 +442,7 @@ export class FileUploadMiddleware {
       });
 
       // Update progress
-      const progressId = req.progressId || v4();
+      const progressId = req.progressId || uuidv4();
       const progressData: FileUploadProgress = {
         id: progressId,
         status: 'completed',
@@ -470,15 +476,14 @@ export class FileUploadMiddleware {
         }
       }
     } catch (error: unknown) {
-      const errorObject = {
-        category: ErrorCategory.SYSTEM,
-        code: ErrorCode.UPLOAD_FAILED,
-        message: 'File upload error',
-        data: { error: error instanceof Error ? error.message : String(error) },
-        status: 500
-      } as AppError;
       console.error('File upload error:', error instanceof Error ? error.message : String(error));
-      throw errorObject;
+      throw new AppError(
+        'File upload error',
+        ErrorCategory.SYSTEM,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error: error instanceof Error ? error.message : String(error) },
+        500
+      );
     }
   }
 
@@ -525,66 +530,61 @@ export class FileUploadMiddleware {
         subscription.onProgress(progressData);
       }
     } catch (subscriptionError: unknown) {
-      const errorObject = {
-        category: ErrorCategory.SYSTEM,
-        code: ErrorCode.UPLOAD_FAILED,
-        message: 'Progress subscription error',
-        data: { error: subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError) },
-        status: 500
-      } as AppError;
       logger.error('Progress subscription error:', {
         error: subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError),
         stack: subscriptionError instanceof Error ? subscriptionError.stack : undefined
       });
-      next(errorObject);
+      next(new AppError(
+        'Progress subscription error',
+        ErrorCategory.SYSTEM,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error: subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError) },
+        500
+      ));
     }
   }
 
   private async validateUploadedFiles(req: MulterRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.file) {
-        const error = {
-          category: ErrorCategory.VALIDATION,
-          code: ErrorCode.INVALID_REQUEST,
-          message: 'No file uploaded',
-          data: {},
-          status: 400
-        } as AppError;
-        throw error;
+        throw new AppError(
+          'No file uploaded',
+          ErrorCategory.VALIDATION,
+          ErrorCode.BAD_REQUEST,
+          {},
+          400
+        );
       }
 
       const fileTypeResult = await fileTypeFromBuffer(req.file.buffer);
       if (!fileTypeResult || !await FileUtils.validateFileExtension(fileTypeResult.mime)) {
-        const error = {
-          category: ErrorCategory.VALIDATION,
-          code: ErrorCode.INVALID_FILE,
-          message: 'Invalid file type',
-          data: { fileType: fileTypeResult },
-          status: 400
-        } as AppError;
-        throw error;
+        throw new AppError(
+          'Invalid file type',
+          ErrorCategory.VALIDATION,
+          ErrorCode.UNSUPPORTED_MEDIA_TYPE,
+          { fileType: fileTypeResult },
+          400
+        );
       }
 
       const fileExt = path.extname(req.file.originalname).toLowerCase();
       if (!fileExt || !this.fileUploadConfig.allowedFileExtensions.includes(fileExt)) {
-        const error = {
-          category: ErrorCategory.VALIDATION,
-          code: ErrorCode.INVALID_FILE,
-          message: 'Invalid file extension',
-          data: { extension: fileExt },
-          status: 400
-        } as AppError;
-        throw error;
+        throw new AppError(
+          'Invalid file extension',
+          ErrorCategory.VALIDATION,
+          ErrorCode.UNSUPPORTED_MEDIA_TYPE,
+          { extension: fileExt },
+          400
+        );
       }
     } catch (error: unknown) {
-      const errorObject = {
-        category: ErrorCategory.SYSTEM,
-        code: ErrorCode.UPLOAD_FAILED,
-        message: 'Failed to validate uploaded files',
-        data: { error: error instanceof Error ? error.message : String(error) },
-        status: 500
-      } as AppError;
-      throw errorObject;
+      throw new AppError(
+        'Failed to validate uploaded files',
+        ErrorCategory.SYSTEM,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error: error instanceof Error ? error.message : String(error) },
+        500
+      );
     }
   }
 }
