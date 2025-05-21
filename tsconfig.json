@@ -1,44 +1,20 @@
 {
-  "include": ["src/**/*", "server/**/*", "**/services/**/*.ts"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "incremental": true,
-    "noEmit": false,
-    "target": "es2020",
-    "module": "esnext",
-    "lib": ["es2020"],
-    "strict": false,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "typeRoots": ["./types", "./node_modules/@types"],
-    "baseUrl": ".",
-    "types": ["node", "multer"],
-    "paths": {
-      "@/*": ["src/*"],
-      "@db": ["./db/index.ts"],
-      "@db/*": ["./db/*"],
-      "@shared/*": ["./shared/*"],
-      "@server/*": ["./server/*"]
-    },
-    "allowJs": true,
-    "checkJs": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "strictFunctionTypes": false,
-    "strictBindCallApply": false,
-    "strictPropertyInitialization": false,
-    "noImplicitThis": false,
-    "alwaysStrict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": false,
-    "noFallthroughCasesInSwitch": false
+    "typeRoots": [
+      "./node_modules/@types",
+      "./client/src/types"
+    ]
   },
-  "files": [
-    "./types/index.d.ts"
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+    "client/src/paths.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }

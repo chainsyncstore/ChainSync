@@ -39,9 +39,9 @@ export default function LandingPage() {
   const additionalStoresCost = pricingData.additionalStores;
   
   return (
-    <div className="flex flex-col min-h-screen bg-white w-full">
+    <div className="flex flex-col min-h-screen bg-background text-foreground w-full">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-neutral-100 bg-white/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto max-w-screen-xl px-4 flex h-16 items-center justify-between">
           <div className="flex items-center space-x-2">
             <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -49,43 +49,54 @@ export default function LandingPage() {
               <path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="currentColor"/>
               <path d="M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z" fill="currentColor"/>
             </svg>
-            <span className="text-xl font-bold">ChainSync</span>
+            <span className="text-xl font-bold text-foreground">ChainSync</span>
           </div>
           <div className="hidden md:flex items-center space-x-6">
-            <a href="#features" className="text-sm font-medium text-neutral-600 hover:text-primary">Features</a>
-            <a href="#pricing" className="text-sm font-medium text-neutral-600 hover:text-primary">Pricing</a>
-            <a href="#faq" className="text-sm font-medium text-neutral-600 hover:text-primary">FAQ</a>
+            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Features</a>
+            <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Pricing</a>
+            <a href="#faq" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">FAQ</a>
           </div>
           <div className="flex items-center space-x-4">
             <CurrencySelector />
             <Link href="/login">
-              <Button variant="outline" size="sm">Login</Button>
+              <Button variant="outline" size="sm" className="border-border">Login</Button>
             </Link>
             <Link href="/signup?plan=basic">
-              <Button size="sm">Start Free Trial</Button>
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">Start Free Trial</Button>
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-neutral-50">
+      <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-background/80">
         <div className="container mx-auto max-w-screen-xl grid gap-6 px-4 md:px-6 lg:grid-cols-1 lg:gap-12 xl:gap-16">
           <div className="flex flex-col justify-center space-y-6">
-            <div className="space-y-3 text-center">
-              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-700">
-                AI-Powered Retail Management for Single Stores & Multi-Location Chains
+            <div className="space-y-6 text-center">
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
+                  AI-Powered Retail Management
+                </span>
+                <span className="block text-foreground">
+                  for Single Stores & Multi-Location Chains
+                </span>
               </h1>
-              <p className="text-xl text-neutral-600 md:text-2xl/relaxed">
+              <p className="mx-auto max-w-2xl text-xl text-muted-foreground md:text-2xl/relaxed">
                 Try ChainSync free for 2 weeks—verify your card, no upfront payment.
               </p>
             </div>
-            <div className="flex flex-col items-center gap-2 min-[400px]:flex-row justify-center">
-              <Link href="/signup?plan=basic" className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-white shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            <div className="flex flex-col items-center gap-4 min-[400px]:flex-row justify-center">
+              <Link 
+                href="/signup?plan=basic" 
+                className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
                 Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
-              <a href="#features" className="inline-flex h-12 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+              <a 
+                href="#features" 
+                className="inline-flex h-12 items-center justify-center rounded-md border border-border bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
                 Learn More
               </a>
             </div>
@@ -95,90 +106,91 @@ export default function LandingPage() {
       </section>
 
       {/* Key Features */}
-      <section id="features" className="w-full py-12 md:py-24 bg-white">
+      <section id="features" className="w-full py-12 md:py-24 bg-background">
         <div className="container mx-auto max-w-screen-xl px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center">
-            <div className="space-y-2">
-              <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">
-                Features
-              </div>
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
-                Everything you need to manage your retail business
-              </h2>
-              <p className="mx-auto max-w-[600px] text-neutral-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                ChainSync combines powerful tools with an intuitive interface to streamline your operations.
-              </p>
+          <div className="flex flex-col items-center space-y-4 text-center mb-16">
+            <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20">
+              Features
             </div>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Powerful Features for Your Business
+            </h2>
+            <p className="max-w-2xl text-muted-foreground text-lg">
+              Everything you need to manage your retail business efficiently and effectively
+            </p>
           </div>
-          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3 md:gap-8 mt-12">
-            <div className="flex flex-col items-center space-y-4 rounded-lg border p-6">
+          
+          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
+            <div className="flex flex-col items-center space-y-4 rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <LineChart className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold">Multi-Store Sales Analytics</h3>
-              <ul className="space-y-2 text-sm text-neutral-500">
+              <h3 className="text-xl font-semibold text-foreground">Multi-Store Sales Analytics</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Real-time performance tracking</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Comparative store metrics</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Customizable reporting</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Sales forecasting</span>
                 </li>
               </ul>
             </div>
-            <div className="flex flex-col items-center space-y-4 rounded-lg border p-6">
+            
+            <div className="flex flex-col items-center space-y-4 rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <Package className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold">Smart Inventory Sync</h3>
-              <ul className="space-y-2 text-sm text-neutral-500">
+              <h3 className="text-xl font-semibold text-foreground">Smart Inventory Sync</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Cross-location inventory visibility</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Automated reorder suggestions</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Barcode & RFID integration</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Works offline & syncs automatically</span>
                 </li>
               </ul>
             </div>
-            <div className="flex flex-col items-center space-y-4 rounded-lg border p-6">
+            
+            <div className="flex flex-col items-center space-y-4 rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <Brain className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold">AI Task Assignment</h3>
-              <ul className="space-y-2 text-sm text-neutral-500">
+              <h3 className="text-xl font-semibold text-foreground">AI Task Assignment</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Intelligent staff scheduling</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Predictive task prioritization</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrink-0 text-green-500" />
                   <span>Performance monitoring</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  <Check className="mr-2 h-5 w-5 flex-shrik-0 text-green-500" />
                   <span>Automated workflow optimization</span>
                 </li>
               </ul>

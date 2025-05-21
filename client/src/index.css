@@ -1,85 +1,202 @@
+/* Tailwind base styles */
 @tailwind base;
+
+/* Tailwind component classes */
 @tailwind components;
+
+/* Tailwind utility classes */
 @tailwind utilities;
 
+/* Custom base styles */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 220 81% 39%; /* #0F52BA */
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 174 46% 45%; /* #38B2AC */
-    --secondary-foreground: 210 40% 98%;
-
-    --accent: 30 100% 65%; /* #F6AD55 */
-    --accent-foreground: 210 40% 98%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --chart-1: 220 81% 39%; /* primary */
-    --chart-2: 174 46% 45%; /* secondary */
-    --chart-3: 30 100% 65%; /* accent */
-    --chart-4: 142 72% 50%; /* success */
-    --chart-5: 48 96% 60%; /* warning */
-
-    --sidebar-background: 220 81% 39%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 220 81% 35%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222.2 84% 4.9%;
-    --sidebar-border: 220 81% 45%;
-    --sidebar-ring: 210 40% 96.1%;
-
-    --radius: 0.5rem;
+    /* Primary colors */
+    --color-primary: 29 78 216;  /* blue-700 */
+    --color-primary-light: 59 130 246;  /* blue-500 */
+    --color-primary-dark: 30 64 175;  /* blue-800 */
+    --color-primary-foreground: 255 255 255;  /* white */
+    
+    /* Secondary colors */
+    --color-secondary: 79 70 229;  /* indigo-600 */
+    --color-secondary-light: 99 102 241;  /* indigo-500 */
+    --color-secondary-dark: 67 56 202;  /* indigo-700 */
+    --color-secondary-foreground: 255 255 255;  /* white */
+    
+    /* Status colors */
+    --color-success: 5 150 105;  /* emerald-600 */
+    --color-success-light: 16 185 129;  /* emerald-500 */
+    --color-success-dark: 4 120 87;  /* emerald-700 */
+    --color-success-foreground: 255 255 255;  /* white */
+    
+    --color-warning: 217 119 6;  /* amber-600 */
+    --color-warning-light: 245 158 11;  /* amber-500 */
+    --color-warning-dark: 180 83 9;  /* amber-700 */
+    --color-warning-foreground: 255 255 255;  /* white */
+    
+    --color-danger: 220 38 38;  /* red-600 */
+    --color-danger-light: 239 68 68;  /* red-500 */
+    --color-danger-dark: 185 28 28;  /* red-700 */
+    --color-danger-foreground: 255 255 255;  /* white */
+    
+    /* Neutral colors */
+    --color-background: 255 255 255;  /* white */
+    --color-background-light: 248 250 252;  /* slate-50 */
+    --color-background-dark: 15 23 42;  /* slate-900 */
+    --color-background-foreground: 30 41 59;  /* slate-800 */
+    
+    /* Text colors */
+    --color-text: 30 41 59;  /* slate-800 */
+    --color-text-light: 100 116 139;  /* slate-500 */
+    --color-text-dark: 15 23 42;  /* slate-900 */
+    --color-text-muted: 100 116 139;  /* slate-500 */
+    --color-text-inverted: 255 255 255;  /* white */
+    
+    /* Border colors */
+    --color-border: 226 232 240;  /* slate-200 */
+    --color-border-light: 241 245 249;  /* slate-100 */
+    --color-border-dark: 51 65 85;  /* slate-700 */
+    
+    /* Accent colors */
+    --color-accent: 241 245 249;  /* slate-100 */
+    --color-accent-foreground: 15 23 42;  /* slate-900 */
+    
+    /* Card colors */
+    --color-card: 255 255 255;  /* white */
+    --color-card-foreground: 30 41 59;  /* slate-800 */
+    
+    /* Input colors */
+    --color-input: 255 255 255;  /* white */
+    --color-input-foreground: 30 41 59;  /* slate-800 */
+    --color-input-border: 226 232 240;  /* slate-200 */
+    
+    /* Ring colors (focus rings) */
+    --color-ring: 147 197 253;  /* blue-300 */
   }
-
+  
+  /* Base styles */
   * {
-    @apply border-border;
+    border-color: rgb(var(--color-border));
   }
-
+  
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    background-color: rgb(var(--color-background));
+    color: rgb(var(--color-foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-}
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground));
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.8);
+  
+  /* Typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: rgb(var(--color-foreground));
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+  
+  h1 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  
+  @media (min-width: 768px) {
+    h1 {
+      font-size: 3rem;
+      line-height: 1;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    h1 {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+  }
+  
+  h2 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+  
+  @media (min-width: 768px) {
+    h2 {
+      font-size: 2.25rem;
+      line-height: 2.5rem;
+    }
+  }
+  
+  h3 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  
+  @media (min-width: 768px) {
+    h3 {
+      font-size: 1.875rem;
+      line-height: 2.25rem;
+    }
+  }
+  
+  h4 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  
+  @media (min-width: 768px) {
+    h4 {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+  }
+  
+  p {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: rgba(var(--color-foreground), 0.9);
+  }
+  
+  /* Links */
+  a {
+    color: rgb(var(--color-primary));
+    font-weight: 500;
+    transition: color 0.2s ease-in-out;
+  }
+  
+  a:hover {
+    color: rgba(var(--color-primary), 0.9);
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background-color: rgb(var(--color-background));
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--color-border));
+    border-radius: 9999px;
+    transition: background-color 0.2s ease-in-out;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(var(--color-border), 0.8);
+  }
 }
 
 /* Animation for notifications */
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%, 100% { 
+    opacity: 1; 
+  }
+  50% { 
+    opacity: 0.6; 
+  }
 }
+
 .animate-pulse-custom {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
