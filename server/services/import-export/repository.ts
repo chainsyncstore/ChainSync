@@ -1,5 +1,5 @@
 import { ImportExportResult } from './types';
-import { AppError, ErrorCategory } from '@shared/types/errors';
+import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
 
 export class ImportExportRepository {
   async createImport(userId: number, entityType: string, options?: any): Promise<string> {
@@ -8,10 +8,7 @@ export class ImportExportRepository {
       // This is a placeholder and should be implemented based on your database
       return crypto.randomUUID();
     } catch (error) {
-      throw new AppError({
-        category: ErrorCategory.IMPORT_EXPORT,
-        message: 'Failed to create import record'
-      });
+      throw new AppError('Failed to create import record', ErrorCategory.IMPORT_EXPORT, ErrorCode.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -21,10 +18,7 @@ export class ImportExportRepository {
       // This is a placeholder and should be implemented based on your database
       return [];
     } catch (error) {
-      throw new AppError({
-        category: ErrorCategory.IMPORT_EXPORT,
-        message: 'Failed to get export data'
-      });
+      throw new AppError('Failed to get export data', ErrorCategory.IMPORT_EXPORT, ErrorCode.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -34,10 +28,7 @@ export class ImportExportRepository {
       // This is a placeholder and should be implemented based on your database
       return { errors: [] };
     } catch (error) {
-      throw new AppError({
-        category: ErrorCategory.IMPORT_EXPORT,
-        message: 'Failed to process batch'
-      });
+      throw new AppError('Failed to process batch', ErrorCategory.IMPORT_EXPORT, ErrorCode.INTERNAL_SERVER_ERROR);
     }
   }
 }
