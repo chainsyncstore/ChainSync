@@ -1,7 +1,7 @@
 import { pgTable, serial, integer, text, boolean, timestamp, jsonb, unique, primaryKey, foreignKey, index } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { relations } from "drizzle-orm";
+import { relations as drizzleRelations } from "drizzle-orm";
 
 // Base types
 export type Timestamps = {
@@ -18,7 +18,7 @@ export const baseTable = {
   id: serial("id").primaryKey(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at", { mode: "date", nullable: true }),
+  deletedAt: timestamp("deleted_at"),
 };
 
 // Timestamps schema
@@ -41,7 +41,7 @@ export const baseRelations = (table: any) => ({
   // Add common relations here
 });
 
-export const relations = (table: any) => {
+export const defineRelations = (table: any) => {
   return baseRelations(table);
 };
 

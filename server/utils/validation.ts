@@ -12,12 +12,11 @@ export const validateRequest = <T extends z.ZodTypeAny>(
       throw AppError.fromZodError(error);
     }
     throw new AppError(
-      ErrorCode.VALIDATION_FAILED,
       'Request validation failed',
       ErrorCategory.VALIDATION,
-      undefined,
-      undefined,
-      { details: error }
+      ErrorCategory.VALIDATION, // Using ErrorCategory as a fallback since VALIDATION_FAILED doesn't exist
+      { details: error },
+      400
     );
   }
 };
@@ -33,12 +32,11 @@ export const validateParams = <T extends z.ZodTypeAny>(
       throw AppError.fromZodError(error);
     }
     throw new AppError(
-      ErrorCode.VALIDATION_FAILED,
       'Route parameter validation failed',
       ErrorCategory.VALIDATION,
-      undefined,
-      undefined,
-      { details: error }
+      ErrorCategory.VALIDATION, // Using ErrorCategory as a fallback since VALIDATION_FAILED doesn't exist
+      { details: error },
+      400
     );
   }
 };
@@ -54,12 +52,11 @@ export const validateQuery = <T extends z.ZodTypeAny>(
       throw AppError.fromZodError(error);
     }
     throw new AppError(
-      ErrorCode.VALIDATION_FAILED,
       'Query parameter validation failed',
       ErrorCategory.VALIDATION,
-      undefined,
-      undefined,
-      { details: error }
+      ErrorCategory.VALIDATION, // Using ErrorCategory as a fallback since VALIDATION_FAILED doesn't exist
+      { details: error },
+      400
     );
   }
 };

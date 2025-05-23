@@ -57,7 +57,8 @@ export class FileUtils {
         throw new AppError(
           'File is too old',
           ErrorCode.INVALID_FIELD_VALUE,
-          ErrorCategory.VALIDATION
+          ErrorCategory.VALIDATION,
+          {}
         );
       }
     } catch (error) {
@@ -65,6 +66,8 @@ export class FileUtils {
         'Failed to validate file',
         FileUploadErrors.STORAGE_ERROR.code,
         FileUploadErrors.STORAGE_ERROR.category,
+        {},
+        500,
         true,
         5000
       );
@@ -73,7 +76,10 @@ export class FileUtils {
 
   public static async detectFileType(filePath: string): Promise<string> {
     try {
-      const buffer = await fs.promises.readFile(filePath, { length: 4 });
+      const fileHandle = await fs.promises.open(filePath, 'r');
+      const buffer = Buffer.alloc(4);
+      await fileHandle.read(buffer, 0, 4, 0);
+      await fileHandle.close();
       
       switch (buffer.toString('hex', 0, 4)) {
         case '89504e47':
@@ -92,8 +98,10 @@ export class FileUtils {
     } catch (error) {
       throw new AppError(
         'Failed to detect file type',
-        FileUploadErrors.STORAGE_ERROR.code,
         FileUploadErrors.STORAGE_ERROR.category,
+        FileUploadErrors.STORAGE_ERROR.code,
+        {},
+        500,
         true,
         5000
       );
@@ -113,8 +121,10 @@ export class FileUtils {
     } catch (error) {
       throw new AppError(
         'Failed to generate file hash',
-        FileUploadErrors.STORAGE_ERROR.code,
         FileUploadErrors.STORAGE_ERROR.category,
+        FileUploadErrors.STORAGE_ERROR.code,
+        {},
+        500,
         true,
         5000
       );
@@ -153,8 +163,10 @@ export class FileUtils {
     } catch (error) {
       throw new AppError(
         'Failed to resize image',
-        FileUploadErrors.STORAGE_ERROR.code,
         FileUploadErrors.STORAGE_ERROR.category,
+        FileUploadErrors.STORAGE_ERROR.code,
+        {},
+        500,
         true,
         5000
       );
@@ -172,8 +184,10 @@ export class FileUtils {
     } catch (error) {
       throw new AppError(
         'Failed to compress file',
-        FileUploadErrors.STORAGE_ERROR.code,
         FileUploadErrors.STORAGE_ERROR.category,
+        FileUploadErrors.STORAGE_ERROR.code,
+        {},
+        500,
         true,
         5000
       );
