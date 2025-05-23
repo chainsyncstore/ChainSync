@@ -14,7 +14,7 @@ export const validateRequest = <T extends z.ZodTypeAny>(
     throw new AppError(
       'Request validation failed',
       ErrorCategory.VALIDATION,
-      ErrorCategory.VALIDATION, // Using ErrorCategory as a fallback since VALIDATION_FAILED doesn't exist
+      ErrorCode.VALIDATION_FAILED,
       { details: error },
       400
     );
@@ -34,7 +34,7 @@ export const validateParams = <T extends z.ZodTypeAny>(
     throw new AppError(
       'Route parameter validation failed',
       ErrorCategory.VALIDATION,
-      ErrorCategory.VALIDATION, // Using ErrorCategory as a fallback since VALIDATION_FAILED doesn't exist
+      ErrorCode.VALIDATION_FAILED,
       { details: error },
       400
     );
@@ -54,7 +54,7 @@ export const validateQuery = <T extends z.ZodTypeAny>(
     throw new AppError(
       'Query parameter validation failed',
       ErrorCategory.VALIDATION,
-      ErrorCategory.VALIDATION, // Using ErrorCategory as a fallback since VALIDATION_FAILED doesn't exist
+      ErrorCode.VALIDATION_FAILED,
       { details: error },
       400
     );

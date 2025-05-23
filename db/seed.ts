@@ -38,53 +38,71 @@ async function seed() {
     // Create stores
     console.log("Creating stores...");
     const stores = [
-      { 
-        name: "Downtown Store", 
-        address: "123 Main St", 
-        city: "New York", 
-        state: "NY", 
-        zipCode: "10001", 
-        phone: "555-123-4567" 
+      {
+        name: "Downtown Store",
+        address: "123 Main St",
+        city: "Seattle",
+        state: "WA",
+        country: "USA",
+        phone: "555-678-9012",
+        email: "downtown@chainsync.com",
+        timezone: "America/Los_Angeles",
+        isActive: true
       },
-      { 
-        name: "Westside Mall", 
-        address: "456 West Ave", 
-        city: "Los Angeles", 
-        state: "CA", 
-        zipCode: "90001", 
-        phone: "555-234-5678" 
+      {
+        name: "Westside Mall",
+        address: "456 West Ave",
+        city: "Los Angeles",
+        state: "CA",
+        country: "USA",
+        phone: "555-234-5678",
+        email: "westside@chainsync.com",
+        timezone: "America/Los_Angeles",
+        isActive: true
       },
-      { 
-        name: "Northside Plaza", 
-        address: "789 North Blvd", 
-        city: "Chicago", 
-        state: "IL", 
-        zipCode: "60007", 
-        phone: "555-345-6789" 
+      {
+        name: "Northside Plaza",
+        address: "789 North Blvd",
+        city: "Chicago",
+        state: "IL",
+        country: "USA",
+        phone: "555-345-6789",
+        email: "northside@chainsync.com",
+        timezone: "America/Chicago",
+        isActive: true
       },
-      { 
-        name: "Eastend Market", 
-        address: "321 East St", 
-        city: "Boston", 
-        state: "MA", 
-        zipCode: "02108", 
-        phone: "555-456-7890" 
+      {
+        name: "Eastend Market",
+        address: "321 East St",
+        city: "Boston",
+        state: "MA",
+        country: "USA",
+        phone: "555-456-7890",
+        email: "eastend@chainsync.com",
+        timezone: "America/New_York",
+        isActive: true
       },
-      { 
-        name: "Southside Center", 
-        address: "654 South Rd", 
-        city: "Miami", 
-        state: "FL", 
-        zipCode: "33101", 
-        phone: "555-567-8901" 
+      {
+        name: "Southside Center",
+        address: "654 South Rd",
+        city: "Miami",
+        state: "FL",
+        country: "USA",
+        phone: "555-567-8901",
+        email: "southside@chainsync.com",
+        timezone: "America/New_York",
+        isActive: true
       },
-      { 
-        name: "Harbor Point", 
-        address: "987 Harbor Dr", 
-        city: "Seattle", 
-        state: "WA", 
-        zipCode: "98101", 
-        phone: "555-678-9012" 
+      {
+        name: "Harbor Point",
+        address: "987 Harbor Dr",
+        city: "Seattle",
+        state: "WA",
+        country: "USA",
+        phone: "555-678-9012",
+        email: "harbor@chainsync.com",
+        timezone: "America/Los_Angeles",
+        isActive: true
       }
     ];
 

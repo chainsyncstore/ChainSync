@@ -8,14 +8,21 @@
     "moduleResolution": "node",
     "sourceMap": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["node"],
+    "types": ["node", "express-session"],
     "allowJs": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": false
+    "strict": false,
+    "baseUrl": ".",
+    "paths": {
+      "@db": ["./shared/db"],
+      "@shared/*": ["./shared/*"],
+      "@server/*": ["./server/*"]
+    }
   },
   "include": [
     "server/**/*.ts",

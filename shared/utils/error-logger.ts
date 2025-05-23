@@ -1,4 +1,4 @@
-import { AppError, ErrorDetails } from '../types/errors';
+import { AppError } from '../types/errors';
 import { createLogger, format, transports } from 'winston';
 
 const { combine, timestamp, label, printf } = format;

@@ -562,6 +562,20 @@ export const cashierSessionSchema = createSelectSchema(cashierSessions);
 export type CashierSession = typeof cashierSessions.$inferSelect;
 export type CashierSessionInsert = z.infer<typeof cashierSessionInsertSchema>;
 
+// Payment Methods
+export const paymentMethods = pgTable("payment_methods", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const paymentMethodsRelations = relations(paymentMethods, ({ many }) => ({
+  transactions: many(transactions)
+}));
+
 // Returns and Refunds System
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),

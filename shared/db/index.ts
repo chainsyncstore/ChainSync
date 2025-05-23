@@ -1,6 +1,6 @@
 import { users } from "./users";
-import { stores, categories } from "./stores";
-import { products } from "./products";
+import { stores } from "./stores";
+import { products, categories } from "./products";
 import { inventory, inventoryBatches } from "./inventory";
 import { transactions, transactionItems } from "./transactions";
 

@@ -39,40 +39,40 @@ export const ImportExportErrorCategories = {
 
 export const ImportExportErrors: Record<ImportExportErrorCode, ImportExportError> = {
   [ImportExportErrorCodes.INVALID_FILE]: new AppError(
-    'IMPORT_EXPORT',
-    'INVALID_FILE',
     'Invalid file provided',
+    ErrorCategory.IMPORT_EXPORT,
+    ErrorCode.INVALID_FILE,
     undefined,
     400
-  ),
+  ) as ImportExportError,
   [ImportExportErrorCodes.PROCESSING_ERROR]: new AppError(
-    'PROCESSING',
-    'PROCESSING_ERROR',
     'Processing error occurred',
+    ErrorCategory.PROCESSING,
+    ErrorCode.PROCESSING_ERROR,
     undefined,
     500
-  ),
+  ) as ImportExportError,
   [ImportExportErrorCodes.INVALID_FORMAT]: new AppError(
-    'INVALID_FORMAT',
-    'INVALID_FORMAT',
     'Invalid format',
+    ErrorCategory.VALIDATION,
+    ErrorCode.INVALID_FORMAT,
     undefined,
     400
-  ),
+  ) as ImportExportError,
   [ImportExportErrorCodes.EXPORT_ERROR]: new AppError(
-    'EXPORT_ERROR',
-    'EXPORT_ERROR',
     'Export error occurred',
+    ErrorCategory.EXPORT_ERROR,
+    ErrorCode.EXPORT_ERROR,
     undefined,
     500
-  ),
+  ) as ImportExportError,
   [ImportExportErrorCodes.DATABASE_ERROR]: new AppError(
-    'DATABASE',
-    'DATABASE_ERROR',
     'Database error occurred',
+    ErrorCategory.DATABASE,
+    ErrorCode.DATABASE_ERROR,
     undefined,
     500
-  )
+  ) as ImportExportError
 } as const;
 
 export type ImportExportErrorCodes = typeof ImportExportErrorCodes;

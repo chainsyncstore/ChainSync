@@ -1,5 +1,5 @@
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { schema } from '@shared/schema';
+import * as schema from '../../shared/schema';
 
 export interface ILoyaltyService {
   generateLoyaltyId(): Promise<string>;

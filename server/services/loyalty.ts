@@ -1,5 +1,5 @@
-import { db } from "@db";
-import * as schema from "@shared/schema";
+import { db } from "../../db";
+import * as schema from "../../shared/schema";
 import { eq, and, gt, lt, desc, sql, asc } from "drizzle-orm";
 import { storage } from "../storage";
 // Helper function to generate random strings

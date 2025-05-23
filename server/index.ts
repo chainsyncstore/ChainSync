@@ -1,17 +1,17 @@
 import express, { type Request, Response, NextFunction, Application } from "express";
-import { createRequestHandler, createErrorHandler, isMiddlewareFunction } from "./middleware/handler.ts";
-import { registerRoutes } from "./routes.ts";
-import { setupVite, serveStatic, log } from "./vite.ts";
-import { setupSecureServer, enforceHttpsForPaymentRoutes } from "./config/https.ts";
-import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./config/dialogflow-security.ts";
-import { logNgrokInstructions } from "./config/ngrok.ts";
+import { createRequestHandler, createErrorHandler, isMiddlewareFunction } from "./middleware/handler";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
+import { setupSecureServer, enforceHttpsForPaymentRoutes } from "./config/https";
+import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./config/dialogflow-security";
+import { logNgrokInstructions } from "./config/ngrok";
 import { setupSecurity } from "../middleware/security";
-import { logger } from "./services/logger.ts";
-import { env } from "./config/env.ts";
-import { ServiceError } from "./services/base/base-service.ts";
-import { applyRateLimiters } from "./middleware/rate-limiter.ts";
-import { applyCORS } from "./middleware/cors.ts";
-import { initializeDatabase } from "./database.ts";
+import { logger } from "./services/logger";
+import { env } from "./config/env";
+import { ServiceError } from "./services/base/base-service";
+import { applyRateLimiters } from "./middleware/rate-limiter";
+import { applyCORS } from "./middleware/cors";
+import { initializeDatabase } from "./database";
 import { initializeGlobals } from "@shared/db/types";
 
 const app = express();
@@ -154,8 +154,12 @@ app.use((req, res, next) => {
     log("Warning: Dialogflow not properly configured, will use fallback responses");
   }
   
-  // Use secure server configuration instead of plain HTTP server
-  const server = await registerRoutes(app);
+  // Create an HTTP or HTTPS server first
+  const { setupSecureServer } = await import('./config/https');
+  const httpServer = setupSecureServer(app);
+  
+  // Use the HTTP server with routes and Socket.io
+  const ioServer = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -170,7 +174,7 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
     serveStatic(app);
   } else {
-    await setupVite(app, server);
+    await setupVite(app, httpServer);
     // In development mode, show ngrok instructions for webhook testing
     logNgrokInstructions();
   }
@@ -181,11 +185,7 @@ app.use((req, res, next) => {
   const port = process.env.PORT || 5000;
   const host = '0.0.0.0';
 
-  server.listen({
-    port,
-    host,
-    reusePort: true,
-  }, () => {
+  httpServer.listen(Number(port), host, () => {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
     log(`Listening on ${protocol}://${host}:${port}`);

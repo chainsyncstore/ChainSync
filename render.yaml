@@ -3,7 +3,7 @@ services:
     name: chainsync-web
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci && npm install esbuild && npx esbuild server/index.ts --bundle --platform=node --outfile=dist/server/index.js --external:express --external:multer --external:drizzle-orm --external:all
     startCommand: npm start
     envVars:
       - key: NODE_ENV

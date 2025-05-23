@@ -88,8 +88,8 @@ export class ErrorHandler extends EventEmitter {
       errorObj = lastError;
     } else if (typeof lastError === 'string') {
       errorObj = new Error(lastError);
-    } else if (lastError && typeof lastError === 'object' && 'message' in lastError) {
-      errorObj = new Error(lastError.message);
+    } else if (lastError && typeof lastError === 'object' && lastError !== null && 'message' in lastError && typeof (lastError as any).message === 'string') {
+      errorObj = new Error(String((lastError as any).message));
     }
 
     if (!errorObj) {
@@ -108,7 +108,7 @@ export class ErrorHandler extends EventEmitter {
     }
 
     // Ensure we have a proper Error object
-    const errorInstance: Error = errorObj instanceof Error ? errorObj : new Error(errorObj.message);
+    const errorInstance: Error = errorObj instanceof Error ? errorObj : new Error(String((errorObj as any).message || 'Unknown error'));
 
     const enhancedError = this.enrichError(errorInstance, context);
 
@@ -116,7 +116,7 @@ export class ErrorHandler extends EventEmitter {
     this.logError(enhancedError, context);
 
     // Handle retry logic
-    if (this.config.retry.maxAttempts > 0 && AppError.isRetryable(enhancedError)) {
+    if (this.config.retry.maxAttempts > 0 && ErrorHandler.isRetryable(enhancedError)) {
       const attempt = context.attempt || 1;
       if (attempt < this.config.retry.maxAttempts) {
         const delay = this.calculateDelay(attempt);
@@ -137,23 +137,21 @@ export class ErrorHandler extends EventEmitter {
     }
 
     // Determine error code based on context
-    let errorCode: ImportExportErrorCode = ImportExportErrorCode.PROCESSING_ERROR;
+    let errorCode = "PROCESSING_ERROR";
     if (error.message.includes('format')) {
-      errorCode = ImportExportErrorCode.INVALID_FILE_FORMAT;
+      errorCode = "INVALID_FILE_FORMAT";
     } else if (error.message.includes('size')) {
-      errorCode = ImportExportErrorCode.FILE_TOO_LARGE;
+      errorCode = "FILE_TOO_LARGE";
     } else if (error.message.includes('validate')) {
-      errorCode = ImportExportErrorCode.VALIDATION_ERROR;
+      errorCode = "VALIDATION_ERROR";
     } else if (error.message.includes('timeout')) {
-      errorCode = ImportExportErrorCode.TIMEOUT_ERROR;
+      errorCode = "TIMEOUT_ERROR";
     }
 
     const enhancedError = new AppError(
       error.message,
-      errorCode,
       ErrorCategory.SYSTEM,
-      false,
-      0,
+      errorCode,
       {
         operation: context.operation,
         timestamp: context.timestamp,
@@ -161,7 +159,10 @@ export class ErrorHandler extends EventEmitter {
         requestId: context.requestId,
         attempt: context.attempt,
         ...context.metadata
-      }
+      },
+      400,
+      false,
+      0
     );
 
     enhancedError.name = error.name;
@@ -205,7 +206,7 @@ export class ErrorHandler extends EventEmitter {
 
   static createAppError(
     message: string,
-    code: ImportExportErrorCode,
+    code: string,
     category: ErrorCategory,
     retryable: boolean = false,
     retryDelay: number = 0,
@@ -213,19 +214,24 @@ export class ErrorHandler extends EventEmitter {
   ): AppError {
     return new AppError(
       message,
-      ImportExportErrorCodes[code],
       category,
+      code,
+      context || {},
+      400,
       retryable,
-      retryDelay,
-      context
+      retryDelay
     );
   }
 
   static isRetryable(error: Error): boolean {
-    return error instanceof AppError && (error as AppError).retryable;
+    return error instanceof AppError && !!(error as AppError).retryable;
   }
 
   static getRetryDelay(error: Error): number {
-    return error instanceof AppError ? (error as AppError).retryDelay || 0 : 0;
+    if (error instanceof AppError) {
+      // Access the retryAfter property which exists on AppError
+      return (error as any).retryAfter || 0;
+    }
+    return 0;
   }
 }
