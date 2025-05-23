@@ -11,7 +11,7 @@
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["node", "express-session"],
+    "types": ["node"],
     "allowJs": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
