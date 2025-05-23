@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["node", "multer"],
+    "types": ["node"],
     "allowJs": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
