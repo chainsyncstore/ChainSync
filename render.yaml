@@ -1,43 +1,45 @@
-type: web
-name: chainsync-web
-buildCommand: npm run build
-startCommand: npm start
-env: production
-envVars:
-  - key: NODE_ENV
-    value: production
-  - key: PORT
-    value: 3000
-  - key: DATABASE_URL
-    value: ${DATABASE_URL}
-  - key: SESSION_SECRET
-    value: ${SESSION_SECRET}
-  - key: ALLOWED_ORIGINS
-    value: ${ALLOWED_ORIGINS}
-  - key: PAYSTACK_SECRET_KEY
-    value: ${PAYSTACK_SECRET_KEY}
-  - key: PAYSTACK_PUBLIC_KEY
-    value: ${PAYSTACK_PUBLIC_KEY}
-  - key: FLUTTERWAVE_SECRET_KEY
-    value: ${FLUTTERWAVE_SECRET_KEY}
-  - key: FLUTTERWAVE_PUBLIC_KEY
-    value: ${FLUTTERWAVE_PUBLIC_KEY}
-  - key: OPENAI_API_KEY
-    value: ${OPENAI_API_KEY}
-  - key: GOOGLE_CLOUD_PROJECT_ID
-    value: ${GOOGLE_CLOUD_PROJECT_ID}
-  - key: GOOGLE_APPLICATION_CREDENTIALS
-    value: ${GOOGLE_APPLICATION_CREDENTIALS}
-  - key: REDIS_URL
-    value: ${REDIS_URL}
-  - key: CACHE_TTL
-    value: ${CACHE_TTL}
-  - key: LOG_LEVEL
-    value: ${LOG_LEVEL}
-  - key: RATE_LIMIT_WINDOW
-    value: ${RATE_LIMIT_WINDOW}
-  - key: RATE_LIMIT_MAX
-    value: ${RATE_LIMIT_MAX}
-git:
-  repo: https://github.com/chainsyncstore/ChainSync.git
-  branch: main
+services:
+  - type: web
+    name: chainsync-web
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_PUBLIC_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_CLOUD_PROJECT_ID
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CACHE_TTL
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: RATE_LIMIT_WINDOW
+        value: 900
+      - key: RATE_LIMIT_MAX
+        value: 100
+    autoDeploy: true
+    repo: https://github.com/chainsyncstore/ChainSync.git
+    branch: main
