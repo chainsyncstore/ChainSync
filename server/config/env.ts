@@ -1,7 +1,12 @@
 import { config } from 'dotenv';
 import { z } from 'zod';
 
-config();
+// Explicitly load .env.test during Jest tests
+if (process.env.NODE_ENV === 'test') {
+  config({ path: '.env.test' });
+} else {
+  config();
+}
 
 // Environment variables schema
 const envSchema = z.object({

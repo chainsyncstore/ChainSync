@@ -18,7 +18,7 @@ export const baseTable = {
   id: serial("id").primaryKey(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at").nullable(),
+  deletedAt: timestamp("deleted_at", { mode: "date", nullable: true }),
 };
 
 // Timestamps schema

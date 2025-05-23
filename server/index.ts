@@ -1,17 +1,17 @@
 import express, { type Request, Response, NextFunction, Application } from "express";
-import { createRequestHandler, createErrorHandler, isMiddlewareFunction } from "./types/middleware";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { setupSecureServer, enforceHttpsForPaymentRoutes } from "./config/https";
-import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./config/dialogflow-security";
-import { logNgrokInstructions } from "./config/ngrok";
+import { createRequestHandler, createErrorHandler, isMiddlewareFunction } from "./middleware/handler.ts";
+import { registerRoutes } from "./routes.ts";
+import { setupVite, serveStatic, log } from "./vite.ts";
+import { setupSecureServer, enforceHttpsForPaymentRoutes } from "./config/https.ts";
+import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./config/dialogflow-security.ts";
+import { logNgrokInstructions } from "./config/ngrok.ts";
 import { setupSecurity } from "../middleware/security";
-import { logger } from "./services/logger";
-import { env } from "./config/env";
-import { ServiceError } from "./services/base/base-service";
-import { applyRateLimiters } from "./middleware/rate-limiter";
-import { applyCORS } from "./middleware/cors";
-import { initializeDatabase } from "./database";
+import { logger } from "./services/logger.ts";
+import { env } from "./config/env.ts";
+import { ServiceError } from "./services/base/base-service.ts";
+import { applyRateLimiters } from "./middleware/rate-limiter.ts";
+import { applyCORS } from "./middleware/cors.ts";
+import { initializeDatabase } from "./database.ts";
 import { initializeGlobals } from "@shared/db/types";
 
 const app = express();
@@ -92,8 +92,6 @@ if (isMiddlewareFunction(fallbackMiddleware)) {
 
 // Register routes
 registerRoutes(app);
-
-export default app;
 
 // Add error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -193,3 +191,5 @@ app.use((req, res, next) => {
     log(`Listening on ${protocol}://${host}:${port}`);
   });
 })();
+
+export default app;
