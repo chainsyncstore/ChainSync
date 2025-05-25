@@ -65,6 +65,7 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/chaintest
       
       - name: Generate coverage report
+        if: success() && github.ref == 'refs/heads/main'
         run: npx codecov
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN || '' }}

@@ -126,7 +126,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-and-test, security-scan]
     if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
-    environment: staging
+    environment:
+      name: staging
     
     steps:
       - name: Download build artifacts
@@ -145,26 +146,26 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
       
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
         with:
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
           application_name: chainsync
           environment_name: chainsync-staging
           version_label: chainsync-${{ github.sha }}
-          region: ${{ secrets.AWS_REGION }}
+          region: ${{ vars.AWS_REGION }}
           deployment_package: ./deploy.zip
       
       - name: Post-deployment health check
         run: |
           echo "Waiting for deployment to stabilize..."
           sleep 60
-          HEALTH_CHECK_URL="${{ secrets.STAGING_URL }}/api/health"
+          HEALTH_CHECK_URL="${{ vars.STAGING_URL }}/api/health"
           ATTEMPTS=0
           MAX_ATTEMPTS=10
           
@@ -186,7 +187,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [deploy-staging]
     if: github.event.inputs.environment == 'production'
-    environment: production
+    environment:
+      name: production
     
     steps:
       - name: Download build artifacts
@@ -205,26 +207,26 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
       
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
         with:
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
           application_name: chainsync
           environment_name: chainsync-production
           version_label: chainsync-${{ github.sha }}
-          region: ${{ secrets.AWS_REGION }}
+          region: ${{ vars.AWS_REGION }}
           deployment_package: ./deploy.zip
       
       - name: Post-deployment health check
         run: |
           echo "Waiting for deployment to stabilize..."
           sleep 60
-          HEALTH_CHECK_URL="${{ secrets.PRODUCTION_URL }}/api/health"
+          HEALTH_CHECK_URL="${{ vars.PRODUCTION_URL }}/api/health"
           ATTEMPTS=0
           MAX_ATTEMPTS=10
           
