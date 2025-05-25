@@ -2,6 +2,15 @@ import { db } from "../../db";
 import * as schema from "../../shared/schema";
 import { eq, and, gt, lt, desc, sql, asc } from "drizzle-orm";
 import { storage } from "../storage";
+import type { Logger } from "../../src/logging/Logger";
+import { ConsoleLogger } from "../../src/logging/Logger";
+
+// Logger instance, can be swapped for a real logger in production
+let logger: Logger = ConsoleLogger;
+export function setLoyaltyLogger(customLogger: Logger) {
+  logger = customLogger;
+}
+
 // Helper function to generate random strings
 function generateRandomString(length: number): string {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -189,6 +198,85 @@ export async function recordPointsEarned(
 ): Promise<{ success: boolean; transaction?: schema.LoyaltyTransaction }> {
   try {
     if (points <= 0) {
+      logger.info("No points to accrue", { transactionId, memberId, points, userId, timestamp: new Date().toISOString() });
+      return { success: false };
+    }
+    // Get the member to check their tier and customer
+    const member = await db.query.loyaltyMembers.findFirst({
+      where: eq(schema.loyaltyMembers.id, memberId),
+      with: {
+        tier: true,
+        customer: true,
+      }
+    });
+    if (!member) {
+      logger.warn("Member not found for point accrual", { memberId, transactionId });
+      return { success: false };
+    }
+    // Loyalty enabled check
+    if (!member.customer?.loyaltyEnabled) {
+      logger.info("Loyalty accrual blocked: loyalty disabled", { customerId: member.customer.id, transactionId });
+      return { success: false };
+    }
+    // Fraud detection: excessive accruals in last hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const accruals = await db.query.loyaltyTransactions.count({
+      where: and(
+        eq(schema.loyaltyTransactions.memberId, memberId),
+        eq(schema.loyaltyTransactions.type, "earn"),
+        gt(schema.loyaltyTransactions.createdAt, oneHourAgo)
+      )
+    });
+    if (accruals > 5) {
+      logger.warn("Potential loyalty fraud detected: excessive accruals", { memberId, accruals });
+      // Optionally block or alert
+    }
+    let pointsToAdd = points;
+    // Apply tier multiplier if applicable
+    if (member.tier && member.tier.pointMultiplier) {
+      pointsToAdd = points * parseFloat(member.tier.pointMultiplier);
+    }
+    // Record loyalty transaction
+    const [loyaltyTransaction] = await db.insert(schema.loyaltyTransactions)
+      .values({
+        memberId,
+        transactionId,
+        type: "earn",
+        points: pointsToAdd.toString(),
+        createdBy: userId
+      })
+      .returning();
+    // Update member point balances
+    const currentPoints = parseFloat(member.currentPoints) + pointsToAdd;
+    const totalPointsEarned = parseFloat(member.totalPointsEarned) + pointsToAdd;
+    await db.update(schema.loyaltyMembers)
+      .set({
+        currentPoints: currentPoints.toString(),
+        totalPointsEarned: totalPointsEarned.toString(),
+        lastActivity: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(schema.loyaltyMembers.id, memberId));
+    // Update transaction to record points earned
+    await db.update(schema.transactions)
+      .set({
+        pointsEarned: pointsToAdd.toString()
+      })
+      .where(eq(schema.transactions.id, transactionId));
+    // Check if member should be upgraded to a new tier
+    await checkAndUpdateMemberTier(memberId);
+    logger.info("Points accrued", { memberId, transactionId, points: pointsToAdd, userId, timestamp: new Date().toISOString() });
+    return { 
+      success: true,
+      transaction: loyaltyTransaction 
+    };
+  } catch (error) {
+    logger.error("Error recording points earned", { error, transactionId, memberId, userId });
+    return { success: false };
+  }
+}
+  try {
+    if (points <= 0) {
       return { success: false };
     }
     
@@ -347,6 +435,7 @@ export async function applyReward(
     const rewardCost = parseFloat(reward.pointsCost);
     
     if (memberPoints < rewardCost) {
+      logger.info("Reward redemption blocked: insufficient points", { memberId, rewardId, transactionId });
       return { success: false, message: "Insufficient points" };
     }
     

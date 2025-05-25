@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 export const validateRequest = <T extends z.ZodTypeAny>(
   schema: T,

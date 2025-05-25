@@ -1,7 +1,7 @@
 import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
 
-import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { FileUploadConfig } from '../config/file-upload';
 import { FileUploadProgress, ProgressSubscription } from './types/file-upload';
 import { logger } from './utils/logger';

@@ -292,6 +292,7 @@ export const transactions = pgTable("transactions", {
   paymentConfirmedAt: timestamp("payment_confirmed_at"),
   isOfflineTransaction: boolean("is_offline_transaction").notNull().default(false),
   syncedAt: timestamp("synced_at"),
+  type: text("type").notNull(), // "SALE" | "RETURN" | ...
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

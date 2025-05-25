@@ -175,7 +175,7 @@ export async function initializeSubscription(
 export async function verifyPayment(reference: string, provider: string): Promise<{
   status: 'success' | 'failed' | 'pending';
   amount: number;
-  metadata: any;
+  metadata: unknown;
 }> {
   try {
     // Special handling for simulation mode

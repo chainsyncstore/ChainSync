@@ -1298,27 +1298,27 @@ export const storage = {
 
     if (startDate && endDate) {
       whereClause = and(
-        eq(schema.refunds.storeId, storeId),
-        gte(schema.refunds.createdAt, startDate),
-        lte(schema.refunds.createdAt, endDate),
+        eq(schema.returns.storeId, storeId),
+        gte(schema.returns.createdAt, startDate),
+        lte(schema.returns.createdAt, endDate),
       );
     } else if (startDate) {
       whereClause = and(
-        eq(schema.refunds.storeId, storeId),
-        gte(schema.refunds.createdAt, startDate),
+        eq(schema.returns.storeId, storeId),
+        gte(schema.returns.createdAt, startDate),
       );
     } else if (endDate) {
       whereClause = and(
-        eq(schema.refunds.storeId, storeId),
-        lte(schema.refunds.createdAt, endDate),
+        eq(schema.returns.storeId, storeId),
+        lte(schema.returns.createdAt, endDate),
       );
     } else {
-      whereClause = eq(schema.refunds.storeId, storeId);
+      whereClause = eq(schema.returns.storeId, storeId);
     }
 
     const refunds = await db.query.refunds.findMany({
       where: whereClause,
-      orderBy: [desc(schema.refunds.createdAt)],
+      orderBy: [desc(schema.returns.createdAt)],
       limit,
       offset,
       with: {
@@ -1336,7 +1336,7 @@ export const storage = {
 
     const totalCount = await db
       .select({ count: count() })
-      .from(schema.refunds)
+      .from(schema.returns)
       .where(whereClause);
 
     return {
@@ -1355,23 +1355,23 @@ export const storage = {
     let whereClause = sql`1=1`;
 
     if (storeId) {
-      whereClause = and(whereClause, eq(schema.refunds.storeId, storeId));
+      whereClause = and(whereClause, eq(schema.returns.storeId, storeId));
     }
 
     if (startDate) {
-      whereClause = and(whereClause, gte(schema.refunds.createdAt, startDate));
+      whereClause = and(whereClause, gte(schema.returns.createdAt, startDate));
     }
 
     if (endDate) {
-      whereClause = and(whereClause, lte(schema.refunds.createdAt, endDate));
+      whereClause = and(whereClause, lte(schema.returns.createdAt, endDate));
     }
 
     // Get total refund amount
     const totalRefundResult = await db
       .select({
-        total: sql`SUM(${schema.refunds.refundAmount})`,
+        total: sql`SUM(${schema.returns.total})`,
       })
-      .from(schema.refunds)
+      .from(schema.returns)
       .where(whereClause);
 
     // Get count of returns
@@ -1379,22 +1379,22 @@ export const storage = {
       .select({
         count: count(),
       })
-      .from(schema.refunds)
+      .from(schema.returns)
       .where(whereClause);
 
     // Get reasons breakdown
     const reasonsQuery = await db
       .select({
-        reasonId: schema.refundItems.returnReasonId,
+        reasonId: schema.returnItems.returnReasonId,
         count: count(),
       })
-      .from(schema.refundItems)
+      .from(schema.returnItems)
       .leftJoin(
-        schema.refunds,
-        eq(schema.refundItems.refundId, schema.refunds.id),
+        schema.returns,
+        eq(schema.returnItems.refundId, schema.returns.id),
       )
       .where(whereClause)
-      .groupBy(schema.refundItems.returnReasonId);
+      .groupBy(schema.returnItems.returnReasonId);
 
     // Get return reasons data
     const returnReasons = await db.select().from(schema.returnReasons);
@@ -1417,16 +1417,16 @@ export const storage = {
     // Get restocked vs lost breakdown
     const restockedQuery = await db
       .select({
-        isRestocked: schema.refundItems.isRestocked,
+        isRestocked: schema.returnItems.isRestocked,
         count: count(),
       })
-      .from(schema.refundItems)
+      .from(schema.returnItems)
       .leftJoin(
-        schema.refunds,
-        eq(schema.refundItems.refundId, schema.refunds.id),
+        schema.returns,
+        eq(schema.returnItems.refundId, schema.returns.id),
       )
       .where(whereClause)
-      .groupBy(schema.refundItems.isRestocked);
+      .groupBy(schema.returnItems.isRestocked);
 
     const restockedBreakdown = {
       restocked: 0,

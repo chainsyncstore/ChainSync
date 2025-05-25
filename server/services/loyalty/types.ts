@@ -1,5 +1,10 @@
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import * as schema from '../../shared/schema';
+import * as schema from '@shared/schema';
+
+export type LoyaltyProgram = schema.LoyaltyProgram;
+export type LoyaltyMember = schema.LoyaltyMember;
+export type LoyaltyTransaction = schema.LoyaltyTransaction;
+export type LoyaltyProgramStatus = 'active' | 'inactive' | 'draft' | 'archived'; // Adjust as needed if enum/type exists in schema
 
 export interface ILoyaltyService {
   generateLoyaltyId(): Promise<string>;

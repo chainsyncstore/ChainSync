@@ -1,16 +1,18 @@
-import { Paystack } from 'paystack-node';
-import { Flutterwave } from 'flutterwave-node-v3';
-import { logger } from '../../utils/logger';
+import Paystack from 'paystack-node';
+import Flutterwave from 'flutterwave-node-v3';
+import type { Logger } from '../../../src/logging/Logger';
+import { ConsoleLogger } from '../../../src/logging/Logger';
 import { PaymentProviderConfig, PaymentVerificationResponse, PaymentAnalytics, PaymentWebhookRequest, PaymentStatus, PaymentInitializationResponse, FlutterwavePaymentRequest } from './payment-types';
 
 export class PaymentService {
-  private readonly paystack: Paystack | null;
-  private readonly flutterwave: Flutterwave | null;
+  private readonly paystack: any;
+  private readonly flutterwave: any;
   private readonly config: PaymentProviderConfig;
-  private readonly logger: typeof logger;
+  private logger: Logger = ConsoleLogger;
 
   constructor() {
-    this.logger = logger;
+    // Default logger is ConsoleLogger, can be swapped via setLogger()
+    this.logger = ConsoleLogger;
     this.config = {
       paystack: {
         secretKey: process.env.PAYSTACK_SECRET_KEY || '',
@@ -29,12 +31,8 @@ export class PaymentService {
         : null;
 
       // Initialize Flutterwave in test mode
-      this.flutterwave = this.config.flutterwave.secretKey && this.config.flutterwave.publicKey
-        ? new Flutterwave({
-            publicKey: this.config.flutterwave.publicKey,
-            secretKey: this.config.flutterwave.secretKey,
-            env: 'test'
-          })
+      this.flutterwave = this.config.flutterwave.secretKey
+        ? new Flutterwave(this.config.flutterwave.secretKey)
         : null;
 
       this.logger.info('Payment providers initialized in test mode');
@@ -47,6 +45,26 @@ export class PaymentService {
       this.flutterwave = null;
       throw new Error('Failed to initialize payment providers');
     }
+  }
+
+  /**
+   * Inject a custom logger (e.g., for test or production)
+   */
+  setLogger(customLogger: Logger) {
+    this.logger = customLogger;
+  }
+
+  /**
+   * Example: Loyalty accrual logic (to be called after payment success)
+   * Skips accrual for refunded/failed/flagged transactions and logs with structured fields.
+   */
+  async handleLoyaltyAccrual({ transactionId, customerId, status, flagged }: { transactionId: string, customerId: number, status: string, flagged?: boolean }) {
+    if (status === 'refunded' || status === 'failed' || flagged) {
+      this.logger.info('Loyalty accrual skipped', { transactionId, customerId, reason: status === 'refunded' ? 'refunded' : status === 'failed' ? 'failed' : 'flagged', timestamp: new Date().toISOString() });
+      return;
+    }
+    // ...call loyalty accrual logic here
+    this.logger.info('Loyalty accrued', { transactionId, customerId, status, timestamp: new Date().toISOString() });
   }
 
   async initializePayment(

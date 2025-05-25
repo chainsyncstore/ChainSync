@@ -19,9 +19,12 @@
     "strict": false,
     "baseUrl": ".",
     "paths": {
-      "@db": ["./shared/db"],
+      "@db": ["./db"],
+      "@db/*": ["./db/*"],
       "@shared/*": ["./shared/*"],
-      "@server/*": ["./server/*"]
+      "@server/*": ["./server/*"],
+      "@shared/schema": ["./shared/schema"],
+      "@shared/schema-helpers": ["./shared/schema-helpers"]
     }
   },
   "include": [

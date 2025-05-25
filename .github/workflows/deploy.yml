@@ -1,0 +1,243 @@
+name: ChainSync Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      # Set up PostgreSQL service for testing
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chaintest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Set up environment variables
+        run: |
+          echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/chaintest" >> .env.test
+          echo "NODE_ENV=test" >> .env.test
+          echo "JWT_SECRET=test-secret-key" >> .env.test
+      
+      - name: Run TypeScript type checking
+        run: npm run type-check
+      
+      - name: Run linting
+        run: npm run lint
+      
+      - name: Run all tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/chaintest
+      
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/chaintest
+      
+      - name: Build application
+        run: npm run build
+      
+      # Archive build artifacts for deployment
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: |
+            dist
+            public
+            package.json
+            package-lock.json
+  
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # Run npm audit to check for vulnerabilities
+      - name: Check for vulnerabilities
+        run: npm audit --production
+        continue-on-error: true
+      
+      # Run OWASP Dependency-Check
+      - name: OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'ChainSync'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --failOnCVSS 7
+            --enableExperimental
+      
+      # Upload security scan results as an artifact
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-check-report
+          path: ${{ github.workspace }}/reports
+  
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    environment: staging
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      
+      - name: Install production dependencies
+        run: npm ci --only=production
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: chainsync
+          environment_name: chainsync-staging
+          version_label: chainsync-${{ github.sha }}
+          region: ${{ secrets.AWS_REGION }}
+          deployment_package: ./deploy.zip
+      
+      - name: Post-deployment health check
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 60
+          HEALTH_CHECK_URL="${{ secrets.STAGING_URL }}/api/health"
+          ATTEMPTS=0
+          MAX_ATTEMPTS=10
+          
+          while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_CHECK_URL)
+            if [ $STATUS -eq 200 ]; then
+              echo "Deployment health check passed!"
+              exit 0
+            fi
+            ATTEMPTS=$((ATTEMPTS+1))
+            echo "Health check attempt $ATTEMPTS failed with status $STATUS. Retrying in 30 seconds..."
+            sleep 30
+          done
+          
+          echo "Health check failed after $MAX_ATTEMPTS attempts"
+          exit 1
+  
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.event.inputs.environment == 'production'
+    environment: production
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      
+      - name: Install production dependencies
+        run: npm ci --only=production
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: chainsync
+          environment_name: chainsync-production
+          version_label: chainsync-${{ github.sha }}
+          region: ${{ secrets.AWS_REGION }}
+          deployment_package: ./deploy.zip
+      
+      - name: Post-deployment health check
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 60
+          HEALTH_CHECK_URL="${{ secrets.PRODUCTION_URL }}/api/health"
+          ATTEMPTS=0
+          MAX_ATTEMPTS=10
+          
+          while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_CHECK_URL)
+            if [ $STATUS -eq 200 ]; then
+              echo "Deployment health check passed!"
+              exit 0
+            fi
+            ATTEMPTS=$((ATTEMPTS+1))
+            echo "Health check attempt $ATTEMPTS failed with status $STATUS. Retrying in 30 seconds..."
+            sleep 30
+          done
+          
+          echo "Health check failed after $MAX_ATTEMPTS attempts"
+          exit 1

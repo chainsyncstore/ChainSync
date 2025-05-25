@@ -1,7 +1,9 @@
-import { storage } from "../storage";
+import { db } from "@db";
 import * as schema from "@shared/schema";
-import { db } from "../../db";
 import { eq } from "drizzle-orm";
+import { AffiliateService } from "./affiliate/service";
+import { PaymentService } from "./payment/service";
+import { prepareSubscriptionData } from "@shared/schema-helpers";
 import { 
   applyReferralDiscount, 
   processAffiliateCommission 
@@ -177,7 +179,10 @@ async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
       })
     };
     
-    await db.insert(schema.subscriptions).values(subscriptionData);
+    // Use schema helper to prepare subscription data
+    // This handles fields like status and updatedAt that might cause schema mismatches
+    const preparedData = prepareSubscriptionData(subscriptionData);
+    await db.insert(schema.subscriptions).values(preparedData);
     
     // Process affiliate commission if applicable
     if (referralCode) {
@@ -337,7 +342,10 @@ async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> 
       })
     };
     
-    await db.insert(schema.subscriptions).values(subscriptionData);
+    // Use schema helper to prepare subscription data
+    // This handles fields like status and updatedAt that might cause schema mismatches
+    const preparedData = prepareSubscriptionData(subscriptionData);
+    await db.insert(schema.subscriptions).values(preparedData);
     
     // Process affiliate commission if applicable
     if (referralCode) {

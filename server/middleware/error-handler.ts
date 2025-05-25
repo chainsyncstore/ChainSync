@@ -1,6 +1,6 @@
-import { AppError, ErrorCode, ErrorCategory, RetryableError } from '../../shared/types/errors';
-import { logError } from '../../shared/utils/error-logger';
-import { formatErrorForUser } from '../../shared/utils/error-messages';
+import { AppError, ErrorCode, ErrorCategory, RetryableError } from '@shared/types/errors';
+import { logError } from '@shared/utils/error-logger';
+import { formatErrorForUser } from '@shared/utils/error-messages';
 import { NextFunction, Request, Response } from 'express';
 
 export const errorHandler = (

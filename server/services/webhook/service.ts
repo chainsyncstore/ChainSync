@@ -102,7 +102,7 @@ export class WebhookService extends BaseService implements IWebhookService {
     try {
       const transaction = await db.transaction(async (tx) => {
         const existing = await tx.query.transactions.findFirst({
-          where: eq(transactions.reference, data.reference)
+          where: eq(transactions.referenceId, data.reference)
         });
 
         if (existing) {
@@ -143,7 +143,7 @@ export class WebhookService extends BaseService implements IWebhookService {
     try {
       const transaction = await db.transaction(async (tx) => {
         const existing = await tx.query.transactions.findFirst({
-          where: eq(transactions.reference, data.reference)
+          where: eq(transactions.referenceId, data.reference)
         });
 
         if (existing) {
@@ -185,7 +185,7 @@ export class WebhookService extends BaseService implements IWebhookService {
     try {
       const transaction = await db.transaction(async (tx) => {
         const existing = await tx.query.transactions.findFirst({
-          where: eq(transactions.reference, data.reference)
+          where: eq(transactions.referenceId, data.reference)
         });
 
         if (existing) {
@@ -226,7 +226,7 @@ export class WebhookService extends BaseService implements IWebhookService {
     try {
       const transaction = await db.transaction(async (tx) => {
         const existing = await tx.query.transactions.findFirst({
-          where: eq(transactions.reference, data.reference)
+          where: eq(transactions.referenceId, data.reference)
         });
 
         if (existing) {
