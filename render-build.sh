@@ -8,11 +8,11 @@ set -x
 npm ci
 
 # Install essential build tools
-npm install typescript ts-node tsc-alias --save-dev
+npm install typescript ts-node tsc-alias terser --save-dev
 
-# Make sure vite is installed locally and globally for the build
-npm install vite@latest --save-dev
-npm install -g vite
+# Make sure vite and terser are installed locally and globally for the build
+npm install vite@latest terser --save-dev
+npm install -g vite terser
 
 # Create a simple vite.config.js if it doesn't exist
 if [ ! -f "vite.config.js" ] && [ ! -f "vite.config.ts" ]; then
