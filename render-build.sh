@@ -7,6 +7,9 @@ set -x
 # Install dependencies
 npm ci
 
+# Install essential build tools
+npm install typescript ts-node tsc-alias --save-dev
+
 # Make sure vite is installed locally and globally for the build
 npm install vite@latest --save-dev
 npm install -g vite
@@ -31,12 +34,34 @@ export default defineConfig({
 EOL
 fi
 
-# Build the server portion first (which doesn't depend on vite)
-npm run build:server
+# Manually compile server code with TypeScript
+echo "Compiling server code directly with tsc..."
+mkdir -p dist/server
 
-# Now try to build the client
+# Run TypeScript compiler directly
+./node_modules/.bin/tsc --project tsconfig.server.json
+
+# Run tsc-alias to resolve path aliases
+./node_modules/.bin/tsc-alias -p tsconfig.server.json
+
+# Verify server index.js exists
+if [ -f "dist/server/index.js" ]; then
+  echo "✅ Server build successful - dist/server/index.js exists"
+else
+  echo "❌ Server build failed - dist/server/index.js not found"
+  
+  # Fallback: Copy server/index.ts to dist/server and transpile directly
+  echo "Attempting fallback compilation method..."
+  mkdir -p dist/server
+  npx tsc server/index.ts --outDir dist/server --esModuleInterop --module commonjs --target es2020
+fi
+
+# Build the client
 echo "Building client with explicit npx vite..."
 NODE_ENV=production npx vite build
+
+# Double check that the server index.js exists
+ls -la dist/server/
 
 # Exit with success
 exit 0

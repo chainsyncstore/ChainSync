@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "// Testing Scripts": "",
     "test": "npm run test:server && npm run test:utils",
@@ -20,7 +23,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "// Build Scripts": "",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build",
+    "build:client": "npx vite build",
     "build:server": "tsc -p tsconfig.server.json && tsc-alias -p tsconfig.server.json",
     "build:staging": "cross-env NODE_ENV=staging npm run build",
     "build:production": "cross-env NODE_ENV=production npm run build",

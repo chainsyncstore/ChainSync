@@ -12,7 +12,7 @@ export interface ImportExportConfig {
     backoffFactor: number;
   };
   storage: {
-    type: 'local' | 's3';
+    type: 'local';
     path: string;
   };
   errorHandling: {
@@ -61,65 +61,44 @@ export interface ImportExportError extends AppError {
 export const ImportExportServiceErrors = {
   INVALID_FILE_FORMAT: new AppError(
     'Invalid file format',
-    ErrorCode.INVALID_FIELD_VALUE,
     ErrorCategory.VALIDATION,
-    false,
-    undefined,
-    'Please upload a supported file format'
+    ErrorCode.INVALID_FIELD_VALUE,
+    { retryable: false, userMessage: 'Please upload a supported file format' },
+    400
   ),
   FILE_TOO_LARGE: new AppError(
     'File size exceeds maximum allowed size',
-    ErrorCode.INVALID_FIELD_VALUE,
     ErrorCategory.VALIDATION,
-    false,
-    undefined,
-    'Please upload a smaller file'
+    ErrorCode.INVALID_FIELD_VALUE,
+    { retryable: false, userMessage: 'Please upload a smaller file' },
+    400
   ),
   INVALID_DATA: new AppError(
     'Invalid data format',
-    ErrorCode.INVALID_FIELD_VALUE,
     ErrorCategory.VALIDATION,
-    false,
-    undefined,
-    'Data format is invalid'
+    ErrorCode.INVALID_FIELD_VALUE,
+    { retryable: false, userMessage: 'Data format is invalid' },
+    400
   ),
   PROCESSING_ERROR: new AppError(
     'Failed to process file',
-    ErrorCode.INTERNAL_SERVER_ERROR,
     ErrorCategory.SYSTEM,
-    true,
-    5000,
-    'Failed to process file. Please try again'
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    { retryable: true, retryDelay: 5000, userMessage: 'Failed to process file. Please try again' },
+    500
   ),
   STORAGE_ERROR: new AppError(
     'Failed to store file',
-    ErrorCode.INTERNAL_SERVER_ERROR,
     ErrorCategory.SYSTEM,
-    true,
-    5000,
-    'Failed to store file. Please try again'
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    { retryable: true, retryDelay: 5000, userMessage: 'Failed to store file. Please try again' },
+    500
   ),
   PROGRESS_ERROR: new AppError(
     'Failed to update progress',
-    ErrorCode.INTERNAL_SERVER_ERROR,
     ErrorCategory.SYSTEM,
-    true,
-    5000,
-    'Failed to update progress. Please try again'
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    { retryable: true, retryDelay: 5000, userMessage: 'Failed to update progress. Please try again' },
+    500
   )
-};
-
-export const defaultImportExportConfig: ImportExportConfig = {
-  batchSize: 100,
-  maxFileSize: 5 * 1024 * 1024, // 5MB
-  supportedFormats: ['csv', 'xlsx', 'json'],
-  progressUpdateInterval: 1000, // 1 second
-  retryConfig: {
-    maxRetries: 3,
-    delay: 1000 // 1 second
-  },
-  storage: {
-    type: 'local',
-    path: './imports'
-  }
 };

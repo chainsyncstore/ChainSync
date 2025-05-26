@@ -26,7 +26,7 @@ await initializeDatabase();
 setupSecurity(app);
 
 // Apply middleware
-const corsMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+const corsMiddleware = createRequestHandler((req, res, next) => {
   applyCORS(req, res, next);
 });
 const rateLimiterMiddleware = createRequestHandler(applyRateLimiters.applyRateLimiters);
@@ -37,10 +37,10 @@ if (isMiddlewareFunction(corsMiddleware) && isMiddlewareFunction(rateLimiterMidd
 }
 
 // Enforce HTTPS for secure routes in production
-const paymentRoutesMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+const paymentRoutesMiddleware = createRequestHandler((req, res, next) => {
   enforceHttpsForPaymentRoutes(req, res, next);
 });
-const dialogflowRoutesMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+const dialogflowRoutesMiddleware = createRequestHandler((req, res, next) => {
   enforceHttpsForDialogflowRoutes(req, res, next);
 });
 
@@ -49,12 +49,25 @@ if (isMiddlewareFunction(paymentRoutesMiddleware) && isMiddlewareFunction(dialog
   app.use(dialogflowRoutesMiddleware);
 }
 
+// Fallback logging for server startup errors
+process.on('uncaughtException', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('Server failed to start:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('Unhandled promise rejection:', err);
+  process.exit(1);
+});
+
+
 // Parse request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Error handling middleware
-const errorMiddleware = createErrorHandler((err: Error, req: Request, res: Response, next: NextFunction) => {
+const errorMiddleware = createErrorHandler((err, req, res, next) => {
   logger.error(err.message, { stack: err.stack });
 
   if (err instanceof Error) {
@@ -65,10 +78,14 @@ const errorMiddleware = createErrorHandler((err: Error, req: Request, res: Respo
         details: err.stack
       }
     });
+    return;
   }
 
-  next();
+  next(err);
 });
+
+// Register error middleware as the last app.use
+app.use(errorMiddleware);
 
 if (isMiddlewareFunction(errorMiddleware)) {
   app.use(errorMiddleware);

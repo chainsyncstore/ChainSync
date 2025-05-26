@@ -68,4 +68,4 @@ jobs:
         if: success() && github.ref == 'refs/heads/main'
         run: npx codecov
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN || '' }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

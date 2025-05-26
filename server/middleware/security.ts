@@ -31,8 +31,8 @@ export const securityHeaders = helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"], // Add any CDNs you need
       styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdn.jsdelivr.net"],
-      imgSrc: ["'self'", "data:", "cdn.jsdelivr.net", "*.amazonaws.com"], // For storage bucket images
-      connectSrc: ["'self'", "api.chainsync.com", "*.amazonaws.com", "localhost:*"],
+      imgSrc: ["'self'", "data:", "cdn.jsdelivr.net"],
+      connectSrc: ["'self'", "api.chainsync.com", "localhost:*"],
       fontSrc: ["'self'", "fonts.gstatic.com", "data:"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"], // Restricts base URIs that can be used

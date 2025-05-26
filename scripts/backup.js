@@ -3,19 +3,18 @@
  * Database backup script for ChainSync
  * 
  * This script creates a full backup of the PostgreSQL database
- * and uploads it to an S3 bucket for secure storage.
+ * and saves it to the local backup directory.
  * 
  * Usage:
- *   node backup.js [--upload]
+ *   node backup.js
  * 
- * Options:
- *   --upload  Upload the backup to S3 (requires AWS credentials)
+ * All backups are stored locally in the backup directory.
  */
 
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+
 const dotenv = require('dotenv');
 
 // Load environment variables
@@ -31,11 +30,7 @@ const config = {
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD,
   },
-  s3: {
-    bucket: process.env.BACKUP_S3_BUCKET,
-    region: process.env.AWS_REGION || 'us-east-1',
-    path: process.env.BACKUP_S3_PATH || 'backups',
-  },
+
   local: {
     backupDir: process.env.BACKUP_DIR || path.join(__dirname, '../backups'),
     retentionDays: parseInt(process.env.BACKUP_RETENTION_DAYS || '7', 10),
@@ -138,49 +133,6 @@ async function compressBackup() {
 }
 
 /**
- * Upload the compressed backup to S3
- */
-async function uploadToS3() {
-  if (!config.s3.bucket) {
-    console.warn('S3 bucket not configured, skipping upload');
-    return null;
-  }
-  
-  console.log(`Uploading backup to S3: ${config.s3.bucket}`);
-  
-  try {
-    // Create S3 client
-    const s3Client = new S3Client({ region: config.s3.region });
-    
-    // Read the compressed file
-    const fileContent = fs.readFileSync(compressedFilePath);
-    
-    // S3 key with path prefix if configured
-    const s3Key = config.s3.path 
-      ? `${config.s3.path.replace(/\/$/, '')}/${compressedFilename}`
-      : compressedFilename;
-    
-    // Upload command
-    const command = new PutObjectCommand({
-      Bucket: config.s3.bucket,
-      Key: s3Key,
-      Body: fileContent,
-      ContentType: 'application/gzip',
-      ServerSideEncryption: 'AES256',
-    });
-    
-    // Execute upload
-    const response = await s3Client.send(command);
-    
-    console.log(`Backup uploaded successfully to s3://${config.s3.bucket}/${s3Key}`);
-    return s3Key;
-  } catch (error) {
-    console.error('Error uploading backup to S3:', error);
-    throw error;
-  }
-}
-
-/**
  * Clean up old backup files based on retention policy
  */
 function cleanupOldBackups() {
@@ -220,12 +172,10 @@ function cleanupOldBackups() {
  */
 async function runBackup() {
   try {
-    // Create database backup
     await createBackup();
-    
-    // Compress the backup
     await compressBackup();
-    
+    await cleanupOldBackups();
+    console.log('Backup completed successfully.');
     // Upload to S3 if requested
     if (process.argv.includes('--upload')) {
       await uploadToS3();

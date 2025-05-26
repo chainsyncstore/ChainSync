@@ -44,10 +44,10 @@ async function seed() {
         city: "Seattle",
         state: "WA",
         country: "USA",
-        phone: "555-678-9012",
+        phone: "+15556789012",
         email: "downtown@chainsync.com",
         timezone: "America/Los_Angeles",
-        isActive: true
+        status: "active"
       },
       {
         name: "Westside Mall",
@@ -55,10 +55,10 @@ async function seed() {
         city: "Los Angeles",
         state: "CA",
         country: "USA",
-        phone: "555-234-5678",
+        phone: "+15552345678",
         email: "westside@chainsync.com",
         timezone: "America/Los_Angeles",
-        isActive: true
+        status: "active"
       },
       {
         name: "Northside Plaza",
@@ -66,10 +66,10 @@ async function seed() {
         city: "Chicago",
         state: "IL",
         country: "USA",
-        phone: "555-345-6789",
+        phone: "+15553456789",
         email: "northside@chainsync.com",
         timezone: "America/Chicago",
-        isActive: true
+        status: "active"
       },
       {
         name: "Eastend Market",
@@ -77,10 +77,10 @@ async function seed() {
         city: "Boston",
         state: "MA",
         country: "USA",
-        phone: "555-456-7890",
+        phone: "+15554567890",
         email: "eastend@chainsync.com",
         timezone: "America/New_York",
-        isActive: true
+        status: "active"
       },
       {
         name: "Southside Center",
@@ -88,10 +88,10 @@ async function seed() {
         city: "Miami",
         state: "FL",
         country: "USA",
-        phone: "555-567-8901",
+        phone: "+15555678901",
         email: "southside@chainsync.com",
         timezone: "America/New_York",
-        isActive: true
+        status: "active"
       },
       {
         name: "Harbor Point",
@@ -99,10 +99,10 @@ async function seed() {
         city: "Seattle",
         state: "WA",
         country: "USA",
-        phone: "555-678-9012",
+        phone: "+15556789012",
         email: "harbor@chainsync.com",
         timezone: "America/Los_Angeles",
-        isActive: true
+        status: "active"
       }
     ];
 

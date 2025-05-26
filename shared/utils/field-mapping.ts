@@ -1,4 +1,17 @@
 /**
+ * Type-level utilities for converting between different case styles
+ */
+type CamelToSnake<S extends string> = S extends `${infer T}${infer U}`
+  ? T extends Capitalize<T>
+    ? `_${Lowercase<T>}${CamelToSnake<U>}`
+    : `${T}${CamelToSnake<U>}`
+  : S;
+
+type SnakeToCamel<S extends string> = S extends `${infer T}_${infer U}`
+  ? `${T}${Capitalize<SnakeToCamel<U>>}`
+  : S;
+
+/**
  * Field Mapping Utilities
  * 
  * Utility functions for mapping between camelCase (code) and snake_case (database) fields.
@@ -11,7 +24,7 @@
  * @param data The data object with camelCase keys
  * @returns A new object with snake_case keys
  */
-export function toDatabaseFields<T>(data: Record<string, any>): Record<string, any> {
+export function toDatabaseFields<T extends Record<string, any>>(data: T): Record<string, any> {
   if (!data) return {};
   
   return Object.entries(data).reduce((acc, [key, value]) => {
@@ -27,7 +40,7 @@ export function toDatabaseFields<T>(data: Record<string, any>): Record<string, a
  * @param data The data object with snake_case keys
  * @returns A new object with camelCase keys
  */
-export function fromDatabaseFields<T>(data: Record<string, any>): Record<string, any> {
+export function fromDatabaseFields<T extends Record<string, any>>(data: T): Record<string, any> {
   if (!data) return {};
   
   return Object.entries(data).reduce((acc, [key, value]) => {
@@ -44,15 +57,15 @@ export function fromDatabaseFields<T>(data: Record<string, any>): Record<string,
  * @param fields Array of field names to include
  * @returns A new object with only the specified fields
  */
-export function pickFields(data: Record<string, any>, fields: string[]): Record<string, any> {
-  if (!data) return {};
+export function pickFields<T extends Record<string, any>, K extends keyof T>(data: T, fields: K[]): Pick<T, K> {
+  if (!data) return {} as Pick<T, K>;
   
   return fields.reduce((acc, field) => {
-    if (data[field] !== undefined) {
+    if (Object.prototype.hasOwnProperty.call(data, field)) {
       acc[field] = data[field];
     }
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Pick<T, K>);
 }
 
 /**
@@ -62,7 +75,7 @@ export function pickFields(data: Record<string, any>, fields: string[]): Record<
  * @param field The field name to check
  * @returns True if the field exists and is not undefined
  */
-export function hasField(obj: any, field: string): boolean {
+export function hasField<T extends Record<string, any>>(obj: T, field: keyof T): boolean {
   if (obj == null) return false;
   return obj[field] !== undefined;
 }
