@@ -1,15 +1,91 @@
-import { db } from "../../db";
+import { getDatabase } from "../database";
 import * as schema from "../../shared/schema";
-import { eq, and, gt, lt, desc, sql, asc } from "drizzle-orm";
-import { storage } from "../storage";
-import type { Logger } from "../../src/logging/Logger";
-import { ConsoleLogger } from "../../src/logging/Logger";
+import { eq, and, gt, lt, desc, sql } from "drizzle-orm";
+import { logger } from "../services/logger";
+import { 
+  prepareLoyaltyMemberData, 
+  prepareLoyaltyTierData, 
+  formatLoyaltyMemberResult,
+  formatLoyaltyTierResult
+} from "../../shared/schema-helpers";
 
-// Logger instance, can be swapped for a real logger in production
-let logger: Logger = ConsoleLogger;
-export function setLoyaltyLogger(customLogger: Logger) {
-  logger = customLogger;
+/**
+ * Get loyalty program by ID
+ */
+interface LoyaltyProgramWithTiers extends schema.LoyaltyProgram {
+  tiers: string;
 }
+
+export async function getLoyaltyProgram(programId: number): Promise<LoyaltyProgramWithTiers | null> {
+  const program = await db.query.loyaltyPrograms.findFirst({
+    where: eq(schema.loyaltyPrograms.id, programId),
+    columns: {
+      id: true,
+      name: true,
+      storeId: true,
+      pointsPerAmount: true,
+      active: true,
+      createdAt: true,
+      updatedAt: true,
+      tiers: true
+    }
+  }) as LoyaltyProgramWithTiers | null;
+
+  return program;
+}
+
+/**
+ * Check and update member tier based on points
+ */
+async function checkAndUpdateMemberTier(memberId: number, currentPoints: string): Promise<void> {
+  const member = await db.query.loyaltyMembers.findFirst({
+    where: eq(schema.loyaltyMembers.id, memberId),
+    columns: {
+      id: true,
+      programId: true,
+      tierId: true
+    }
+  });
+
+  if (!member) {
+    return;
+  }
+
+  const program = await getLoyaltyProgram(member.programId);
+  if (!program || !program.tiers) {
+    return;
+  }
+
+  const points = parseFloat(currentPoints);
+  interface LoyaltyTier {
+    id: number;
+    threshold: number;
+  }
+  const tiers = JSON.parse(program.tiers) as LoyaltyTier[];
+  
+  // Find highest tier member qualifies for
+  const newTier = tiers
+    .sort((a, b) => b.threshold - a.threshold)
+    .find(tier => points >= tier.threshold);
+
+  if (newTier && newTier.id !== member.tierId) {
+    await db
+      .update(schema.loyaltyMembers)
+      .set({ tierId: newTier.id })
+      .where(eq(schema.loyaltyMembers.id, memberId));
+  }
+}
+
+import { 
+  LoyaltyMember, 
+  LoyaltyTransaction, 
+  LoyaltyProgram, 
+  LoyaltyTier 
+} from "../../shared/types";
+
+const db = await getDatabase();
+
+
 
 // Helper function to generate random strings
 function generateRandomString(length: number): string {
@@ -64,11 +140,11 @@ export async function enrollCustomer(customerId: number, storeId: number, userId
     if (!existingMember.isActive) {
       // Reactivate the account if it was inactive
       const [updatedMember] = await db.update(schema.loyaltyMembers)
-        .set({
-          isActive: true,
+        .set(prepareLoyaltyMemberData({
+          status: "active",
           lastActivity: new Date(),
           updatedAt: new Date()
-        })
+        }))
         .where(eq(schema.loyaltyMembers.id, existingMember.id))
         .returning();
       
@@ -91,10 +167,10 @@ export async function enrollCustomer(customerId: number, storeId: number, userId
       .values({
         storeId,
         name: "ChainSync Rewards",
-        pointsPerAmount: "1.00", // 1 point per currency unit
+        pointsPerAmount: "1.00",
         active: true,
-        expiryMonths: 12, // Points expire after 12 months
-      })
+        expiryMonths: 12
+      } as any)
       .returning();
     
     program = newProgram;
@@ -113,7 +189,9 @@ export async function enrollCustomer(customerId: number, storeId: number, userId
       totalPointsRedeemed: "0",
       enrollmentDate: new Date(),
       lastActivity: new Date(),
-      isActive: true
+      isActive: true,
+      tierId: null,
+      createdAt: new Date()
     })
     .returning();
   
@@ -123,7 +201,6 @@ export async function enrollCustomer(customerId: number, storeId: number, userId
       memberId: member.id,
       type: "earn", // Could also be a special type like "enroll" if added
       points: "0",
-      note: "Enrollment in ChainSync Rewards program",
       createdBy: userId
     });
   
@@ -162,16 +239,29 @@ export async function calculatePointsForTransaction(
     const productIds = items.map(item => item.productId);
     
     // Get products to check for bonus points
+    interface Product {
+      id: number;
+      price: string;
+      quantity: string;
+      bonusPoints: string;
+    }
+
     const products = await db.query.products.findMany({
       where: sql`${schema.products.id} IN (${productIds.join(', ')})`,
-    });
-    
+      columns: {
+        id: true,
+        price: true,
+        quantity: true,
+        bonusPoints: true
+      }
+    }) as Product[];
+
     // Map products by ID for easy lookup
-    const productsById = products.reduce((acc, product) => {
+    const productsById = products.reduce((acc: { [id: number]: Product }, product: Product) => {
       acc[product.id] = product;
       return acc;
-    }, {} as Record<number, schema.Product>);
-    
+    }, {});
+
     // Add bonus points from products
     for (const item of items) {
       const product = productsById[item.productId];
@@ -195,7 +285,7 @@ export async function recordPointsEarned(
   memberId: number,
   points: number,
   userId: number
-): Promise<{ success: boolean; transaction?: schema.LoyaltyTransaction }> {
+): Promise<{ success: boolean; transaction?: LoyaltyTransaction }> {
   try {
     if (points <= 0) {
       logger.info("No points to accrue", { transactionId, memberId, points, userId, timestamp: new Date().toISOString() });
@@ -204,141 +294,97 @@ export async function recordPointsEarned(
     // Get the member to check their tier and customer
     const member = await db.query.loyaltyMembers.findFirst({
       where: eq(schema.loyaltyMembers.id, memberId),
-      with: {
-        tier: true,
-        customer: true,
+      columns: {
+        id: true,
+        currentPoints: true,
+        totalPointsEarned: true,
+        tierId: true,
+        customer: {
+          id: true,
+          isActive: true
+        }
       }
     });
+
     if (!member) {
-      logger.warn("Member not found for point accrual", { memberId, transactionId });
+      logger.error('Member not found', { memberId });
       return { success: false };
     }
+
     // Loyalty enabled check
-    if (!member.customer?.loyaltyEnabled) {
-      logger.info("Loyalty accrual blocked: loyalty disabled", { customerId: member.customer.id, transactionId });
+    if (!member.customer?.isActive) {
+      logger.info('Loyalty accrual blocked: customer inactive', { customerId: member.customer.id, transactionId });
       return { success: false };
     }
-    // Fraud detection: excessive accruals in last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const accruals = await db.query.loyaltyTransactions.count({
-      where: and(
-        eq(schema.loyaltyTransactions.memberId, memberId),
-        eq(schema.loyaltyTransactions.type, "earn"),
-        gt(schema.loyaltyTransactions.createdAt, oneHourAgo)
-      )
-    });
-    if (accruals > 5) {
-      logger.warn("Potential loyalty fraud detected: excessive accruals", { memberId, accruals });
-      // Optionally block or alert
-    }
+
+    // Get member's tier if any
     let pointsToAdd = points;
-    // Apply tier multiplier if applicable
-    if (member.tier && member.tier.pointMultiplier) {
-      pointsToAdd = points * parseFloat(member.tier.pointMultiplier);
-    }
-    // Record loyalty transaction
-    const [loyaltyTransaction] = await db.insert(schema.loyaltyTransactions)
-      .values({
-        memberId,
-        transactionId,
-        type: "earn",
-        points: pointsToAdd.toString(),
-        createdBy: userId
-      })
-      .returning();
-    // Update member point balances
-    const currentPoints = parseFloat(member.currentPoints) + pointsToAdd;
-    const totalPointsEarned = parseFloat(member.totalPointsEarned) + pointsToAdd;
-    await db.update(schema.loyaltyMembers)
-      .set({
-        currentPoints: currentPoints.toString(),
-        totalPointsEarned: totalPointsEarned.toString(),
-        lastActivity: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(schema.loyaltyMembers.id, memberId));
-    // Update transaction to record points earned
-    await db.update(schema.transactions)
-      .set({
-        pointsEarned: pointsToAdd.toString()
-      })
-      .where(eq(schema.transactions.id, transactionId));
-    // Check if member should be upgraded to a new tier
-    await checkAndUpdateMemberTier(memberId);
-    logger.info("Points accrued", { memberId, transactionId, points: pointsToAdd, userId, timestamp: new Date().toISOString() });
-    return { 
-      success: true,
-      transaction: loyaltyTransaction 
-    };
-  } catch (error) {
-    logger.error("Error recording points earned", { error, transactionId, memberId, userId });
-    return { success: false };
-  }
-}
-  try {
-    if (points <= 0) {
-      return { success: false };
-    }
-    
-    // Get the member to check their tier
-    const member = await db.query.loyaltyMembers.findFirst({
-      where: eq(schema.loyaltyMembers.id, memberId),
-      with: {
-        tier: true,
+    if (member.tierId) {
+      const memberTier = await db.query.loyaltyTiers.findFirst({
+        where: eq(schema.loyaltyTiers.id, member.tierId),
+        columns: {
+          id: true,
+          pointMultiplier: true
+        }
+      });
+
+      // Apply tier multiplier if applicable
+      if (memberTier?.pointMultiplier) {
+        pointsToAdd = points * parseFloat(memberTier.pointMultiplier);
       }
+    }
+    
+    // Calculate updated points
+    const updatedPoints = (parseFloat(member.currentPoints || '0') + pointsToAdd).toFixed(2);
+    const result = await db.transaction(async (tx: typeof db) => {
+      // Add points to member
+      await tx
+        .update(schema.loyaltyMembers)
+        .set({ 
+          currentPoints: updatedPoints,
+          totalPointsEarned: (parseFloat(member.totalPointsEarned || '0') + pointsToAdd).toFixed(2),
+          lastActivity: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(schema.loyaltyMembers.id, memberId));
+
+      // Record transaction
+      const txn = await tx
+        .insert(schema.loyaltyTransactions)
+        .values({
+          memberId,
+          transactionId,
+          type: 'earn',
+          points: pointsToAdd.toFixed(2),
+          createdBy: userId
+        })
+        .returning();
+
+      // Update transaction to record points earned
+      await tx
+        .update(schema.transactions)
+        .set({
+          pointsEarned: pointsToAdd.toFixed(2)
+        })
+        .where(eq(schema.transactions.id, transactionId));
+
+      return txn[0] as schema.LoyaltyTransaction;
     });
-    
-    if (!member) {
-      return { success: false };
+
+    if (!result) {
+      throw new Error('Failed to record loyalty transaction');
     }
-    
-    let pointsToAdd = points;
-    
-    // Apply tier multiplier if applicable
-    if (member.tier && member.tier.pointMultiplier) {
-      pointsToAdd = points * parseFloat(member.tier.pointMultiplier);
-    }
-    
-    // Record loyalty transaction
-    const [loyaltyTransaction] = await db.insert(schema.loyaltyTransactions)
-      .values({
-        memberId,
-        transactionId,
-        type: "earn",
-        points: pointsToAdd.toString(),
-        createdBy: userId
-      })
-      .returning();
-    
-    // Update member point balances
-    const currentPoints = parseFloat(member.currentPoints) + pointsToAdd;
-    const totalPointsEarned = parseFloat(member.totalPointsEarned) + pointsToAdd;
-    
-    await db.update(schema.loyaltyMembers)
-      .set({
-        currentPoints: currentPoints.toString(),
-        totalPointsEarned: totalPointsEarned.toString(),
-        lastActivity: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(schema.loyaltyMembers.id, memberId));
-    
-    // Update transaction to record points earned
-    await db.update(schema.transactions)
-      .set({
-        pointsEarned: pointsToAdd.toString()
-      })
-      .where(eq(schema.transactions.id, transactionId));
-    
-    // Check if member should be upgraded to a new tier
-    await checkAndUpdateMemberTier(memberId);
-    
+
+    // Update member tier if needed
+    await checkAndUpdateMemberTier(memberId, updatedPoints);
+
+    logger.info('Points accrued', { memberId, transactionId, points: pointsToAdd, userId, timestamp: new Date().toISOString() });
     return { 
       success: true,
-      transaction: loyaltyTransaction 
+      transaction: result 
     };
   } catch (error) {
-    console.error("Error recording points earned:", error);
+    logger.error('Error recording points earned', { error, transactionId, memberId, userId });
     return { success: false };
   }
 }
@@ -347,10 +393,23 @@ export async function recordPointsEarned(
  * Get available rewards for a member
  */
 export async function getAvailableRewards(memberId: number): Promise<schema.LoyaltyReward[]> {
-  // Get member info including current points
+  // Get member info
+  interface LoyaltyMember {
+    id: number;
+    programId: number;
+    currentPoints: string;
+    customerId: number;
+  }
+
   const member = await db.query.loyaltyMembers.findFirst({
-    where: eq(schema.loyaltyMembers.id, memberId)
-  });
+    where: eq(schema.loyaltyMembers.id, memberId),
+    columns: {
+      id: true,
+      programId: true,
+      currentPoints: true,
+      customerId: true
+    }
+  }) as LoyaltyMember | null;
   
   if (!member) {
     return [];
@@ -395,377 +454,6 @@ export async function getAvailableRewards(memberId: number): Promise<schema.Loya
 }
 
 /**
- * Apply a reward to a transaction
- */
-export async function applyReward(
-  memberId: number,
-  rewardId: number,
-  transactionId: number,
-  userId: number
-): Promise<{ 
-  success: boolean; 
-  discountAmount?: string; 
-  pointsRedeemed?: string;
-  message?: string;
-}> {
-  try {
-    // Get member info
-    const member = await db.query.loyaltyMembers.findFirst({
-      where: eq(schema.loyaltyMembers.id, memberId)
-    });
-    
-    if (!member) {
-      return { success: false, message: "Member not found" };
-    }
-    
-    // Get reward info
-    const reward = await db.query.loyaltyRewards.findFirst({
-      where: eq(schema.loyaltyRewards.id, rewardId),
-      with: {
-        product: true
-      }
-    });
-    
-    if (!reward) {
-      return { success: false, message: "Reward not found" };
-    }
-    
-    // Check if member has enough points
-    const memberPoints = parseFloat(member.currentPoints);
-    const rewardCost = parseFloat(reward.pointsCost);
-    
-    if (memberPoints < rewardCost) {
-      logger.info("Reward redemption blocked: insufficient points", { memberId, rewardId, transactionId });
-      return { success: false, message: "Insufficient points" };
-    }
-    
-    // Get transaction
-    const transaction = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.id, transactionId)
-    });
-    
-    if (!transaction) {
-      return { success: false, message: "Transaction not found" };
-    }
-    
-    // Calculate discount amount based on reward type
-    let discountAmount = "0";
-    
-    if (reward.discountType === "fixed" && reward.discountValue) {
-      // Fixed amount discount
-      discountAmount = reward.discountValue;
-    } else if (reward.discountType === "percentage" && reward.discountValue) {
-      // Percentage discount
-      const percentage = parseFloat(reward.discountValue) / 100;
-      const calculatedDiscount = parseFloat(transaction.subtotal) * percentage;
-      discountAmount = calculatedDiscount.toFixed(2);
-    } else if (reward.discountType === "free_product" && reward.productId) {
-      // Free product - would need to check if this product is in the cart
-      // For simplicity, we're assuming the product value as discount
-      if (reward.product) {
-        discountAmount = reward.product.price;
-      }
-    }
-    
-    // Record point redemption
-    const [loyaltyTransaction] = await db.insert(schema.loyaltyTransactions)
-      .values({
-        memberId,
-        transactionId,
-        type: "redeem",
-        points: `-${rewardCost}`, // Negative points for redemption
-        rewardId,
-        note: `Redeemed ${reward.name}`,
-        createdBy: userId
-      })
-      .returning();
-    
-    // Update member points
-    const newPoints = memberPoints - rewardCost;
-    const totalRedeemed = parseFloat(member.totalPointsRedeemed) + rewardCost;
-    
-    await db.update(schema.loyaltyMembers)
-      .set({
-        currentPoints: newPoints.toString(),
-        totalPointsRedeemed: totalRedeemed.toString(),
-        lastActivity: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(schema.loyaltyMembers.id, memberId));
-    
-    // Update transaction with discount and points
-    await db.update(schema.transactions)
-      .set({
-        discountAmount,
-        pointsRedeemed: rewardCost.toString(),
-        rewardId: reward.id
-      })
-      .where(eq(schema.transactions.id, transactionId));
-    
-    return { 
-      success: true, 
-      discountAmount, 
-      pointsRedeemed: rewardCost.toString() 
-    };
-  } catch (error) {
-    console.error("Error applying reward:", error);
-    return { success: false, message: "Error applying reward" };
-  }
-}
-
-/**
- * Get loyalty member by ID or loyalty ID
- */
-export async function getLoyaltyMember(identifier: string | number): Promise<schema.LoyaltyMember | null> {
-  let member: schema.LoyaltyMember | null = null;
-  
-  if (typeof identifier === 'number') {
-    // Lookup by member ID
-    member = await db.query.loyaltyMembers.findFirst({
-      where: eq(schema.loyaltyMembers.id, identifier),
-      with: {
-        customer: true,
-        tier: true
-      }
-    });
-  } else {
-    // Lookup by loyalty ID
-    member = await db.query.loyaltyMembers.findFirst({
-      where: eq(schema.loyaltyMembers.loyaltyId, identifier),
-      with: {
-        customer: true,
-        tier: true
-      }
-    });
-  }
-  
-  return member;
-}
-
-/**
- * Get loyalty member by customer ID
- */
-export async function getLoyaltyMemberByCustomerId(customerId: number): Promise<schema.LoyaltyMember | null> {
-  return await db.query.loyaltyMembers.findFirst({
-    where: eq(schema.loyaltyMembers.customerId, customerId),
-    with: {
-      customer: true,
-      tier: true
-    }
-  });
-}
-
-/**
- * Get loyalty activity history for a member
- */
-export async function getMemberActivityHistory(memberId: number, limit = 20, offset = 0): Promise<schema.LoyaltyTransaction[]> {
-  return await db.query.loyaltyTransactions.findMany({
-    where: eq(schema.loyaltyTransactions.memberId, memberId),
-    orderBy: [desc(schema.loyaltyTransactions.createdAt)],
-    limit,
-    offset,
-    with: {
-      transaction: true,
-      reward: true
-    }
-  });
-}
-
-/**
- * Get loyalty program for a store
- */
-export async function getLoyaltyProgram(storeId: number): Promise<schema.LoyaltyProgram | null> {
-  return await db.query.loyaltyPrograms.findFirst({
-    where: and(
-      eq(schema.loyaltyPrograms.storeId, storeId),
-      eq(schema.loyaltyPrograms.active, true)
-    ),
-    with: {
-      tiers: true,
-      rewards: {
-        where: eq(schema.loyaltyRewards.active, true)
-      }
-    }
-  });
-}
-
-/**
- * Create or update a loyalty program for a store
- */
-export async function upsertLoyaltyProgram(
-  storeId: number,
-  programData: Partial<schema.LoyaltyProgramInsert>
-): Promise<schema.LoyaltyProgram> {
-  // Check if program already exists
-  const existingProgram = await db.query.loyaltyPrograms.findFirst({
-    where: eq(schema.loyaltyPrograms.storeId, storeId)
-  });
-  
-  if (existingProgram) {
-    // Update existing program
-    const [updatedProgram] = await db.update(schema.loyaltyPrograms)
-      .set({
-        ...programData,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.loyaltyPrograms.id, existingProgram.id))
-      .returning();
-    
-    return updatedProgram;
-  } else {
-    // Create new program
-    const [newProgram] = await db.insert(schema.loyaltyPrograms)
-      .values({
-        storeId,
-        name: programData.name || "ChainSync Rewards",
-        pointsPerAmount: programData.pointsPerAmount || "1.00",
-        active: programData.active !== undefined ? programData.active : true,
-        expiryMonths: programData.expiryMonths || 12
-      })
-      .returning();
-    
-    return newProgram;
-  }
-}
-
-/**
- * Create a loyalty tier
- */
-export async function createLoyaltyTier(tierData: schema.LoyaltyTierInsert): Promise<schema.LoyaltyTier> {
-  const [tier] = await db.insert(schema.loyaltyTiers)
-    .values(tierData)
-    .returning();
-  
-  return tier;
-}
-
-/**
- * Create a loyalty reward
- */
-export async function createLoyaltyReward(rewardData: schema.LoyaltyRewardInsert): Promise<schema.LoyaltyReward> {
-  const [reward] = await db.insert(schema.loyaltyRewards)
-    .values(rewardData)
-    .returning();
-  
-  return reward;
-}
-
-/**
- * Process expired points for all members
- */
-export async function processExpiredPoints(userId: number): Promise<number> {
-  let expiredCount = 0;
-  
-  // Get all active loyalty programs
-  const programs = await db.query.loyaltyPrograms.findMany({
-    where: eq(schema.loyaltyPrograms.active, true)
-  });
-  
-  for (const program of programs) {
-    if (!program.expiryMonths) continue;
-    
-    // Calculate expiry date based on program settings
-    const expiryDate = new Date();
-    expiryDate.setMonth(expiryDate.getMonth() - program.expiryMonths);
-    
-    // Get members with no activity since expiry date
-    const inactiveMembers = await db.query.loyaltyMembers.findMany({
-      where: and(
-        lt(schema.loyaltyMembers.lastActivity, expiryDate),
-        gt(schema.loyaltyMembers.currentPoints, "0")
-      )
-    });
-    
-    for (const member of inactiveMembers) {
-      // Record expired points
-      await db.insert(schema.loyaltyTransactions)
-        .values({
-          memberId: member.id,
-          type: "expire",
-          points: `-${member.currentPoints}`,
-          note: `Points expired due to ${program.expiryMonths} months of inactivity`,
-          createdBy: userId
-        });
-      
-      // Reset current points
-      await db.update(schema.loyaltyMembers)
-        .set({
-          currentPoints: "0",
-          updatedAt: new Date()
-        })
-        .where(eq(schema.loyaltyMembers.id, member.id));
-      
-      expiredCount++;
-    }
-  }
-  
-  return expiredCount;
-}
-
-/**
- * Check and update member tier based on total points earned
- */
-export async function checkAndUpdateMemberTier(memberId: number): Promise<boolean> {
-  const member = await db.query.loyaltyMembers.findFirst({
-    where: eq(schema.loyaltyMembers.id, memberId),
-    with: {
-      customer: true
-    }
-  });
-  
-  if (!member || !member.customer.storeId) {
-    return false;
-  }
-  
-  // Get program for the member's store
-  const program = await db.query.loyaltyPrograms.findFirst({
-    where: eq(schema.loyaltyPrograms.storeId, member.customer.storeId)
-  });
-  
-  if (!program) {
-    return false;
-  }
-  
-  // Get all tiers sorted by required points
-  const tiers = await db.query.loyaltyTiers.findMany({
-    where: and(
-      eq(schema.loyaltyTiers.programId, program.id),
-      eq(schema.loyaltyTiers.active, true)
-    ),
-    orderBy: [desc(schema.loyaltyTiers.requiredPoints)]
-  });
-  
-  if (tiers.length === 0) {
-    return false;
-  }
-  
-  // Find the highest tier the member qualifies for
-  const totalPointsEarned = parseFloat(member.totalPointsEarned);
-  let newTierId: number | null = null;
-  
-  for (const tier of tiers) {
-    if (totalPointsEarned >= parseFloat(tier.requiredPoints)) {
-      newTierId = tier.id;
-      break;
-    }
-  }
-  
-  // Update member tier if needed
-  if (newTierId !== member.tierId) {
-    await db.update(schema.loyaltyMembers)
-      .set({
-        tierId: newTierId,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.loyaltyMembers.id, member.id));
-    
-    return true;
-  }
-  
-  return false;
-}
-
-/**
  * Get loyalty analytics for store dashboard
  */
 export async function getLoyaltyAnalytics(storeId: number): Promise<{
@@ -774,85 +462,176 @@ export async function getLoyaltyAnalytics(storeId: number): Promise<{
   totalPointsEarned: string;
   totalPointsRedeemed: string;
   pointsBalance: string;
+  averagePoints: string;
   programDetails: schema.LoyaltyProgram | null;
   topRewards: Array<{ name: string; redemptions: number }>;
+  recentRedemptions: schema.LoyaltyTransaction[];
+  membersByTier: Record<number, number>;
 }> {
   // Get program for store
   const program = await getLoyaltyProgram(storeId);
   
   // Get members for this store
-  const members = await db.query.customers.findMany({
-    where: eq(schema.customers.storeId, storeId),
+  interface LoyaltyMemberStats {
+    id: number;
+    isActive: boolean;
+    totalPointsEarned: string;
+    totalPointsRedeemed: string;
+    currentPoints: string;
+    tierId?: number;
+    customer: {
+      id: number;
+      storeId: number;
+      isActive: boolean;
+    };
+  }
+
+  const members = await db.query.loyaltyMembers.findMany({
+    where: and(
+      eq(schema.loyaltyMembers.isActive, true)
+    ),
+    columns: {
+      id: true,
+      isActive: true,
+      totalPointsEarned: true,
+      totalPointsRedeemed: true,
+      currentPoints: true,
+      tierId: true
+    },
     with: {
-      loyaltyMembers: true
-    }
-  });
-  
-  const loyaltyMembers = members
-    .filter(c => c.loyaltyMembers && c.loyaltyMembers.length > 0)
-    .flatMap(c => c.loyaltyMembers);
-  
-  // Calculate summary stats
-  const activeMembers = loyaltyMembers.filter(m => m.isActive).length;
-  
-  const totalPointsEarned = loyaltyMembers.reduce(
-    (sum, member) => sum + parseFloat(member.totalPointsEarned || "0"), 
-    0
-  ).toFixed(2);
-  
-  const totalPointsRedeemed = loyaltyMembers.reduce(
-    (sum, member) => sum + parseFloat(member.totalPointsRedeemed || "0"), 
-    0
-  ).toFixed(2);
-  
-  const pointsBalance = loyaltyMembers.reduce(
-    (sum, member) => sum + parseFloat(member.currentPoints || "0"), 
-    0
-  ).toFixed(2);
-  
-  // Get top redeemed rewards
-  const rewards = await db.query.loyaltyRewards.findMany({
-    where: program ? eq(schema.loyaltyRewards.programId, program.id) : undefined
-  });
-  
-  // Count redemptions for each reward
-  const rewardRedemptions: Record<number, number> = {};
-  
-  if (rewards.length > 0) {
-    const rewardIds = rewards.map(r => r.id);
-    
-    // Get all redemption transactions for these rewards
-    const redemptions = await db.query.loyaltyTransactions.findMany({
-      where: and(
-        eq(schema.loyaltyTransactions.type, "redeem"),
-        sql`${schema.loyaltyTransactions.rewardId} IN (${rewardIds.join(', ')})`
-      )
-    });
-    
-    // Count redemptions by reward
-    for (const redemption of redemptions) {
-      if (redemption.rewardId) {
-        rewardRedemptions[redemption.rewardId] = (rewardRedemptions[redemption.rewardId] || 0) + 1;
+      customer: {
+        columns: {
+          id: true,
+          storeId: true,
+          isActive: true
+        }
       }
     }
-  }
+  }) as LoyaltyMemberStats[];
+
+  // Filter members by store
+  const storeMembers = members.filter(member => member.customer.storeId === storeId);
+
+  // Calculate summary stats
+  const activeMembers = storeMembers.reduce((acc: number, member: LoyaltyMemberStats): number => {
+    return acc + (member.isActive && member.customer.isActive ? 1 : 0);
+  }, 0);
   
-  // Map reward redemptions to names
-  const topRewards = rewards
-    .map(reward => ({
-      name: reward.name,
-      redemptions: rewardRedemptions[reward.id] || 0
-    }))
+  const totalPointsEarned = storeMembers.reduce((acc: number, member: LoyaltyMemberStats): number => {
+    return acc + parseFloat(member.totalPointsEarned || '0');
+  }, 0).toFixed(2);
+  
+  const totalPointsRedeemed = storeMembers.reduce((acc: number, member: LoyaltyMemberStats): number => {
+    return acc + parseFloat(member.totalPointsRedeemed || '0');
+  }, 0).toFixed(2);
+  
+  const averagePoints = (storeMembers.reduce(
+    (sum: number, member: LoyaltyMemberStats): number => sum + parseFloat(member.currentPoints || "0"),
+    0
+  ) / (storeMembers.length || 1)).toFixed(2);
+  
+  // Get recent rewards redeemed
+  interface RecentRedemption extends schema.LoyaltyTransaction {
+    reward?: {
+      name: string;
+    };
+  }
+
+  const recentRedemptions = await db.query.loyaltyTransactions.findMany({
+    where: and(
+      eq(schema.loyaltyTransactions.type, 'redeem'),
+      eq(schema.loyaltyTransactions.memberId, sql`ANY(SELECT id FROM ${schema.loyaltyMembers} WHERE store_id = ${storeId})`)
+    ),
+    orderBy: [desc(schema.loyaltyTransactions.createdAt)],
+    limit: 5,
+    columns: {
+      id: true,
+      createdAt: true,
+      memberId: true,
+      transactionId: true,
+      rewardId: true,
+      type: true,
+      points: true,
+      note: true,
+      createdBy: true
+    },
+    with: {
+      reward: {
+        columns: {
+          name: true
+        }
+      }
+    }
+  }) as RecentRedemption[];
+
+  interface RewardSummary {
+    name: string;
+    redemptions: number;
+  }
+
+  // Get rewards and their redemption counts
+  const rewards = await db.query.loyaltyRewards.findMany({
+    where: eq(schema.loyaltyPrograms.storeId, storeId),
+    columns: {
+      id: true,
+      name: true
+    }
+  }) as { id: number; name: string }[];
+
+  // Get redemption counts for rewards
+  const redemptionCounts = await Promise.all(
+    rewards.map(async (reward) => {
+      const redemptions = await db.query.loyaltyTransactions.findMany({
+        where: and(
+          eq(schema.loyaltyTransactions.type, 'redeem'),
+          eq(schema.loyaltyTransactions.rewardId, reward.id)
+        )
+      });
+      return {
+        name: reward.name,
+        redemptions: redemptions.length
+      } as RewardSummary;
+    })
+  );
+
+  // Get top rewards by redemption count
+  const topRewards = redemptionCounts
     .sort((a, b) => b.redemptions - a.redemptions)
     .slice(0, 5);
-  
+
+  // Calculate member tier distribution
+  const membersByTier = storeMembers.reduce((acc: Record<number, number>, member: LoyaltyMemberStats) => {
+    if (member.tierId) {
+      acc[member.tierId] = (acc[member.tierId] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  // Calculate points balance
+  const pointsBalance = (parseFloat(totalPointsEarned) - parseFloat(totalPointsRedeemed)).toFixed(2);
+
   return {
-    memberCount: loyaltyMembers.length,
+    memberCount: storeMembers.length,
     activeMembers,
     totalPointsEarned,
     totalPointsRedeemed,
-    pointsBalance,
+    pointsBalance: (parseFloat(totalPointsEarned) - parseFloat(totalPointsRedeemed)).toFixed(2),
+    averagePoints,
     programDetails: program,
-    topRewards
+    topRewards,
+    recentRedemptions: recentRedemptions.map((r: schema.LoyaltyTransaction) => ({
+      id: r.id,
+      createdAt: r.createdAt,
+      memberId: r.memberId,
+      transactionId: r.transactionId,
+      rewardId: r.rewardId,
+      type: r.type,
+      points: r.points,
+      note: r.note,
+      createdBy: r.createdBy
+    })),
+    membersByTier
   };
+
+
 }
