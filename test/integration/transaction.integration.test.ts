@@ -1,19 +1,19 @@
 // test/integration/transaction.integration.test.ts
 // Example integration test using in-memory SQLite DB with Prisma
-import { PrismaClient } from '@prisma/client';
+
 import { makeMockProduct } from '../factories/product';
 import { makeMockTransaction } from '../factories/transaction';
 
-const prisma = new PrismaClient();
+
 
 beforeAll(async () => {
-  await prisma.$connect();
+  // await drizzleDb.connect(); // Replace with Drizzle ORM connect if needed
   // Ensure schema is up-to-date (run this in your test runner setup or CI for best results)
   // await prisma.$executeRaw`PRAGMA foreign_keys=ON;` // Optional: enable foreign keys
 });
 
 afterAll(async () => {
-  await prisma.$disconnect();
+  // await drizzleDb.disconnect(); // Replace with Drizzle ORM disconnect if needed
 });
 
 describe('Transaction Integration', () => {

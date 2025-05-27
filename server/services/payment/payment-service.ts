@@ -12,7 +12,7 @@ export class PaymentService {
 
   constructor() {
     // Default logger is ConsoleLogger, can be swapped via setLogger()
-    this.logger = ConsoleLogger;
+    this.logger = new ConsoleLogger(); // Instantiate the logger
     this.config = {
       paystack: {
         secretKey: process.env.PAYSTACK_SECRET_KEY || '',

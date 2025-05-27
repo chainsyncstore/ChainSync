@@ -13,8 +13,16 @@ import { applyRateLimiters } from "./middleware/rate-limiter";
 import { applyCORS } from "./middleware/cors";
 import { initializeDatabase } from "./database";
 import { initializeGlobals } from "@shared/db/types";
+import { globalErrorHandler } from "../server/utils/handleError";
+import { performanceMonitoring, memoryMonitoring } from "./middleware/performance-monitoring";
+import { initializeMonitoring } from "../monitoring/opentelemetry";
+import { runMigrations } from "../db/migrations";
+import { dbManager } from "../db";
 
 const app = express();
+
+// Initialize performance monitoring
+initializeMonitoring();
 
 // Initialize global database references
 initializeGlobals();
@@ -61,10 +69,13 @@ process.on('unhandledRejection', (err) => {
   process.exit(1);
 });
 
-
 // Parse request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add performance monitoring middleware
+app.use(performanceMonitoring());
+app.use(memoryMonitoring());
 
 // Error handling middleware
 const errorMiddleware = createErrorHandler((err, req, res, next) => {
@@ -110,28 +121,7 @@ if (isMiddlewareFunction(fallbackMiddleware)) {
 // Register routes
 registerRoutes(app);
 
-// Add error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error(err.message, { stack: err.stack });
-
-  if (err instanceof Error) {
-    return res.status(500).json({
-      success: false,
-      error: {
-        message: err.message,
-        details: err.stack
-      }
-    });
-  }
-
-  res.status(500).json({
-    success: false,
-    error: {
-      message: 'An unexpected error occurred'
-    }
-  });
-});
-
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -162,51 +152,87 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  // Verify Dialogflow configuration on startup
-  const dialogflowConfigured = verifyDialogflowConfig();
-  if (dialogflowConfigured) {
-    log("Dialogflow configuration verified successfully");
-  } else {
-    log("Warning: Dialogflow not properly configured, will use fallback responses");
+// Database health check endpoint
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const stats = await dbManager.getPoolStats();
+    res.json({ status: 'ok', dbStats: stats });
+  } catch (error) {
+    logger.error('Database health check failed', { error });
+    res.status(500).json({ status: 'error', message: 'Database health check failed' });
   }
-  
-  // Create an HTTP or HTTPS server first
-  const { setupSecureServer } = await import('./config/https');
-  const httpServer = setupSecureServer(app);
-  
-  // Use the HTTP server with routes and Socket.io
-  const ioServer = await registerRoutes(app);
+});
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+// Run database migrations
+async function initialize() {
+  try {
+    // Run database migrations
+    logger.info('Running database migrations');
+    const migrationResult = await runMigrations();
+    if (migrationResult.success) {
+      logger.info('Database migrations completed successfully');
+    } else {
+      logger.error('Database migrations failed', { error: migrationResult.error });
+    }
+    
+    // Verify Dialogflow configuration on startup
+    const dialogflowConfigured = verifyDialogflowConfig();
+    if (dialogflowConfigured) {
+      log("Dialogflow configuration verified successfully");
+    } else {
+      log("Warning: Dialogflow not properly configured, will use fallback responses");
+    }
+    
+    // Create an HTTP or HTTPS server first
+    const { setupSecureServer } = await import('./config/https');
+    const httpServer = setupSecureServer(app);
+    
+    // Use the HTTP server with routes and Socket.io
+    const ioServer = await registerRoutes(app);
 
-    console.error("Server error:", err);
-    res.status(status).json({ message });
-    // Don't throw the error after handling it - this causes unhandled promise rejections
-  });
+    // Apply global error handler as the final middleware
+    app.use(globalErrorHandler);
 
-  // Set up static file serving or Vite middleware based on environment
-  if (process.env.NODE_ENV === 'production') {
-    serveStatic(app);
-  } else {
-    await setupVite(app, httpServer);
-    // In development mode, show ngrok instructions for webhook testing
-    logNgrokInstructions();
+    // Set up static file serving or Vite middleware based on environment
+    if (process.env.NODE_ENV === 'production') {
+      serveStatic(app);
+    } else {
+      await setupVite(app, httpServer);
+      // In development mode, show ngrok instructions for webhook testing
+      logNgrokInstructions();
+    }
+
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client.
+    // It is the only port that is not firewalled.
+    const port = process.env.PORT || 5000;
+    const host = '0.0.0.0';
+
+    httpServer.listen(Number(port), host, () => {
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+      log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
+      log(`Listening on ${protocol}://${host}:${port}`);
+    });
+  } catch (error) {
+    logger.error('Server initialization failed', { error });
+    process.exit(1);
   }
+}
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = process.env.PORT || 5000;
-  const host = '0.0.0.0';
+// Initialize the application
+initialize();
 
-  httpServer.listen(Number(port), host, () => {
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
-    log(`Listening on ${protocol}://${host}:${port}`);
-  });
-})();
+// Handle graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  await dbManager.shutdown();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  await dbManager.shutdown();
+  process.exit(0);
+});
 
 export default app;

@@ -5,7 +5,8 @@ import { getRedisClient } from '../../src/cache/redis';
 import { getQueue, QueueType } from '../../src/queue';
 import { performance } from 'perf_hooks';
 import os from 'os';
-import { Pool } from 'pg';
+import { dbManager } from '../../db';
+import { CircuitBreaker } from '../utils/fallback';
 
 // Get logger for health routes
 const logger = getLogger().child({ component: 'health-routes' });
@@ -13,12 +14,12 @@ const logger = getLogger().child({ component: 'health-routes' });
 // Create router
 const router = Router();
 
-// Define database connection pool (using the existing one from the app)
-let dbPool: Pool;
+// Circuit breakers registry to track system status
+const circuitBreakers: Record<string, CircuitBreaker> = {};
 
-export function setDbPool(pool: Pool): void {
-  dbPool = pool;
-  logger.info('Database pool set for health checks');
+export function registerCircuitBreaker(name: string, circuitBreaker: CircuitBreaker): void {
+  circuitBreakers[name] = circuitBreaker;
+  logger.info(`Circuit breaker registered: ${name}`);
 }
 
 /**
@@ -82,6 +83,32 @@ router.get('/readyz', async (req: Request, res: Response) => {
  * Detailed health check
  * Checks all system components and returns detailed status
  */
+/**
+ * Get circuit breaker status
+ */
+function getCircuitBreakersStatus(): { status: string; breakers: Record<string, any> } {
+  const breakerStatus: Record<string, any> = {};
+  let overallStatus = 'UP';
+  
+  for (const [name, breaker] of Object.entries(circuitBreakers)) {
+    const state = breaker.getState();
+    breakerStatus[name] = {
+      status: state.status,
+      failureCount: state.failureCount,
+      openedAt: state.openedAt ? new Date(state.openedAt).toISOString() : null
+    };
+    
+    if (state.status === 'OPEN') {
+      overallStatus = 'DEGRADED';
+    }
+  }
+  
+  return {
+    status: overallStatus,
+    breakers: breakerStatus
+  };
+}
+
 router.get('/health/details', async (req: Request, res: Response) => {
   const startTime = performance.now();
   
@@ -104,9 +131,13 @@ router.get('/health/details', async (req: Request, res: Response) => {
       freeMemory: os.freemem()
     };
     
+    // Get circuit breakers status
+    const circuitBreakerStatus = getCircuitBreakersStatus();
+    
     // Overall status
     const overallStatus = dbStatus.status === 'UP' && 
-                          redisStatus.status === 'UP' ? 
+                          redisStatus.status === 'UP' &&
+                          circuitBreakerStatus.status === 'UP' ? 
                           'UP' : 'DEGRADED';
     
     // Calculate response time
@@ -119,7 +150,8 @@ router.get('/health/details', async (req: Request, res: Response) => {
       services: {
         database: dbStatus,
         redis: redisStatus,
-        queues: queueStatus
+        queues: queueStatus,
+        circuitBreakers: circuitBreakerStatus.breakers
       },
       system: systemInfo
     });
@@ -137,21 +169,25 @@ router.get('/health/details', async (req: Request, res: Response) => {
 /**
  * Database health check
  */
-async function checkDatabase(): Promise<{ status: string; responseTime?: string; error?: string }> {
-  if (!dbPool) {
-    return { status: 'UNKNOWN', error: 'Database pool not initialized' };
-  }
-  
+async function checkDatabase(): Promise<{ status: string; responseTime?: string; poolStats?: any; error?: string }> {
   const startTime = performance.now();
   
   try {
+    // Use our connection manager to get pool stats
+    const poolStats = await dbManager.getPoolStats();
+    
     // Simple query to check database connection
-    const result = await dbPool.query('SELECT 1');
+    await dbManager.executeQuery(
+      (db) => db.execute('SELECT 1'),
+      'health-check'
+    );
+    
     const responseTime = performance.now() - startTime;
     
     return {
       status: 'UP',
-      responseTime: `${responseTime.toFixed(2)}ms`
+      responseTime: `${responseTime.toFixed(2)}ms`,
+      poolStats
     };
   } catch (error) {
     logger.error('Database health check failed', error instanceof Error ? error : new Error(String(error)));
@@ -268,59 +304,86 @@ router.get('/metrics', async (req: Request, res: Response) => {
     metrics.push(`# TYPE system_cpu_load_1m gauge`);
     metrics.push(`system_cpu_load_1m ${os.loadavg()[0]} ${timestamp}`);
     
+    metrics.push(`# HELP system_memory_total_bytes Total system memory in bytes`);
+    metrics.push(`# TYPE system_memory_total_bytes gauge`);
+    metrics.push(`system_memory_total_bytes ${os.totalmem()} ${timestamp}`);
+    
+    metrics.push(`# HELP system_memory_free_bytes Free system memory in bytes`);
+    metrics.push(`# TYPE system_memory_free_bytes gauge`);
+    metrics.push(`system_memory_free_bytes ${os.freemem()} ${timestamp}`);
+    
+    metrics.push(`# HELP system_load_1m System load average 1m`);
+    metrics.push(`# TYPE system_load_1m gauge`);
+    metrics.push(`system_load_1m ${os.loadavg()[0]} ${timestamp}`);
+    
+    metrics.push(`# HELP system_load_5m System load average 5m`);
+    metrics.push(`# TYPE system_load_5m gauge`);
+    metrics.push(`system_load_5m ${os.loadavg()[1]} ${timestamp}`);
+    
+    metrics.push(`# HELP system_load_15m System load average 15m`);
+    metrics.push(`# TYPE system_load_15m gauge`);
+    metrics.push(`system_load_15m ${os.loadavg()[2]} ${timestamp}`);
+    
+    // Process metrics
+    const memoryUsage = process.memoryUsage();
+    metrics.push(`# HELP process_memory_rss_bytes Process RSS memory usage in bytes`);
+    metrics.push(`# TYPE process_memory_rss_bytes gauge`);
+    metrics.push(`process_memory_rss_bytes ${memoryUsage.rss} ${timestamp}`);
+    
+    metrics.push(`# HELP process_memory_heap_total_bytes Process heap total memory usage in bytes`);
+    metrics.push(`# TYPE process_memory_heap_total_bytes gauge`);
+    metrics.push(`process_memory_heap_total_bytes ${memoryUsage.heapTotal} ${timestamp}`);
+    
+    metrics.push(`# HELP process_memory_heap_used_bytes Process heap used memory usage in bytes`);
+    metrics.push(`# TYPE process_memory_heap_used_bytes gauge`);
+    metrics.push(`process_memory_heap_used_bytes ${memoryUsage.heapUsed} ${timestamp}`);
+    
+    metrics.push(`# HELP process_memory_external_bytes Process external memory usage in bytes`);
+    metrics.push(`# TYPE process_memory_external_bytes gauge`);
+    metrics.push(`process_memory_external_bytes ${memoryUsage.external} ${timestamp}`);
+    
+    metrics.push(`# HELP process_uptime_seconds Process uptime in seconds`);
+    metrics.push(`# TYPE process_uptime_seconds gauge`);
+    metrics.push(`process_uptime_seconds ${process.uptime()} ${timestamp}`);
+    
     // Queue metrics
-    for (const queueType of Object.values(QueueType)) {
-      try {
-        const queue = getQueue(queueType);
-        
-        // Get queue stats
-        const [waiting, active, delayed, failed, completed] = await Promise.all([
-          queue.getWaitingCount(),
-          queue.getActiveCount(),
-          queue.getDelayedCount(),
-          queue.getFailedCount(),
-          queue.getCompletedCount()
-        ]);
-        
+    const queueResult = await checkQueues();
+    if (queueResult.queues) {
+      for (const [queueType, stats] of Object.entries(queueResult.queues)) {
         metrics.push(`# HELP queue_${queueType}_waiting_jobs Number of waiting jobs in ${queueType} queue`);
         metrics.push(`# TYPE queue_${queueType}_waiting_jobs gauge`);
-        metrics.push(`queue_${queueType}_waiting_jobs ${waiting} ${timestamp}`);
-        
+        metrics.push(`queue_${queueType}_waiting_jobs ${stats.waiting} ${timestamp}`);
+
         metrics.push(`# HELP queue_${queueType}_active_jobs Number of active jobs in ${queueType} queue`);
         metrics.push(`# TYPE queue_${queueType}_active_jobs gauge`);
-        metrics.push(`queue_${queueType}_active_jobs ${active} ${timestamp}`);
-        
+        metrics.push(`queue_${queueType}_active_jobs ${stats.active} ${timestamp}`);
+
         metrics.push(`# HELP queue_${queueType}_delayed_jobs Number of delayed jobs in ${queueType} queue`);
         metrics.push(`# TYPE queue_${queueType}_delayed_jobs gauge`);
-        metrics.push(`queue_${queueType}_delayed_jobs ${delayed} ${timestamp}`);
-        
+        metrics.push(`queue_${queueType}_delayed_jobs ${stats.delayed} ${timestamp}`);
+
         metrics.push(`# HELP queue_${queueType}_failed_jobs Number of failed jobs in ${queueType} queue`);
         metrics.push(`# TYPE queue_${queueType}_failed_jobs gauge`);
-        metrics.push(`queue_${queueType}_failed_jobs ${failed} ${timestamp}`);
-        
-        metrics.push(`# HELP queue_${queueType}_completed_jobs Number of completed jobs in ${queueType} queue`);
-        metrics.push(`# TYPE queue_${queueType}_completed_jobs counter`);
-        metrics.push(`queue_${queueType}_completed_jobs ${completed} ${timestamp}`);
-      } catch (error) {
-        logger.warn(`Failed to get metrics for queue ${queueType}`, error instanceof Error ? error : new Error(String(error)));
+        metrics.push(`queue_${queueType}_failed_jobs ${stats.failed} ${timestamp}`);
       }
     }
     
     // Database metrics
     try {
-      if (dbPool) {
-        const dbStartTime = performance.now();
-        await dbPool.query('SELECT 1');
-        const dbResponseTime = performance.now() - dbStartTime;
-        
-        metrics.push(`# HELP db_response_time_milliseconds Database response time in milliseconds`);
-        metrics.push(`# TYPE db_response_time_milliseconds gauge`);
-        metrics.push(`db_response_time_milliseconds ${dbResponseTime.toFixed(2)} ${timestamp}`);
-        
-        metrics.push(`# HELP db_status Database availability status (1=up, 0=down)`);
-        metrics.push(`# TYPE db_status gauge`);
-        metrics.push(`db_status 1 ${timestamp}`);
-      }
+      // Get database stats from connection manager
+      const dbStats = await dbManager.getPoolStats();
+      metrics.push(`db_active_connections ${dbStats.activeConnections} ${timestamp}`);
+      metrics.push(`db_idle_connections ${dbStats.idleConnections} ${timestamp}`);
+      metrics.push(`db_total_connections ${dbStats.totalConnections} ${timestamp}`);
+      metrics.push(`db_waiting_clients ${dbStats.waitingClients} ${timestamp}`);
+      metrics.push(`db_query_count ${dbStats.queryCount} ${timestamp}`);
+      metrics.push(`db_avg_query_time_ms ${dbStats.avgQueryTimeMs} ${timestamp}`);
+      
+      // Add database latency metric
+      const dbStartTime = performance.now();
+      await dbManager.executeQuery(db => db.execute('SELECT 1'), 'metrics-latency-check');
+      const dbLatency = performance.now() - dbStartTime;
+      metrics.push(`db_query_latency_ms ${dbLatency.toFixed(2)} ${timestamp}`);
     } catch (error) {
       metrics.push(`# HELP db_status Database availability status (1=up, 0=down)`);
       metrics.push(`# TYPE db_status gauge`);
@@ -375,10 +438,56 @@ router.get('/metrics', async (req: Request, res: Response) => {
     res.send(metrics.join('\n'));
   } catch (error) {
     logger.error('Error generating metrics', error instanceof Error ? error : new Error(String(error)));
-    
     res.status(500).json({
       error: 'Failed to generate metrics',
       message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Performance health endpoint
+router.get('/health/performance', async (req: Request, res: Response) => {
+  try {
+    // Get database metrics
+    const dbStats = await dbManager.getPoolStats();
+    
+    // Get memory usage
+    const memoryUsage = process.memoryUsage();
+    
+    // Get CPU usage
+    const cpuLoad = os.loadavg();
+    
+    // Get OS metrics
+    const osInfo = {
+      platform: os.platform(),
+      arch: os.arch(),
+      cpus: os.cpus().length,
+      totalMemory: os.totalmem(),
+      freeMemory: os.freemem(),
+      uptime: os.uptime()
+    };
+    
+    res.status(200).json({
+      timestamp: new Date().toISOString(),
+      process: {
+        memoryUsage: {
+          rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+          heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+          heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+          external: `${Math.round(memoryUsage.external / 1024 / 1024)}MB`,
+        },
+        uptime: process.uptime(),
+        cpuLoad: cpuLoad
+      },
+      database: dbStats,
+      os: osInfo
+    });
+  } catch (error) {
+    logger.error('Error in performance metrics endpoint', error instanceof Error ? error : new Error(String(error)));
+    
+    res.status(500).json({
+      error: 'Failed to retrieve performance metrics',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });

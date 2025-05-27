@@ -1,6 +1,6 @@
 // src/logging/SentryLogger.ts
 import * as Sentry from '@sentry/node';
-import { Integrations } from '@sentry/integrations';
+
 import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger';
 
 interface SentryLoggerOptions {
@@ -25,14 +25,14 @@ export function initSentry(options: SentryLoggerOptions): void {
     release: options.release,
     serverName: options.serverName,
     integrations: [
-      new Integrations.OnUncaughtException({
-        onFatalError: (error) => {
+      Sentry.onUncaughtExceptionIntegration({
+        onFatalError: (error: unknown) => {
           console.error('FATAL ERROR - UNCAUGHT EXCEPTION:');
           console.error(error);
           process.exit(1);
         },
       }),
-      new Integrations.OnUnhandledRejection({ mode: 'warn' }),
+      Sentry.onUnhandledRejectionIntegration({ mode: 'warn' }),
     ],
     tracesSampleRate: options.tracesSampleRate || 0.2,
     maxBreadcrumbs: options.maxBreadcrumbs || 100,
@@ -111,7 +111,7 @@ export class SentryLogger extends BaseLogger {
 
     // Set transaction in Sentry
     const transaction = `${req.method} ${req.path || req.url}`;
-    Sentry.configureScope(scope => {
+    Sentry.withScope(scope => {
       scope.setTransactionName(transaction);
     });
 
@@ -127,7 +127,7 @@ export class SentryLogger extends BaseLogger {
       const breadcrumb = {
         type: 'default',
         category: 'log',
-        level: this.getSentryLevel(level),
+        level: this.getSentryLevel(level) as Sentry.SeverityLevel,
         message,
         data: meta,
       };
@@ -208,21 +208,20 @@ export class SentryLogger extends BaseLogger {
     });
   }
 
-  private getSentryLevel(level: LogLevel): Sentry.Severity {
+  private getSentryLevel(level: LogLevel): Sentry.SeverityLevel {
     switch (level) {
-      case LogLevel.TRACE:
       case LogLevel.DEBUG:
-        return Sentry.Severity.Debug;
+        return 'debug';
       case LogLevel.INFO:
-        return Sentry.Severity.Info;
+        return 'info';
       case LogLevel.WARN:
-        return Sentry.Severity.Warning;
+        return 'warning';
       case LogLevel.ERROR:
-        return Sentry.Severity.Error;
+        return 'error';
       case LogLevel.FATAL:
-        return Sentry.Severity.Fatal;
+        return 'fatal';
       default:
-        return Sentry.Severity.Info;
+        return 'info';
     }
   }
 }

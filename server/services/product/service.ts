@@ -368,7 +368,7 @@ export class ProductService extends BaseService implements IProductService {
       const total = Number(countResult?.count || 0);
       
       // Handle in-stock filter
-      let query = db.query.products.findMany({
+      const query = db.query.products.findMany({
         where: whereClause,
         limit,
         offset,

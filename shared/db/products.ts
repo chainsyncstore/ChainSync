@@ -34,12 +34,11 @@ export const categories = pgTable("categories", {
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
 
-export const categoryInsertSchema = createInsertSchema(categories)
-  .extend({
-    name: z.string().min(1, "Name is required"),
-    description: z.string().optional().nullable(), // Nullable in DB, optional for insert
-    parentCategoryId: z.number().int().positive().optional().nullable(), // Nullable FK, optional for insert
-  });
+export const categoryInsertSchema = createInsertSchema(categories, {
+  name: z.string().min(1, { message: "Name is required" }),
+  description: z.string().optional().nullable(),
+  parentCategoryId: z.number().int().positive().optional().nullable(),
+});
 
 // Relations for categories
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
@@ -80,20 +79,19 @@ export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 
 // Validation schemas
-export const productInsertSchema = createInsertSchema(products)
-  .extend({
-    name: z.string().min(1, "Name is required"),
-    sku: z.string().min(1, "SKU is required"),
-    description: z.string().optional().nullable(), // Nullable in DB
-    barcode: z.string().optional().nullable(), // Nullable in DB
-    categoryId: z.number().int().positive(), // NOT NULL FK in DB
-    price: z.coerce.number().min(0, "Price must be non-negative"), // Drizzle-zod infers decimal as string
-    cost: z.coerce.number().min(0, "Cost must be non-negative").optional(), // DB default, optional for insert
-    isPerishable: z.boolean().optional(), // DB default, optional for insert
-    imageUrl: z.string().url().optional().nullable(), // Nullable in DB
-    bonusPoints: z.coerce.number().min(0, "Bonus points must be non-negative").optional(), // DB default
-    status: productStatusSchema.optional(), // DB default
-  });
+export const productInsertSchema = createInsertSchema(products, {
+  name: z.string().min(1, { message: "Name is required" }),
+  sku: z.string().min(1, { message: "SKU is required" }),
+  description: z.string().optional().nullable(),
+  barcode: z.string().optional().nullable(),
+  categoryId: z.number().int().positive(),
+  price: z.coerce.number().min(0, "Price must be non-negative"), // Direct override
+  cost: z.coerce.number().min(0, "Cost must be non-negative").optional(), // Direct override
+  isPerishable: z.boolean().optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  bonusPoints: z.coerce.number().min(0, "Bonus points must be non-negative").optional(), // Direct override
+  status: productStatusSchema.optional(), // Direct override
+});
 
 export const productUpdateSchema = productInsertSchema.partial().extend({
   // Retain SKU and categoryId as optional for updates, but validated if present

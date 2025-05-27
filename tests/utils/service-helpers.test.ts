@@ -96,8 +96,8 @@ describe('Service Helper Utilities', () => {
     });
     
     it('should handle null/undefined input for formatResults', () => {
-      expect(formatter.formatResults(null)).toEqual([]);
-      expect(formatter.formatResults(undefined)).toEqual([]);
+      expect(formatter.formatResults(null as any)).toEqual([]);
+      expect(formatter.formatResults(undefined as any)).toEqual([]);
     });
     
     it('should handle invalid metadata strings', () => {
@@ -161,7 +161,7 @@ describe('Service Helper Utilities', () => {
     });
     
     it('should rethrow AppError instances as-is', () => {
-      const originalError = new AppError(ErrorCode.NOT_FOUND, 'Not found');
+      const originalError = new AppError('Not found', 'NOT_FOUND', ErrorCode.NOT_FOUND);
       
       try {
         ServiceErrorHandler.handleError(originalError, 'getting entity');

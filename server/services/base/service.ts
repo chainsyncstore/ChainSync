@@ -1,4 +1,5 @@
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+import { ServiceConfig, ServiceResult } from '@shared/types/common';
 
 export interface IServiceError extends Error {
   code: ErrorCode;
@@ -30,13 +31,53 @@ export class ServiceError extends Error implements IServiceError {
 }
 
 export abstract class BaseService {
-  protected handleError(error: Error, context: string): never {
+  protected db;
+  protected logger;
+
+  constructor(config: ServiceConfig) {
+    this.db = config.db;
+    this.logger = config.logger;
+  }
+
+  protected async handleServiceCall<T>(
+    serviceFunction: () => Promise<T>,
+    errorCode: string
+  ): Promise<ServiceResult<T>> {
+    try {
+      const result = await serviceFunction();
+      return { success: true, data: result };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`${errorCode}: ${errorMessage}`);
+      return {
+        success: false,
+        error: {
+          code: errorCode,
+          message: errorMessage,
+          details: error instanceof Error ? error : { message: errorMessage }
+        }
+      };
+    }
+  }
+
+  protected handleError(error: unknown, context: string): never {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     const serviceError = this.convertToServiceError(error);
     console.error(`[${this.constructor.name}] ${context} failed:`, serviceError);
     throw serviceError;
   }
 
-  protected convertToServiceError(error: Error): IServiceError {
+  protected convertToServiceError(error: unknown): IServiceError {
+    if (!(error instanceof Error)) {
+      return new ServiceError(
+        String(error),
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        ErrorCategory.SYSTEM,
+        false,
+        undefined,
+        { originalError: String(error) }
+      );
+    }
     if (error instanceof ServiceError) {
       return error;
     }
@@ -73,7 +114,7 @@ export abstract class BaseService {
     while (attempt < maxRetries) {
       try {
         return await operation();
-      } catch (error) {
+      } catch (error: unknown) {
         const serviceError = this.convertToServiceError(error);
         
         if (!serviceError.retryable || attempt === maxRetries - 1) {

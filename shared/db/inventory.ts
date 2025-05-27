@@ -1,4 +1,4 @@
-import { pgTable, text, integer, decimal, timestamp, index, unique } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, decimal, timestamp, index, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -13,7 +13,10 @@ export type InventoryStatus = z.infer<typeof inventoryStatus>;
 
 // Inventory table
 export const inventory = pgTable("inventory", {
-  ...baseTable,
+  id: serial("id").primaryKey(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
   storeId: integer("store_id").references(() => stores.id).notNull(),
   productId: integer("product_id").references(() => products.id).notNull(),
   totalQuantity: integer("total_quantity").notNull().default(0),
@@ -28,19 +31,7 @@ export const inventory = pgTable("inventory", {
 }));
 
 // Zod schemas for inventory
-export const inventoryInsertSchema = createInsertSchema(inventory, {
-  // Refine specific fields that need it upfront, like FKs requiring .positive()
-  storeId: (_s) => z.number().int().positive("Store ID must be a positive integer"),
-  productId: (_s) => z.number().int().positive("Product ID must be a positive integer"),
-  // Let drizzle-zod infer totalQuantity, minimumLevel, and status from the table schema initially.
-}).extend({
-  // Now, explicitly define the desired schema for fields, effectively overriding/refining the inferred one.
-  totalQuantity: z.number().int().min(0, "Total quantity cannot be negative"), 
-  minimumLevel: z.number().int().min(0, "Minimum level cannot be negative"),
-  // status is pgEnum, drizzle-zod should infer it correctly as z.enum. If specific insert logic
-  // (e.g. .optional() for insert) is needed beyond the enum itself, it could be added here.
-  // For now, assuming direct enum inference is sufficient.
-});
+export const inventoryInsertSchema = createInsertSchema(inventory);
 
 export const inventorySelectSchema = createSelectSchema(inventory);
 
@@ -69,7 +60,10 @@ export const inventoryRelations = relations(inventory, ({ one, many }) => ({
 
 // Inventory Batches table
 export const inventoryBatches = pgTable("inventory_batches", {
-  ...baseTable,
+  id: serial("id").primaryKey(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
   inventoryId: integer("inventory_id").references(() => inventory.id).notNull(),
   batchNumber: text("batch_number").notNull(), // Unique constraint handled below
   quantity: integer("quantity").notNull(),
@@ -83,19 +77,7 @@ export const inventoryBatches = pgTable("inventory_batches", {
 }));
 
 // Zod schemas for inventory batches
-export const inventoryBatchInsertSchema = createInsertSchema(inventoryBatches, {
-  // Refine specific fields upfront
-  inventoryId: (_s) => z.number().int().positive("Inventory ID must be a positive integer"),
-  batchNumber: (_s) => z.string().min(1, "Batch number is required"),
-  receivedDate: (_s) => z.date(), // Assuming receivedDate is NOT NULL in DB and needs to be a ZodDate
-  // Let drizzle-zod infer quantity, costPerUnit, expiryDate, supplierId initially
-}).extend({
-  // Now, explicitly define/refine these schemas for insert purposes
-  quantity: z.number().int().min(0, "Quantity cannot be negative"),
-  costPerUnit: z.number().positive("Cost per unit must be positive"), 
-  expiryDate: z.date().optional().nullable(), // For nullable DB date, make it optional & nullable for insert
-  supplierId: z.number().int().positive("Supplier ID must be a positive integer").optional().nullable(), // For nullable FK
-});
+export const inventoryBatchInsertSchema = createInsertSchema(inventoryBatches);
 
 export const inventoryBatchSelectSchema = createSelectSchema(inventoryBatches);
 

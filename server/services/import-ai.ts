@@ -51,7 +51,7 @@ export async function enhanceValidationWithAI(
     ).join("\n");
     
     // Prepare the prompt for Dialogflow with more context based on data type
-    let prompt = `I'm trying to validate imported ${dataType} data and have encountered validation issues.
+    const prompt = `I'm trying to validate imported ${dataType} data and have encountered validation issues.
     
     Here are some examples of the errors:
     ${errorSample}

@@ -118,7 +118,7 @@ export class ImportExportService {
     try {
       const importId = await this.repository.createImport(userId, entityType, options);
       
-      return await this.processImport(data, options, importId);
+      return await this.processImport(data, options || {}, importId); // Provide default for options
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
     }
@@ -150,11 +150,26 @@ export class ImportExportService {
         throw this.errors.FILE_TOO_LARGE;
       }
 
-      // Check file format
+      // Check file format and MIME type
       const extension = file.originalname.split('.').pop()?.toLowerCase();
       const validFormats = ['csv', 'json', 'xlsx'];
       if (!validFormats.includes(extension || '')) {
         throw this.errors.INVALID_FILE_FORMAT;
+      }
+
+      // MIME type validation
+      const allowedMimeTypes: Record<string, string[]> = {
+        csv: ['text/csv', 'application/csv'],
+        json: ['application/json'],
+        xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'],
+      };
+
+      if (extension && allowedMimeTypes[extension] && !allowedMimeTypes[extension].includes(file.mimetype)) {
+        throw new AppError(
+          `Invalid MIME type for ${extension} file. Received: ${file.mimetype}`,
+          ErrorCategory.IMPORT_EXPORT,
+          'INVALID_MIME_TYPE'
+        );
       }
 
       let parsedData: any[] = [];
@@ -267,7 +282,7 @@ export class ImportExportService {
       };
 
       const parser = new Parser(config);
-      const csv = parser.stringify(data);
+      const csv = parser.parse(data); // Changed from stringify to parse
       return Buffer.from(csv, 'utf8');
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
@@ -344,25 +359,43 @@ export class ImportExportService {
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
       const worksheet = workbook.getWorksheet(1);
+
+      if (!worksheet) {
+        // Handle case where the worksheet might not exist (e.g., empty or malformed Excel file)
+        throw new AppError('Excel file does not contain a valid worksheet.', ErrorCategory.IMPORT_EXPORT, 'INVALID_EXCEL_WORKSHEET');
+      }
+      
       const row1 = worksheet.getRow(1).values;
-const headers = Array.isArray(row1) ? row1.slice(1) : [];
+      const headers = Array.isArray(row1) ? row1.slice(1) : []; // Assuming headers are in the first row, skipping the first element if it's an empty string from ExcelJS
        
       const results: any[] = [];
-      worksheet.getRows(2, worksheet.rowCount).forEach(row => {
-        const rowData: any = {};
-        headers.forEach((header: any, index: number) => {
-          if (header) {
-            const cell = row.getCell(index + 1);
-            rowData[String(header)] = cell?.value;
-          }
-        });
-        results.push(rowData);
-      });
-      return results;
+      // Ensure rowCount is valid before iterating
+      if (worksheet.rowCount > 1) {
+        const rows = worksheet.getRows(2, worksheet.rowCount - 1); // Get all data rows (excluding header)
+        if (rows) { // Check if rows is not undefined
+          rows.forEach(row => {
+            if (!row) return; // Skip if a row is undefined
+
+            const rowData: any = {};
+            headers.forEach((header: any, index: number) => {
+              if (header) { // Ensure header exists
+                const cell = row.getCell(index + 1); // Cells are 1-indexed
+                rowData[String(header)] = cell?.value;
+              }
+            });
+            if (Object.keys(rowData).length > 0) { // Add rowData only if it's not empty
+              results.push(rowData);
+            }
+          });
+        }
+      }
+      return results; // This should be outside the if, but inside try
     } catch (error) {
+      if (error instanceof AppError) throw error;
       throw this.errors.INVALID_DATA;
     }
   }
+
   private generatePrettyJSON(data: any[]): Buffer {
     try {
       return Buffer.from(JSON.stringify(data, null, 2));

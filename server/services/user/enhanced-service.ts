@@ -8,15 +8,76 @@ import * as bcrypt from 'bcrypt';
 
 export class EnhancedUserService extends EnhancedBaseService implements IUserService {
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
-    // TODO: Implement password reset logic
-    throw new Error('Not implemented');
+    try {
+      // Find the password reset token
+      const resetToken = await db.query.passwordResetTokens.findFirst({
+        where: and(
+          eq(schema.passwordResetTokens.token, token),
+          eq(schema.passwordResetTokens.used, false)
+        )
+      });
+
+      if (!resetToken) {
+        throw new Error('Invalid or expired reset token');
+      }
+
+      // Check if token has expired
+      if (resetToken.expiresAt && resetToken.expiresAt < new Date()) {
+        throw new Error('Reset token has expired');
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, EnhancedUserService.SALT_ROUNDS);
+
+      // Update user password
+      await db.update(schema.users)
+        .set({ 
+          password: hashedPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, resetToken.userId));
+
+      // Mark token as used
+      await db.update(schema.passwordResetTokens)
+        .set({ used: true })
+        .where(eq(schema.passwordResetTokens.id, resetToken.id));
+
+      return true;
+    } catch (error) {
+      return this.handleError(error, 'Resetting password');
+    }
   }
 
   async requestPasswordReset(email: string): Promise<string> {
-    // TODO: Implement password reset request logic
-    throw new Error('Not implemented');
-    // TODO: Implement password reset request logic
-    throw new Error('Not implemented');
+    try {
+      // Find user by email
+      const user = await db.query.users.findFirst({
+        where: eq(schema.users.email, email)
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Generate reset token
+      const token = require('crypto').randomBytes(32).toString('hex');
+
+      // Create password reset token record (expires in 24 hours)
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+
+      await db.insert(schema.passwordResetTokens).values({
+        userId: user.id,
+        token,
+        expiresAt,
+        used: false,
+        createdAt: new Date()
+      });
+
+      return token;
+    } catch (error) {
+      return this.handleError(error, 'Requesting password reset');
+    }
   }
   private static readonly SALT_ROUNDS = 10;
 
@@ -96,23 +157,86 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
   }
 
   async getUserByUsername(username: string): Promise<schema.User | null> {
-    // ...
-    return null;
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(schema.users.username, username),
+        with: { store: true }
+      });
+      return user || null;
+    } catch (error) {
+      return this.handleError(error, 'Getting user by username');
+    }
   }
 
   async getUserByEmail(email: string): Promise<schema.User | null> {
-    // ...
-    return null;
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(schema.users.email, email),
+        with: { store: true }
+      });
+      return user || null;
+    } catch (error) {
+      return this.handleError(error, 'Getting user by email');
+    }
   }
 
   async validateCredentials(username: string, password: string): Promise<schema.User | null> {
-    // ...
-    return null;
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(schema.users.username, username)
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return null;
+      }
+
+      // Update last login
+      await db.update(schema.users)
+        .set({ lastLogin: new Date() })
+        .where(eq(schema.users.id, user.id));
+
+      return user;
+    } catch (error) {
+      return this.handleError(error, 'Validating credentials');
+    }
   }
 
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<boolean> {
-    // ...
-    return true;
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(schema.users.id, userId)
+      });
+
+      if (!user) {
+        throw UserServiceErrors.USER_NOT_FOUND;
+      }
+
+      // Verify current password
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!isValidPassword) {
+        throw new Error('Current password is incorrect');
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, EnhancedUserService.SALT_ROUNDS);
+
+      // Update password
+      await db.update(schema.users)
+        .set({ 
+          password: hashedPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
+
+      return true;
+    } catch (error) {
+      return this.handleError(error, 'Changing password');
+    }
   }
 }
 

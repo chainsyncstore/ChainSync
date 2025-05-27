@@ -8,7 +8,7 @@ import { EnhancedBaseService } from '@server/services/base/enhanced-service';
 import { SubscriptionFormatter } from './formatter';
 import { subscriptionValidation, SchemaValidationError } from '@shared/schema-validation';
 import { prepareSubscriptionData } from '@shared/schema-helpers';
-import { ISubscriptionService } from './interface';
+import { ISubscriptionService, SubscriptionServiceErrors } from './types';
 import { 
   CreateSubscriptionParams, 
   UpdateSubscriptionParams,
@@ -19,18 +19,177 @@ import {
   Subscription,
   SubscriptionPlan
 } from './types';
-import { SubscriptionServiceErrors } from './errors';
+
 import { ErrorCode } from '@shared/types/errors';
-import { db } from '@server/db';
+import { db } from '../../../db';
 import { eq, and, or, like, gte, lte, desc, asc, sql } from 'drizzle-orm';
 import * as schema from '@shared/schema';
 
 export class EnhancedSubscriptionService extends EnhancedBaseService implements ISubscriptionService {
+  // --- STUBS for missing ISubscriptionService methods ---
+  async searchSubscriptions(params: SubscriptionSearchParams): Promise<{ subscriptions: Subscription[]; total: number; page: number; limit: number }> {
+    try {
+      const { userId, plan, status, startDate, endDate, provider, page = 1, limit = 20 } = params;
+      const offset = (page - 1) * limit;
+      const filters: string[] = [];
+      if (userId) filters.push(`user_id = ${this.safeToString(userId)}`);
+      if (plan) filters.push(`plan = '${this.safeToString(plan)}'`);
+      if (status) filters.push(`status = '${this.safeToString(status)}'`);
+      if (provider) filters.push(`payment_provider = '${this.safeToString(provider)}'`);
+      if (startDate)
+        filters.push(`created_at >= '${(startDate instanceof Date ? startDate.toISOString() : startDate)}'`);
+      if (endDate)
+        filters.push(`created_at <= '${(endDate instanceof Date ? endDate.toISOString() : endDate)}'`);
+      const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+      const query = `SELECT * FROM subscriptions ${whereClause} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      const countQuery = `SELECT COUNT(*) as count FROM subscriptions ${whereClause}`;
+      const subscriptions = await this.executeSqlWithMultipleResults(
+        query,
+        [],
+        this.formatter.formatResult.bind(this.formatter)
+      );
+      const countResult = await db.execute(sql.raw(countQuery));
+      const total = Number(countResult.rows?.[0]?.count || 0);
+      return { subscriptions, total, page, limit };
+    } catch (error) {
+      return this.handleError(error, 'searching subscriptions');
+    }
+  }
+
+  async cancelSubscription(subscriptionId: number, reason?: string): Promise<Subscription> {
+    try {
+      const subscription = await this.getSubscriptionById(subscriptionId);
+      if (!subscription) throw SubscriptionServiceErrors.SUBSCRIPTION_NOT_FOUND;
+      if (subscription.status === SubscriptionStatus.CANCELLED) {
+        throw SubscriptionServiceErrors.INVALID_CANCELLATION;
+      }
+      const metadata = {
+        ...(subscription.metadata || {}),
+        cancellationReason: reason || '',
+        cancelledAt: new Date().toISOString(),
+      };
+      const updated = await this.updateSubscription(subscriptionId, {
+        status: SubscriptionStatus.CANCELLED,
+        metadata
+      });
+      return updated;
+    } catch (error) {
+      return this.handleError(error, 'cancelling subscription');
+    }
+  }
+
+  async renewSubscription(subscriptionId: number): Promise<Subscription> {
+    try {
+      const subscription = await this.getSubscriptionById(subscriptionId);
+      if (!subscription) throw SubscriptionServiceErrors.SUBSCRIPTION_NOT_FOUND;
+      if (subscription.status !== SubscriptionStatus.EXPIRED && subscription.status !== SubscriptionStatus.PAST_DUE) {
+        throw SubscriptionServiceErrors.INVALID_RENEWAL;
+      }
+      // Calculate new start and end dates
+      const now = new Date();
+      const startDate = now;
+      // Support recurring monthly or yearly renewal based on 'renewalPeriod' in metadata or params
+      let renewalPeriod = 'monthly';
+      let metadataObj: any = {};
+      if (subscription.metadata) {
+        if (typeof subscription.metadata === 'string') {
+          try {
+            metadataObj = JSON.parse(subscription.metadata);
+          } catch (e) {
+            metadataObj = {};
+          }
+        } else if (typeof subscription.metadata === 'object') {
+          metadataObj = subscription.metadata;
+        }
+      }
+      if (typeof metadataObj.renewalPeriod === 'string') {
+        renewalPeriod = metadataObj.renewalPeriod;
+      }
+      // Allow override from params in future if needed
+      const endDate = new Date(now);
+      if (renewalPeriod === 'yearly') {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      } else {
+        endDate.setMonth(endDate.getMonth() + 1);
+      }
+      // Only allowed fields in UpdateSubscriptionParams: status, endDate, etc.
+      const updated = await this.updateSubscription(subscriptionId, {
+        status: SubscriptionStatus.ACTIVE,
+        endDate
+        // If you want to support startDate, add it to UpdateSubscriptionParams and schema
+      });
+      return updated;
+    } catch (error) {
+      return this.handleError(error, 'renewing subscription');
+    }
+  }
+
+  async processWebhook(params: ProcessWebhookParams): Promise<boolean> {
+    // Placeholder: In production, validate and process webhook payload
+    console.log('Received webhook:', params);
+    return false;
+  }
+
+  async validateSubscriptionAccess(userId: number, requiredPlan?: SubscriptionPlan | string): Promise<boolean> {
+    try {
+      const subscription = await this.getActiveSubscription(userId);
+      if (!subscription) return false;
+      if (requiredPlan && subscription.plan !== requiredPlan) return false;
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async getSubscriptionMetrics(): Promise<{ totalSubscriptions: number; activeSubscriptions: number; revenueThisMonth: string; revenueLastMonth: string; subscriptionsByPlan: Record<string, number>; churnRate: string }> {
+    try {
+      // Total subscriptions
+      const totalResult = await db.execute(sql.raw('SELECT COUNT(*) as count FROM subscriptions'));
+      const totalSubscriptions = Number(totalResult.rows?.[0]?.count || 0);
+      // Active subscriptions
+      const activeResult = await db.execute(sql.raw("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'active'"));
+      const activeSubscriptions = Number(activeResult.rows?.[0]?.count || 0);
+      // Revenue this month
+      const now = new Date();
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastOfPrevMonth = new Date(firstOfMonth);
+      lastOfPrevMonth.setDate(0);
+      const firstOfPrevMonth = new Date(lastOfPrevMonth.getFullYear(), lastOfPrevMonth.getMonth(), 1);
+      const revenueThisMonthResult = await db.execute(sql.raw(`SELECT SUM(amount) as sum FROM subscriptions WHERE status = 'active' AND created_at >= '${firstOfMonth.toISOString()}'`));
+      const revenueLastMonthResult = await db.execute(sql.raw(`SELECT SUM(amount) as sum FROM subscriptions WHERE status = 'active' AND created_at >= '${firstOfPrevMonth.toISOString()}' AND created_at < '${firstOfMonth.toISOString()}'`));
+      const revenueThisMonth = String(revenueThisMonthResult.rows?.[0]?.sum || '0.00');
+      const revenueLastMonth = String(revenueLastMonthResult.rows?.[0]?.sum || '0.00');
+      // Subscriptions by plan
+      const plansResult = await db.execute(sql.raw('SELECT plan, COUNT(*) as count FROM subscriptions GROUP BY plan'));
+      const subscriptionsByPlan: Record<string, number> = {};
+      (plansResult.rows || []).forEach((row: any) => {
+        subscriptionsByPlan[row.plan] = Number(row.count);
+      });
+      // Churn rate: (cancelled in last 30d) / active
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(now.getDate() - 30);
+      const churnResult = await db.execute(sql.raw(`SELECT COUNT(*) as count FROM subscriptions WHERE status = 'cancelled' AND updated_at >= '${thirtyDaysAgo.toISOString()}'`));
+      const churnCount = Number(churnResult.rows?.[0]?.count || 0);
+      const churnRate = activeSubscriptions > 0 ? ((churnCount / activeSubscriptions) * 100).toFixed(2) + '%' : '0.00%';
+      return { totalSubscriptions, activeSubscriptions, revenueThisMonth, revenueLastMonth, subscriptionsByPlan, churnRate };
+    } catch (error) {
+      return this.handleError(error, 'getting subscription metrics');
+    }
+  }
+  // --- END STUBS ---
   private formatter: SubscriptionFormatter;
   
-  constructor() {
-    super();
+  constructor(config: any) { // TODO: Replace 'any' with proper ServiceConfig type
+    super(config);
     this.formatter = new SubscriptionFormatter();
+  }
+
+  // Local safeToString helper for SQL queries
+  private safeToString(value: unknown): string {
+    if (typeof value === 'string' || typeof value === 'number') {
+      return value.toString();
+    }
+    throw new Error('Invalid value for SQL interpolation');
   }
   
   /**
@@ -118,7 +277,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
     try {
       // Create a simple query to fetch the subscription
       const query = `
-        SELECT * FROM subscriptions WHERE id = ${subscriptionId}
+        SELECT * FROM subscriptions WHERE id = ${this.safeToString(subscriptionId)}
       `;
       
       // Execute the query and format the result
@@ -143,7 +302,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       // Create a simple query to fetch the subscription
       const query = `
         SELECT * FROM subscriptions 
-        WHERE user_id = ${userId}
+        WHERE user_id = ${this.safeToString(userId)}
         ORDER BY created_at DESC
         LIMIT 1
       `;
@@ -170,7 +329,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       // Create a query to fetch the active subscription
       const query = `
         SELECT * FROM subscriptions 
-        WHERE user_id = ${userId} 
+        WHERE user_id = ${this.safeToString(userId)} 
         AND status = 'active'
         ORDER BY created_at DESC
         LIMIT 1
@@ -200,16 +359,11 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       [SubscriptionStatus.ACTIVE]: [
         SubscriptionStatus.CANCELLED,
         SubscriptionStatus.EXPIRED,
-        SubscriptionStatus.SUSPENDED,
         SubscriptionStatus.FAILED
       ],
       [SubscriptionStatus.PENDING]: [
         SubscriptionStatus.ACTIVE,
         SubscriptionStatus.FAILED,
-        SubscriptionStatus.CANCELLED
-      ],
-      [SubscriptionStatus.SUSPENDED]: [
-        SubscriptionStatus.ACTIVE,
         SubscriptionStatus.CANCELLED
       ],
       [SubscriptionStatus.EXPIRED]: [

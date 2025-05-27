@@ -26,7 +26,7 @@ export async function setupVite(app: Express, server: Server) {
       server,
     },
     // Explicitly set allowedHosts to true as per Vite ServerOptions type
-    allowedHosts: true as true,
+    allowedHosts: true as const,
   };
 
   const vite = await createViteServer({

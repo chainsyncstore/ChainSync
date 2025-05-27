@@ -1,5 +1,8 @@
-import express from 'express';
+import express, { Application } from 'express';
 import { env } from './config/env';
+import { SessionOptions } from 'express-session';
+import { Pool } from 'pg';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { logger } from './services/logger';
 import { FileUploadMiddleware } from './middleware/file-upload';
 import { AuthMiddleware } from './middleware/auth';
@@ -39,7 +42,7 @@ import { Database } from './types/index';
 // Re-export env for type safety
 export const envConfig = env;
 
-export async function registerRoutes(app: App): Promise<Server> {
+export async function registerRoutes(app: Application): Promise<Server> {
   // Import the setupSecureServer to return either HTTP or HTTPS server based on environment
   const { setupSecureServer } = await import('./config/https');
   const PostgresStore = pgSession(session);
@@ -47,7 +50,7 @@ export async function registerRoutes(app: App): Promise<Server> {
   // Set up session middleware
   const sessionConfig: SessionOptions = {
     store: new PostgresStore({
-      pool: (db as Database).pool,
+      pool: (db as unknown as { pool: Pool }).pool,
       createTableIfMissing: true,
       tableName: 'sessions'
     }),

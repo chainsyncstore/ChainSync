@@ -2,7 +2,7 @@
 import * as opentelemetry from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources';
+import * as otelResources from '@opentelemetry/resources'; // Changed to namespace import
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -10,8 +10,15 @@ import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import { getLogger } from '../logging';
 import { Request, Response, NextFunction } from 'express';
+import type { Logger } from '../logging/Logger'; // Import Logger type for lazy init
 
-const logger = getLogger().child({ component: 'tracing' });
+let logger: Logger; // Declare logger
+const getModuleLogger = () => { // Lazy getter for the logger
+  if (!logger) {
+    logger = getLogger().child({ component: 'tracing' });
+  }
+  return logger;
+};
 
 // OpenTelemetry SDK instance
 let sdk: opentelemetry.NodeSDK | null = null;
@@ -35,8 +42,8 @@ export function initTracing() {
       url: OTEL_CONFIG.endpoint
     });
 
-    const resource = Resource.default().merge(
-      new Resource({
+    const resource = new otelResources.Resource({}).merge( // Changed to otelResources.Resource
+      new otelResources.Resource({                         // Changed to otelResources.Resource
         [SemanticResourceAttributes.SERVICE_NAME]: OTEL_CONFIG.serviceName,
         [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: OTEL_CONFIG.environment,
       })
@@ -77,24 +84,38 @@ export function initTracing() {
     // Initialize SDK
     sdk.start()
       .then(() => {
-        logger.info('OpenTelemetry tracing initialized successfully', {
+        getModuleLogger().info('OpenTelemetry tracing initialized successfully', {
           serviceName: OTEL_CONFIG.serviceName,
           environment: OTEL_CONFIG.environment,
           endpoint: OTEL_CONFIG.endpoint,
           sampleRate: OTEL_CONFIG.sampleRate
         });
       })
-      .catch(err => {
-        logger.error('Failed to start OpenTelemetry SDK', err);
+      .catch((err: unknown) => {
+        if (err instanceof Error) {
+          getModuleLogger().error('Failed to start OpenTelemetry SDK', err);
+        } else {
+          getModuleLogger().error('Failed to start OpenTelemetry SDK', { meta: err });
+        }
       });
 
     // Register shutdown handler
     process.on('SIGTERM', () => {
       shutdownTracing()
-        .catch(err => logger.error('Error shutting down OpenTelemetry SDK', err));
+        .catch((err: unknown) => {
+          if (err instanceof Error) {
+            getModuleLogger().error('Error shutting down OpenTelemetry SDK', err);
+          } else {
+            getModuleLogger().error('Error shutting down OpenTelemetry SDK', { meta: err });
+          }
+        });
     });
-  } catch (error) {
-    logger.error('Failed to initialize OpenTelemetry tracing', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      getModuleLogger().error('Failed to initialize OpenTelemetry tracing', error);
+    } else {
+      getModuleLogger().error('Failed to initialize OpenTelemetry tracing', { meta: error });
+    }
   }
 }
 
@@ -104,7 +125,7 @@ export function initTracing() {
 export async function shutdownTracing() {
   if (sdk) {
     await sdk.shutdown();
-    logger.info('OpenTelemetry tracing shut down');
+    getModuleLogger().info('OpenTelemetry tracing shut down');
   }
 }
 
@@ -125,8 +146,12 @@ export function getCurrentTraceContext() {
         spanId: spanContext.spanId
       };
     }
-  } catch (error) {
-    logger.debug('Error getting trace context', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      getModuleLogger().error('Error getting trace context', error);
+    } else {
+      getModuleLogger().error('Error getting trace context', { meta: error });
+    }
   }
   
   return undefined;
@@ -146,8 +171,12 @@ export function traceContextMiddleware(req: Request, res: Response, next: NextFu
       // Add trace ID to response headers for debugging
       res.setHeader('X-Trace-ID', traceContext.traceId);
     }
-  } catch (error) {
-    logger.debug('Error in trace context middleware', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      getModuleLogger().error('Error in trace context middleware', error);
+    } else {
+      getModuleLogger().error('Error in trace context middleware', { meta: error });
+    }
   }
   
   next();
@@ -177,7 +206,7 @@ export async function withSpan<T>(name: string, fn: () => Promise<T>): Promise<T
       }
     });
   } catch (error) {
-    logger.debug(`Error creating span for ${name}`, error);
+    getModuleLogger().debug(`Error creating span for ${name}`, { error });
     return await fn();
   }
 }

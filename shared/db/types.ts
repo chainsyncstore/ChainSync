@@ -27,49 +27,49 @@ declare global {
 }
 
 // Initialize global references
-export function initializeGlobals() {
-  if (!global.stores) {
+export async function initializeGlobals() {
+  if (!(global as any).stores) {
     try {
-      const { stores } = require('./stores');
-      global.stores = stores;
+      const { stores } = await import('./stores');
+      (global as any).stores = stores;
     } catch (error) {
       console.warn('Failed to initialize stores:', error);
     }
   }
   
-  if (!global.users) {
+  if (!(global as any).users) {
     try {
-      const { users } = require('./users');
-      global.users = users;
+      const { users } = await import('./users');
+      (global as any).users = users;
     } catch (error) {
       console.warn('Failed to initialize users:', error);
     }
   }
 
-  if (!global.products) {
+  if (!(global as any).products) {
     try {
-      const { products, categories } = require('./products'); // Assuming categories is in products.ts
-      global.products = products;
-      global.categories = categories;
+      const { products, categories } = await import('./products'); // Assuming categories is in products.ts
+      (global as any).products = products;
+      (global as any).categories = categories;
     } catch (error) {
       console.warn('Failed to initialize products/categories:', error);
     }
   }
 
-  if (!global.inventory) {
+  if (!(global as any).inventory) {
     try {
-      const { inventory, inventoryBatches } = require('./inventory'); // Assuming inventoryBatches is in inventory.ts
-      global.inventory = inventory;
-      global.inventoryBatches = inventoryBatches;
+      const { inventory, inventoryBatches } = await import('./inventory'); // Assuming inventoryBatches is in inventory.ts
+      (global as any).inventory = inventory;
+      (global as any).inventoryBatches = inventoryBatches;
     } catch (error) {
       console.warn('Failed to initialize inventory/inventoryBatches:', error);
     }
   }
 
-  if (!global.suppliers) {
+  if (!(global as any).suppliers) {
     try {
-      const { suppliers } = require('./suppliers');
-      global.suppliers = suppliers;
+      const { suppliers } = await import('./suppliers');
+      (global as any).suppliers = suppliers;
     } catch (error) {
       console.warn('Failed to initialize suppliers:', error);
     }

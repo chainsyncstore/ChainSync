@@ -1,7 +1,7 @@
 // src/logging/middleware.ts
 import { Request, Response, NextFunction } from 'express';
 import { Logger } from './Logger';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 
 /**
  * Express middleware for request logging and correlation tracking

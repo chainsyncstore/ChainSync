@@ -1,9 +1,9 @@
 // test/integration/services/paymentService.refund.error.integration.test.ts
-import { PrismaClient } from '@prisma/client';
+
 import { makeMockPaymentProvider } from '../../mocks/externalApis';
 import { test, describe } from '../../testTags';
 
-const prisma = new PrismaClient();
+
 
 type PaymentProvider = ReturnType<typeof makeMockPaymentProvider>;
 class PaymentService {
@@ -12,7 +12,7 @@ class PaymentService {
     try {
       await this.paymentProvider.refund(transactionId, amount);
       // If successful, save refund record (for demo, just create a record)
-      await prisma.refund.create({ data: {
+      await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */refund.create({ data: {
         transactionId,
         amount: amount ?? 0,
         status: 'COMPLETED',
@@ -30,9 +30,9 @@ class PaymentService {
 }
 
 describe.integration('PaymentService Refund Error Handling', () => {
-  beforeAll(async () => { await prisma.$connect(); });
-  afterAll(async () => { await prisma.$disconnect(); });
-  beforeEach(async () => { await prisma.refund.deleteMany(); });
+  beforeAll(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */$connect(); });
+  afterAll(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */$disconnect(); });
+  beforeEach(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */refund.deleteMany(); });
 
   test.integration('should handle refund provider failure and not save refund record', async () => {
     // Arrange: mock payment provider to fail on refund
@@ -45,7 +45,7 @@ describe.integration('PaymentService Refund Error Handling', () => {
     await expect(service.processRefund('txn_abc_123', 50)).rejects.toThrow('Refund gateway timeout');
 
     // Assert: no refund saved
-    const refunds = await prisma.refund.findMany({ where: { transactionId: 'txn_abc_123' } });
+    const refunds = await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */refund.findMany({ where: { transactionId: 'txn_abc_123' } });
     expect(refunds.length).toBe(0);
     // Optionally check logging (would use spy in real test)
   });

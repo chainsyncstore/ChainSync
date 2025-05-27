@@ -37,8 +37,12 @@ export class FileUtils {
       if (stats.size > maxSize) {
         throw new AppError(
           'File size exceeds maximum allowed size',
+          FileUploadErrors.FILE_TOO_LARGE.category,
           FileUploadErrors.FILE_TOO_LARGE.code,
-          FileUploadErrors.FILE_TOO_LARGE.category
+          {},
+          500,
+          true,
+          5000
         );
       }
 
@@ -47,8 +51,12 @@ export class FileUtils {
       if (!allowedTypes.includes(type)) {
         throw new AppError(
           'Invalid file type',
+          FileUploadErrors.INVALID_FILE_TYPE.category,
           FileUploadErrors.INVALID_FILE_TYPE.code,
-          FileUploadErrors.INVALID_FILE_TYPE.category
+          {},
+          500,
+          true,
+          5000
         );
       }
 
@@ -56,16 +64,19 @@ export class FileUtils {
       if (Date.now() - stats.birthtimeMs > FileUtils.MAX_FILE_AGE) {
         throw new AppError(
           'File is too old',
-          ErrorCode.INVALID_FIELD_VALUE,
           ErrorCategory.VALIDATION,
-          {}
+          ErrorCode.INVALID_FIELD_VALUE,
+          {},
+          500,
+          true,
+          5000
         );
       }
     } catch (error) {
       throw new AppError(
         'Failed to validate file',
-        FileUploadErrors.STORAGE_ERROR.code,
         FileUploadErrors.STORAGE_ERROR.category,
+        FileUploadErrors.STORAGE_ERROR.code,
         {},
         500,
         true,

@@ -17,7 +17,8 @@ export class SubscriptionFormatter extends ResultFormatter<Subscription> {
    * @param dbResult The raw database result row
    * @returns A properly formatted Subscription object
    */
-  formatResult(dbResult: Record<string, unknown>): Subscription {
+  // Ensure type compatibility with Subscription type from schema
+  formatResult(dbResult: Record<string, any>): Subscription {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined subscription result');
     }
@@ -38,18 +39,23 @@ export class SubscriptionFormatter extends ResultFormatter<Subscription> {
     return {
       ...withDates,
       id: Number(withDates.id),
+      createdAt: withDates.createdAt ? new Date(withDates.createdAt) : new Date(),
+      updatedAt: withDates.updatedAt ? new Date(withDates.updatedAt) : new Date(),
+      deletedAt: withDates.deletedAt ? new Date(withDates.deletedAt) : null,
       userId: Number(withDates.userId),
       plan: String(withDates.plan),
       status: (withDates.status || 'active') as SubscriptionStatus,
       amount: String(withDates.amount),
       currency: String(withDates.currency || 'NGN'),
-      referralCode: withDates.referralCode || '',
-      discountApplied: Boolean(withDates.discountApplied),
-      discountAmount: String(withDates.discountAmount || '0.00'),
-      autoRenew: Boolean(withDates.autoRenew),
-      paymentProvider: String(withDates.paymentProvider || ''),
-      paymentReference: withDates.paymentReference || '',
-      metadata: metadata
+      referralCode: typeof withDates.referralCode === 'string' ? withDates.referralCode : '',
+      discountApplied: typeof withDates.discountApplied === 'boolean' ? withDates.discountApplied : false,
+      discountAmount: typeof withDates.discountAmount === 'string' ? withDates.discountAmount : '0.00',
+      startDate: withDates.startDate instanceof Date ? withDates.startDate : new Date(withDates.startDate),
+      endDate: withDates.endDate instanceof Date ? withDates.endDate : new Date(withDates.endDate),
+      autoRenew: typeof withDates.autoRenew === 'boolean' ? withDates.autoRenew : false,
+      paymentProvider: typeof withDates.paymentProvider === 'string' ? withDates.paymentProvider : '',
+      paymentReference: typeof withDates.paymentReference === 'string' ? withDates.paymentReference : '',
+      metadata: metadata ?? {}
     };
   }
 }

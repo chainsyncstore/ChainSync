@@ -1,9 +1,9 @@
 // test/integration/services/paymentService.error.integration.test.ts
-import { PrismaClient } from '@prisma/client';
+
 import { makeMockPaymentProvider } from '../../mocks/externalApis';
 import { test, describe } from '../../testTags';
 
-const prisma = new PrismaClient();
+
 
 // Example PaymentService using DI for the payment provider
 type PaymentProvider = ReturnType<typeof makeMockPaymentProvider>;
@@ -15,7 +15,7 @@ class PaymentService {
       // Attempt to charge
       await this.paymentProvider.charge(amount, cardToken);
       // If successful, save transaction (for demo, just create a record)
-      await prisma.transaction.create({ data: {
+      await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */transaction.create({ data: {
         storeId: 1, customerId: 1, userId: 1,
         type: 'SALE', status: 'COMPLETED',
         subtotal: '10.00', tax: '1.00', total: '11.00',
@@ -33,9 +33,9 @@ class PaymentService {
 }
 
 describe.integration('PaymentService Error Handling', () => {
-  beforeAll(async () => { await prisma.$connect(); });
-  afterAll(async () => { await prisma.$disconnect(); });
-  beforeEach(async () => { await prisma.transaction.deleteMany(); });
+  beforeAll(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */$connect(); });
+  afterAll(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */$disconnect(); });
+  beforeEach(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */transaction.deleteMany(); });
 
   test.integration('should handle payment provider failure and not save transaction', async () => {
     // Arrange: mock payment provider to fail
@@ -48,7 +48,7 @@ describe.integration('PaymentService Error Handling', () => {
     await expect(service.processCharge(10, 'tok_declined')).rejects.toThrow('Card declined');
 
     // Assert: no transaction saved
-    const txns = await prisma.transaction.findMany({ where: { reference: 'TXN-ERR' } });
+    const txns = await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */transaction.findMany({ where: { reference: 'TXN-ERR' } });
     expect(txns.length).toBe(0);
     // Optionally check logging (would use spy in real test)
   });

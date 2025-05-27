@@ -87,16 +87,18 @@ export interface SubscriptionServiceErrors {
   INVALID_CANCELLATION: Error;
 }
 
+import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
+
 export const SubscriptionServiceErrors: SubscriptionServiceErrors = {
-  SUBSCRIPTION_NOT_FOUND: new Error("Subscription not found"),
-  USER_NOT_FOUND: new Error("User not found"),
-  INVALID_PLAN: new Error("Invalid subscription plan"),
-  PAYMENT_FAILED: new Error("Payment processing failed"),
-  WEBHOOK_VALIDATION_FAILED: new Error("Webhook validation failed"),
-  DUPLICATE_SUBSCRIPTION: new Error("User already has an active subscription"),
-  INVALID_STATUS_TRANSITION: new Error("Invalid subscription status transition"),
-  INVALID_RENEWAL: new Error("Subscription renewal failed"),
-  INVALID_CANCELLATION: new Error("Subscription cancellation failed")
+  SUBSCRIPTION_NOT_FOUND: new AppError("Subscription not found", ErrorCategory.RESOURCE, ErrorCode.NOT_FOUND),
+  USER_NOT_FOUND: new AppError("User not found", ErrorCategory.RESOURCE, ErrorCode.USER_NOT_FOUND),
+  INVALID_PLAN: new AppError("Invalid subscription plan", ErrorCategory.VALIDATION, ErrorCode.INVALID_FIELD_VALUE),
+  PAYMENT_FAILED: new AppError("Payment processing failed", ErrorCategory.BUSINESS, ErrorCode.INVALID_OPERATION),
+  WEBHOOK_VALIDATION_FAILED: new AppError("Webhook validation failed", ErrorCategory.VALIDATION, ErrorCode.VALIDATION_FAILED),
+  DUPLICATE_SUBSCRIPTION: new AppError("User already has an active subscription", ErrorCategory.BUSINESS, ErrorCode.DUPLICATE_ENTRY),
+  INVALID_STATUS_TRANSITION: new AppError("Invalid subscription status transition", ErrorCategory.BUSINESS, ErrorCode.INVALID_OPERATION),
+  INVALID_RENEWAL: new AppError("Subscription renewal failed", ErrorCategory.BUSINESS, ErrorCode.INVALID_OPERATION),
+  INVALID_CANCELLATION: new AppError("Subscription cancellation failed", ErrorCategory.BUSINESS, ErrorCode.INVALID_OPERATION)
 };
 
 export interface ISubscriptionService {

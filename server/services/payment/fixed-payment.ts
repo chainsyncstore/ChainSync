@@ -98,7 +98,7 @@ export class PaymentService extends BaseService {
   async verifyPayment(reference: string): Promise<PaymentVerificationResponse> {
     try {
       if (!reference) {
-        throw new AppError('payment', 'INVALID_REFERENCE', 'Payment reference is required');
+        throw new AppError('Payment reference is required', 'payment', 'INVALID_REFERENCE');
       }
       if (this.paystack) {
         const response = await this.paystack.verifyTransaction(reference);
@@ -129,10 +129,10 @@ export class PaymentService extends BaseService {
           };
         }
       }
-      throw new AppError('payment', 'PAYMENT_NOT_FOUND', 'Payment not found or verification failed', { reference });
+      throw new AppError('Payment not found or verification failed', 'payment', 'PAYMENT_NOT_FOUND', { reference });
     } catch (error: any) {
       logger.error('Error verifying payment:', error);
-      throw error instanceof AppError ? error : new AppError('payment', 'PAYMENT_VERIFICATION_ERROR', 'Failed to verify payment', { error: error instanceof Error ? error.message : 'Unknown error' });
+      throw error instanceof AppError ? error : new AppError('Failed to verify payment', 'payment', 'PAYMENT_VERIFICATION_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -144,14 +144,14 @@ export class PaymentService extends BaseService {
     referralCode?: string
   ): Promise<void> {
     if (!userId || !email || !amount || !plan) {
-      throw new AppError('payment', 'INVALID_PAYMENT_DATA', 'Missing required payment data', { userId, email, amount, plan });
+      throw new AppError('Missing required payment data', 'payment', 'INVALID_PAYMENT_DATA', { userId, email, amount, plan });
     }
     if (typeof amount !== 'number' || amount <= 0) {
-      throw new AppError('payment', 'INVALID_AMOUNT', 'Invalid payment amount', { amount });
+      throw new AppError('Invalid payment amount', 'payment', 'INVALID_AMOUNT', { amount });
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new AppError('payment', 'INVALID_EMAIL', 'Invalid email format', { email });
+      throw new AppError('Invalid email format', 'payment', 'INVALID_EMAIL', { email });
     }
   }
 
@@ -245,10 +245,10 @@ export class PaymentService extends BaseService {
         }
       }
 
-      throw new AppError('payment', 'NO_PAYMENT_PROVIDER', 'No payment provider available for initialization', { provider });
+      throw new AppError('No payment provider available for initialization', 'payment', 'NO_PAYMENT_PROVIDER', { provider });
     } catch (error) {
       this.logger.error('Payment initialization error:', error);
-      throw error instanceof AppError ? error : new AppError('payment', 'PAYMENT_ERROR', 'An error occurred during payment initialization', { error: error.message });
+      throw error instanceof AppError ? error : new AppError('An error occurred during payment initialization', 'payment', 'PAYMENT_ERROR', { error: error.message });
     }
   }
 
@@ -270,14 +270,14 @@ export class PaymentService extends BaseService {
       });
     } catch (error) {
       this.logger.error('Error tracking payment status:', error);
-      throw error instanceof AppError ? error : new AppError('payment', 'PAYMENT_TRACKING_ERROR', 'Failed to track payment status', { reference, status });
+      throw error instanceof AppError ? error : new AppError('Failed to track payment status', 'payment', 'PAYMENT_TRACKING_ERROR', { reference, status });
     }
   }
 
   async handleWebhook(request: Request): Promise<void> {
     const body = request.body as PaymentWebhookRequest;
     if (!body) {
-      throw new AppError('payment', 'INVALID_WEBHOOK', 'Empty webhook body', {});
+      throw new AppError('Empty webhook body', 'payment', 'INVALID_WEBHOOK', {});
     }
 
     const { provider, reference, status, signature } = body;
@@ -285,7 +285,7 @@ export class PaymentService extends BaseService {
     // Verify webhook signature
     const expectedKey = WEBHOOK_KEYS[provider as 'paystack' | 'flutterwave'];
     if (!expectedKey || !signature || !verifyWebhookSignature(signature, expectedKey)) {
-      throw new AppError('payment', 'INVALID_WEBHOOK', 'Invalid webhook signature', { provider, reference });
+      throw new AppError('Invalid webhook signature', 'payment', 'INVALID_WEBHOOK', { provider, reference });
     }
 
     // Process the webhook

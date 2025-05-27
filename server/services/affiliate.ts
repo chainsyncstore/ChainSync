@@ -34,7 +34,7 @@ export async function generateReferralCode(userId: number): Promise<string> {
     }
 
     // Generate a base code from username or name
-    let baseCode = user.username.replace(/[^a-zA-Z0-9]/g, "").substring(0, 5).toUpperCase();
+    const baseCode = user.username.replace(/[^a-zA-Z0-9]/g, "").substring(0, 5).toUpperCase();
     
     // Add random characters to ensure uniqueness
     const randomString = randomBytes(3).toString("hex").toUpperCase();

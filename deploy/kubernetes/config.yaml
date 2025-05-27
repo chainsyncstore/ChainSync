@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chainsync-config
+data:
+  # API configuration
+  api-version: "1.0.0"
+  api-timeout: "30000"
+  
+  # Supplier API configuration (non-sensitive)
+  supplier-api-url: "https://api.supplier.example.com"
+  supplier-api-fallback-url: "https://api-backup.supplier.example.com"
+  
+  # Performance tuning
+  request-timeout: "30000"
+  connection-timeout: "5000"
+  
+  # Feature flags
+  enable-rate-limiting: "true"
+  enable-advanced-security: "true"
+  enable-monitoring: "true"
+  
+  # Monitoring and metrics configuration
+  metrics-interval: "30000"
+  alert-min-severity: "warning"
+  
+  # Caching configuration leveraging the Redis cache system from Phase 2
+  cache-strategy: |
+    {
+      "products": {
+        "ttl": 600,
+        "invalidateOnUpdate": true
+      },
+      "inventory": {
+        "ttl": 120,
+        "invalidateOnUpdate": true
+      },
+      "users": {
+        "ttl": 1800,
+        "invalidateOnUpdate": true
+      },
+      "transactions": {
+        "ttl": 300,
+        "invalidateOnUpdate": false
+      }
+    }
+  
+  # Retry strategy configuration leveraging the retry utility from Phase 2
+  retry-strategy: |
+    {
+      "database": {
+        "maxAttempts": 3,
+        "initialDelayMs": 100,
+        "maxDelayMs": 1000,
+        "backoffFactor": 2,
+        "jitterFactor": 0.2
+      },
+      "api": {
+        "maxAttempts": 5,
+        "initialDelayMs": 200,
+        "maxDelayMs": 3000,
+        "backoffFactor": 1.5,
+        "jitterFactor": 0.3
+      },
+      "queue": {
+        "maxAttempts": 10,
+        "initialDelayMs": 500,
+        "maxDelayMs": 60000,
+        "backoffFactor": 2,
+        "jitterFactor": 0.1
+      }
+    }
+  
+  # Circuit breaker configuration leveraging the fallback utility from Phase 2
+  circuit-breaker-strategy: |
+    {
+      "supplier-api": {
+        "failureThreshold": 5,
+        "resetTimeoutMs": 30000,
+        "halfOpenMaxCalls": 2
+      },
+      "payment-gateway": {
+        "failureThreshold": 3,
+        "resetTimeoutMs": 60000,
+        "halfOpenMaxCalls": 1
+      },
+      "notification-service": {
+        "failureThreshold": 10,
+        "resetTimeoutMs": 15000,
+        "halfOpenMaxCalls": 3
+      }
+    }
+  
+  # Log configuration
+  logging-config: |
+    {
+      "level": "info",
+      "format": "json",
+      "colorize": false,
+      "timestamp": true,
+      "errorStackTrace": true,
+      "logToFile": true,
+      "logFilePath": "/app/logs/chainsync.log",
+      "maxSize": "10m",
+      "maxFiles": 5,
+      "compress": true
+    }
+---
+# This is a template for the Secrets that should be created using a secure method
+# DO NOT store actual secrets in version control
+apiVersion: v1
+kind: Secret
+metadata:
+  name: chainsync-secrets-template
+type: Opaque
+stringData:
+  # Database credentials
+  db-host: "DB_HOST"
+  db-port: "5432"
+  db-user: "DB_USER"
+  db-password: "DB_PASSWORD"
+  db-name: "chainsync"
+  
+  # Redis connection
+  redis-url: "redis://redis:6379"
+  
+  # JWT authentication secrets
+  jwt-secret: "JWT_SECRET"
+  refresh-token-secret: "REFRESH_TOKEN_SECRET"
+  
+  # API keys
+  supplier-api-key: "SUPPLIER_API_KEY"
+  
+  # External service credentials
+  payment-gateway-key: "PAYMENT_GATEWAY_KEY"
+  payment-gateway-secret: "PAYMENT_GATEWAY_SECRET"
+  
+  # Email service
+  smtp-host: "SMTP_HOST"
+  smtp-port: "587"
+  smtp-user: "SMTP_USER"
+  smtp-password: "SMTP_PASSWORD"
+  
+  # Monitoring and alerting
+  alert-webhook-url: "ALERT_WEBHOOK_URL"
+  alert-slack-webhook-url: "ALERT_SLACK_WEBHOOK_URL"
+  alert-email-recipients: "alerts@example.com"

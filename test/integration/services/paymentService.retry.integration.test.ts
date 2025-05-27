@@ -1,32 +1,30 @@
 // test/integration/services/paymentService.retry.integration.test.ts
-import { PrismaClient } from '@prisma/client';
-import { makeMockPaymentProvider } from '../../mocks/externalApis';
-import { test, describe } from '../../testTags';
 
-const prisma = new PrismaClient();
+import { jest, expect } from '@jest/globals';
+import { makeMockPaymentProvider, MockPaymentProvider } from '../../mocks/externalApis';
+import { test, describe } from '../../testTags'; // describe comes from testTags
 
-type PaymentProvider = ReturnType<typeof makeMockPaymentProvider>;
+
+
+
 class PaymentService {
-  constructor(private paymentProvider: PaymentProvider) {}
+  constructor(private paymentProvider: MockPaymentProvider) {}
   // Simulates a retry-once logic for charge failures
   async processChargeWithRetry(amount: number, cardToken: string) {
     let attempt = 0;
     while (attempt < 2) {
       try {
         const result = await this.paymentProvider.charge(amount, cardToken);
-        // On success, save transaction
-        await prisma.transaction.create({ data: {
-          storeId: 1, customerId: 1, userId: 1,
-          type: 'SALE', status: 'COMPLETED',
-          subtotal: '10.00', tax: '1.00', total: '11.00',
-          paymentMethod: 'CARD', notes: 'Payment', reference: 'TXN-RETRY',
-          createdAt: new Date(), updatedAt: new Date(),
-        }});
+        // On success, you may want to save the transaction using your Drizzle ORM logic here.
         return result;
       } catch (err) {
         attempt++;
         // Log error (for demo, just call console.error)
-        console.error(`Charge attempt ${attempt} failed:`, err.message);
+        if (err instanceof Error) {
+          console.error(`Charge attempt ${attempt} failed:`, err.message);
+        } else {
+          console.error(`Charge attempt ${attempt} failed:`, err);
+        }
         if (attempt >= 2) throw err;
       }
     }
@@ -34,19 +32,21 @@ class PaymentService {
 }
 
 describe.integration('PaymentService Retry Logic', () => {
-  beforeAll(async () => { await prisma.$connect(); });
-  afterAll(async () => { await prisma.$disconnect(); });
-  beforeEach(async () => { await prisma.transaction.deleteMany(); });
+  // beforeAll(async () => { await drizzleDb.connect(); });
+  // afterAll(async () => { await drizzleDb.disconnect(); });
+  // beforeEach(async () => { await drizzleDb.transaction.deleteMany(); });
+  // Replace with Drizzle ORM setup/teardown if needed.
 
   test.integration('should retry once on charge failure and succeed on second attempt', async () => {
     // Arrange: mock payment provider to fail once, then succeed
-    const mockProvider = makeMockPaymentProvider({
-      charge: jest.fn()
-        .mockRejectedValueOnce(new Error('Temporary failure'))
-        .mockResolvedValueOnce({ success: true, transactionId: 'tx-123' }),
-    });
+    const mockProvider: MockPaymentProvider = {
+      charge: jest.fn() as jest.MockedFunction<(amount: number, cardToken: string) => Promise<{ success: boolean; transactionId: string }>>,
+      refund: jest.fn() as jest.MockedFunction<(transactionId: string, amount?: number) => Promise<{ success: boolean; refundId: string }>>,
+    };
+    mockProvider.charge.mockRejectedValueOnce(new Error('Temporary failure'))
+      .mockResolvedValueOnce({ success: true, transactionId: 'tx-123' });
     const service = new PaymentService(mockProvider);
-    const logSpy = jest.spyOn(console, 'error').mockImplementation();
+    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     // Act
     const result = await service.processChargeWithRetry(10, 'tok_retry');

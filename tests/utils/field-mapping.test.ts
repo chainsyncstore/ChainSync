@@ -36,8 +36,8 @@ describe('Field Mapping Utilities', () => {
     });
     
     it('should handle null or undefined input', () => {
-      expect(toDatabaseFields(null)).toEqual({});
-      expect(toDatabaseFields(undefined)).toEqual({});
+      expect(toDatabaseFields(null as any)).toEqual({});
+      expect(toDatabaseFields(undefined as any)).toEqual({});
     });
     
     it('should preserve non-camelCase keys', () => {
@@ -98,8 +98,8 @@ describe('Field Mapping Utilities', () => {
     });
     
     it('should handle null or undefined input', () => {
-      expect(fromDatabaseFields(null)).toEqual({});
-      expect(fromDatabaseFields(undefined)).toEqual({});
+      expect(fromDatabaseFields(null as any)).toEqual({});
+      expect(fromDatabaseFields(undefined as any)).toEqual({});
     });
     
     it('should preserve non-snake_case keys', () => {
@@ -151,7 +151,7 @@ describe('Field Mapping Utilities', () => {
         email: 'john@example.com'
       };
       
-      expect(pickFields(input, fields)).toEqual(expected);
+      expect(pickFields(input, fields as any)).toEqual(expected);
     });
     
     it('should handle empty fields array', () => {
@@ -161,12 +161,12 @@ describe('Field Mapping Utilities', () => {
     
     it('should handle fields that do not exist', () => {
       const input = { id: 1, name: 'John' };
-      expect(pickFields(input, ['id', 'unknown'])).toEqual({ id: 1 });
+      expect(pickFields(input, ['id', 'unknown' as any])).toEqual({ id: 1 });
     });
     
     it('should handle null or undefined input', () => {
-      expect(pickFields(null, ['id'])).toEqual({});
-      expect(pickFields(undefined, ['id'])).toEqual({});
+      expect(pickFields(null as any, ['id'])).toEqual({});
+      expect(pickFields(undefined as any, ['id'])).toEqual({});
     });
   });
   
@@ -180,7 +180,7 @@ describe('Field Mapping Utilities', () => {
     
     it('should return false if field does not exist', () => {
       const input = { id: 1, name: 'John' };
-      expect(hasField(input, 'unknown')).toBe(false);
+      expect(hasField(input, 'unknown' as any)).toBe(false);
     });
     
     it('should return false if field is undefined', () => {
@@ -189,8 +189,8 @@ describe('Field Mapping Utilities', () => {
     });
     
     it('should handle null or undefined input', () => {
-      expect(hasField(null, 'id')).toBe(false);
-      expect(hasField(undefined, 'id')).toBe(false);
+      expect(hasField(null as any, 'id')).toBe(false);
+      expect(hasField(undefined as any, 'id')).toBe(false);
     });
   });
 });

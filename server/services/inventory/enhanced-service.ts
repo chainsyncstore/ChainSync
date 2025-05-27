@@ -363,7 +363,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       // Calculate new quantity
       const quantity = params.quantity;
       const beforeQuantity = item.quantity;
-      let afterQuantity = beforeQuantity + quantity;
+      const afterQuantity = beforeQuantity + quantity;
       
       // Check if sufficient stock for negative adjustments
       if (quantity < 0 && afterQuantity < 0) {

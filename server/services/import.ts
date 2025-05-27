@@ -262,7 +262,7 @@ async function enhanceMappingsWithAI(
       .map(mapping => `${mapping.source} => ${mapping.target} (confidence: ${mapping.confidence})`)
       .join("\n");
     
-    let prompt = `I need to map columns from a CSV file to specific target fields in my database. 
+    const prompt = `I need to map columns from a CSV file to specific target fields in my database. 
     The source columns are: ${sourceColumns.join(", ")}
     The target fields I'm trying to map to are: ${targetFields}
     

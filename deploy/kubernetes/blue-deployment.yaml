@@ -1,0 +1,199 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chainsync-blue
+  labels:
+    app: chainsync
+    environment: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chainsync
+      environment: blue
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: chainsync
+        environment: blue
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: chainsync
+        image: chainsync:${VERSION}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: db-host
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: db-port
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: db-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: db-password
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: db-name
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: redis-url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: jwt-secret
+        - name: REFRESH_TOKEN_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: refresh-token-secret
+        - name: SUPPLIER_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: chainsync-config
+              key: supplier-api-url
+        - name: SUPPLIER_API_FALLBACK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: chainsync-config
+              key: supplier-api-fallback-url
+        - name: SUPPLIER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: chainsync-secrets
+              key: supplier-api-key
+        # Retry and circuit breaker configuration
+        - name: RETRY_MAX_ATTEMPTS
+          value: "3"
+        - name: RETRY_INITIAL_DELAY_MS
+          value: "100"
+        - name: RETRY_MAX_DELAY_MS
+          value: "1000"
+        - name: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+          value: "5"
+        - name: CIRCUIT_BREAKER_RESET_TIMEOUT_MS
+          value: "30000"
+        # DB connection pool settings
+        - name: DB_POOL_MIN
+          value: "5"
+        - name: DB_POOL_MAX
+          value: "20"
+        - name: DB_POOL_IDLE_TIMEOUT_MS
+          value: "30000"
+        # Cache settings
+        - name: CACHE_TTL_DEFAULT
+          value: "300"
+        - name: CACHE_TTL_PRODUCTS
+          value: "600"
+        - name: CACHE_TTL_INVENTORY
+          value: "120"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /api/health/readiness
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/health/liveness
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/health/startup
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 12
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: logs-volume
+          mountPath: /app/logs
+        lifecycle:
+          preStop:
+            exec:
+              # Grace period for in-flight requests and cleanup
+              command: ["/bin/sh", "-c", "sleep 10"]
+      volumes:
+      - name: config-volume
+        configMap:
+          name: chainsync-config
+      - name: logs-volume
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - chainsync
+              topologyKey: "kubernetes.io/hostname"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chainsync-blue
+  labels:
+    app: chainsync
+    environment: blue
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: chainsync
+    environment: blue
+  type: ClusterIP
