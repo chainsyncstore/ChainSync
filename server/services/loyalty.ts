@@ -3,6 +3,13 @@ import { eq, and, desc, sum, count, gte, lte } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '../../shared/schema.js';
 import { getLogger } from '../../src/logging/index.js';
+import { 
+  loyaltyMemberToDatabaseFields, 
+  loyaltyMemberFromDatabaseFields,
+  loyaltyProgramFromDatabaseFields,
+  loyaltyTransactionToDatabaseFields,
+  loyaltyTransactionFromDatabaseFields
+} from '../../shared/utils/loyalty-mapping.js';
 
 const logger = getLogger().child({ component: 'loyalty-service' });
 
@@ -90,9 +97,9 @@ export class LoyaltyService {
       });
 
       return program;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting loyalty program', { error, storeId });
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -112,7 +119,8 @@ export class LoyaltyService {
       const loyaltyId = await this.generateLoyaltyId();
       const defaultTier = program.tiers[0];
 
-      const [member] = await this.db!.insert(schema.loyaltyMembers).values({
+      // Create member object with camelCase fields
+      const memberData = {
         loyaltyId,
         customerId: data.customerId,
         tierId: defaultTier.id,
@@ -120,16 +128,23 @@ export class LoyaltyService {
         totalPointsEarned: '0',
         totalPointsRedeemed: '0',
         joinDate: new Date(),
-        status: 'active'
-      }).returning();
+        status: 'active' as const
+      };
+      
+      // Convert to database fields (snake_case) before inserting
+      const dbFields = loyaltyMemberToDatabaseFields(memberData);
+      const [memberResult] = await this.db!.insert(schema.loyaltyMembers).values(dbFields).returning();
+      
+      // Convert back to application fields (camelCase)
+      const member = loyaltyMemberFromDatabaseFields(memberResult);
 
       return {
         ...member,
         program
       } as LoyaltyMember;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating loyalty member', { error, data });
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -146,16 +161,24 @@ export class LoyaltyService {
         return { success: false };
       }
 
-      const [transaction] = await this.db!.insert(schema.loyaltyTransactions).values({
+      // Create transaction object with camelCase fields
+      const transactionData = {
         memberId,
         transactionId,
-        type: 'earned',
+        type: 'earned' as const,
         points,
         description: `Points earned from transaction #${transactionId}`,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
         userId
-      }).returning();
+      };
+      
+      // Convert to database fields (snake_case) before inserting
+      const dbFields = loyaltyTransactionToDatabaseFields(transactionData);
+      const [transactionResult] = await this.db!.insert(schema.loyaltyTransactions).values(dbFields).returning();
+      
+      // Convert back to application fields (camelCase)
+      const transaction = loyaltyTransactionFromDatabaseFields(transactionResult);
 
       // Update member balance
       await this.db!.update(schema.loyaltyMembers)
@@ -170,9 +193,9 @@ export class LoyaltyService {
       await this.checkAndUpdateMemberTier(memberId);
 
       return { success: true, transaction };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error recording points earned', { error, transactionId, memberId, points });
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -275,55 +298,95 @@ export class LoyaltyService {
   }
 
   public async getMemberStats(memberId: number): Promise<LoyaltyMemberStats> {
+    // Store memberId in a local variable for error handling context
+    const memberIdForLogging = memberId;
     await this.ensureInitialized();
 
-    try {
-      const member = await this.db!.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.id, memberId),
-        with: {
-          program: {
-            with: {
-              tiers: {
-                orderBy: [schema.loyaltyTiers.pointsRequired]
-              }
-            }
+    const dbMember = await this.db!.query.loyaltyMembers.findFirst({
+      where: eq(schema.loyaltyMembers.id, memberId),
+      with: {
+        program: {
+          with: {
+            tiers: true
           }
         }
-      });
-
-      if (!member) {
-        throw new Error('Member not found');
       }
+    });
+    
+    // Convert database fields (snake_case) to application fields (camelCase)
+    const member = dbMember ? loyaltyMemberFromDatabaseFields(dbMember) as LoyaltyMember : null;
+    
+    if (!member) {
+      throw new Error('Member not found');
+    }
 
+      // Extract the totalPoints value safely
       const totalPoints = member.totalPointsEarned;
-      const currentTier = member.program.tiers.find(t => t.id === member.tierId);
+      // Find the current tier from the program's tiers array
+      const currentTier = member.program.tiers.find((tier: LoyaltyTier) => tier.id === member.tierId);
 
       if (!currentTier) {
         throw new Error('Current tier not found');
       }
 
+      // Find the next tier that requires more points than the member currently has
       const nextTier = member.program.tiers
-        .filter(t => Number(t.pointsRequired) > Number(totalPoints))
-        .sort((a, b) => Number(a.pointsRequired) - Number(b.pointsRequired))[0] || null;
+        .filter((tier: LoyaltyTier) => Number(tier.pointsRequired) > Number(totalPoints))
+        .sort((a: LoyaltyTier, b: LoyaltyTier) => Number(a.pointsRequired) - Number(b.pointsRequired))[0] || null;
 
       const pointsToNextTier = nextTier ? 
         Number(nextTier.pointsRequired) - Number(totalPoints) : 
         null;
 
+      // Get recent transactions
+      const recentTransactions = await this.db!.query.loyaltyTransactions.findMany({
+        where: eq(schema.loyaltyTransactions.memberId, memberId),
+        orderBy: [desc(schema.loyaltyTransactions.createdAt)],
+        limit: 5
+      });
+      
+      // Convert transaction database fields to application fields
+      const mappedTransactions = recentTransactions.map((t: Record<string, unknown>) => {
+        // First convert to unknown type to avoid direct casting errors
+        const converted = loyaltyTransactionFromDatabaseFields(t) as unknown;
+        // Then safely cast to the required type
+        return converted as LoyaltyTransaction;
+      });
+      
+      // Get redemption history
+      const redemptionHistory = await this.db!.query.loyaltyTransactions.findMany({
+        where: and(
+          eq(schema.loyaltyTransactions.memberId, memberId),
+          eq(schema.loyaltyTransactions.type, 'redeemed')
+        ),
+        orderBy: [desc(schema.loyaltyTransactions.createdAt)],
+        limit: 10
+      });
+      
+      // Convert redemption database fields to application fields
+      const mappedRedemptions = redemptionHistory.map((r: Record<string, unknown>) => {
+        // First convert to unknown type to avoid direct casting errors
+        const converted = loyaltyTransactionFromDatabaseFields(r) as unknown;
+        // Then safely cast to the required type
+        return converted as LoyaltyTransaction;
+      });
+      
       return {
         member,
         totalPoints,
         currentTier,
         nextTier,
         pointsToNextTier,
-        recentTransactions: [],
+        recentTransactions: mappedTransactions,
         memberSince: member.joinDate,
         lastActivity: member.lastActivity,
-        redemptionHistory: []
+        redemptionHistory: mappedRedemptions
       };
-    } catch (error) {
-      logger.error('Error getting member stats', { error, memberId });
-      throw error;
+    } catch (error: unknown) {
+      // Log the error with proper context using the stored member ID
+      const errorContext = { error, memberId: memberIdForLogging };
+      logger.error('Error getting member stats', errorContext);
+      throw error instanceof Error ? error : new Error(`Unknown error in getMemberStats for member ${memberIdForLogging}`);
     }
   }
 }

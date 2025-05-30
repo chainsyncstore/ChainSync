@@ -170,7 +170,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         limit
       }
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error getting transactions', error instanceof Error ? error : new Error(String(error)), {
       userId: req.session.userId,
       query: req.query
@@ -253,7 +253,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       ...transaction,
       loyaltyUpdates
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error getting transaction', error instanceof Error ? error : new Error(String(error)), {
       userId: req.session.userId,
       transactionId: req.params.id
@@ -432,7 +432,7 @@ router.post('/', validateBody(createTransactionSchema), async (req: Request, res
 
     // Return created transaction
     res.status(201).json(transaction);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error creating transaction', error instanceof Error ? error : new Error(String(error)), {
       userId: req.session.userId,
       body: req.body
@@ -547,7 +547,7 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
 
     // Return updated transaction
     res.json(updatedTransaction);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error updating transaction', error instanceof Error ? error : new Error(String(error)), {
       userId: req.session.userId,
       transactionId: req.params.id,

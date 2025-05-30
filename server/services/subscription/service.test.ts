@@ -50,7 +50,7 @@ jest.mock('@shared/schema-validation', () => ({
     webhook: jest.fn(data => data)
   },
   SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: any) {
+    constructor(message: string, options?: unknown) {
       super(message);
       this.name = 'SchemaValidationError';
     }

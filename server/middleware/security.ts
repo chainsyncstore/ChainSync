@@ -4,8 +4,43 @@
 import { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { getLogger } from '../../src/logging';
+import crypto from 'crypto';
 import { Session } from 'express-session';
 import { extractAndValidateApiKey } from '../utils/auth';
+
+/**
+ * Generate a random nonce for CSP
+ * This allows certain inline scripts to be allowed by CSP
+ */
+export const nonceGenerator = (req: Request, res: Response, next: NextFunction) => {
+  // Generate a random nonce for each request
+  res.locals = res.locals || {};
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  next();
+};
+
+// Add type declaration for response locals with CSP nonce
+declare global {
+  namespace Express {
+    // Extend the Response interface to include locals
+    interface Response {
+      locals: {
+        cspNonce?: string;
+        [key: string]: unknown;
+      };
+    }
+  }
+}
+
+// Extend the Response type for ServerResponse
+declare module 'http' {
+  interface ServerResponse {
+    locals: {
+      cspNonce?: string;
+      [key: string]: unknown;
+    };
+  }
+}
 
 // Define session with csrf token property
 interface SessionWithCsrf {
@@ -29,7 +64,13 @@ export const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"], // Add any CDNs you need
+      // Remove 'unsafe-inline' and use nonce-based approach instead
+      scriptSrc: [
+        "'self'", 
+        "cdn.jsdelivr.net",
+        (req, res) => `'nonce-${res.locals.cspNonce || ''}'` // Dynamic nonce for inline scripts
+      ],
+      // Keep 'unsafe-inline' for styles for now, but consider moving to nonce-based in future
       styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdn.jsdelivr.net"],
       imgSrc: ["'self'", "data:", "cdn.jsdelivr.net"],
       connectSrc: ["'self'", "api.chainsync.com", "localhost:*"],
@@ -42,6 +83,8 @@ export const securityHeaders = helmet({
       workerSrc: ["'self'", "blob:"], // For web workers
       manifestSrc: ["'self'"],
       upgradeInsecureRequests: [],
+      // Add additional security directives
+      scriptSrcAttr: ["'none'"], // Disallow inline event handlers
     },
     reportOnly: process.env.NODE_ENV === 'development' // Use CSP in report-only mode during development
   },

@@ -21,7 +21,7 @@ try {
   } else {
     console.warn('EMAIL_USER and/or EMAIL_PASSWORD are not set. Email functionality will not work.');
   }
-} catch (error) {
+} catch (error: unknown) {
   console.error('Failed to create email transporter:', error);
 }
 
@@ -57,7 +57,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     
     console.log(`Email sent successfully to ${options.to}. Message ID: ${info.messageId}`);
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error sending email:', error);
     return false;
   }
@@ -119,7 +119,7 @@ export async function verifyEmailConnection(): Promise<boolean> {
     await transporter.verify();
     console.log('Email connection verified successfully');
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Email connection verification failed:', error);
     return false;
   }

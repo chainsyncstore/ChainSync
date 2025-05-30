@@ -5,6 +5,7 @@
  * and utility abstractions to reduce code duplication and improve type safety.
  */
 import { EnhancedBaseService } from '@server/services/base/enhanced-service';
+import type { ServiceConfig } from '@shared/types/common'; // Correct import for ServiceConfig
 import { SubscriptionFormatter } from './formatter';
 import { subscriptionValidation, SchemaValidationError } from '@shared/schema-validation';
 import { prepareSubscriptionData } from '@shared/schema-helpers';
@@ -36,10 +37,14 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       if (plan) filters.push(`plan = '${this.safeToString(plan)}'`);
       if (status) filters.push(`status = '${this.safeToString(status)}'`);
       if (provider) filters.push(`payment_provider = '${this.safeToString(provider)}'`);
-      if (startDate)
-        filters.push(`created_at >= '${(startDate instanceof Date ? startDate.toISOString() : startDate)}'`);
-      if (endDate)
-        filters.push(`created_at <= '${(endDate instanceof Date ? endDate.toISOString() : endDate)}'`);
+      if (startDate) {
+        const dateValue = (startDate instanceof Date ? startDate.toISOString() : startDate);
+        filters.push(`created_at >= '${typeof dateValue === 'string' ? dateValue : String(dateValue)}'`);
+      }
+      if (endDate) {
+        const dateValue = (endDate instanceof Date ? endDate.toISOString() : endDate);
+        filters.push(`created_at <= '${typeof dateValue === 'string' ? dateValue : String(dateValue)}'`);
+      }
       const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
       const query = `SELECT * FROM subscriptions ${whereClause} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
       const countQuery = `SELECT COUNT(*) as count FROM subscriptions ${whereClause}`;
@@ -51,7 +56,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       const countResult = await db.execute(sql.raw(countQuery));
       const total = Number(countResult.rows?.[0]?.count || 0);
       return { subscriptions, total, page, limit };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'searching subscriptions');
     }
   }
@@ -73,7 +78,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
         metadata
       });
       return updated;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'cancelling subscription');
     }
   }
@@ -90,20 +95,25 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       const startDate = now;
       // Support recurring monthly or yearly renewal based on 'renewalPeriod' in metadata or params
       let renewalPeriod = 'monthly';
-      let metadataObj: any = {};
+      let metadataObj: unknown = {};
       if (subscription.metadata) {
         if (typeof subscription.metadata === 'string') {
           try {
             metadataObj = JSON.parse(subscription.metadata);
-          } catch (e) {
+          } catch (e: unknown) {
             metadataObj = {};
           }
         } else if (typeof subscription.metadata === 'object') {
           metadataObj = subscription.metadata;
         }
       }
-      if (typeof metadataObj.renewalPeriod === 'string') {
-        renewalPeriod = metadataObj.renewalPeriod;
+      if (
+        typeof metadataObj === 'object' &&
+        metadataObj !== null &&
+        'renewalPeriod' in metadataObj &&
+        typeof (metadataObj as { renewalPeriod?: unknown }).renewalPeriod === 'string'
+      ) {
+        renewalPeriod = (metadataObj as { renewalPeriod: string }).renewalPeriod;
       }
       // Allow override from params in future if needed
       const endDate = new Date(now);
@@ -119,7 +129,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
         // If you want to support startDate, add it to UpdateSubscriptionParams and schema
       });
       return updated;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'renewing subscription');
     }
   }
@@ -136,7 +146,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       if (!subscription) return false;
       if (requiredPlan && subscription.plan !== requiredPlan) return false;
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       return false;
     }
   }
@@ -162,8 +172,18 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       // Subscriptions by plan
       const plansResult = await db.execute(sql.raw('SELECT plan, COUNT(*) as count FROM subscriptions GROUP BY plan'));
       const subscriptionsByPlan: Record<string, number> = {};
-      (plansResult.rows || []).forEach((row: any) => {
-        subscriptionsByPlan[row.plan] = Number(row.count);
+      (plansResult.rows || []).forEach((row: unknown) => {
+        if (
+          typeof row === 'object' &&
+          row !== null &&
+          'plan' in row &&
+          'count' in row &&
+          typeof (row as { plan?: unknown }).plan === 'string'
+        ) {
+          subscriptionsByPlan[(row as { plan: string }).plan] = Number((row as { count: unknown }).count);
+        } else {
+          console.warn('Unexpected row structure in getSubscriptionMetrics:', row);
+        }
       });
       // Churn rate: (cancelled in last 30d) / active
       const thirtyDaysAgo = new Date(now);
@@ -172,14 +192,14 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       const churnCount = Number(churnResult.rows?.[0]?.count || 0);
       const churnRate = activeSubscriptions > 0 ? ((churnCount / activeSubscriptions) * 100).toFixed(2) + '%' : '0.00%';
       return { totalSubscriptions, activeSubscriptions, revenueThisMonth, revenueLastMonth, subscriptionsByPlan, churnRate };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting subscription metrics');
     }
   }
   // --- END STUBS ---
   private formatter: SubscriptionFormatter;
   
-  constructor(config: any) { // TODO: Replace 'any' with proper ServiceConfig type
+  constructor(config: ServiceConfig) { // Changed unknown to ServiceConfig
     super(config);
     this.formatter = new SubscriptionFormatter();
   }
@@ -213,7 +233,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       
       // Ensure the subscription was created
       return this.ensureExists(subscription, 'Subscription');
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -262,7 +282,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
       
       // Ensure the subscription was updated
       return this.ensureExists(updatedSubscription, 'Subscription');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'updating subscription');
     }
   }
@@ -286,7 +306,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
         [],
         this.formatter.formatResult.bind(this.formatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting subscription by ID');
     }
   }
@@ -313,7 +333,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
         [],
         this.formatter.formatResult.bind(this.formatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting subscription by user');
     }
   }
@@ -341,7 +361,7 @@ export class EnhancedSubscriptionService extends EnhancedBaseService implements 
         [],
         this.formatter.formatResult.bind(this.formatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting active subscription');
     }
   }

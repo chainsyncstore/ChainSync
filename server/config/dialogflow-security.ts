@@ -68,7 +68,7 @@ export function dialogflowWebhookAuth(secret: string) {
       
       // Signature is valid or we're in development mode
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Dialogflow webhook authentication error:', error);
       res.status(500).json({
         success: false,

@@ -55,7 +55,7 @@ export interface ImportExportError extends AppError {
   category: ErrorCategory;
   retryable?: boolean;
   retryDelay?: number;
-  context?: any;
+  context?: unknown;
 }
 
 export const ImportExportServiceErrors = {

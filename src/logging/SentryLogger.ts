@@ -73,7 +73,7 @@ export class SentryLogger extends BaseLogger {
     Sentry.setUser(null);
   }
 
-  public setRequestContext(req: any): void {
+  public setRequestContext(req: unknown): void {
     // Extract useful context from Express/HTTP request
     const requestContext: Record<string, any> = {
       url: req.url,

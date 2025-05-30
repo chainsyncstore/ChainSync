@@ -4,6 +4,11 @@ import bcrypt from 'bcrypt';
 import rateLimit from 'express-rate-limit';
 import { db } from '../../db';
 import crypto from 'crypto';
+import Redis from 'ioredis';
+import { getRedisClient, initRedis } from '../../src/cache/redis';
+import { User } from '../types/user'; // This might be your DB user type
+import { UserPayload } from '../types/express'; // Import the standardized UserPayload
+import { sql } from 'drizzle-orm';
 
 // Mock required utilities until actual files are available
 const logger = {
@@ -20,6 +25,15 @@ class AppError extends Error {
     super(message);
     this.code = code;
   }
+}
+
+// Define a type for the user object passed to generateTokenPair
+interface UserForTokenGeneration {
+  id: string | number;
+  role: string;
+  permissions?: string[];
+  store_id?: number;
+  username?: string;
 }
 
 enum ErrorCode {
@@ -46,12 +60,32 @@ interface RefreshTokenPayload {
 }
 
 class AuthenticationService {
-  private refreshTokens = new Map<string, { token: string; userId: string; expiresAt: Date }>();
+  private redis: Redis | null;
   private readonly ACCESS_TOKEN_EXPIRY = '15m';
   private readonly REFRESH_TOKEN_EXPIRY = '7d';
   private readonly SALT_ROUNDS = 12;
+  
+  // Redis key prefixes for token storage
+  private readonly TOKEN_PREFIX = 'auth:token:';
+  private readonly SESSION_PREFIX = 'auth:session:';
+  
+  constructor() {
+    // Initialize Redis client
+    this.redis = getRedisClient();
+    
+    // If Redis client is not available, initialize it
+    if (!this.redis) {
+      this.redis = initRedis();
+      
+      if (!this.redis) {
+        logger.warn('Redis client not available. Using fallback in-memory storage. This is NOT recommended for production!');
+      } else {
+        logger.info('Redis client initialized for token storage');
+      }
+    }
+  }
 
-  async generateTokenPair(user: any): Promise<{ accessToken: string; refreshToken: string }> {
+  async generateTokenPair(user: UserForTokenGeneration): Promise<{ accessToken: string; refreshToken: string }> {
     const sessionId = crypto.randomUUID();
     const tokenVersion = Date.now(); // Simple versioning for token invalidation
 
@@ -77,16 +111,44 @@ class AuthenticationService {
       { expiresIn: this.REFRESH_TOKEN_EXPIRY }
     );
 
-    // Store refresh token
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    this.refreshTokens.set(sessionId, {
-      token: refreshToken,
-      userId: user.id.toString(),
-      expiresAt
-    });
-
-    // Clean up expired tokens
-    this.cleanupExpiredTokens();
+    try {
+      // Store session data in Redis
+      if (this.redis) {
+        // Store token with expiration (7 days in seconds)
+        const expirySeconds = 7 * 24 * 60 * 60; // 7 days
+        
+        // Store the token itself
+        await this.redis.set(
+          `${this.TOKEN_PREFIX}${sessionId}`,
+          refreshToken,
+          'EX',
+          expirySeconds
+        );
+        
+        // Store session metadata
+        const sessionData = {
+          userId: user.id.toString(),
+          expiresAt: new Date(Date.now() + expirySeconds * 1000).toISOString(),
+          createdAt: new Date().toISOString(),
+          role: user.role,
+          username: user.username || 'unknown'
+        };
+        
+        await this.redis.set(
+          `${this.SESSION_PREFIX}${sessionId}`,
+          JSON.stringify(sessionData),
+          'EX',
+          expirySeconds
+        );
+        
+        logger.debug('Stored session in Redis', { sessionId });
+      } else {
+        // Redis not available - log warning
+        logger.warn('Redis unavailable for token storage', { sessionId });
+      }
+    } catch (error: unknown) {
+      logger.error('Failed to store token in Redis', { error, sessionId });
+    }
 
     return { accessToken, refreshToken };
   }
@@ -96,15 +158,42 @@ class AuthenticationService {
       // Using a more explicit approach with options parameter to fix TypeScript error
       const payload = jwt.verify(token, this.getJWTSecret(), this.getJWTVerifyOptions()) as JWTPayload;
       
-      // Verify session still exists
-      if (!this.refreshTokens.has(payload.sessionId)) {
-        logger.warn('Access token used with invalid session', { sessionId: payload.sessionId });
+      // Verify session still exists in Redis
+      if (this.redis) {
+        const sessionKey = `${this.SESSION_PREFIX}${payload.sessionId}`;
+        const sessionExists = await this.redis.exists(sessionKey);
+        
+        if (!sessionExists) {
+          logger.warn('Access token used with invalid session', { sessionId: payload.sessionId });
+          return null;
+        }
+        
+        // Update session last activity time
+        const sessionData = await this.redis.get(sessionKey);
+        if (sessionData) {
+          try {
+            const session = JSON.parse(sessionData);
+            session.lastActivity = new Date().toISOString();
+            
+            // Update session with new last activity time but keep original expiry
+            const ttl = await this.redis.ttl(sessionKey);
+            if (ttl > 0) {
+              await this.redis.set(sessionKey, JSON.stringify(session), 'EX', ttl);
+            }
+          } catch (e: unknown) {
+            logger.error('Error updating session activity', { error: e, sessionId: payload.sessionId });
+          }
+        }
+      } else {
+        // Redis not available - can't validate session
+        logger.warn('Redis unavailable for token validation', { sessionId: payload.sessionId });
         return null;
       }
 
       return payload;
-    } catch (error: any) {
-      logger.debug('Access token validation failed', { error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.debug('Access token validation failed', { error: errorMessage });
       return null;
     }
   }
@@ -113,16 +202,55 @@ class AuthenticationService {
     try {
       // Using a more explicit approach with options parameter to fix TypeScript error
       const payload = jwt.verify(refreshToken, this.getRefreshSecret(), this.getRefreshVerifyOptions()) as RefreshTokenPayload;
-      const storedToken = this.refreshTokens.get(payload.sessionId);
-
-      if (!storedToken || storedToken.token !== refreshToken || storedToken.userId !== payload.userId) {
+      
+      // Verify token in Redis
+      if (!this.redis) {
+        logger.warn('Redis unavailable for token refresh', { sessionId: payload.sessionId });
+        return null;
+      }
+      
+      // Check if token exists and matches
+      const tokenKey = `${this.TOKEN_PREFIX}${payload.sessionId}`;
+      const storedToken = await this.redis.get(tokenKey);
+      
+      if (!storedToken || storedToken !== refreshToken) {
         logger.warn('Invalid refresh token attempt', { sessionId: payload.sessionId });
         return null;
       }
-
-      if (storedToken.expiresAt < new Date()) {
-        logger.warn('Expired refresh token used', { sessionId: payload.sessionId });
-        this.refreshTokens.delete(payload.sessionId);
+      
+      // Get session data
+      const sessionKey = `${this.SESSION_PREFIX}${payload.sessionId}`;
+      const sessionData = await this.redis.get(sessionKey);
+      
+      if (!sessionData) {
+        logger.warn('Session not found during token refresh', { sessionId: payload.sessionId });
+        return null;
+      }
+      
+      // Parse session data
+      let session;
+      try {
+        session = JSON.parse(sessionData);
+        
+        // Check if session has expired (shouldn't happen with Redis TTL, but just in case)
+        const expiresAt = new Date(session.expiresAt);
+        if (expiresAt < new Date()) {
+          logger.warn('Expired session used for token refresh', { sessionId: payload.sessionId });
+          await this.redis.del(tokenKey, sessionKey);
+          return null;
+        }
+        
+        // Verify user ID matches
+        if (session.userId !== payload.userId) {
+          logger.warn('User ID mismatch during token refresh', { 
+            sessionId: payload.sessionId,
+            tokenUserId: payload.userId,
+            sessionUserId: session.userId 
+          });
+          return null;
+        }
+      } catch (e: unknown) {
+        logger.error('Error parsing session data', { error: e, sessionId: payload.sessionId });
         return null;
       }
 
@@ -132,15 +260,28 @@ class AuthenticationService {
       // Use a simplified approach to get user data to fix TypeScript issues
       let userData = null;
       try {
-        // Use a simple approach without parameters to avoid TypeScript errors
-        // In production code, always use parameterized queries for security
-        const result = await db.execute('SELECT id, username, email, role, is_active, store_id FROM users WHERE id = ' + userId + ' AND is_active = true');
+        // Helper function to safely convert values to strings for SQL queries
+        const safeToString = (value: unknown): string => {
+          if (value === null || value === undefined) return '';
+          return String(value).replace(/'/g, "''"); // Escape single quotes
+        };
+        
+        // Use parameterized query with sql template literal for safety
+        const result = await db.execute(
+          sql`SELECT id, username, email, role, is_active, store_id 
+              FROM users 
+              WHERE id = ${safeToString(userId)} AND is_active = true`
+        );
         
         if (result.rows && result.rows.length > 0) {
           userData = result.rows[0];
         }
-      } catch (error) {
-        logger.error('Error getting user data', { error, userId });
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error); // Corrected: error.message
+        logger.error('Error getting user data', { 
+          error: errorMessage, 
+          userId
+        });
         return null;
       }
       
@@ -182,8 +323,11 @@ class AuthenticationService {
       );
 
       return { accessToken };
-    } catch (error) {
-      logger.debug('Refresh token validation failed', { error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.debug('Refresh token validation failed', { 
+        error: errorMessage
+      });
       return null;
     }
   }
@@ -222,29 +366,98 @@ class AuthenticationService {
   }
 
   async revokeSession(sessionId: string): Promise<boolean> {
-    if (this.refreshTokens.has(sessionId)) {
-      this.refreshTokens.delete(sessionId);
-      logger.info('Session revoked', { sessionId });
-      return true;
+    try {
+      if (this.redis) {
+        const tokenKey = `${this.TOKEN_PREFIX}${sessionId}`;
+        const sessionKey = `${this.SESSION_PREFIX}${sessionId}`;
+        
+        // Delete both token and session data
+        const tokenResult = await this.redis.del(tokenKey);
+        const sessionResult = await this.redis.del(sessionKey);
+        
+        const success = tokenResult > 0 || sessionResult > 0;
+        
+        if (success) {
+          logger.info('Session revoked', { sessionId });
+          return true;
+        } else {
+          logger.warn('Session not found for revocation', { sessionId });
+          return false;
+        }
+      } else {
+        logger.warn('Redis unavailable for session revocation', { sessionId });
+        return false;
+      }
+    } catch (error: unknown) {
+      logger.error('Error revoking session', { error, sessionId });
+      return false;
     }
-    return false;
   }
 
   async revokeAllUserSessions(userId: string): Promise<number> {
-    const sessionsToRevoke: string[] = [];
-    
-    for (const [sessionId, tokenData] of this.refreshTokens.entries()) {
-      if (tokenData.userId === userId) {
-        sessionsToRevoke.push(sessionId);
+    try {
+      if (!this.redis) {
+        logger.warn('Redis unavailable for session revocation', { userId });
+        return 0;
       }
+      
+      // We need to scan all sessions to find those belonging to the user
+      const sessionsToRevoke: string[] = [];
+      let cursor = '0';
+      
+      do {
+        // Scan for session keys
+        // The Redis scan command returns a tuple of [nextCursor, keys]
+    const scanResult = await this.redis.scan(
+          cursor, 
+          'MATCH', 
+          `${this.SESSION_PREFIX}*`,
+          'COUNT',
+          '100'
+        );
+        
+    const nextCursor = scanResult[0];
+    const keys = scanResult[1];
+        
+        cursor = nextCursor;
+        
+        // Check each session
+        for (const sessionKey of keys) {
+          const sessionData = await this.redis.get(sessionKey);
+          
+          if (sessionData) {
+            try {
+              const session = JSON.parse(sessionData);
+              
+              if (session.userId === userId) {
+                // Extract session ID from key
+                const sessionId = sessionKey.substring(this.SESSION_PREFIX.length);
+                sessionsToRevoke.push(sessionId);
+              }
+            } catch (e: unknown) {
+              logger.error('Error parsing session data', { error: e, sessionKey });
+            }
+          }
+        }
+      } while (cursor !== '0');
+      
+      // Revoke all sessions found
+      let revokedCount = 0;
+      
+      for (const sessionId of sessionsToRevoke) {
+        const tokenKey = `${this.TOKEN_PREFIX}${sessionId}`;
+        const sessionKey = `${this.SESSION_PREFIX}${sessionId}`;
+        
+        await this.redis.del(tokenKey, sessionKey);
+        revokedCount++;
+      }
+      
+      logger.info('All user sessions revoked', { userId, sessionCount: revokedCount });
+      return revokedCount;
+    } catch (error: unknown) {
+      logger.error('Error revoking all user sessions', { error, userId });
+      return 0;
     }
-
-    sessionsToRevoke.forEach(sessionId => {
-      this.refreshTokens.delete(sessionId);
-    });
-
-    logger.info('All user sessions revoked', { userId, sessionCount: sessionsToRevoke.length });
-    return sessionsToRevoke.length;
   }
 
   async hashPassword(password: string): Promise<string> {
@@ -255,23 +468,12 @@ class AuthenticationService {
     return bcrypt.compare(password, hash);
   }
 
+  // Cleanup is no longer needed as Redis handles expiration automatically
+  // This method is kept for backward compatibility but does nothing
   private cleanupExpiredTokens(): void {
-    const now = new Date();
-    const expiredSessions = new Map<string, any>();
-    
-    for (const [sessionId, tokenData] of this.refreshTokens) {
-      if (tokenData.expiresAt < now) {
-        expiredSessions.set(sessionId, tokenData);
-      }
-    }
-    
-    for (const sessionId of expiredSessions.keys()) {
-      this.refreshTokens.delete(sessionId);
-    }
-    
-    if (expiredSessions.size > 0) {
-      logger.debug('Cleaned up expired tokens', { count: expiredSessions.size });
-    }
+    // Redis handles expiration automatically using the EX parameter
+    // when storing keys, so no manual cleanup is required
+    logger.debug('Token cleanup skipped - Redis handles expiration automatically');
   }
 
   private getJWTSecret(): string {
@@ -355,9 +557,11 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
     }
 
     // Verify user still exists and is active
+    // Use SQL template literal to fix TypeScript errors
     const result = await db.execute(
-      'SELECT id, username, email, role, is_active, store_id FROM users WHERE id = $1',
-      [parseInt(payload.userId)]
+      sql`SELECT id, username, email, role, is_active, store_id 
+          FROM users 
+          WHERE id = ${parseInt(payload.userId)}`
     );
     // Safely type the user result
     const user = result.rows && result.rows.length > 0 ? result.rows[0] as {
@@ -377,16 +581,16 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
       });
     }
 
-    // Set user context following our defined Express.Request interface
-    req.user = {
+    // Set user context following our centralized UserPayload interface
+    const authenticatedUserPayload: UserPayload = {
       id: user.id.toString(),
       role: user.role,
-      store_id: user.store_id ?? undefined, // Fix typing issue with optional store_id
-      name: user.username,
-      email: user.email ?? undefined, // Fix typing issue with optional email
-      sessionId: payload.sessionId,
-      permissions: payload.permissions // Include permissions from the JWT payload
+      storeId: user.store_id ?? undefined,
+      name: user.username, // Assuming username is the primary display name
+      email: user.email, // Assuming user.email is always a string from DB
+      username: user.username, // Explicitly set username
     };
+    req.user = authenticatedUserPayload;
 
     // Log successful authentication
     logger.debug('User authenticated', { 
@@ -396,7 +600,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
     });
 
     next();
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('JWT authentication error', error);
     return res.status(401).json({
       error: 'Authentication failed',
@@ -467,10 +671,10 @@ export const requireStoreAccess = (store_idParam = 'store_id') => {
     }
 
     // Other users can only access their assigned store
-    if (req.user.store_id !== store_id) {
-      logger.warn('Unauthorized store access attempt', {
+    if (req.user.storeId !== store_id) {
+      logger.warn('User tried to access unauthorized store', {
         userId: req.user.id,
-        userStoreId: req.user.store_id,
+        userStoreId: req.user.storeId,
         requestedStoreId: store_id,
         path: req.path
       });
@@ -485,19 +689,5 @@ export const requireStoreAccess = (store_idParam = 'store_id') => {
   };
 };
 
-// Extend Express Request interface
-declare global {
-  namespace Express {
-    // Define a single consistent interface for the user property
-    interface Request {
-      user?: {
-        id: string | number;
-        role: string;
-        storeId?: number;
-        name: string;
-      };
-      // Add permissions as a separate property
-      permissions?: string[];
-    }
-  }
-}
+// No need to extend Express Request interface here
+// It's now centralized in server/types/express.d.ts

@@ -29,7 +29,7 @@ export async function getAIResponse(userId: number, userMessage: string): Promis
     const aiResponse = await getDialogflowResponse(userId, userMessage);
     
     return aiResponse || "I'm sorry, I couldn't process your request at this time.";
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("AI Service Error:", error);
     return "I'm having trouble connecting to my knowledge base right now. Please try again later.";
   }

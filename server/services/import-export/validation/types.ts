@@ -30,13 +30,13 @@ export interface ValidationOptions {
 }
 
 export interface ValidationService {
-  validate(data: any, type: 'products' | 'users' | 'transactions'): Promise<any>;
-  validateBatch(data: any[], type: 'products' | 'users' | 'transactions'): Promise<{
-    valid: any[];
+  validate(data: unknown, type: 'products' | 'users' | 'transactions'): Promise<any>;
+  validateBatch(data: unknown[], type: 'products' | 'users' | 'transactions'): Promise<{
+    valid: unknown[];
     invalid: { index: number; errors: string[] }[];
   }>;
   clearCache(): void;
-  clearCacheForData(data: any, type: 'products' | 'users' | 'transactions'): void;
+  clearCacheForData(data: unknown, type: 'products' | 'users' | 'transactions'): void;
 }
 
 export const validationErrors: Record<z.ZodErrorCodes, string> = {

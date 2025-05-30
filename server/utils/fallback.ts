@@ -40,7 +40,7 @@ export interface FallbackResult<T> {
   fallbackIndex?: number;
   
   /** The error from the last fallback if all failed */
-  error?: any;
+  error?: unknown;
   
   /** Total time spent across all fallbacks */
   totalTimeMs: number;
@@ -67,7 +67,7 @@ export async function withFallback<T>(
   // Create the full list of functions to try (primary + fallbacks)
   const allFunctions = [primaryFn, ...options.fallbacks];
   
-  let lastError: any;
+  let lastError: unknown;
   
   // Try each function in order
   for (let i = 0; i < allFunctions.length; i++) {
@@ -113,7 +113,7 @@ export async function withFallback<T>(
         totalTimeMs: Date.now() - startTime,
         usedDefaultValue: false,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       lastError = error;
       
       logger.warn(`${functionType} failed for operation ${opName}`, {
@@ -283,7 +283,7 @@ export class CircuitBreaker {
       this.state.openedAt = undefined;
       
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       // Increment failure count
       this.state.failureCount++;
       
@@ -311,7 +311,7 @@ export class CircuitBreaker {
       }
       
       // Re-throw the original error
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
   

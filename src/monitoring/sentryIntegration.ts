@@ -39,7 +39,7 @@ export function initializeSentry(): void {
     });
     
     logger.info('Sentry monitoring initialized successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize Sentry', { error });
   }
 }
@@ -84,11 +84,11 @@ export function createRequestHandler(): (req: Request, res: Response, next: Next
           
           // Add transaction outcome
           Sentry.setTag('transaction.outcome', res.statusCode < 500 ? 'success' : 'failure');
-        } catch (err) {
+        } catch (err: unknown) {
           // Ignore errors in tagging
         }
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error in Sentry request handler', { error });
     }
     
@@ -99,8 +99,8 @@ export function createRequestHandler(): (req: Request, res: Response, next: Next
 /**
  * Create Sentry error handler middleware
  */
-export function createErrorHandler(): (err: any, req: Request, res: Response, next: NextFunction) => void {
-  return (err: any, req: Request, res: Response, next: NextFunction) => {
+export function createErrorHandler(): (err: unknown, req: Request, res: Response, next: NextFunction) => void {
+  return (err: unknown, req: Request, res: Response, next: NextFunction) => {
     try {
       // Only capture server errors (5xx)
       const statusCode = err.status || err.statusCode || 500;
@@ -108,7 +108,7 @@ export function createErrorHandler(): (err: any, req: Request, res: Response, ne
       if (statusCode >= 500) {
         Sentry.captureException(err);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error in Sentry error handler', { error });
     }
     
@@ -135,7 +135,7 @@ export function configureSentry(app: Express): void {
     app.use(createErrorHandler());
     
     logger.info('Sentry middleware configured successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to configure Sentry middleware', { error });
   }
 }

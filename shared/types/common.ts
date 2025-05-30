@@ -6,10 +6,10 @@ export type DatabaseConnection = NeonHttpDatabase<typeof schema>;
 export interface ServiceConfig {
   db: DatabaseConnection;
   logger: {
-    info: (message: string, ...args: any[]) => void;
-    error: (message: string, ...args: any[]) => void;
-    warn: (message: string, ...args: any[]) => void;
-    debug: (message: string, ...args: any[]) => void;
+    info: (message: string, ...args: unknown[]) => void;
+    error: (message: string, ...args: unknown[]) => void;
+    warn: (message: string, ...args: unknown[]) => void;
+    debug: (message: string, ...args: unknown[]) => void;
   };
 }
 
@@ -19,7 +19,7 @@ export interface ServiceResult<T> {
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }
 
@@ -38,4 +38,4 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
-export type ServiceFunction<T> = (...args: any[]) => Promise<ServiceResult<T>>;
+export type ServiceFunction<T> = (...args: unknown[]) => Promise<ServiceResult<T>>;

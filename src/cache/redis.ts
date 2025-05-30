@@ -54,7 +54,7 @@ export function initRedis(): Redis | null {
     });
     
     return redisClient;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize Redis', error);
     return null;
   }
@@ -86,7 +86,7 @@ export async function setCacheValue<T>(
     
     logger.debug('Cache value set', { key, ttlSeconds });
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error setting cache value', error instanceof Error ? error : new Error(String(error)), { key });
     return false;
   }
@@ -111,7 +111,7 @@ export async function getCacheValue<T>(key: string): Promise<T | null> {
     
     logger.debug('Cache hit', { key });
     return JSON.parse(value) as T;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error getting cache value', error instanceof Error ? error : new Error(String(error)), { key });
     return null;
   }
@@ -130,7 +130,7 @@ export async function deleteCacheValue(key: string): Promise<boolean> {
     await client.del(key);
     logger.debug('Cache value deleted', { key });
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error deleting cache value', error instanceof Error ? error : new Error(String(error)), { key });
     return false;
   }
@@ -160,7 +160,7 @@ export async function deleteCachePattern(pattern: string): Promise<boolean> {
     
     logger.debug('Cache values deleted by pattern', { pattern, count: keys.length });
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error deleting cache by pattern', error instanceof Error ? error : new Error(String(error)), { pattern });
     return false;
   }
@@ -175,13 +175,13 @@ export function cacheable<T>(
   ttlSeconds: number = DEFAULT_TTL
 ) {
   return function(
-    target: any, 
+    target: unknown, 
     propertyKey: string, 
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
     
-    descriptor.value = async function(...args: any[]) {
+    descriptor.value = async function(...args: unknown[]) {
       // Generate cache key based on function name, arguments and prefix
       const argsString = JSON.stringify(args);
       const cacheKey = `${keyPrefix}:${propertyKey}:${argsString}`;

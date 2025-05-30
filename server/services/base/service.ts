@@ -98,7 +98,7 @@ export abstract class BaseService {
   ): Promise<T> {
     try {
       return await operation();
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, context);
     }
   }

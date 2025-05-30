@@ -111,7 +111,7 @@ export function initializeMonitoring(): void {
     });
     
     logger.info('Sentry monitoring initialized successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize Sentry', error instanceof Error ? error : new Error(String(error)));
   }
 }
@@ -121,7 +121,7 @@ export function initializeMonitoring(): void {
  * @param app Express application
  * @param dbPool Database connection pool
  */
-export function setupAlerts(app: any, dbPool: any): void {
+export function setupAlerts(app: unknown, dbPool: unknown): void {
   if (!process.env.SENTRY_DSN) {
     return;
   }
@@ -145,7 +145,7 @@ export function setupAlerts(app: any, dbPool: any): void {
     }, 60000); // Check every minute
     
     logger.info('Monitoring alerts configured successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to set up alerts', error instanceof Error ? error : new Error(String(error)));
   }
 }
@@ -153,7 +153,7 @@ export function setupAlerts(app: any, dbPool: any): void {
 /**
  * Check system health and trigger alerts if needed
  */
-async function checkSystemHealth(dbPool: any): Promise<void> {
+async function checkSystemHealth(dbPool: unknown): Promise<void> {
   try {
     // Check memory usage
     const memoryUsage = process.memoryUsage();
@@ -210,10 +210,10 @@ async function checkSystemHealth(dbPool: any): Promise<void> {
           );
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // Queue might not be available, ignore
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error checking system health', error instanceof Error ? error : new Error(String(error)));
   }
 }
@@ -250,7 +250,7 @@ export function triggerAlert(key: string, message: string, level: 'info' | 'warn
     
     // Send to other alert channels if configured (e.g. Slack, email, etc.)
     sendAlertToChannels(key, message, level);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to trigger alert', error instanceof Error ? error : new Error(String(error)));
   }
 }
@@ -311,7 +311,7 @@ function sendSlackAlert(message: string, level: string): void {
     }).catch(err => {
       logger.error('Failed to send Slack alert', err);
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error sending Slack alert', error instanceof Error ? error : new Error(String(error)));
   }
 }
@@ -337,7 +337,7 @@ function sendEmailAlert(message: string, level: string): void {
     // Simple implementation using nodemailer or similar service would go here
     // This is just a placeholder
     logger.info(`Sending email alert to ${alertEmail}: ${message}`);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error sending email alert', error instanceof Error ? error : new Error(String(error)));
   }
 }

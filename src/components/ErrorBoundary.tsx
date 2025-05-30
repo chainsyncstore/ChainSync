@@ -141,7 +141,7 @@ export function useErrorHandler(): (error: unknown) => void {
       }
       
       // Re-throw to be caught by the nearest error boundary
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     } else if (error) {
       // Convert non-Error objects to Error
       const convertedError = new Error(

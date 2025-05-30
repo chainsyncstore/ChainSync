@@ -41,7 +41,7 @@ export function setupSecureServer(app: express.Express): http.Server | https.Ser
         log('SSL certificates not found, falling back to HTTP server in production');
         return http.createServer(app);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error setting up HTTPS server:', error);
       log('Failed to set up HTTPS server, falling back to HTTP');
       return http.createServer(app);

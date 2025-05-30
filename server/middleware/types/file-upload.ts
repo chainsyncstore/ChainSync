@@ -24,7 +24,7 @@ export interface ProgressSubscription {
   progressId: string;
   onProgress?: (progress: FileUploadProgress) => void;
   onError?: (error: AppError) => void;
-  onComplete?: (result: any) => void;
+  onComplete?: (result: unknown) => void;
 }
 
 export interface AppError {

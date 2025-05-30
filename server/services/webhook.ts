@@ -46,7 +46,7 @@ export async function handlePaystackWebhook(
   let event;
   try {
     event = JSON.parse(payload);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to parse Paystack webhook payload', error);
     return { success: false, message: 'Invalid payload format' };
   }
@@ -112,7 +112,7 @@ export async function handlePaystackWebhook(
       reference, 
       amount: amount / 100 // Paystack amount is in kobo (smallest currency unit)
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error processing Paystack webhook:', error);
     return { 
       success: false, 
@@ -146,7 +146,7 @@ export async function handleFlutterwaveWebhook(
   let event;
   try {
     event = JSON.parse(payload);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to parse Flutterwave webhook payload', error);
     return { success: false, message: 'Invalid payload format' };
   }
@@ -213,7 +213,7 @@ export async function handleFlutterwaveWebhook(
       reference, 
       amount
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error processing Flutterwave webhook:', error);
     return { 
       success: false, 

@@ -14,7 +14,7 @@ import { eq, and, gt, lt, desc, sql, asc } from 'drizzle-orm';
  * Generic type assertion helper for database operations
  * Use this when TypeScript detects schema mismatches but you know the runtime values are correct
  */
-export function assertType<T>(data: any): T {
+export function assertType<T>(data: unknown): T {
   return data as T;
 }
 
@@ -23,13 +23,13 @@ export function assertType<T>(data: any): T {
  */
 
 // Users
-export function prepareUserData(data: any) {
+export function prepareUserData(data: unknown) {
   // Pass through with type assertion
   return data as any;
 }
 
 // Products
-export function prepareProductData(data: any) {
+export function prepareProductData(data: unknown) {
   // Ensure SKU exists
   const preparedData = {
     ...data,
@@ -39,7 +39,7 @@ export function prepareProductData(data: any) {
 }
 
 // Inventory
-export function prepareInventoryData(data: any) {
+export function prepareInventoryData(data: unknown) {
   return data as any;
 }
 
@@ -48,7 +48,7 @@ export function prepareInventoryData(data: any) {
  */
 
 // Map field names between code and schema
-export function prepareLoyaltyTierData(data: any) {
+export function prepareLoyaltyTierData(data: unknown) {
   // Schema uses 'requiredPoints', code uses 'pointsRequired'
   // Schema uses 'active', code uses 'status'
   const preparedData = {
@@ -66,7 +66,7 @@ export function prepareLoyaltyTierData(data: any) {
   return preparedData as any;
 }
 
-export function prepareLoyaltyMemberData(data: any) {
+export function prepareLoyaltyMemberData(data: unknown) {
   // Schema uses 'isActive', code uses 'status'
   const preparedData = {
     ...data,
@@ -81,14 +81,14 @@ export function prepareLoyaltyMemberData(data: any) {
  * Map for loyalty reward redemption - this is missing from schema but used in code
  * This is a temporary workaround until schema is updated
  */
-export function prepareLoyaltyRedemptionData(data: any) {
+export function prepareLoyaltyRedemptionData(data: unknown) {
   return data as any;
 }
 
 /**
  * Subscription Module Helpers
  */
-export function prepareSubscriptionData(data: any) {
+export function prepareSubscriptionData(data: unknown) {
   // Ensure required fields exist to satisfy Drizzle ORM expectations
   const requiredFields = ['userId', 'plan', 'amount', 'endDate'];
   for (const field of requiredFields) {
@@ -140,12 +140,12 @@ export function prepareSubscriptionData(data: any) {
  */
 
 // Handle the naming discrepancy between schema.returns (in code) and refunds (in database)
-export function prepareRefundData(data: any) {
+export function prepareRefundData(data: unknown) {
   // The schema uses 'returns' but the code expects 'refunds'
   return data as any;
 }
 
-export function prepareRefundItemData(data: any) {
+export function prepareRefundItemData(data: unknown) {
   // The schema uses 'returnItems' but the code expects 'refundItems'
   return data as any;
 }
@@ -166,7 +166,7 @@ export const refundItems = {
 };
 
 // Helper function for formatting refund query results
-export function formatRefundResult(refund: any) {
+export function formatRefundResult(refund: unknown) {
   if (!refund) return null;
   
   return {
@@ -179,7 +179,7 @@ export function formatRefundResult(refund: any) {
  * Helper for converting query results back to expected format
  * (reverse of the prepare functions)
  */
-export function formatLoyaltyTierResult(tier: any) {
+export function formatLoyaltyTierResult(tier: unknown) {
   if (!tier) return null;
   
   return {
@@ -189,7 +189,7 @@ export function formatLoyaltyTierResult(tier: any) {
   };
 }
 
-export function formatLoyaltyMemberResult(member: any) {
+export function formatLoyaltyMemberResult(member: unknown) {
   if (!member) return null;
   
   return {
@@ -198,7 +198,7 @@ export function formatLoyaltyMemberResult(member: any) {
   };
 }
 
-export function formatSubscriptionResult(subscription: any) {
+export function formatSubscriptionResult(subscription: unknown) {
   if (!subscription) return null;
   
   // Parse metadata if it exists and is a string
@@ -206,7 +206,7 @@ export function formatSubscriptionResult(subscription: any) {
   if (typeof subscription.metadata === 'string' && subscription.metadata) {
     try {
       parsedMetadata = JSON.parse(subscription.metadata);
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Failed to parse subscription metadata JSON:', error);
       // Keep original string if parsing fails
     }

@@ -37,7 +37,7 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
         this.formatter.formatResult.bind(this.formatter)
       );
       return this.ensureExists(tx, 'Transaction');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'creating transaction');
     }
   }
@@ -52,7 +52,7 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
         this.formatter.formatResult.bind(this.formatter)
       );
       return this.ensureExists(tx, 'Transaction');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'updating transaction');
     }
   }
@@ -61,7 +61,7 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
     try {
       const query = `SELECT * FROM transactions WHERE id = ${id}`;
       return await this.executeSqlWithFormatting(query, [], this.formatter.formatResult.bind(this.formatter));
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting transaction by id');
     }
   }
@@ -75,7 +75,7 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
         this.itemFormatter.formatResult.bind(this.itemFormatter)
       );
       return this.ensureExists(item, 'Transaction Item');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'creating transaction item');
     }
   }
@@ -90,7 +90,7 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
         this.itemFormatter.formatResult.bind(this.itemFormatter)
       );
       return this.ensureExists(item, 'Transaction Item');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'updating transaction item');
     }
   }
@@ -104,7 +104,7 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
         this.paymentFormatter.formatResult.bind(this.paymentFormatter)
       );
       return this.ensureExists(payment, 'Transaction Payment');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'creating transaction payment');
     }
   }
@@ -119,7 +119,7 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
         this.paymentFormatter.formatResult.bind(this.paymentFormatter)
       );
       return this.ensureExists(payment, 'Transaction Payment');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'updating transaction payment');
     }
   }

@@ -1,7 +1,7 @@
 import { RequestHandler, ErrorRequestHandler } from 'express';
 
 export interface IMiddleware {
-  [key: string]: RequestHandler | ErrorRequestHandler | ((...args: any[]) => RequestHandler);
+  [key: string]: RequestHandler | ErrorRequestHandler | ((...args: unknown[]) => RequestHandler);
 }
 
 export interface AuthMiddleware extends IMiddleware {

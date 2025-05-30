@@ -25,9 +25,13 @@ build
 # Build
 /dist
 /build
+/dist.bak
 .cache
 .temp
 .tmp
+
+# Backups
+*.bak
 
 # Logs
 logs

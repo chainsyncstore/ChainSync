@@ -6,6 +6,34 @@
  * conversion and SQL string escaping.
  */
 import { toDatabaseFields } from './field-mapping';
+import { sql } from 'drizzle-orm';
+
+/**
+ * Safely convert any value to string for use in SQL template literals
+ * This is critical for TypeScript compatibility with Drizzle ORM
+ * 
+ * @param value Any value to be converted to string for SQL
+ * @returns String representation safe for SQL template literals
+ */
+export function safeToString(value: any): string {
+  if (value === null || value === undefined) {
+    return 'NULL';
+  }
+  
+  if (typeof value === 'boolean') {
+    return value ? 'TRUE' : 'FALSE';
+  }
+  
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  
+  return String(value);
+}
 
 /**
  * Format a date value for safe inclusion in SQL queries
@@ -25,7 +53,7 @@ export function formatDateForSql(date: Date | string | null | undefined): string
  * @param data The data to serialize to JSON (can be any object or null/undefined)
  * @returns A SQL-safe string representation of the JSON data or 'NULL'
  */
-export function formatJsonForSql(data: any): string {
+export function formatJsonForSql(data: unknown): string {
   if (!data) return 'NULL';
   // Escape single quotes to prevent SQL injection
   return `'${JSON.stringify(data).replace(/'/g, "''")}'`;
@@ -43,7 +71,7 @@ export function buildInsertQuery(
   tableName: string, 
   data: Record<string, any>,
   returnFields: string[] = ['*']
-): { query: string, values: any[] } {
+): { query: string, values: unknown[] } {
   const dbFields = toDatabaseFields(data);
   const fields = Object.keys(dbFields);
   const placeholders = fields.map((_, i) => `$${i + 1}`);
@@ -73,7 +101,7 @@ export function buildUpdateQuery(
   data: Record<string, any>,
   whereCondition: string,
   returnFields: string[] = ['*']
-): { query: string, values: any[] } {
+): { query: string, values: unknown[] } {
   const dbFields = toDatabaseFields(data);
   const fields = Object.keys(dbFields);
   const values = Object.values(dbFields);

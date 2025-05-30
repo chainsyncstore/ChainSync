@@ -53,7 +53,7 @@ class SupplierApiService {
   }> {
     try {
       return await this.client.get(`/products/${productId}/availability`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Failed to check product availability', { productId, error });
       // Return a safe default when the API is unavailable
       return {
@@ -67,7 +67,7 @@ class SupplierApiService {
   /**
    * Place an order with the supplier
    */
-  async placeOrder(orderData: any): Promise<{ orderId: string; status: string }> {
+  async placeOrder(orderData: unknown): Promise<{ orderId: string; status: string }> {
     return this.client.post('/orders', orderData);
   }
 
@@ -81,7 +81,7 @@ class SupplierApiService {
   /**
    * Process a batch of inventory updates using circuit breaker pattern
    */
-  async processBatchUpdates(updates: any[]): Promise<any[]> {
+  async processBatchUpdates(updates: unknown[]): Promise<any[]> {
     return this.circuitBreaker.execute(async () => {
       return this.client.post('/inventory/batch-update', { updates });
     });
@@ -253,7 +253,7 @@ export class ResilientInventoryService {
    * Queue auto-reorder for inventory
    * Private helper method
    */
-  private async queueAutoReorder(tx: any, inventory: any): Promise<void> {
+  private async queueAutoReorder(tx: unknown, inventory: unknown): Promise<void> {
     try {
       // Check if a reorder request already exists and is pending
       const existingReorder = await tx.query.reorderRequests.findFirst({
@@ -276,7 +276,7 @@ export class ResilientInventoryService {
         status: 'pending',
         createdAt: new Date()
       });
-    } catch (error) {
+    } catch (error: unknown) {
       // Log error but don't fail the transaction
       logger.error('Failed to queue auto-reorder', {
         inventoryId: inventory.id,
@@ -292,7 +292,7 @@ export class ResilientInventoryService {
   async processPendingReorders(storeId: number): Promise<{
     processed: number;
     failed: number;
-    details: any[];
+    details: unknown[];
   }> {
     // Find pending reorder requests
     const pendingReorders = await db.query.reorderRequests.findMany({
@@ -369,7 +369,7 @@ export class ResilientInventoryService {
           status: 'ordered',
           orderId: orderResult.orderId
         });
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Failed to process reorder', {
           reorderId: reorder.id,
           productId: reorder.productId,

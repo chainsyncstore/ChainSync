@@ -85,7 +85,7 @@ jest.mock('@shared/schema-validation', () => ({
     }
   },
   SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: any) {
+    constructor(message: string, options?: unknown) {
       super(message);
       this.name = 'SchemaValidationError';
     }
@@ -152,14 +152,14 @@ describe('TransactionService', () => {
     mockInventoryService = new InventoryService() as jest.Mocked<InventoryService>;
     // Type-safe: adjustInventory expects (params: InventoryAdjustmentParams) => Promise<boolean>
     mockInventoryService.adjustInventory = jest.fn<(
-      params: any // Replace 'any' with InventoryAdjustmentParams if available
+      params: unknown // Replace 'any' with InventoryAdjustmentParams if available
     ) => Promise<boolean>>().mockResolvedValue(true);
 
     // Set up mocked loyalty service
     mockLoyaltyService = new LoyaltyService() as jest.Mocked<LoyaltyService>;
-    // Type-safe: awardPoints expects (params: any) => Promise<boolean>
+    // Type-safe: awardPoints expects (params: unknown) => Promise<boolean>
     mockLoyaltyService.awardPoints = jest.fn<(
-      params: any // Replace 'any' with AwardPointsParams if available
+      params: unknown // Replace 'any' with AwardPointsParams if available
     ) => Promise<boolean>>().mockResolvedValue(true);
 
     // Apply mocks to TransactionService constructor

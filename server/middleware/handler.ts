@@ -5,7 +5,7 @@ export function createRequestHandler(fn: RequestHandler): RequestHandler {
   return function (req, res, next) {
     try {
       return fn(req, res, next);
-    } catch (err) {
+    } catch (err: unknown) {
       next(err);
     }
   };
@@ -15,7 +15,7 @@ export function createErrorHandler(fn: ErrorRequestHandler): ErrorRequestHandler
   return function (err, req, res, next) {
     try {
       return fn(err, req, res, next);
-    } catch (e) {
+    } catch (e: unknown) {
       next(e);
     }
   };

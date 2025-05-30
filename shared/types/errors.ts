@@ -3,13 +3,13 @@ import { ZodError, ZodIssue } from 'zod';
 // Type definitions for database errors
 interface ValidationError extends Error {
   name: 'ValidationError';
-  errors: any[];
+  errors: unknown[];
 }
 
 interface MongoError extends Error {
   name: 'MongoError';
   code: number;
-  keyValue?: any;
+  keyValue?: unknown;
 }
 
 export enum ErrorCategory {
@@ -158,7 +158,8 @@ export enum ErrorCode {
   CONFIGURATION_ERROR = 'CONFIGURATION_ERROR',
   TEMPORARY_UNAVAILABLE = 'TEMPORARY_UNAVAILABLE',
   INSUFFICIENT_STOCK = 'INSUFFICIENT_STOCK',
-  INSUFFICIENT_BALANCE = 'INSUFFICIENT_BALANCE'
+  INSUFFICIENT_BALANCE = 'INSUFFICIENT_BALANCE',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR' // Added missing UNKNOWN_ERROR
 }
 
 export interface BaseError {
@@ -176,7 +177,7 @@ export class AppError extends Error {
   statusCode?: number;
   retryable?: boolean;
   retryAfter?: number;
-  validationErrors?: any[];
+  validationErrors?: unknown[];
 
   constructor(
     message: string,
@@ -186,7 +187,7 @@ export class AppError extends Error {
     statusCode?: number,
     retryable?: boolean,
     retryAfter?: number,
-    validationErrors?: any[]
+    validationErrors?: unknown[]
   ) {
     super(message);
     this.code = code as ErrorCode;

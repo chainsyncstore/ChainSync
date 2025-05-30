@@ -69,7 +69,7 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
         updatedAt: new Date()
       });
       return product;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -102,7 +102,7 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
       const validatedData = productValidation.update(updateData);
       const [updatedProduct] = await db.update(schema.products).set(validatedData).where(eq(schema.products.id, productId)).returning();
       return updatedProduct;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -115,7 +115,7 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
       const result = await db.delete(schema.products).where(eq(schema.products.id, productId)).returning({ id: schema.products.id });
       if (result.length === 0) throw ProductServiceErrors.PRODUCT_NOT_FOUND;
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Deleting product');
     }
   }
@@ -127,7 +127,7 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
         with: { category: true, brand: true, inventory: true }
       });
       return product;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting product by ID');
     }
   }

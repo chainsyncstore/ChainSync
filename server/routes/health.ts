@@ -68,7 +68,7 @@ router.get('/readyz', async (req: Request, res: Response) => {
         redis: redisStatus
       }
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Readiness check failed', error instanceof Error ? error : new Error(String(error)));
     
     res.status(503).json({
@@ -155,7 +155,7 @@ router.get('/health/details', async (req: Request, res: Response) => {
       },
       system: systemInfo
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error in detailed health check', error instanceof Error ? error : new Error(String(error)));
     
     res.status(500).json({
@@ -169,7 +169,7 @@ router.get('/health/details', async (req: Request, res: Response) => {
 /**
  * Database health check
  */
-async function checkDatabase(): Promise<{ status: string; responseTime?: string; poolStats?: any; error?: string }> {
+async function checkDatabase(): Promise<{ status: string; responseTime?: string; poolStats?: unknown; error?: string }> {
   const startTime = performance.now();
   
   try {
@@ -189,7 +189,7 @@ async function checkDatabase(): Promise<{ status: string; responseTime?: string;
       responseTime: `${responseTime.toFixed(2)}ms`,
       poolStats
     };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Database health check failed', error instanceof Error ? error : new Error(String(error)));
     
     return {
@@ -223,7 +223,7 @@ async function checkRedis(): Promise<{ status: string; responseTime?: string; er
       status: 'UP',
       responseTime: `${responseTime.toFixed(2)}ms`
     };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Redis health check failed', error instanceof Error ? error : new Error(String(error)));
     
     return {
@@ -259,7 +259,7 @@ async function checkQueues(): Promise<{
         ]);
         
         queueStats[queueType] = { waiting, active, delayed, failed };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.warn(`Failed to get stats for queue ${queueType}`, error instanceof Error ? error : new Error(String(error)));
         queueStats[queueType] = { waiting: 0, active: 0, delayed: 0, failed: 0 };
       }
@@ -269,7 +269,7 @@ async function checkQueues(): Promise<{
       status: 'UP',
       queues: queueStats
     };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Queue health check failed', error instanceof Error ? error : new Error(String(error)));
     
     return {
@@ -384,7 +384,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
       await dbManager.executeQuery(db => db.execute('SELECT 1'), 'metrics-latency-check');
       const dbLatency = performance.now() - dbStartTime;
       metrics.push(`db_query_latency_ms ${dbLatency.toFixed(2)} ${timestamp}`);
-    } catch (error) {
+    } catch (error: unknown) {
       metrics.push(`# HELP db_status Database availability status (1=up, 0=down)`);
       metrics.push(`# TYPE db_status gauge`);
       metrics.push(`db_status 0 ${timestamp}`);
@@ -412,7 +412,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
         metrics.push(`# TYPE redis_status gauge`);
         metrics.push(`redis_status 0 ${timestamp}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       metrics.push(`# HELP redis_status Redis availability status (1=up, 0=down)`);
       metrics.push(`# TYPE redis_status gauge`);
       metrics.push(`redis_status 0 ${timestamp}`);
@@ -436,7 +436,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
     // Send metrics in Prometheus format
     res.set('Content-Type', 'text/plain');
     res.send(metrics.join('\n'));
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error generating metrics', error instanceof Error ? error : new Error(String(error)));
     res.status(500).json({
       error: 'Failed to generate metrics',
@@ -482,7 +482,7 @@ router.get('/health/performance', async (req: Request, res: Response) => {
       database: dbStats,
       os: osInfo
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error in performance metrics endpoint', error instanceof Error ? error : new Error(String(error)));
     
     res.status(500).json({
@@ -533,7 +533,7 @@ router.get('/debug', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
       debugInfo
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error generating debug info', error instanceof Error ? error : new Error(String(error)));
     
     res.status(500).json({

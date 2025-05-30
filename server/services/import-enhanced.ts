@@ -1,6 +1,7 @@
 import { parse as csvParse } from 'csv-parse/sync';
 import { stringify as csvStringify } from 'csv-stringify/sync';
-import * as xlsx from 'xlsx';
+// Import secure xlsx wrapper instead of direct xlsx import
+import { SecureXlsx } from '../utils/secure-xlsx';
 import { storage } from '../storage';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -14,7 +15,7 @@ export interface ImportResult {
   totalRows: number;
   importedRows: number;
   errors: ImportError[];
-  mappedData: any[];
+  mappedData: unknown[];
   missingFields: MissingField[];
   lastUpdated?: Date;
 }
@@ -63,7 +64,7 @@ export const expectedSchemas = {
 };
 
 // Validate a data value against expected type
-export function validateDataType(value: any, expectedType: string): boolean {
+export function validateDataType(value: unknown, expectedType: string): boolean {
   if (value === null || value === undefined) return false;
   
   switch (expectedType) {
@@ -103,9 +104,9 @@ export async function processImportFile(
   fileType: string,
   dataType: 'loyalty' | 'inventory'
 ): Promise<{ 
-  data: any[]; 
+  data: unknown[]; 
   columnSuggestions: ColumnMapping[];
-  sampleData: any[];
+  sampleData: unknown[];
   headerValidation: {
     missingRequired: string[];
     foundHeaders: string[];
@@ -113,7 +114,7 @@ export async function processImportFile(
   }
 }> {
   // Parse file based on type
-  let parsedData: any[] = [];
+  let parsedData: unknown[] = [];
   let originalHeaders: string[] = [];
   
   try {
@@ -140,25 +141,50 @@ export async function processImportFile(
       fileType.includes('excel') || 
       fileType.includes('xls')
     ) {
-      const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      // Use secure xlsx wrapper
+      const secureXlsx = new SecureXlsx({
+        maxFileSize: 10 * 1024 * 1024, // 10MB limit
+        maxSheets: 5,
+        maxRows: 10000
+      });
       
-      // Get headers from the first row
-      const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1');
-      originalHeaders = [];
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddress = xlsx.utils.encode_cell({ r: range.s.r, c: col });
-        if (worksheet[cellAddress]) {
-          originalHeaders.push(worksheet[cellAddress].v);
-        }
+      // Process Excel file safely
+      const sheets = secureXlsx.readFile(fileBuffer);
+      
+      // Get first sheet data
+      const firstSheetName = Object.keys(sheets)[0];
+      if (!firstSheetName) {
+        throw new Error('No sheets found in Excel file');
       }
       
-      parsedData = xlsx.utils.sheet_to_json(worksheet);
+      const sheetData = sheets[firstSheetName];
+      
+      // Extract headers (first row)
+      if (sheetData.length > 0) {
+        originalHeaders = Array.isArray(sheetData[0]) ? sheetData[0] : [];
+      }
+      
+      // Create parsed data objects with headers as keys
+      parsedData = [];
+      for (let i = 1; i < sheetData.length; i++) {
+        const row = sheetData[i];
+        if (!row || !Array.isArray(row)) continue;
+        
+        const rowObj: Record<string, any> = {};
+        originalHeaders.forEach((header, index) => {
+          if (header && index < row.length) {
+            rowObj[header] = row[index];
+          }
+        });
+        
+        if (Object.keys(rowObj).length > 0) {
+          parsedData.push(rowObj);
+        }
+      }
     } else {
       throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error parsing file:', error);
     throw new Error(`Failed to parse file: ${error.message || 'Unknown error'}`);
   }
@@ -202,9 +228,9 @@ export async function processImportFile(
 
 // Apply column mapping to raw data
 export function applyColumnMapping(
-  data: any[],
+  data: unknown[],
   mapping: Record<string, string>
-): any[] {
+): unknown[] {
   return data.map(row => {
     const mappedRow: Record<string, any> = {};
     
@@ -221,7 +247,7 @@ export function applyColumnMapping(
 
 // Validate and clean inventory data
 export async function validateInventoryData(
-  data: any[]
+  data: unknown[]
 ): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
@@ -238,7 +264,7 @@ export async function validateInventoryData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'inventory');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -255,7 +281,7 @@ export async function validateInventoryData(
  * @returns Updated import result
  */
 export function basicValidateInventoryData(
-  data: any[],
+  data: unknown[],
   result: ImportResult
 ): ImportResult {
   const processedBarcodes = new Set<string>();
@@ -357,7 +383,7 @@ export function basicValidateInventoryData(
               // Store the cleaned price in the row
               cleanedRow[field] = numPrice;
             }
-          } catch (e) {
+          } catch (e: unknown) {
             result.errors.push({
               row: rowNumber,
               field,
@@ -388,7 +414,7 @@ export function basicValidateInventoryData(
               // Store the cleaned quantity in the row
               cleanedRow[field] = numQty;
             }
-          } catch (e) {
+          } catch (e: unknown) {
             result.errors.push({
               row: rowNumber,
               field,
@@ -434,7 +460,7 @@ export function basicValidateInventoryData(
             } else {
               cleanedRow[field] = date;
             }
-          } catch (e) {
+          } catch (e: unknown) {
             result.errors.push({
               row: rowNumber,
               field,
@@ -470,7 +496,7 @@ export function basicValidateInventoryData(
 
 // Validate and clean loyalty data
 export async function validateLoyaltyData(
-  data: any[]
+  data: unknown[]
 ): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
@@ -487,7 +513,7 @@ export async function validateLoyaltyData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'loyalty');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -497,7 +523,7 @@ export async function validateLoyaltyData(
 
 // Basic loyalty data validation
 export function basicValidateLoyaltyData(
-  data: any[],
+  data: unknown[],
   result: ImportResult
 ): ImportResult {
   const processedLoyaltyIds = new Set<string>();
@@ -630,7 +656,7 @@ export function basicValidateLoyaltyData(
               // Store the cleaned points in the row
               cleanedRow[field] = numPoints;
             }
-          } catch (e) {
+          } catch (e: unknown) {
             result.errors.push({
               row: rowNumber,
               field,
@@ -668,7 +694,7 @@ export function basicValidateLoyaltyData(
                 cleanedRow[field] = date;
               }
             }
-          } catch (e) {
+          } catch (e: unknown) {
             result.errors.push({
               row: rowNumber,
               field,
@@ -693,7 +719,7 @@ export function basicValidateLoyaltyData(
 }
 
 // Import validated inventory data to database
-export async function importInventoryData(data: any[], storeId: number): Promise<ImportResult> {
+export async function importInventoryData(data: unknown[], storeId: number): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -781,7 +807,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
       }
       
       result.importedRows++;
-    } catch (error: any) {
+    } catch (error: unknown) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
@@ -796,7 +822,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
 }
 
 // Import validated loyalty data to database
-export async function importLoyaltyData(data: any[], storeId: number): Promise<ImportResult> {
+export async function importLoyaltyData(data: unknown[], storeId: number): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -858,7 +884,7 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
       }
       
       result.importedRows++;
-    } catch (error: any) {
+    } catch (error: unknown) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
@@ -910,7 +936,7 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
   
   // Sort data rows by row number (preserve header rows)
   const headerRows = rows.slice(0, 7); // First 7 rows are header info
-  const dataRows = rows.slice(7).sort((a: any[], b: any[]) => {
+  const dataRows = rows.slice(7).sort((a: unknown[], b: unknown[]) => {
     // Check if the values are parseable numbers
     const numA = !isNaN(parseInt(a[0])) ? parseInt(a[0]) : 0;
     const numB = !isNaN(parseInt(b[0])) ? parseInt(b[0]) : 0;
@@ -949,7 +975,7 @@ async function getColumnMappingSuggestions(
   try {
     const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
     return enhancedSuggestions;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error enhancing mappings with AI:", error);
     // If AI enhancement fails, return the basic pattern matching results
     return suggestions;
@@ -1021,7 +1047,7 @@ async function enhanceMappingsWithAI(
     const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
     
     return improvedMappings;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error using Dialogflow for column mapping:", error);
     return initialSuggestions;
   }

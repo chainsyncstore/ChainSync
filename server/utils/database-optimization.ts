@@ -10,7 +10,7 @@ interface QueryMetrics {
   query: string;
   duration: number;
   timestamp: Date;
-  params?: any[];
+  params?: unknown[];
   rowCount?: number;
   error?: string;
 }
@@ -41,7 +41,7 @@ class QueryPerformanceMonitor {
   async monitorQuery<T>(
     queryFn: () => Promise<T>,
     query: string,
-    params?: any[]
+    params?: unknown[]
   ): Promise<T> {
     const startTime = performance.now();
     const timestamp = new Date();
@@ -70,7 +70,7 @@ class QueryPerformanceMonitor {
       }
       
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       const duration = performance.now() - startTime;
       
       const metric: QueryMetrics = {
@@ -90,7 +90,7 @@ class QueryPerformanceMonitor {
         params: metric.params
       });
       
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -147,7 +147,7 @@ class QueryPerformanceMonitor {
       .substring(0, 500); // Limit length
   }
 
-  private sanitizeParams(params?: any[]): any[] | undefined {
+  private sanitizeParams(params?: unknown[]): unknown[] | undefined {
     if (!params) return undefined;
     
     // Sanitize sensitive parameters
@@ -159,7 +159,7 @@ class QueryPerformanceMonitor {
     });
   }
 
-  private extractRowCount(result: any): number | undefined {
+  private extractRowCount(result: unknown): number | undefined {
     if (result && typeof result === 'object') {
       if ('rowCount' in result) return result.rowCount;
       if ('rows' in result && Array.isArray(result.rows)) return result.rows.length;
@@ -307,7 +307,7 @@ class DatabaseIndexAnalyzer {
       // Analyze for missing indexes on foreign keys
       const foreignKeys = await this.getForeignKeys();
       for (const fk of foreignKeys) {
-        const hasIndex = indexStats.some((idx: any) => 
+        const hasIndex = indexStats.some((idx: unknown) => 
           idx.table_name === fk.table_name && 
           idx.column_names.includes(fk.column_name)
         );
@@ -356,7 +356,7 @@ class DatabaseIndexAnalyzer {
         recommendations.push(`Found ${duplicateIndexes.length} duplicate indexes that can be removed`);
       }
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error analyzing indexes:', error);
       recommendations.push('Error occurred during index analysis');
     }
@@ -447,7 +447,7 @@ class DatabaseIndexAnalyzer {
 /**
  * Create optimized database pool with monitoring
  */
-export function createOptimizedPool(config: any): Pool {
+export function createOptimizedPool(config: unknown): Pool {
   const optimizedConfig = {
     ...config,
     // Optimize connection pool settings

@@ -18,9 +18,13 @@ const defaultOptions: SanitizationOptions = {
 
 /**
  * Sanitize a string value to prevent XSS attacks
- * Uses a simple but effective approach without external dependencies
+ * Uses proper output encoding to prevent cross-site scripting vulnerabilities
  */
 export function sanitizeString(value: string, options: SanitizationOptions = {}): string {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+
   const opts = { ...defaultOptions, ...options };
   
   // Check length limit
@@ -29,26 +33,30 @@ export function sanitizeString(value: string, options: SanitizationOptions = {})
   }
   
   if (!opts.allowHtml) {
-    // Remove HTML tags and decode HTML entities
+    // Properly encode HTML entities for output contexts
     return value
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"')
-      .replace(/&#x27;/g, "'")
-      .replace(/&#x2F;/g, '/')
-      .replace(/&#x60;/g, '`')
-      .replace(/&#x3D;/g, '=');
+      // First strip out any HTML tags completely
+      .replace(/<[^>]*>/g, '')
+      // Then encode special characters to prevent XSS
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;')
+      .replace(/`/g, '&#x60;')
+      .replace(/=/g, '&#x3D;');
   }
   
+  // If HTML is allowed, still ensure the string is returned as-is without decoding entities
+  // This prevents double-encoding issues
   return value;
 }
 
 /**
  * Recursively sanitize an object
  */
-function sanitizeObject(obj: any, options: SanitizationOptions = {}): any {
+function sanitizeObject(obj: unknown, options: SanitizationOptions = {}): unknown {
   if (typeof obj === 'string') {
     return sanitizeString(obj, options);
   }
@@ -58,7 +66,7 @@ function sanitizeObject(obj: any, options: SanitizationOptions = {}): any {
   }
   
   if (obj && typeof obj === 'object') {
-    const sanitized: any = {};
+    const sanitized: unknown = {};
     for (const [key, value] of Object.entries(obj)) {
       // Sanitize the key as well
       const sanitizedKey = sanitizeString(key, { maxLength: 100, allowHtml: false });
@@ -92,7 +100,7 @@ export function inputSanitization(options: SanitizationOptions = {}) {
       }
       
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(400).json({
         error: 'Invalid input',
         message: error instanceof Error ? error.message : 'Input validation failed'
@@ -152,7 +160,7 @@ export function validateInput(schema: z.ZodSchema) {
       const validatedData = schema.parse(req.body);
       req.body = validatedData;
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const errorMessages = error.errors.map(err => ({
           field: err.path.join('.'),
@@ -174,32 +182,19 @@ export function validateInput(schema: z.ZodSchema) {
 }
 
 /**
- * SQL Injection prevention helpers
+ * SQL Safety Notice
+ * 
+ * IMPORTANT: DO NOT use string concatenation or manual escaping for SQL queries.
+ * Instead, use parameterized queries with the Drizzle ORM:
+ * 
+ * CORRECT: sql`SELECT * FROM users WHERE id = ${userId}`
+ * INCORRECT: `SELECT * FROM users WHERE id = '${userId}'`
+ * 
+ * For dynamic table or column names, use the sql.identifier helper:
+ * 
+ * CORRECT: sql`SELECT * FROM ${sql.identifier(tableName)} WHERE id = ${userId}`
+ * INCORRECT: `SELECT * FROM ${tableName} WHERE id = '${userId}'`
  */
-export const sqlSafetyHelpers = {
-  /**
-   * Escape SQL identifiers (table names, column names)
-   */
-  escapeIdentifier: (identifier: string): string => {
-    // Remove any non-alphanumeric characters except underscores
-    return identifier.replace(/[^a-zA-Z0-9_]/g, '');
-  },
-  
-  /**
-   * Validate that a string contains only safe characters for SQL
-   */
-  isSqlSafe: (value: string): boolean => {
-    // Check for common SQL injection patterns
-    const dangerousPatterns = [
-      /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/i,
-      /(--|\/\*|\*\/)/,
-      /(\b(UNION|OR|AND)\b.*\b(SELECT|INSERT|UPDATE|DELETE)\b)/i,
-      /(;|\||&)/
-    ];
-    
-    return !dangerousPatterns.some(pattern => pattern.test(value));
-  }
-};
 
 /**
  * Password policy enforcement

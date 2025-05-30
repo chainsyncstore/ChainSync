@@ -20,27 +20,27 @@ export class CacheService {
       const value = await this.client.get(key);
       if (!value) return null;
       return JSON.parse(value);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache get error:', error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
-  async set(key: string, value: any, ttl: number = env.CACHE_TTL): Promise<void> {
+  async set(key: string, value: unknown, ttl: number = env.CACHE_TTL): Promise<void> {
     try {
       await this.client.set(key, JSON.stringify(value), 'EX', ttl);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache set error:', error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
   async del(key: string): Promise<void> {
     try {
       await this.client.del(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache delete error:', error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -50,18 +50,18 @@ export class CacheService {
       if (keys.length > 0) {
         await this.client.del(keys);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache invalidate pattern error:', error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
   async close(): Promise<void> {
     try {
       await this.client.disconnect();
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache close error:', error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 }

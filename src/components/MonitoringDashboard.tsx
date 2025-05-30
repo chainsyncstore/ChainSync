@@ -56,7 +56,7 @@ const MonitoringDashboard: React.FC = () => {
       setAlerts(alertsData);
       
       setError(null);
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
@@ -89,7 +89,7 @@ const MonitoringDashboard: React.FC = () => {
       setAlerts(alerts.map(alert => 
         alert.id === alertId ? { ...alert, acknowledged: true } : alert
       ));
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error acknowledging alert:', err);
     }
   };

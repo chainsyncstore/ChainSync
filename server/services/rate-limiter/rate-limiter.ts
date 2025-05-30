@@ -35,7 +35,7 @@ export class RateLimiter {
 
     try {
       return await callback();
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Redis error',
         ErrorCode.INTERNAL_SERVER_ERROR,
@@ -77,7 +77,7 @@ export class RateLimiter {
       }
 
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Rate limit check failed',
         ErrorCode.INTERNAL_SERVER_ERROR,
@@ -100,7 +100,7 @@ export class RateLimiter {
             .exec()
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Rate limit increment failed',
         ErrorCode.INTERNAL_SERVER_ERROR,
@@ -127,7 +127,7 @@ export class RateLimiter {
       }
 
       return this.config.maxRequests;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Failed to get remaining requests',
         ErrorCode.INTERNAL_SERVER_ERROR,
@@ -145,7 +145,7 @@ export class RateLimiter {
       if (this.redis) {
         await this.withRedis(() => this.redis.del(key));
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Failed to reset rate limit',
         ErrorCode.INTERNAL_SERVER_ERROR,
@@ -164,7 +164,7 @@ export class RateLimiter {
           await this.withRedis(() => this.redis.del(keys));
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to cleanup rate limits:', error);
     }
   }

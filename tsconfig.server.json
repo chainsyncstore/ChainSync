@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": ["./tsconfig.base.json", "./tsconfig.paths.json"],
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": ".",
@@ -16,17 +16,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": false,
-    "baseUrl": ".",
-    "paths": {
-      "@db": ["./db"],
-      "@db/*": ["./db/*"],
-      "@shared/*": ["./shared/*"],
-      "@server/*": ["./server/*"],
-      "@src/*": ["./src/*"],
-      "@shared/schema": ["./shared/schema"],
-      "@shared/schema-helpers": ["./shared/schema-helpers"]
-    }
+    "strict": true,
+    "isolatedModules": true
   },
   "include": [
     "server/**/*.ts",

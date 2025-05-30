@@ -137,7 +137,7 @@ export function validateEnvironment(): EnvConfig {
     }
     
     return config;
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       const errorMessages = error.errors.map(err => {
         const path = err.path.join('.');
@@ -152,7 +152,7 @@ export function validateEnvironment(): EnvConfig {
       process.exit(1);
     }
     
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 

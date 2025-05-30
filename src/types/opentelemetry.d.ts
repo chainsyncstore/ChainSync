@@ -11,16 +11,16 @@ declare module '@opentelemetry/sdk-node' {
   }
   
   export interface NodeSDKConfiguration {
-    resource?: any;
-    spanProcessor?: any;
-    traceExporter?: any;
-    instrumentations?: any[];
+    resource?: unknown;
+    spanProcessor?: unknown;
+    traceExporter?: unknown;
+    instrumentations?: unknown[];
     serviceName?: string;
   }
 }
 
 declare module '@opentelemetry/auto-instrumentations-node' {
-  export function getNodeAutoInstrumentations(config?: Record<string, any>): any[];
+  export function getNodeAutoInstrumentations(config?: Record<string, any>): unknown[];
 }
 
 declare module '@opentelemetry/exporter-trace-otlp-http' {
@@ -74,11 +74,11 @@ declare module '@opentelemetry/instrumentation-redis' {
 
 declare module '@opentelemetry/api' {
   export const trace: {
-    getTracer(name: string): any;
-    getSpan(context: any): any;
+    getTracer(name: string): unknown;
+    getSpan(context: unknown): unknown;
   };
   
   export const context: {
-    active(): any;
+    active(): unknown;
   };
 }

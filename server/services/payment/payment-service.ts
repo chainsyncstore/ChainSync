@@ -5,8 +5,8 @@ import { ConsoleLogger } from '../../../src/logging/Logger';
 import { PaymentProviderConfig, PaymentVerificationResponse, PaymentAnalytics, PaymentWebhookRequest, PaymentStatus, PaymentInitializationResponse, FlutterwavePaymentRequest } from './payment-types';
 
 export class PaymentService {
-  private readonly paystack: any;
-  private readonly flutterwave: any;
+  private readonly paystack: unknown;
+  private readonly flutterwave: unknown;
   private readonly config: PaymentProviderConfig;
   private logger: Logger = ConsoleLogger;
 

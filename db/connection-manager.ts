@@ -1,7 +1,8 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import * as schema from "@shared/schema";
+// Import the specific 'schema' object
+import { schema } from "@shared/schema"; 
 import { getLogger } from '../src/logging';
 
 const logger = getLogger().child({ component: 'db-connection-manager' });
@@ -61,7 +62,7 @@ class DbConnectionManager {
       max: poolSize,
       idleTimeoutMillis: CONNECTION_IDLE_TIMEOUT_MS,
       connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
-      statement_timeout: STATEMENT_TIMEOUT_MS,
+      // statement_timeout: STATEMENT_TIMEOUT_MS, // Removed potentially unsupported property
     });
 
     // Set up event listeners for connection management
@@ -90,7 +91,7 @@ class DbConnectionManager {
     });
 
     // Initialize Drizzle with the connection pool
-    this.drizzleDb = drizzle({ client: this.pool, schema });
+    this.drizzleDb = drizzle(this.pool, { schema });
     this.isInitialized = true;
 
     logger.info('Database connection pool initialized', { 

@@ -91,7 +91,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       
       // Ensure the inventory was created
       return this.ensureExists(inventory, 'Inventory');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'creating inventory');
     }
   }
@@ -131,7 +131,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       
       // Ensure the inventory was updated
       return this.ensureExists(updatedInventory, 'Inventory');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'updating inventory');
     }
   }
@@ -155,7 +155,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         [],
         this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting inventory by ID');
     }
   }
@@ -187,7 +187,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         [],
         this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting inventory by product');
     }
   }
@@ -240,7 +240,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       
       // Ensure the item was created
       return this.ensureExists(item, 'Inventory Item');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'creating inventory item');
     }
   }
@@ -285,7 +285,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       
       // Ensure the item was updated
       return this.ensureExists(updatedItem, 'Inventory Item');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'updating inventory item');
     }
   }
@@ -309,7 +309,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         [],
         this.itemFormatter.formatResult.bind(this.itemFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting inventory item by ID');
     }
   }
@@ -335,7 +335,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         [],
         this.itemFormatter.formatResult.bind(this.itemFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting inventory items');
     }
   }
@@ -410,7 +410,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       
       // Ensure the transaction was created
       return this.ensureExists(transaction, 'Inventory Transaction');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'adjusting inventory');
     }
   }
@@ -482,7 +482,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       });
       
       return batchItem;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'adding inventory batch');
     }
   }
@@ -506,7 +506,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         [],
         this.transactionFormatter.formatResult.bind(this.transactionFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting transaction by ID');
     }
   }
@@ -532,7 +532,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         [],
         this.transactionFormatter.formatResult.bind(this.transactionFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting transactions by inventory');
     }
   }
@@ -558,7 +558,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         [],
         this.transactionFormatter.formatResult.bind(this.transactionFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting transactions by item');
     }
   }
@@ -586,7 +586,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         currentUtilization: totalQuantity,
         updatedAt: new Date()
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error updating inventory utilization: ${error}`);
       return null;
     }
@@ -605,7 +605,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       );
       
       return result.rows?.[0] || null;
-    } catch (error) {
+    } catch (error: unknown) {
       return null;
     }
   }
@@ -623,7 +623,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       );
       
       return result.rows?.[0] || null;
-    } catch (error) {
+    } catch (error: unknown) {
       return null;
     }
   }

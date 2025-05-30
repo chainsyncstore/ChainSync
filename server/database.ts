@@ -19,14 +19,14 @@ import { neon } from '@neondatabase/serverless';
 import { env } from './config/env';
 import { logger } from './services/logger'; // This logger might also need to be the central one
 
-let db: any;
+let db: unknown;
 
 export async function getDatabase() {
   if (!db) {
     try {
       db = await neon(env.DATABASE_URL);
       logger.info('Database connection established');
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Failed to connect to database:', error);
       throw new Error('Database connection failed');
     }
@@ -47,9 +47,9 @@ export async function initializeDatabase() {
     if (result.rows[0]?.one !== 1) {
       throw new Error('Database connection test failed');
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize database:', error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 

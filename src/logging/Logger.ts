@@ -176,7 +176,7 @@ export class ConsoleLogger extends BaseLogger {
     if (!meta || Object.keys(meta).length === 0) return '';
     try {
       return JSON.stringify(meta, null, process.env.NODE_ENV === 'development' ? 2 : 0);
-    } catch (e) {
+    } catch (e: unknown) {
       return '[Unserializable metadata]';
     }
   }
@@ -207,7 +207,7 @@ export class ConsoleLogger extends BaseLogger {
     this.logMessage(level, message, errorMeta);
   }
   
-  private getConsoleMethod(level: LogLevel): (message: string, ...args: any[]) => void {
+  private getConsoleMethod(level: LogLevel): (message: string, ...args: unknown[]) => void {
     switch (level) {
       case LogLevel.TRACE:
       case LogLevel.DEBUG:

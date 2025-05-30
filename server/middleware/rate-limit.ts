@@ -64,7 +64,7 @@ const createRedisStore = () => {
         });
       }
     };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize Redis rate-limit store', error);
     return null;
   }

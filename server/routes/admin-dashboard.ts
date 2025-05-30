@@ -59,7 +59,7 @@ async function checkDatabase(): Promise<{ status: string; responseTime: number; 
       status: 'UP', 
       responseTime
     };
-  } catch (error) {
+  } catch (error: unknown) {
     const responseTime = Math.round(performance.now() - startTime);
     logger.error('Database health check failed', error);
     
@@ -92,7 +92,7 @@ async function checkRedis(): Promise<{ status: string; responseTime: number; err
       status: 'UP', 
       responseTime 
     };
-  } catch (error) {
+  } catch (error: unknown) {
     const responseTime = Math.round(performance.now() - startTime);
     logger.error('Redis health check failed', error);
     
@@ -124,7 +124,7 @@ async function checkQueueStatus(): Promise<{ status: string; messageCount: numbe
       status: 'UP', 
       messageCount
     };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Queue health check failed', error);
     
     return { 
@@ -225,7 +225,7 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
                 } else {
                   console.error('Failed to fetch health status:', response.statusText);
                 }
-              } catch (error) {
+              } catch (error: unknown) {
                 console.error('Error fetching health status:', error);
               }
             }
@@ -240,7 +240,7 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
                 } else {
                   console.error('Failed to fetch health history:', response.statusText);
                 }
-              } catch (error) {
+              } catch (error: unknown) {
                 console.error('Error fetching health history:', error);
               }
             }
@@ -255,7 +255,7 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
                 } else {
                   console.error('Failed to fetch metrics:', response.statusText);
                 }
-              } catch (error) {
+              } catch (error: unknown) {
                 console.error('Error fetching metrics:', error);
               }
             }
@@ -393,7 +393,7 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
       
       res.send(htmlContent);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error serving dashboard', error);
     res.status(500).send('Error loading dashboard');
   }
@@ -436,7 +436,7 @@ router.get('/health', authenticateUser, authorizeRoles(['admin']), async (req: R
     addHealthRecord(healthResult);
     
     res.json(healthResult);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Health check error', error);
     res.status(500).json({
       status: 'ERROR',
@@ -450,7 +450,7 @@ router.get('/health', authenticateUser, authorizeRoles(['admin']), async (req: R
 router.get('/health/history', authenticateUser, authorizeRoles(['admin']), (req: Request, res: Response) => {
   try {
     res.json(healthHistory);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error fetching health history', error);
     res.status(500).json({ error: 'Failed to retrieve health history' });
   }

@@ -82,7 +82,7 @@ export function setupGlobalErrorHandlers(): void {
       const { getLogger } = require('./index');
       const logger = getLogger();
       logger.fatal('Uncaught exception', error);
-    } catch (e) {
+    } catch (e: unknown) {
       // Last resort fallback if logger fails
       console.error('Failed to log fatal error', e);
     }
@@ -100,7 +100,7 @@ export function setupGlobalErrorHandlers(): void {
       const { getLogger } = require('./index');
       const logger = getLogger();
       logger.error('Unhandled promise rejection', reason instanceof Error ? reason : new Error(String(reason)));
-    } catch (e) {
+    } catch (e: unknown) {
       // Last resort fallback if logger fails
       console.error('Failed to log unhandled rejection', e);
     }

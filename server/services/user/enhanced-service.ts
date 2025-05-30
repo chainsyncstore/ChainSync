@@ -43,7 +43,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
         .where(eq(schema.passwordResetTokens.id, resetToken.id));
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Resetting password');
     }
   }
@@ -75,7 +75,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
       });
 
       return token;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Requesting password reset');
     }
   }
@@ -105,7 +105,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
       const validatedData = userValidation.insert(userData);
       const [user] = await db.insert(schema.users).values(validatedData).returning();
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -129,7 +129,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
       const validatedData = userValidation.update(updateData);
       const [updatedUser] = await db.update(schema.users).set(validatedData).where(eq(schema.users.id, userId)).returning();
       return updatedUser;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -142,7 +142,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
       const result = await db.delete(schema.users).where(eq(schema.users.id, userId)).returning({ id: schema.users.id });
       if (result.length === 0) throw UserServiceErrors.USER_NOT_FOUND;
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Deleting user');
     }
   }
@@ -151,7 +151,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
     try {
       const user = await db.query.users.findFirst({ where: eq(schema.users.id, userId), with: { store: true } });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting user by ID');
     }
   }
@@ -163,7 +163,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
         with: { store: true }
       });
       return user || null;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting user by username');
     }
   }
@@ -175,7 +175,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
         with: { store: true }
       });
       return user || null;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting user by email');
     }
   }
@@ -201,7 +201,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
         .where(eq(schema.users.id, user.id));
 
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Validating credentials');
     }
   }
@@ -234,7 +234,7 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
         .where(eq(schema.users.id, userId));
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Changing password');
     }
   }

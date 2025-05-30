@@ -81,7 +81,7 @@ export async function getStorePerformanceComparison(
           storeId: store.id,
           topProducts
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`Error fetching top products for store ${store.id}:`, error);
         return {
           storeId: store.id,

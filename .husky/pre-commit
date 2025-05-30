@@ -1,0 +1,19 @@
+# Run lint-staged to enforce code quality checks
+npx lint-staged
+
+# Check for security vulnerabilities in production dependencies
+echo "🔒 Checking for security vulnerabilities..."
+# Only check production dependencies, exit with 0 to allow commit even if issues found
+npm run security:audit --silent || (
+  echo "⚠️ Security vulnerabilities found in dependencies!"
+  echo "👉 Run 'npm run security:audit' for details and 'npm run security:fix' to fix."
+  echo "⚠️ Commit allowed, but please address these issues before pushing."
+  # We don't block the commit, but warn the developer
+)
+
+# Run TypeScript type checking
+echo "🔍 Running TypeScript type check..."
+npm run type-check --silent || (
+  echo "❌ TypeScript errors found. Please fix before committing."
+  exit 1
+)

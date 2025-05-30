@@ -9,7 +9,7 @@ export interface ErrorContext {
   userId?: number;
   requestId?: string;
   attempt?: number;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 export interface RetryOptions {
@@ -70,12 +70,12 @@ export class ErrorHandler extends EventEmitter {
     for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
       try {
         return await operation();
-      } catch (error) {
+      } catch (error: unknown) {
         lastError = error;
         this.handleError(error, { ...context, attempt });
 
         if (attempt === retryConfig.maxAttempts) {
-          throw error;
+          throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
         }
 
         const delay = this.calculateDelay(attempt);
@@ -210,7 +210,7 @@ export class ErrorHandler extends EventEmitter {
     category: ErrorCategory,
     retryable: boolean = false,
     retryDelay: number = 0,
-    context?: any
+    context?: unknown
   ): AppError {
     return new AppError(
       message,

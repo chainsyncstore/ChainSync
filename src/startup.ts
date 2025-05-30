@@ -39,9 +39,9 @@ export async function initializeApp(app: Express, dbPool: Pool): Promise<void> {
     setupGracefulShutdown(app);
     
     logger.info('Application components initialized successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize application components', error instanceof Error ? error : new Error(String(error)));
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -82,7 +82,7 @@ function setupGracefulShutdown(app: Express): void {
         logger.error('Forced shutdown after timeout');
         process.exit(1);
       }, 10000);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error during graceful shutdown', error instanceof Error ? error : new Error(String(error)));
       process.exit(1);
     }
@@ -113,7 +113,7 @@ export function registerHealthChecks(dbPool: Pool): void {
     const healthRoutes = require('../server/routes/health');
     healthRoutes.setDbPool(dbPool);
     logger.info('Health checks registered successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to register health checks', error instanceof Error ? error : new Error(String(error)));
   }
 }

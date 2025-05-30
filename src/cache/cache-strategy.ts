@@ -76,7 +76,7 @@ export async function getCachedOrFetch<T>(
     await setCacheValue<T>(cacheKey, data, ttl);
     
     return data;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Cache fetch error', { cacheKey, error });
     // On error, fallback to fetching the data directly
     return fetchFn();
@@ -110,10 +110,10 @@ export async function invalidateListCache(
  * Middleware for caching Express API responses
  */
 export function cacheMiddleware(
-  keyFn: (req: any) => string,
+  keyFn: (req: unknown) => string,
   ttl = CACHE_TTL.MEDIUM
 ) {
-  return async (req: any, res: any, next: any) => {
+  return async (req: unknown, res: unknown, next: unknown) => {
     if (req.method !== 'GET') {
       return next();
     }
@@ -122,7 +122,7 @@ export function cacheMiddleware(
       const cacheKey = keyFn(req);
       const cachedResponse = await getCacheValue<{
         statusCode: number;
-        data: any;
+        data: unknown;
       }>(cacheKey);
 
       if (cachedResponse) {
@@ -137,7 +137,7 @@ export function cacheMiddleware(
       const originalSend = res.send;
 
       // Override the send function
-      res.send = function(body: any) {
+      res.send = function(body: unknown) {
         // Only cache successful responses
         if (res.statusCode >= 200 && res.statusCode < 300) {
           const responseData = JSON.parse(body);
@@ -160,7 +160,7 @@ export function cacheMiddleware(
       };
 
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       // In case of error, proceed without caching
       logger.error('Cache middleware error', { 
         path: req.path, 

@@ -37,31 +37,31 @@ export const baseInsertSchema = timestampsSchema.merge(softDeleteSchema);
 export const baseSelectSchema = timestampsSchema.merge(softDeleteSchema);
 
 // Base relations
-export const baseRelations = (table: any) => ({
+export const baseRelations = (table: unknown) => ({
   // Add common relations here
 });
 
-export const defineRelations = (table: any) => {
+export const defineRelations = (table: unknown) => {
   return baseRelations(table);
 };
 
 // Common validation helpers
 export const commonValidators = {
-  name: (schema: any) => schema.string().min(1, "Name is required"),
-  description: (schema: any) => schema.string().optional(),
-  status: (schema: any) => schema.enum(["active", "inactive", "deleted"]),
-  price: (schema: any) => schema.number().min(0, "Price must be positive"),
-  quantity: (schema: any) => schema.number().min(0, "Quantity must be positive"),
-  amount: (schema: any) => schema.number().min(0, "Amount must be positive"),
-  email: (schema: any) => schema.string().email("Invalid email"),
-  phone: (schema: any) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+  name: (schema: unknown) => schema.string().min(1, "Name is required"),
+  description: (schema: unknown) => schema.string().optional(),
+  status: (schema: unknown) => schema.enum(["active", "inactive", "deleted"]),
+  price: (schema: unknown) => schema.number().min(0, "Price must be positive"),
+  quantity: (schema: unknown) => schema.number().min(0, "Quantity must be positive"),
+  amount: (schema: unknown) => schema.number().min(0, "Amount must be positive"),
+  email: (schema: unknown) => schema.string().email("Invalid email"),
+  phone: (schema: unknown) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
 };
 
 // Type guards
-export function isSoftDeleted(record: any): record is SoftDelete {
+export function isSoftDeleted(record: unknown): record is SoftDelete {
   return record.deletedAt !== null;
 }
 
-export function isActive(record: any): boolean {
+export function isActive(record: unknown): boolean {
   return !isSoftDeleted(record);
 }

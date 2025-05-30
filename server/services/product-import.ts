@@ -168,7 +168,7 @@ export async function validateProductImportCSV(
                   summary.newCategories.push('Uncategorized');
                 }
               }
-            } catch (error) {
+            } catch (error: unknown) {
               console.error(`Error creating category '${categoryName}':`, error);
               summary.errors.push({
                 row: rowIndex,
@@ -189,7 +189,7 @@ export async function validateProductImportCSV(
               if (isNaN(expiryDate.getTime())) {
                 throw new Error('Invalid date format');
               }
-            } catch (error) {
+            } catch (error: unknown) {
               summary.errors.push({
                 row: rowIndex,
                 field: 'Expiry Date',
@@ -232,7 +232,7 @@ export async function validateProductImportCSV(
         }
         
         resolve({ validProducts, summary });
-      } catch (error) {
+      } catch (error: unknown) {
         reject(error);
       }
     });
@@ -330,7 +330,7 @@ export async function importProducts(
                 });
             }
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error(`Error importing product '${product.name}':`, error);
           failedProducts.push({
             product,
@@ -346,7 +346,7 @@ export async function importProducts(
       importedCount: validProducts.length - failedProducts.length,
       failedProducts
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error bulk importing products:', error);
     return {
       success: false,

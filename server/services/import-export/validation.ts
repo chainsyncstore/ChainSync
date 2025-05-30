@@ -2,25 +2,25 @@ import { AppError, ErrorCategory } from '@shared/types/errors';
 import { ValidationOptions } from './types';
 
 export interface ValidationService {
-  validate(data: any[], options?: ValidationOptions): Promise<{
+  validate(data: unknown[], options?: ValidationOptions): Promise<{
     validCount: number;
     invalidCount: number;
-    validRecords: any[];
-    invalidRecords: any[];
+    validRecords: unknown[];
+    invalidRecords: unknown[];
   }>;
 }
 
 export class ValidationService implements ValidationService {
-  async validate(data: any[], options?: ValidationOptions): Promise<{
+  async validate(data: unknown[], options?: ValidationOptions): Promise<{
     validCount: number;
     invalidCount: number;
-    validRecords: any[];
-    invalidRecords: { record: any; errors: string[] }[];
+    validRecords: unknown[];
+    invalidRecords: { record: unknown; errors: string[] }[];
   }> {
     try {
       const { requiredFields = [], filters = {} } = options || {};
-      const validRecords: any[] = [];
-      const invalidRecords: { record: any; errors: string[] }[] = [];
+      const validRecords: unknown[] = [];
+      const invalidRecords: { record: unknown; errors: string[] }[] = [];
 
       if (!Array.isArray(data)) {
         throw new AppError({
@@ -73,7 +73,7 @@ export class ValidationService implements ValidationService {
         validRecords,
         invalidRecords
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError({
         category: ErrorCategory.IMPORT_EXPORT,
         message: error instanceof Error ? error.message : 'Validation failed'

@@ -92,7 +92,7 @@ router.post('/dialogflow', async (req, res) => {
           } else {
             fulfillmentText = 'All inventory items are at healthy stock levels.';
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Error fetching inventory data:', error);
           fulfillmentText = 'I encountered an error while retrieving inventory information.';
         }
@@ -110,7 +110,7 @@ router.post('/dialogflow', async (req, res) => {
       fulfillmentText,
     });
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error processing Dialogflow webhook:', error);
     res.status(500).json({
       success: false,

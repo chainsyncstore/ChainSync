@@ -1,11 +1,14 @@
 import { InferSelectModel } from 'drizzle-orm';
+import { MySqlTableWithColumns } from 'drizzle-orm/mysql-core';
 
-export const loyaltyPrograms: any;
-export const loyaltyTiers: any;
-export const loyaltyMembers: any;
-export const loyaltyTransactions: any;
-export const loyaltyRewards: any;
+// Declare schema tables with proper types
+export declare const loyaltyPrograms: MySqlTableWithColumns<any>;
+export declare const loyaltyTiers: MySqlTableWithColumns<any>;
+export declare const loyaltyMembers: MySqlTableWithColumns<any>;
+export declare const loyaltyTransactions: MySqlTableWithColumns<any>;
+export declare const loyaltyRewards: MySqlTableWithColumns<any>;
 
+// Export inferred types for each table
 export type LoyaltyProgram = InferSelectModel<typeof loyaltyPrograms>;
 export type LoyaltyTier = InferSelectModel<typeof loyaltyTiers>;
 export type LoyaltyMember = InferSelectModel<typeof loyaltyMembers>;

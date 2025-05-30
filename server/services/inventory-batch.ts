@@ -66,7 +66,7 @@ export async function addBatch(batchData: BatchData) {
     await storage.updateInventoryTotalQuantity(inventory.id);
     
     return batch;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error adding batch:', error);
     throw new Error('Failed to add inventory batch');
   }
@@ -78,7 +78,7 @@ export async function addBatch(batchData: BatchData) {
 export async function getBatches(storeId: number, productId: number, includeExpired = false) {
   try {
     return await storage.getInventoryBatchesByProduct(storeId, productId, includeExpired);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error getting batches:', error);
     throw new Error('Failed to retrieve inventory batches');
   }
@@ -90,7 +90,7 @@ export async function getBatches(storeId: number, productId: number, includeExpi
 export async function getBatchById(batchId: number) {
   try {
     return await storage.getInventoryBatchById(batchId);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error getting batch by ID:', error);
     throw new Error('Failed to retrieve inventory batch');
   }
@@ -114,7 +114,7 @@ export async function updateBatch(batchId: number, updateData: Partial<BatchInse
     await storage.updateInventoryTotalQuantity(currentBatch.inventoryId);
 
     return await storage.getInventoryBatchById(batchId);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating batch:', error);
     throw new Error('Failed to update inventory batch');
   }
@@ -151,7 +151,7 @@ export async function adjustBatchStock(adjustment: BatchStockAdjustment) {
     // with the reason in a stock_adjustments table
 
     return await storage.getInventoryBatchById(adjustment.batchId);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error adjusting batch stock:', error);
     throw new Error('Failed to adjust batch stock');
   }
@@ -167,7 +167,7 @@ export async function sellFromBatch(batchId: number, quantity: number) {
       quantity: -Math.abs(quantity), // Ensure quantity is negative for selling
       reason: 'Sale'
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error selling from batch:', error);
     throw new Error('Failed to sell from batch');
   }
@@ -183,7 +183,7 @@ export async function returnToBatch(batchId: number, quantity: number) {
       quantity: Math.abs(quantity), // Ensure quantity is positive for returns
       reason: 'Return'
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error returning to batch:', error);
     throw new Error('Failed to process return to batch');
   }
@@ -229,7 +229,7 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
     }
 
     return updatedBatches;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error selling with FIFO logic:', error);
     throw new Error('Failed to process sale with FIFO logic');
   }

@@ -57,7 +57,7 @@ export class SchemaValidationError extends Error {
 export function validateEntity<T>(schema: z.ZodType<T>, data: unknown, entityName: string): T {
   try {
     return schema.parse(data);
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       throw new SchemaValidationError(
         `Invalid ${entityName} data`,
@@ -69,7 +69,7 @@ export function validateEntity<T>(schema: z.ZodType<T>, data: unknown, entityNam
         }
       );
     }
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 

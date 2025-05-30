@@ -17,6 +17,8 @@ export const PaymentStatus = text("payment_status").notNull();
 export const PaymentMethod = text("payment_method").notNull();
 
 export const transactions = pgTable("transactions", {
+  cashierId: integer("cashier_id").references(() => users.id), // NEW: cashierId column
+  total: decimal("total").notNull(), // NEW: total column
   ...baseTable,
   transactionId: serial("transaction_id").primaryKey(),
   storeId: integer("store_id").references(() => stores.id),

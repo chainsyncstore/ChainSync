@@ -24,7 +24,7 @@ export const createAuthRoutes = (db: Pool): Router => {
         .isLength({ min: 8 })
         .withMessage('Password must be at least 8 characters long')
     ],
-    async (req: any, res: Response) => {
+    async (req: unknown, res: Response) => {
       try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -68,7 +68,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           tokens
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Login error', error as Error, { 
           email: req.body.email,
           ipAddress: req.ip 
@@ -101,7 +101,7 @@ export const createAuthRoutes = (db: Pool): Router => {
         .notEmpty()
         .withMessage('Refresh token is required')
     ],
-    async (req: any, res: Response) => {
+    async (req: unknown, res: Response) => {
       try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -126,7 +126,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           tokens
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Token refresh error', error as Error);
         res.status(500).json({
           error: 'Internal server error'
@@ -143,7 +143,7 @@ export const createAuthRoutes = (db: Pool): Router => {
         .isUUID()
         .withMessage('Invalid session ID format')
     ],
-    async (req: any, res: Response) => {
+    async (req: unknown, res: Response) => {
       try {
         const { sessionId } = req.body;
 
@@ -155,7 +155,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           message: 'Logout successful'
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Logout error', error as Error);
         res.status(500).json({
           error: 'Internal server error'
@@ -171,7 +171,7 @@ export const createAuthRoutes = (db: Pool): Router => {
         .notEmpty()
         .withMessage('User ID is required')
     ],
-    async (req: any, res: Response) => {
+    async (req: unknown, res: Response) => {
       try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -189,7 +189,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           message: 'All sessions logged out successfully'
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Logout all sessions error', error as Error);
         res.status(500).json({
           error: 'Internal server error'
@@ -225,7 +225,7 @@ export const createAuthRoutes = (db: Pool): Router => {
         .isIn(['cashier', 'manager', 'admin'])
         .withMessage('Invalid role type')
     ],
-    async (req: any, res: Response) => {
+    async (req: unknown, res: Response) => {
       try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -271,7 +271,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           }
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Registration error', error as Error);
         res.status(500).json({
           error: 'Internal server error'
@@ -289,7 +289,7 @@ export const createAuthRoutes = (db: Pool): Router => {
         .normalizeEmail()
         .withMessage('Valid email is required')
     ],
-    async (req: any, res: Response) => {
+    async (req: unknown, res: Response) => {
       try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -324,7 +324,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           }
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Password reset request error', error as Error);
         res.status(500).json({
           error: 'Internal server error'
@@ -347,7 +347,7 @@ export const createAuthRoutes = (db: Pool): Router => {
         .matches(/[0-9]/).withMessage('Password must contain at least one number')
         .matches(/[^A-Za-z0-9]/).withMessage('Password must contain at least one special character')
     ],
-    async (req: any, res: Response) => {
+    async (req: unknown, res: Response) => {
       try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -376,7 +376,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           message: 'Password reset successful. You can now log in with your new password.'
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Password reset error', error as Error);
         res.status(500).json({
           error: 'Internal server error'
@@ -404,7 +404,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           return true;
         })
     ],
-    async (req: any, res: Response) => {
+    async (req: unknown, res: Response) => {
       try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -419,7 +419,7 @@ export const createAuthRoutes = (db: Pool): Router => {
           error: 'Change password functionality not yet implemented'
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Change password error', error as Error);
         res.status(500).json({
           error: 'Internal server error'

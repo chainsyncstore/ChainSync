@@ -7,7 +7,7 @@ export const validateRequest = <T extends z.ZodTypeAny>(
 ): z.infer<T> => {
   try {
     return schema.parse(data);
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       throw AppError.fromZodError(error);
     }
@@ -27,7 +27,7 @@ export const validateParams = <T extends z.ZodTypeAny>(
 ): z.infer<T> => {
   try {
     return schema.parse(params);
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       throw AppError.fromZodError(error);
     }
@@ -47,7 +47,7 @@ export const validateQuery = <T extends z.ZodTypeAny>(
 ): z.infer<T> => {
   try {
     return schema.parse(query);
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       throw AppError.fromZodError(error);
     }

@@ -28,11 +28,11 @@ export class AnalyticsService extends BaseService {
     setInterval(() => this.processAggregationQueue(), this.config.aggregation.window * 1000);
   }
 
-  private generateCacheKey(query: string, params: any): string {
+  private generateCacheKey(query: string, params: unknown): string {
     return `analytics:${query}:${JSON.stringify(params)}`;
   }
 
-  private async validateQuery(query: string, params: any): Promise<void> {
+  private async validateQuery(query: string, params: unknown): Promise<void> {
     if (!query) {
       throw AnalyticsServiceErrors.INVALID_QUERY;
     }
@@ -56,22 +56,22 @@ export class AnalyticsService extends BaseService {
       // Process in batches
       for (let i = 0; i < this.aggregationQueue.length; i += this.config.aggregation.batchSize) {
         const batch = this.aggregationQueue.slice(i, i + this.config.aggregation.batchSize);
-        await Promise.all(batch.map(async (item: any) => {
+        await Promise.all(batch.map(async (item: unknown) => {
           try {
             await this.processAggregation(item);
-          } catch (error) {
+          } catch (error: unknown) {
             console.error('Failed to process aggregation:', error);
           }
         }));
       }
 
       this.aggregationQueue = [];
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to process aggregation queue:', error);
     }
   }
 
-  private async processAggregation(item: any): Promise<void> {
+  private async processAggregation(item: unknown): Promise<void> {
     try {
       // Implement specific aggregation logic based on item type
       switch (item.type) {
@@ -91,12 +91,12 @@ export class AnalyticsService extends BaseService {
             ErrorCategory.VALIDATION
           );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw AnalyticsServiceErrors.AGGREGATION_ERROR;
     }
   }
 
-  private async aggregateTransaction(data: any): Promise<void> {
+  private async aggregateTransaction(data: unknown): Promise<void> {
     try {
       // Aggregate transaction metrics
       const metrics = {
@@ -113,12 +113,12 @@ export class AnalyticsService extends BaseService {
 
       // Update cache
       await this.cache.set(`metrics:transactions:${data.storeId}`, metrics, this.config.cache.ttl);
-    } catch (error) {
+    } catch (error: unknown) {
       throw AnalyticsServiceErrors.STORAGE_ERROR;
     }
   }
 
-  private async aggregateUser(data: any): Promise<void> {
+  private async aggregateUser(data: unknown): Promise<void> {
     try {
       // Aggregate user metrics
       const metrics = {
@@ -137,12 +137,12 @@ export class AnalyticsService extends BaseService {
 
       // Update cache
       await this.cache.set(`metrics:users:${data.storeId}`, metrics, this.config.cache.ttl);
-    } catch (error) {
+    } catch (error: unknown) {
       throw AnalyticsServiceErrors.STORAGE_ERROR;
     }
   }
 
-  private async aggregateProduct(data: any): Promise<void> {
+  private async aggregateProduct(data: unknown): Promise<void> {
     try {
       // Aggregate product metrics
       const metrics = {
@@ -162,7 +162,7 @@ export class AnalyticsService extends BaseService {
 
       // Update cache
       await this.cache.set(`metrics:products:${data.storeId}`, metrics, this.config.cache.ttl);
-    } catch (error) {
+    } catch (error: unknown) {
       throw AnalyticsServiceErrors.STORAGE_ERROR;
     }
   }
@@ -219,7 +219,7 @@ export class AnalyticsService extends BaseService {
       await this.cache.set(cacheKey, metrics, this.config.cache.ttl);
 
       return metrics;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting store metrics');
     }
   }
@@ -278,7 +278,7 @@ export class AnalyticsService extends BaseService {
       await this.cache.set(cacheKey, metrics, this.config.cache.ttl);
 
       return metrics;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting user metrics');
     }
   }
@@ -336,7 +336,7 @@ export class AnalyticsService extends BaseService {
       await this.cache.set(cacheKey, metrics, this.config.cache.ttl);
 
       return metrics;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting product metrics');
     }
   }
@@ -394,21 +394,21 @@ export class AnalyticsService extends BaseService {
       await this.cache.set(cacheKey, metrics, this.config.cache.ttl);
 
       return metrics;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting loyalty metrics');
     }
   }
 
   async addAggregationToQueue(
     type: string,
-    data: any
+    data: unknown
   ): Promise<void> {
     try {
       this.aggregationQueue.push({ type, data });
       if (this.aggregationQueue.length >= this.config.aggregation.batchSize) {
         await this.processAggregationQueue();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw AnalyticsServiceErrors.AGGREGATION_ERROR;
     }
   }
@@ -416,7 +416,7 @@ export class AnalyticsService extends BaseService {
   async clearCache(): Promise<void> {
     try {
       await this.cache.clear();
-    } catch (error) {
+    } catch (error: unknown) {
       throw AnalyticsServiceErrors.CACHE_ERROR;
     }
   }
@@ -424,7 +424,7 @@ export class AnalyticsService extends BaseService {
   async getCacheStats(): Promise<any> {
     try {
       return await this.cache.getStats();
-    } catch (error) {
+    } catch (error: unknown) {
       throw AnalyticsServiceErrors.CACHE_ERROR;
     }
   }

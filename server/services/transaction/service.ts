@@ -264,7 +264,7 @@ export class TransactionService extends BaseService implements ITransactionServi
                   points: params.loyaltyPoints.earned,
                   transactionId: transaction.id
                 });
-              } catch (error) {
+              } catch (error: unknown) {
                 // Log error but don't fail the transaction
                 this.logger.error('Failed to award loyalty points', error, {
                   loyaltyMemberId: loyaltyMember.id,
@@ -302,7 +302,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         
         return transaction;
       });
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         this.logger.error(`Validation error creating transaction`, error, {
           validationErrors: error.toJSON(),
@@ -367,7 +367,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         .returning();
       
       return updatedTransaction;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Updating transaction');
     }
   }
@@ -462,7 +462,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         
         return refund;
       });
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Processing refund');
     }
   }
@@ -596,7 +596,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         salesByHourOfDay,
         salesByDayOfWeek
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting transaction analytics');
     }
   }

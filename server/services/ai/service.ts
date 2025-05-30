@@ -27,11 +27,11 @@ export class AIService extends BaseService implements AIService {
     this.cache = new CacheService(this.config.cache);
   }
 
-  private generateCacheKey(prompt: string, options: any): string {
+  private generateCacheKey(prompt: string, options: unknown): string {
     return `ai:${this.config.model}:${uuidv4()}:${prompt}:${JSON.stringify(options)}`;
   }
 
-  private async validateRequest(prompt: string, options: any): Promise<void> {
+  private async validateRequest(prompt: string, options: unknown): Promise<void> {
     if (!prompt) {
       throw AIServiceErrors.INVALID_REQUEST;
     }
@@ -65,7 +65,7 @@ export class AIService extends BaseService implements AIService {
       if (isRateLimited) {
         throw AIServiceErrors.RATE_LIMIT_EXCEEDED;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw AIServiceErrors.RATE_LIMIT_EXCEEDED;
     }
   }
@@ -73,7 +73,7 @@ export class AIService extends BaseService implements AIService {
   private async incrementRateLimit(userId: string): Promise<void> {
     try {
       await this.rateLimiter.increment(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       throw AIServiceErrors.RATE_LIMIT_EXCEEDED;
     }
   }
@@ -81,8 +81,8 @@ export class AIService extends BaseService implements AIService {
   private async logRequest(
     userId: string,
     prompt: string,
-    options: any,
-    response: any,
+    options: unknown,
+    response: unknown,
     duration: number
   ): Promise<void> {
     try {
@@ -94,7 +94,7 @@ export class AIService extends BaseService implements AIService {
         duration,
         timestamp: Date.now()
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to log AI request:', error);
     }
   }
@@ -103,7 +103,7 @@ export class AIService extends BaseService implements AIService {
   async generateCompletion(
     userId: string,
     prompt: string,
-    options: any = {}
+    options: unknown = {}
   ): Promise<string> {
     try {
       await this.validateRequest(prompt, options);
@@ -140,15 +140,15 @@ export class AIService extends BaseService implements AIService {
       await this.incrementRateLimit(userId);
 
       return response.choices[0].message.content;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Generating AI completion');
     }
   }
 
   async generateChat(
     userId: string,
-    messages: any[],
-    options: any = {}
+    messages: unknown[],
+    options: unknown = {}
   ): Promise<string> {
     try {
       await this.validateRequest(JSON.stringify(messages), options);
@@ -185,7 +185,7 @@ export class AIService extends BaseService implements AIService {
       await this.incrementRateLimit(userId);
 
       return response.choices[0].message.content;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Generating AI chat');
     }
   }
@@ -195,7 +195,7 @@ export class AIService extends BaseService implements AIService {
     userId: string,
     prompt: string,
     language: string = 'javascript',
-    options: any = {}
+    options: unknown = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a helpful code assistant. Generate code in ${language} language.`;
@@ -207,7 +207,7 @@ export class AIService extends BaseService implements AIService {
         ],
         options
       );
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Generating code');
     }
   }
@@ -216,7 +216,7 @@ export class AIService extends BaseService implements AIService {
     userId: string,
     code: string,
     language: string,
-    options: any = {}
+    options: unknown = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a code reviewer. Review the following ${language} code and provide feedback.`;
@@ -228,7 +228,7 @@ export class AIService extends BaseService implements AIService {
         ],
         options
       );
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Generating code review');
     }
   }
@@ -237,7 +237,7 @@ export class AIService extends BaseService implements AIService {
   async generateSummary(
     userId: string,
     text: string,
-    options: any = {}
+    options: unknown = {}
   ): Promise<string> {
     try {
       const systemPrompt = 'You are a helpful assistant. Generate a concise summary of the following text.';
@@ -249,7 +249,7 @@ export class AIService extends BaseService implements AIService {
         ],
         options
       );
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Generating summary');
     }
   }
@@ -258,7 +258,7 @@ export class AIService extends BaseService implements AIService {
     userId: string,
     text: string,
     targetLanguage: string,
-    options: any = {}
+    options: unknown = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a translator. Translate the following text into ${targetLanguage}.`;
@@ -270,7 +270,7 @@ export class AIService extends BaseService implements AIService {
         ],
         options
       );
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Generating translation');
     }
   }
@@ -279,8 +279,8 @@ export class AIService extends BaseService implements AIService {
   async listAvailableModels(): Promise<string[]> {
     try {
       const response = await this.openai.models.list();
-      return response.data.map((model: any) => model.id);
-    } catch (error) {
+      return response.data.map((model: unknown) => model.id);
+    } catch (error: unknown) {
       this.handleError(error, 'Listing available models');
     }
   }
@@ -293,7 +293,7 @@ export class AIService extends BaseService implements AIService {
         temperatureRange: [0, 2],
         supportedFeatures: response.capabilities
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting model capabilities');
     }
   }
@@ -312,7 +312,7 @@ export class AIService extends BaseService implements AIService {
           remaining: await this.rateLimiter.getRemaining(userId)
         }
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting usage stats');
     }
   }
@@ -321,7 +321,7 @@ export class AIService extends BaseService implements AIService {
   async clearCache(userId: string): Promise<void> {
     try {
       await this.cache.clear(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       throw AIServiceErrors.CACHE_ERROR;
     }
   }

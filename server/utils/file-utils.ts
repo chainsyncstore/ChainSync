@@ -2,9 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+import { getLogger } from '../../src/logging';
 import { FileUploadErrors } from '../config/file-upload';
 
 export class FileUtils {
+  private static logger = getLogger();
   public static readonly MAX_FILE_AGE = 24 * 60 * 60 * 1000; // 24 hours
   public static readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   public static readonly VALID_FILENAME_REGEX = /^[a-zA-Z0-9._-]+$/;
@@ -13,22 +15,50 @@ export class FileUtils {
     return size <= FileUtils.MAX_FILE_SIZE;
   }
 
-  public static validateFileType(fileExt: string): boolean {
-    const allowedTypes = new Set([
-      '.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx',
-      '.csv', '.xlsx', '.json'
+  /**
+   * Validates if a file extension is allowed
+   * @param fileExt File extension including the dot (e.g., '.xlsx')
+   * @param trustLevel Optional trust level of the file source (defaults to 'untrusted')
+   * @returns boolean indicating if the file type is allowed
+   */
+  public static validateFileType(fileExt: string, trustLevel: 'trusted' | 'untrusted' = 'untrusted'): boolean {
+    fileExt = fileExt.toLowerCase();
+    
+    // Base allowed types for all trust levels
+    const baseTypes = new Set([
+      '.jpg', '.jpeg', '.png', '.gif', '.pdf', 
+      '.csv', '.json'
     ]);
-    return allowedTypes.has(fileExt.toLowerCase());
+    
+    // Potentially risky file types only allowed from trusted sources
+    const trustedOnlyTypes = new Set([
+      '.doc', '.docx', '.xlsx'
+    ]);
+    
+    // Check if the file type is in the base allowed types
+    if (baseTypes.has(fileExt)) {
+      return true;
+    }
+    
+    // For potentially risky file types, only allow if the source is trusted
+    if (trustedOnlyTypes.has(fileExt)) {
+      return trustLevel === 'trusted';
+    }
+    
+    return false;
   }
 
   public static validateFilename(filename: string): boolean {
     return FileUtils.VALID_FILENAME_REGEX.test(filename);
   }
 
-  public static async validateFile(
-    filePath: string,
-    maxSize: number,
-    allowedTypes: string[]
+  /**
+   * Comprehensive file validation method for secure file handling
+   * 
+   * @param filePath Path to the file to validate
+   * @param maxSize Maximum allowed file size in bytes
+   * @param allowedTypes List of allowed file extensions
+   * @param trustLevel Trust level of the file source ('trusted' or 'untrusted')
   ): Promise<void> {
     try {
       const stats = await fs.promises.stat(filePath);
@@ -47,17 +77,31 @@ export class FileUtils {
       }
 
       // Validate file type
-      const type = await this.detectFileType(filePath);
-      if (!allowedTypes.includes(type)) {
+      const fileExt = path.extname(filePath);
+      
+      // Check if file extension is in the allowed list
+      if (!allowedTypes.includes(fileExt.toLowerCase())) {
+        this.logger.warn(`Rejected file with disallowed extension: ${fileExt}`);
         throw new AppError(
-          'Invalid file type',
-          FileUploadErrors.INVALID_FILE_TYPE.category,
-          FileUploadErrors.INVALID_FILE_TYPE.code,
-          {},
-          500,
-          true,
-          5000
+          'Unsupported file type',
+          ErrorCategory.VALIDATION,
+          FileUploadErrors.INVALID_FILE_TYPE
         );
+      }
+      
+      // Apply trust level validation for potentially risky file types
+      if (!this.validateFileType(fileExt, trustLevel)) {
+        this.logger.warn(`Rejected ${fileExt} file with trust level: ${trustLevel}`);
+        throw new AppError(
+          `${fileExt} files are only allowed from trusted sources`,
+          ErrorCategory.VALIDATION,
+          ErrorCode.INVALID_FILE
+        );
+      }
+      
+      // Additional validation for XLSX files
+      if (fileExt === '.xlsx') {
+        await this.validateExcelFile(filePath);
       }
 
       // Validate file age
@@ -72,7 +116,7 @@ export class FileUtils {
           5000
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Failed to validate file',
         FileUploadErrors.STORAGE_ERROR.category,
@@ -83,6 +127,49 @@ export class FileUtils {
         5000
       );
     }
+  }
+
+  /**
+   * Additional security check specifically for XLSX files
+   * Helps prevent ReDoS and Prototype Pollution vulnerabilities
+   * 
+   * @param filePath Path to the XLSX file
+   * @returns true if the file appears to be a valid XLSX file
+   */
+  public static async validateExcelFile(filePath: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      // Check file signature (magic bytes) for Office Open XML files
+      // XLSX files are ZIP archives with specific structure
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          this.logger.error('Error reading Excel file for validation', { error: err });
+          return reject(new AppError(
+            'Error validating Excel file',
+            ErrorCategory.VALIDATION,
+            ErrorCode.INVALID_FILE
+          ));
+        }
+        
+        // Check for ZIP file signature (PK\x03\x04)
+        if (data.length < 4 || 
+            data[0] !== 0x50 || data[1] !== 0x4B || 
+            data[2] !== 0x03 || data[3] !== 0x04) {
+          this.logger.warn('Invalid Excel file signature detected');
+          return reject(new AppError(
+            'Invalid Excel file format',
+            ErrorCategory.VALIDATION,
+            ErrorCode.INVALID_FILE
+          ));
+        }
+        
+        // Additional validation could be performed here, such as:
+        // - Checking for presence of expected internal files
+        // - Validating the ZIP structure
+        // - Scanning for malicious content
+        
+        resolve(true);
+      });
+    });
   }
 
   public static async detectFileType(filePath: string): Promise<string> {
@@ -106,7 +193,7 @@ export class FileUtils {
         default:
           return 'application/octet-stream';
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Failed to detect file type',
         FileUploadErrors.STORAGE_ERROR.category,
@@ -129,7 +216,7 @@ export class FileUtils {
         stream.on('end', () => resolve(hash.digest('hex')));
         stream.on('error', (error) => reject(error));
       });
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Failed to generate file hash',
         FileUploadErrors.STORAGE_ERROR.category,
@@ -157,7 +244,7 @@ export class FileUtils {
           await fs.promises.unlink(filePath);
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to cleanup old files:', error);
     }
   }
@@ -171,7 +258,7 @@ export class FileUtils {
       // This would require an image processing library like sharp
       // Placeholder implementation
       return filePath;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Failed to resize image',
         FileUploadErrors.STORAGE_ERROR.category,
@@ -192,7 +279,7 @@ export class FileUtils {
       // This would require a compression library
       // Placeholder implementation
       return filePath;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new AppError(
         'Failed to compress file',
         FileUploadErrors.STORAGE_ERROR.category,

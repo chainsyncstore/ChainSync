@@ -187,7 +187,7 @@ export class AppHealthManager extends EventEmitter {
         },
         checkedAt: new Date()
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Database health check failed', { error: (error as Error).message });
       
       return {
@@ -236,7 +236,7 @@ export class AppHealthManager extends EventEmitter {
         },
         checkedAt: new Date()
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         name: 'cpu',
         status: HealthStatus.UNKNOWN,
@@ -279,7 +279,7 @@ export class AppHealthManager extends EventEmitter {
         },
         checkedAt: new Date()
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         name: 'memory',
         status: HealthStatus.UNKNOWN,
@@ -307,7 +307,7 @@ export class AppHealthManager extends EventEmitter {
         },
         checkedAt: new Date()
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         name: 'rate-limiting',
         status: HealthStatus.UNKNOWN,
@@ -330,7 +330,7 @@ export class AppHealthManager extends EventEmitter {
       try {
         const result = await checkFn();
         results.push(result);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Health check failed for component ${name}`, { error: (error as Error).message });
         
         results.push({

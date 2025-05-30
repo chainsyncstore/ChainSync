@@ -71,7 +71,7 @@ setDbPool(dbPool);
 
 // Initialize Redis for caching and session store
 const redisClient = initRedis();
-let sessionStore: any;
+let sessionStore: unknown;
 
 if (redisClient) {
   sessionStore = new RedisStore({ client: redisClient });
@@ -175,7 +175,7 @@ app.use((req, res, next) => {
 // Sentry error handler middleware is already configured via configureSentry
 
 // Global error handler - must be the last middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Error is already logged by the errorLogger middleware
   // Just send appropriate response to client
   

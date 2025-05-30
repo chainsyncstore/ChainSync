@@ -12,12 +12,12 @@ declare global {
 }
 
 export interface IES {
-  validateData(data: any[], options?: ValidationOptions): Promise<ImportExportResult>;
-  importData(userId: number, data: any[], entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
+  validateData(data: unknown[], options?: ValidationOptions): Promise<ImportExportResult>;
+  importData(userId: number, data: unknown[], entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
   exportData(userId: number, entityType: string, options?: ExportOptions): Promise<Buffer>;
-  validateFile(file: File): Promise<{ type: string; data: any[] }>;
-  processImport(data: any[], options: ImportExportOptions, importId: string): Promise<ImportExportResult>;
-  processBatch(data: any[], importId: string): Promise<ImportExportResult>;
+  validateFile(file: File): Promise<{ type: string; data: unknown[] }>;
+  processImport(data: unknown[], options: ImportExportOptions, importId: string): Promise<ImportExportResult>;
+  processBatch(data: unknown[], importId: string): Promise<ImportExportResult>;
 }
 
 export interface ImportExportConfig {
@@ -49,8 +49,8 @@ export interface ValidationOptions {
 export interface ImportExportResult {
   success: boolean;
   message: string;
-  data?: any[];
-  errors?: any[];
+  data?: unknown[];
+  errors?: unknown[];
   validCount: number;
   invalidCount: number;
   totalProcessed: number;

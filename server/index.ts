@@ -11,7 +11,7 @@ import { env } from "./config/env";
 import { ServiceError } from "./services/base/base-service";
 import { applyRateLimiters } from "./middleware/rate-limiter";
 import { applyCORS } from "./middleware/cors";
-import { initializeDatabase } from "./database";
+// initializeDatabase is handled by dbManager in ../db
 import { initializeGlobals } from "@shared/db/types";
 import { globalErrorHandler } from "../server/utils/handleError";
 import { performanceMonitoring, memoryMonitoring } from "./middleware/performance-monitoring";
@@ -27,28 +27,30 @@ initializeMonitoring();
 // Initialize global database references
 initializeGlobals();
 
-// Initialize database connection
-await initializeDatabase();
+// Initialize database connection (now handled by importing dbManager/db from ../db)
+// await initializeDatabase(); // This call is removed
 
 // Setup security middleware
 setupSecurity(app);
 
 // Apply middleware
-const corsMiddleware = createRequestHandler((req, res, next) => {
+const corsMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
   applyCORS(req, res, next);
 });
-const rateLimiterMiddleware = createRequestHandler(applyRateLimiters.applyRateLimiters);
 
-if (isMiddlewareFunction(corsMiddleware) && isMiddlewareFunction(rateLimiterMiddleware)) {
+// Apply rate limiters directly to the app
+applyRateLimiters(app as Application); // Cast app to Application for type safety
+
+if (isMiddlewareFunction(corsMiddleware)) { // Removed rateLimiterMiddleware from this check
   app.use(corsMiddleware);
-  app.use(rateLimiterMiddleware);
+  // app.use(rateLimiterMiddleware); // Removed as applyRateLimiters handles this
 }
 
 // Enforce HTTPS for secure routes in production
-const paymentRoutesMiddleware = createRequestHandler((req, res, next) => {
+const paymentRoutesMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
   enforceHttpsForPaymentRoutes(req, res, next);
 });
-const dialogflowRoutesMiddleware = createRequestHandler((req, res, next) => {
+const dialogflowRoutesMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
   enforceHttpsForDialogflowRoutes(req, res, next);
 });
 
@@ -78,7 +80,7 @@ app.use(performanceMonitoring());
 app.use(memoryMonitoring());
 
 // Error handling middleware
-const errorMiddleware = createErrorHandler((err, req, res, next) => {
+const errorMiddleware = createErrorHandler((err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error(err.message, { stack: err.stack });
 
   if (err instanceof Error) {
@@ -157,7 +159,7 @@ app.get('/api/health/db', async (req, res) => {
   try {
     const stats = await dbManager.getPoolStats();
     res.json({ status: 'ok', dbStats: stats });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Database health check failed', { error });
     res.status(500).json({ status: 'error', message: 'Database health check failed' });
   }
@@ -213,7 +215,7 @@ async function initialize() {
       log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
       log(`Listening on ${protocol}://${host}:${port}`);
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Server initialization failed', { error });
     process.exit(1);
   }

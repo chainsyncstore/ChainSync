@@ -101,14 +101,14 @@ async function processLoyaltyJob(job: Job): Promise<any> {
       default:
         throw new Error(`Unknown loyalty job type: ${name}`);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     jobLogger.error(`Failed to process loyalty job`, error instanceof Error ? error : new Error(String(error)), {
       jobName: name,
       data
     });
     
     // Rethrow to let BullMQ handle retries
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -117,7 +117,7 @@ async function processLoyaltyJob(job: Job): Promise<any> {
  */
 async function processTransaction(
   data: ProcessTransactionData,
-  logger: any
+  logger: unknown
 ): Promise<{ pointsAwarded: number; newTotal: number }> {
   logger.info('Processing transaction for loyalty points', {
     transactionId: data.transactionId,
@@ -174,12 +174,12 @@ async function processTransaction(
     );
     
     return { pointsAwarded, newTotal };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error processing transaction for loyalty points', error instanceof Error ? error : new Error(String(error)), {
       transactionId: data.transactionId,
       customerId: data.customerId
     });
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -188,7 +188,7 @@ async function processTransaction(
  */
 async function applyLoyaltyPoints(
   data: ApplyPointsData,
-  logger: any
+  logger: unknown
 ): Promise<{ success: boolean; newTotal: number }> {
   logger.info('Applying loyalty points', {
     customerId: data.customerId,
@@ -232,12 +232,12 @@ async function applyLoyaltyPoints(
     });
     
     return { success: true, newTotal };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error applying loyalty points', error instanceof Error ? error : new Error(String(error)), {
       customerId: data.customerId,
       points: data.points
     });
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -246,7 +246,7 @@ async function applyLoyaltyPoints(
  */
 async function reverseLoyaltyPoints(
   data: ReversePointsData,
-  logger: any
+  logger: unknown
 ): Promise<{ success: boolean; newTotal: number }> {
   logger.info('Reversing loyalty points', {
     customerId: data.customerId,
@@ -290,12 +290,12 @@ async function reverseLoyaltyPoints(
     });
     
     return { success: true, newTotal };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error reversing loyalty points', error instanceof Error ? error : new Error(String(error)), {
       customerId: data.customerId,
       points: data.points
     });
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -304,7 +304,7 @@ async function reverseLoyaltyPoints(
  */
 async function calculateRewards(
   data: CalculateRewardsData,
-  logger: any
+  logger: unknown
 ): Promise<{ availableRewards: number }> {
   logger.info('Calculating rewards for customer', {
     customerId: data.customerId,
@@ -340,11 +340,11 @@ async function calculateRewards(
     });
     
     return { availableRewards };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error calculating rewards', error instanceof Error ? error : new Error(String(error)), {
       customerId: data.customerId
     });
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -353,7 +353,7 @@ async function calculateRewards(
  */
 async function syncLoyaltyStatus(
   data: SyncLoyaltyStatusData,
-  logger: any
+  logger: unknown
 ): Promise<{ success: boolean }> {
   logger.info('Syncing loyalty status with external systems', {
     customerId: data.customerId,
@@ -373,11 +373,11 @@ async function syncLoyaltyStatus(
     });
     
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error syncing loyalty status', error instanceof Error ? error : new Error(String(error)), {
       customerId: data.customerId
     });
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 

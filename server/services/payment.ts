@@ -33,7 +33,7 @@ try {
     console.log('PAYSTACK_PUBLIC_KEY:', paystackPublicKey ? 'defined' : 'undefined');
     console.log('PAYSTACK_SECRET_KEY:', paystackSecretKey ? 'defined' : 'undefined');
   }
-} catch (err) {
+} catch (err: unknown) {
   console.error('Error initializing Paystack:', err);
 }
 
@@ -50,7 +50,7 @@ try {
     console.log('FLUTTERWAVE_PUBLIC_KEY:', flutterwavePublicKey ? 'defined' : 'undefined');
     console.log('FLUTTERWAVE_SECRET_KEY:', flutterwaveSecretKey ? 'defined' : 'undefined');
   }
-} catch (err) {
+} catch (err: unknown) {
   console.error('Error initializing Flutterwave:', err);
 }
 
@@ -91,7 +91,7 @@ export async function initializeSubscription(
       if (discountResult.discountAmount > 0) {
         discountedAmount = discountResult.discountedAmount;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error applying referral discount:', error);
     }
   }
@@ -329,7 +329,7 @@ export async function processSubscriptionPayment(
     try {
       const { processAffiliateCommission } = await import('./affiliate');
       await processAffiliateCommission(userId, amount);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error processing affiliate commission:', error);
     }
     

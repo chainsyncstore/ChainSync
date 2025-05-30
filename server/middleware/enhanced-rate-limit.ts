@@ -27,7 +27,7 @@ interface RateLimitStore {
  * Redis-based rate limit store
  */
 class RedisRateLimitStore implements RateLimitStore {
-  private client: any;
+  private client: unknown;
   private connected: boolean = false;
 
   constructor() {
@@ -68,7 +68,7 @@ class RedisRateLimitStore implements RateLimitStore {
       const count = results[0];
       
       return { count, resetTime };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Redis rate limit error:', error);
       return this.memoryFallback(key, windowMs);
     }
@@ -78,7 +78,7 @@ class RedisRateLimitStore implements RateLimitStore {
     if (this.connected && this.client) {
       try {
         await this.client.del(key);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Redis rate limit reset error:', error);
       }
     }
@@ -197,7 +197,7 @@ export function createRateLimit(options: RateLimitOptions = {}) {
       }
 
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Rate limiting error:', error);
       // Continue without rate limiting if there's an error
       next();

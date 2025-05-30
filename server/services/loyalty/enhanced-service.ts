@@ -82,7 +82,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       
       // Ensure the program was created
       return this.ensureExists(program, 'Loyalty Program');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'creating loyalty program');
     }
   }
@@ -122,7 +122,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       
       // Ensure the program was updated
       return this.ensureExists(updatedProgram, 'Loyalty Program');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'updating loyalty program');
     }
   }
@@ -146,7 +146,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
         [],
         this.programFormatter.formatResult.bind(this.programFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting loyalty program by ID');
     }
   }
@@ -174,7 +174,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
         [],
         this.programFormatter.formatResult.bind(this.programFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting loyalty program by store');
     }
   }
@@ -239,7 +239,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       
       // Ensure the member was created
       return this.ensureExists(member, 'Loyalty Member');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'creating loyalty member');
     }
   }
@@ -280,7 +280,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       
       // Ensure the member was updated
       return this.ensureExists(updatedMember, 'Loyalty Member');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'updating loyalty member');
     }
   }
@@ -304,7 +304,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
         [],
         this.memberFormatter.formatResult.bind(this.memberFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting loyalty member by ID');
     }
   }
@@ -332,7 +332,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
         [],
         this.memberFormatter.formatResult.bind(this.memberFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting loyalty member by user');
     }
   }
@@ -400,7 +400,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       
       // Ensure the transaction was created
       return this.ensureExists(transaction, 'Loyalty Transaction');
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'creating loyalty transaction');
     }
   }
@@ -424,7 +424,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
         [],
         this.transactionFormatter.formatResult.bind(this.transactionFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting loyalty transaction by ID');
     }
   }
@@ -450,7 +450,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
         [],
         this.transactionFormatter.formatResult.bind(this.transactionFormatter)
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'getting loyalty transactions by member');
     }
   }
@@ -468,7 +468,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       );
       
       return result.rows?.[0] || null;
-    } catch (error) {
+    } catch (error: unknown) {
       return null;
     }
   }
@@ -486,7 +486,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       );
       
       return result.rows?.[0] || null;
-    } catch (error) {
+    } catch (error: unknown) {
       return null;
     }
   }

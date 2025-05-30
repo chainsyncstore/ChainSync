@@ -3,23 +3,13 @@ import { db } from '../../db';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getLogger, getRequestLogger } from '../../src/logging';
+import { UserPayload } from '../types/express'; // Import UserPayload
 
 // Get centralized logger for auth middleware
 const logger = getLogger().child({ component: 'auth-middleware' });
 
-// Define user interface for express requests
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string | number; // Allow both string and number types for ID
-        role: string;
-        storeId?: number;
-        name: string;
-      };
-    }
-  }
-}
+// UserPayload is now defined in server/types/express.d.ts
+// and automatically available on Express.Request
 
 declare module 'express-session' {
   interface SessionData {
@@ -73,7 +63,19 @@ export const authorizeRoles = (allowedRoles: string[]) => {
       return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
     }
     
-    if (!allowedRoles.includes(req.session.userRole)) {
+    // Ensure userRole from session is a string before using it
+    const userRoleFromSession = req.session.userRole;
+    if (!userRoleFromSession) {
+      // This case should ideally be caught by !req.session.userId, 
+      // but as a safeguard if userRole is missing despite userId existing.
+      reqLogger.error('User role missing in session despite userId presence', {
+        userId: req.session.userId,
+        path: req.path,
+      });
+      return res.status(500).json({ message: 'Internal server error: User session corrupted', code: 'SESSION_CORRUPTED' });
+    }
+
+    if (!allowedRoles.includes(userRoleFromSession)) {
       reqLogger.warn('Forbidden access attempt', {
         path: req.path,
         method: req.method,
@@ -89,11 +91,14 @@ export const authorizeRoles = (allowedRoles: string[]) => {
     }
     
     // Set user object for downstream middleware and route handlers
+    // Ensure this conforms to UserPayload
     req.user = {
-      id: String(req.session.userId), // Convert number to string to match interface
-      role: req.session.userRole,
+      id: String(req.session.userId),
+      role: userRoleFromSession, // Use validated userRoleFromSession
       storeId: req.session.storeId,
-      name: req.session.fullName || ''
+      name: req.session.fullName || '',
+      email: '', // Placeholder: email is not in session. validateSession should populate this.
+      // username can be omitted as it's optional
     };
     
     next();
@@ -188,7 +193,17 @@ export const isCashierOrAbove = (req: Request, res: Response, next: NextFunction
   }
   
   const validRoles = ['cashier', 'manager', 'admin'];
-  if (!validRoles.includes(req.session.userRole)) {
+  const userRoleFromSession = req.session.userRole;
+
+  if (!userRoleFromSession) {
+    reqLogger.error('User role missing in session for isCashierOrAbove check', {
+      userId: req.session.userId,
+      path: req.path,
+    });
+    return res.status(500).json({ message: 'Internal server error: User session corrupted', code: 'SESSION_CORRUPTED' });
+  }
+
+  if (!validRoles.includes(userRoleFromSession)) {
     reqLogger.warn('Forbidden access attempt', {
       path: req.path,
       method: req.method,
@@ -367,10 +382,15 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
       }
       
       // Verify session matches current role (prevent stale permissions)
-      if (user.role !== req.session.userRole) {
+      const currentSessionUserRole = req.session.userRole;
+      if (!currentSessionUserRole) {
+        reqLogger.error('User role missing in session during validation', { userId: user.id });
+        // Potentially destroy session or handle as error
+        // For now, we'll proceed but this indicates a problem
+      } else if (user.role !== currentSessionUserRole) {
         reqLogger.warn('User role mismatch - updating session', {
           userId: user.id,
-          sessionRole: req.session.userRole,
+          sessionRole: currentSessionUserRole,
           actualRole: user.role
         });
         
@@ -386,14 +406,19 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
       });
       
       // Update user context in request for downstream use
-      (req as any).user = {
-        id: user.id,
-        username: user.username,
+      // Ensure this conforms to UserPayload
+      const userPayload: UserPayload = {
+        id: String(user.id), // Ensure ID is a string
         email: user.email,
-        role: user.role
+        role: user.role,
+        name: user.username || user.email, // Use username as name, fallback to email
+        username: user.username,
+        // storeId is not directly available on the 'user' object from DB here,
+        // it's on req.session.storeId if needed and set by authorizeRoles
       };
+      req.user = userPayload;
       
-    } catch (error) {
+    } catch (error: unknown) {
       reqLogger.error('Error validating session', error instanceof Error ? error : new Error(String(error)), {
         path: req.path,
         sessionID: req.sessionID

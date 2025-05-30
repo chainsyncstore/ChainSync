@@ -114,7 +114,7 @@ export class ProductService extends BaseService implements IProductService {
         });
       
       return product;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -202,7 +202,7 @@ export class ProductService extends BaseService implements IProductService {
         .returning();
       
       return updatedProduct;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -224,7 +224,7 @@ export class ProductService extends BaseService implements IProductService {
       }
       
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Deleting product');
     }
   }
@@ -244,7 +244,7 @@ export class ProductService extends BaseService implements IProductService {
       });
       
       return product;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting product by ID');
     }
   }
@@ -267,7 +267,7 @@ export class ProductService extends BaseService implements IProductService {
       });
       
       return product;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting product by SKU');
     }
   }
@@ -290,7 +290,7 @@ export class ProductService extends BaseService implements IProductService {
       });
       
       return product;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting product by barcode');
     }
   }
@@ -398,7 +398,7 @@ export class ProductService extends BaseService implements IProductService {
         page,
         limit
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Searching products');
     }
   }
@@ -424,7 +424,7 @@ export class ProductService extends BaseService implements IProductService {
                inventory.availableQuantity < inventory.minimumLevel &&
                product.isActive;
       });
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting low stock products');
     }
   }
@@ -491,7 +491,7 @@ export class ProductService extends BaseService implements IProductService {
         });
       
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }

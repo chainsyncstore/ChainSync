@@ -2,6 +2,7 @@ import { pgTable, serial, integer, text, decimal, boolean, timestamp, jsonb, ind
 import { z } from "zod";
 import { baseTable, baseInsertSchema, baseSelectSchema } from "./base";
 import { users } from "./users";
+import { subscriptionToDatabaseFields, subscriptionFromDatabaseFields } from "../utils/subscription-mapping";
 
 // Subscription status and plan enums as text fields
 export const subscriptions = pgTable("subscriptions", {
@@ -64,3 +65,24 @@ export const subscriptionSelectSchema = baseSelectSchema.extend({
 
 export type Subscription = typeof subscriptions.$inferSelect;
 export type NewSubscription = typeof subscriptions.$inferInsert;
+
+/**
+ * Convert a Subscription object to database fields (camelCase to snake_case)
+ */
+export function toDbFields(subscription: Partial<Subscription>): Record<string, unknown> {
+  return subscriptionToDatabaseFields(subscription);
+}
+
+/**
+ * Convert database fields to a Subscription object (snake_case to camelCase)
+ */
+export function fromDbFields<T extends Record<string, unknown>>(dbSubscription: T): Partial<Subscription> {
+  return subscriptionFromDatabaseFields(dbSubscription);
+}
+
+/**
+ * Convert an array of database records to Subscription objects
+ */
+export function mapSubscriptions<T extends Record<string, unknown>>(dbSubscriptions: T[]): Partial<Subscription>[] {
+  return dbSubscriptions.map(subscription => fromDbFields(subscription));
+}

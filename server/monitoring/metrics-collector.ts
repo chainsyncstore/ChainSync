@@ -277,7 +277,7 @@ export class MetricsCollector extends EventEmitter {
         memory: this.metrics.memory.usagePercent,
         queries: this.metrics.database.queryCount 
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error collecting metrics', { error: (error as Error).message });
     } finally {
       this.isCollecting = false;
@@ -389,7 +389,7 @@ export class MetricsCollector extends EventEmitter {
         queryTime: dbStats.avgQueryTimeMs || 0,
         queryCount: dbStats.queryCount || 0
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting database metrics', { error: (error as Error).message });
       return {
         connections: 0,
@@ -404,44 +404,44 @@ export class MetricsCollector extends EventEmitter {
    */
   private checkThresholds(metrics: SystemMetrics): void {
     // Check CPU usage
-    if (metrics.cpu.usage >= this.thresholds.cpu.critical) {
+    if (metrics.cpu && typeof metrics.cpu.usage === 'number' && metrics.cpu.usage >= this.thresholds.cpu.critical) {
       this.triggerAlert('CPU usage critical', 
         `CPU usage is at ${metrics.cpu.usage}%, above critical threshold of ${this.thresholds.cpu.critical}%`, 
         AlertSeverity.CRITICAL, 'cpu');
-    } else if (metrics.cpu.usage >= this.thresholds.cpu.warning) {
+    } else if (metrics.cpu && typeof metrics.cpu.usage === 'number' && metrics.cpu.usage >= this.thresholds.cpu.warning) {
       this.triggerAlert('CPU usage warning', 
         `CPU usage is at ${metrics.cpu.usage}%, above warning threshold of ${this.thresholds.cpu.warning}%`, 
         AlertSeverity.WARNING, 'cpu');
     }
     
     // Check memory usage
-    if (metrics.memory.usagePercent >= this.thresholds.memory.critical) {
+    if (metrics.memory && typeof metrics.memory.usagePercent === 'number' && metrics.memory.usagePercent >= this.thresholds.memory.critical) {
       this.triggerAlert('Memory usage critical', 
         `Memory usage is at ${metrics.memory.usagePercent}%, above critical threshold of ${this.thresholds.memory.critical}%`, 
         AlertSeverity.CRITICAL, 'memory');
-    } else if (metrics.memory.usagePercent >= this.thresholds.memory.warning) {
+    } else if (metrics.memory && typeof metrics.memory.usagePercent === 'number' && metrics.memory.usagePercent >= this.thresholds.memory.warning) {
       this.triggerAlert('Memory usage warning', 
         `Memory usage is at ${metrics.memory.usagePercent}%, above warning threshold of ${this.thresholds.memory.warning}%`, 
         AlertSeverity.WARNING, 'memory');
     }
     
     // Check disk usage
-    if (metrics.disk.usagePercent >= this.thresholds.disk.critical) {
+    if (metrics.disk && typeof metrics.disk.usagePercent === 'number' && metrics.disk.usagePercent >= this.thresholds.disk.critical) {
       this.triggerAlert('Disk usage critical', 
         `Disk usage is at ${metrics.disk.usagePercent}%, above critical threshold of ${this.thresholds.disk.critical}%`, 
         AlertSeverity.CRITICAL, 'disk');
-    } else if (metrics.disk.usagePercent >= this.thresholds.disk.warning) {
+    } else if (metrics.disk && typeof metrics.disk.usagePercent === 'number' && metrics.disk.usagePercent >= this.thresholds.disk.warning) {
       this.triggerAlert('Disk usage warning', 
         `Disk usage is at ${metrics.disk.usagePercent}%, above warning threshold of ${this.thresholds.disk.warning}%`, 
         AlertSeverity.WARNING, 'disk');
     }
     
     // Check query time
-    if (metrics.database.queryTime >= this.thresholds.queryTime.critical) {
+    if (metrics.database && typeof metrics.database.queryTime === 'number' && metrics.database.queryTime >= this.thresholds.queryTime.critical) {
       this.triggerAlert('Database query time critical', 
         `Average query time is ${metrics.database.queryTime}ms, above critical threshold of ${this.thresholds.queryTime.critical}ms`, 
         AlertSeverity.CRITICAL, 'database');
-    } else if (metrics.database.queryTime >= this.thresholds.queryTime.warning) {
+    } else if (metrics.database && typeof metrics.database.queryTime === 'number' && metrics.database.queryTime >= this.thresholds.queryTime.warning) {
       this.triggerAlert('Database query time warning', 
         `Average query time is ${metrics.database.queryTime}ms, above warning threshold of ${this.thresholds.queryTime.warning}ms`, 
         AlertSeverity.WARNING, 'database');

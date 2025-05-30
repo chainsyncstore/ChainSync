@@ -2,6 +2,7 @@
 import { Logger, LogLevel, LogMeta, ConsoleLogger } from './Logger';
 import { SentryLogger, createSentryLogger } from './SentryLogger';
 import { TracingLogger, createTracingLogger } from './TracingLogger';
+import { SecurityLogger, createSecurityLogger, SecurityEventType, SecuritySeverity } from './SecurityLogger';
 import { requestLogger, errorLogger, getRequestLogger } from './middleware';
 
 // Default logger instance - starts as ConsoleLogger but can be replaced
@@ -33,6 +34,9 @@ export function configureLogging(options: {
   
   // Set to true to enable distributed tracing
   enableTracing?: boolean;
+  
+  // Set to true to enable security logging
+  enableSecurityLogging?: boolean;
 }): Logger {
   // Start with defaults
   const env = options.environment || process.env.NODE_ENV || 'development';
@@ -55,17 +59,24 @@ export function configureLogging(options: {
     baseLogger = new ConsoleLogger(level);
   }
   
-  // Set global context if provided
-  if (options.context) {
-    baseLogger.addContext(options.context);
+  // Enable security logging if requested
+  if (options.enableSecurityLogging) {
+    // Wrap with security logger
+    baseLogger = createSecurityLogger(baseLogger);
   }
   
   // Wrap with tracing logger if enabled
   if (options.enableTracing) {
-    activeLogger = new TracingLogger(baseLogger);
-  } else {
-    activeLogger = baseLogger;
+    // Wrap with tracing if enabled
+    baseLogger = createTracingLogger(baseLogger);
   }
+  
+  // Add context
+  if (options.context) {
+    baseLogger.addContext(options.context);
+  }
+  
+  activeLogger = baseLogger;
   
   return activeLogger;
 }
@@ -91,21 +102,32 @@ export function setLogger(logger: Logger): void {
   activeLogger = logger;
 }
 
-// Re-export everything from Logger
-export { 
-  ConsoleLogger, 
-  SentryLogger,
-  requestLogger,
-  errorLogger,
-  getRequestLogger
-};
+// Export interfaces, types, and enums for proper TypeScript handling
+export type {
+  Logger,
+  LogMeta,
+  LoggableError
+} from './Logger';
 
-// Re-export types with proper syntax for isolatedModules
-export type { 
-  Logger, 
-  LogLevel, 
-  LogMeta 
-};
+// Export enums and constants
+export { LogLevel } from './Logger';
+export { SecurityEventType, SecuritySeverity } from './SecurityLogger';
 
-// Re-export our new tracing components
-export { TracingLogger, createTracingLogger };
+// Export classes
+export { ConsoleLogger } from './Logger';
+export { SentryLogger } from './SentryLogger';
+export { TracingLogger } from './TracingLogger';
+export { SecurityLogger } from './SecurityLogger';
+
+// Export factory functions
+export { createSentryLogger } from './SentryLogger';
+export { createTracingLogger } from './TracingLogger';
+export { createSecurityLogger } from './SecurityLogger';
+
+// Export middleware
+export { requestLogger, errorLogger, getRequestLogger } from './middleware';
+
+// Our utility functions are already defined above, no need to re-export them
+
+// Export our default logger implementation
+export default activeLogger;

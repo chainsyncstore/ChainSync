@@ -7,7 +7,7 @@ const logger = getLogger().child({ component: 'error-handler' });
 /**
  * Central error handling utility for consistent error responses
  */
-export function handleError(res: Response, error: any): Response {
+export function handleError(res: Response, error: unknown): Response {
   // Log all errors
   if (error instanceof AppError) {
     logger.error('Application error', { 
@@ -48,7 +48,7 @@ export function handleError(res: Response, error: any): Response {
  * Async error handler middleware for Express routes
  */
 export function asyncHandler(fn: Function) {
-  return (req: any, res: any, next: any) => {
+  return (req: unknown, res: unknown, next: unknown) => {
     Promise.resolve(fn(req, res, next)).catch((error) => {
       handleError(res, error);
     });
@@ -58,7 +58,7 @@ export function asyncHandler(fn: Function) {
 /**
  * Global error handler middleware for Express
  */
-export function globalErrorHandler(error: any, req: any, res: Response, next: any) {
+export function globalErrorHandler(error: unknown, req: unknown, res: Response, next: unknown) {
   if (res.headersSent) {
     return next(error);
   }

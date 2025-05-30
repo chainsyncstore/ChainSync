@@ -63,7 +63,7 @@ const errorTranslations: ErrorTranslation = {
   },
 };
 
-export const getErrorMessage = (code: ErrorCode, details?: any): string => {
+export const getErrorMessage = (code: ErrorCode, details?: unknown): string => {
   const translation = errorTranslations[code];
   if (!translation) {
     return 'An unexpected error occurred';

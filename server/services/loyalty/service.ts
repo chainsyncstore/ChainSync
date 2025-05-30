@@ -107,7 +107,7 @@ export class LoyaltyService {
    * Helper method to safely convert any value to string for SQL queries
    * This prevents TypeScript errors with template literals
    */
-  private safeToString(val: any): string {
+  private safeToString(val: unknown): string {
     if (val === undefined || val === null) return '';
     return String(val);
   }
@@ -122,10 +122,10 @@ export class LoyaltyService {
    * @param error The error object
    * @param message The error message
    */
-  private handleError(error: any, message: string): never {
+  private handleError(error: unknown, message: string): never {
     this.logger.error(message, { error });
     if (error instanceof AppError) {
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
     throw new AppError(message, ErrorCategory.SYSTEM, ErrorCode.INTERNAL_SERVER_ERROR);
   }
@@ -151,7 +151,7 @@ export class LoyaltyService {
       } while (true);
 
       return loyaltyId;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Generating loyalty ID');
     }
   }
@@ -219,7 +219,7 @@ export class LoyaltyService {
       ).then(result => result.rows[0]);
       
       return member;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Enrolling customer');
     }
   }
@@ -253,7 +253,7 @@ export class LoyaltyService {
       
       // Calculate and return the points as a number
       return Math.floor(subtotalNum * pointsPerDollar);
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Calculating points for transaction');
     }
   }
@@ -307,7 +307,7 @@ export class LoyaltyService {
       
       // Return successful response
       return { success: true, memberId, pointsAdded: points };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Recording points earned');
     }
   }
@@ -323,7 +323,7 @@ export class LoyaltyService {
       ).then(result => result.rows?.[0] || null);
       
       return member;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting loyalty member');
     }
   }
@@ -339,7 +339,7 @@ export class LoyaltyService {
       ).then(result => result.rows?.[0] || null);
       
       return member;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting loyalty member by customer ID');
     }
   }
@@ -355,7 +355,7 @@ export class LoyaltyService {
       ).then(result => result.rows?.[0] || null);
       
       return program;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting loyalty program');
     }
   }
@@ -400,7 +400,7 @@ export class LoyaltyService {
       }
       
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Checking and updating member tier');
     }
   }
@@ -408,7 +408,7 @@ export class LoyaltyService {
   /**
    * Create a new loyalty tier
    */
-  async createLoyaltyTier(tierData: any): Promise<any> {
+  async createLoyaltyTier(tierData: unknown): Promise<any> {
     try {
       const now = new Date();
       
@@ -423,7 +423,7 @@ export class LoyaltyService {
       ).then(result => result.rows[0]);
       
       return tier;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Creating loyalty tier');
     }
   }
@@ -431,7 +431,7 @@ export class LoyaltyService {
   /**
    * Create a new loyalty reward
    */
-  async createLoyaltyReward(rewardData: any): Promise<any> {
+  async createLoyaltyReward(rewardData: unknown): Promise<any> {
     try {
       const now = new Date();
       
@@ -446,7 +446,7 @@ export class LoyaltyService {
       ).then(result => result.rows[0]);
       
       return reward;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Creating loyalty reward');
     }
   }
@@ -512,7 +512,7 @@ export class LoyaltyService {
       }
       
       return totalExpired;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Processing expired points');
     }
   }
@@ -526,7 +526,7 @@ export class LoyaltyService {
     pointsEarned: string;
     pointsRedeemed: string;
     pointsBalance: string;
-    programDetails: any | null;
+    programDetails: unknown | null;
     topRewards: Array<{ name: string; redemptions: number }>;
   }> {
     try {
@@ -539,7 +539,7 @@ export class LoyaltyService {
       ).then(result => result.rows || []);
       
       const memberCount = members.length;
-      const activeMembers = members.filter((m: any) => m.active === true).length;
+      const activeMembers = members.filter((m: unknown) => m.active === true).length;
       
       // Get points statistics
       let pointsEarned = 0;
@@ -568,7 +568,7 @@ export class LoyaltyService {
         LIMIT 5`
       ).then(result => result.rows || []);
       
-      const topRewards = redemptions.map((r: any) => ({
+      const topRewards = redemptions.map((r: unknown) => ({
         name: r.name,
         redemptions: parseInt(r.count || '0')
       }));
@@ -582,7 +582,7 @@ export class LoyaltyService {
         programDetails: program,
         topRewards
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting loyalty statistics');
     }
   }
@@ -665,7 +665,7 @@ export class LoyaltyService {
         transaction,
         newPoints: newCurrentPoints
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Redeeming reward');
     }
   }

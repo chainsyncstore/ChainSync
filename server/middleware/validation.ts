@@ -50,7 +50,7 @@ export function validateBody<T extends z.ZodTypeAny>(schema: T) {
       req.body = validatedData;
       
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         reqLogger.warn('Request body validation failed', {
           path: req.path,
@@ -90,7 +90,7 @@ export function validateParams<T extends z.ZodTypeAny>(schema: T) {
       req.params = validatedData;
       
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         reqLogger.warn('Request params validation failed', {
           path: req.path,
@@ -130,7 +130,7 @@ export function validateQuery<T extends z.ZodTypeAny>(schema: T) {
       req.query = validatedData;
       
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         reqLogger.warn('Request query validation failed', {
           path: req.path,

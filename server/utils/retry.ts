@@ -28,7 +28,7 @@ export interface RetryOptions {
   operationName?: string;
   
   /** Custom function to determine if an error is retryable */
-  isRetryable?: (error: any) => boolean;
+  isRetryable?: (error: unknown) => boolean;
 }
 
 /**
@@ -42,7 +42,7 @@ export interface RetryResult<T> {
   result?: T;
   
   /** The error if the operation failed after all retries */
-  error?: any;
+  error?: unknown;
   
   /** Number of attempts made */
   attempts: number;
@@ -76,7 +76,7 @@ export async function retry<T>(
   const config = { ...DEFAULT_OPTIONS, ...options };
   const startTime = Date.now();
   let attempts = 0;
-  let lastError: any;
+  let lastError: unknown;
   let delay = config.initialDelayMs;
   
   const opName = config.operationName || 'unnamed-operation';
@@ -102,7 +102,7 @@ export async function retry<T>(
         attempts,
         totalTimeMs: Date.now() - startTime,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       lastError = error;
       
       // Check if the error is non-retryable
@@ -170,7 +170,7 @@ function addJitter(delay: number): number {
 /**
  * Determine if an error should not be retried based on configuration
  */
-function isNonRetryableError(error: any, options: RetryOptions): boolean {
+function isNonRetryableError(error: unknown, options: RetryOptions): boolean {
   // Use the custom function if provided
   if (options.isRetryable) {
     return !options.isRetryable(error);

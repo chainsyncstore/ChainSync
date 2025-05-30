@@ -296,9 +296,9 @@ export const storage = {
         .limit(1);
 
       return affiliate || null;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error getting affiliate by user ID:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -311,9 +311,9 @@ export const storage = {
         .limit(1);
 
       return affiliate || null;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error getting affiliate by code:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -325,9 +325,9 @@ export const storage = {
         .returning();
 
       return affiliate;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating affiliate:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -343,9 +343,9 @@ export const storage = {
         .returning();
 
       return updatedAffiliate;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error updating affiliate:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -370,9 +370,9 @@ export const storage = {
         .orderBy(desc(schema.referrals.signupDate));
 
       return referrals;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error getting referrals by affiliate ID:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -384,9 +384,9 @@ export const storage = {
         .returning();
 
       return referral;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating referral:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -402,9 +402,9 @@ export const storage = {
         .returning();
 
       return updatedReferral;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error updating referral:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -418,9 +418,9 @@ export const storage = {
         .limit(1);
 
       return subscription || null;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error getting subscription by user ID:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -432,9 +432,9 @@ export const storage = {
         .returning();
 
       return subscription;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating subscription:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -450,9 +450,9 @@ export const storage = {
         .returning();
 
       return updatedSubscription;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error updating subscription:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -465,9 +465,9 @@ export const storage = {
         .orderBy(desc(schema.referralPayments.createdAt));
 
       return payments;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error getting referral payments by affiliate ID:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -479,9 +479,9 @@ export const storage = {
         .returning();
 
       return payment;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating referral payment:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -497,9 +497,9 @@ export const storage = {
         .returning();
 
       return updatedPayment;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error updating referral payment:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 
@@ -1051,7 +1051,7 @@ export const storage = {
     batchId: number;
     userId: number;
     action: string;
-    details: any;
+    details: unknown;
     quantityBefore?: number;
     quantityAfter?: number;
   }) {
@@ -1069,7 +1069,7 @@ export const storage = {
         .returning();
 
       return logEntry;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating batch audit log:", error);
       // Don't throw the error to prevent disrupting main operations
       return null;
@@ -1174,16 +1174,16 @@ export const storage = {
             .returning();
 
           createdItems.push(transItem);
-        } catch (error) {
+        } catch (error: unknown) {
           console.error(`Error processing item ${item.productId}:`, error);
           // Continue with other items even if one fails
         }
       }
 
       return { transaction, items: createdItems };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating transaction:", error);
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
 

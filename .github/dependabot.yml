@@ -1,0 +1,53 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    # Look for `package.json` and `lock` files in the `root` directory
+    directory: "/"
+    # Check for updates once a week (on Monday)
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # Target all pull requests for security updates to the default branch
+    target-branch: "main"
+    # Group all updates together
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+      production-dependencies:
+        dependency-type: "production"
+    # Configure commit message options
+    commit-message:
+      prefix: "deps"
+      prefix-development: "dev-deps"
+      include: "scope"
+    # Labels on pull requests for security updates
+    labels:
+      - "dependencies"
+      - "security"
+    # Raise pull requests for version updates
+    # to the default branch with a maximum of 10 open requests at a time
+    open-pull-requests-limit: 10
+    # The following settings ensure Dependabot doesn't break the build
+    versioning-strategy: auto
+    # Always allow major version upgrades for security updates
+    ignore:
+      # Ignore updates to packages that require Node versions higher than the
+      # current version. Add more rules here if needed.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+        # If a package requires Node v20+ and our project uses Node v18, ignore it
+        # condition: "${{packageJson.engines.node}} < ${{replace(packageJson.dependencies[dependencies.name], '^', '')}}"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "ci-cd"
+      - "dependencies"

@@ -59,12 +59,12 @@ declare module 'multer' {
     }
 
     interface Multer {
-        (options?: MulterOptions): (req: Request, res: any, next: any) => void;
-        any(fieldname?: string): (req: Request, res: any, next: any) => void;
-        array(fieldname: string, maxCount?: number): (req: Request, res: any, next: any) => void;
-        fields(fields: Array<{ name: string; maxCount: number }>): (req: Request, res: any, next: any) => void;
-        single(fieldname: string): (req: Request, res: any, next: any) => void;
-        none(): (req: Request, res: any, next: any) => void;
+        (options?: MulterOptions): (req: Request, res: unknown, next: unknown) => void;
+        any(fieldname?: string): (req: Request, res: unknown, next: unknown) => void;
+        array(fieldname: string, maxCount?: number): (req: Request, res: unknown, next: unknown) => void;
+        fields(fields: Array<{ name: string; maxCount: number }>): (req: Request, res: unknown, next: unknown) => void;
+        single(fieldname: string): (req: Request, res: unknown, next: unknown) => void;
+        none(): (req: Request, res: unknown, next: unknown) => void;
     }
 
     const multer: Multer;

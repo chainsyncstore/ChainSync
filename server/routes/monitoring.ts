@@ -10,7 +10,7 @@ const logger = getLogger().child({ component: 'monitoring-api' });
 
 // Store alerts in memory for demonstration
 // In production, these would be stored in a database
-const activeAlerts: any[] = [];
+const activeAlerts: unknown[] = [];
 
 /**
  * @swagger
@@ -58,7 +58,7 @@ router.get('/health', (req, res) => {
       uptime,
       timestamp
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error getting health status', error);
     res.status(500).json({ error: 'Failed to retrieve health status' });
   }
@@ -195,7 +195,7 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async (req, 
     // Add more metrics as needed
     
     res.json(metrics);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error getting system metrics', error);
     res.status(500).json({ error: 'Failed to retrieve system metrics' });
   }
@@ -242,7 +242,7 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async (req, 
 router.get('/alerts', authenticateUser, authorizeRoles(['admin']), (req, res) => {
   try {
     res.json(activeAlerts);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error getting alerts', error);
     res.status(500).json({ error: 'Failed to retrieve alerts' });
   }
@@ -302,7 +302,7 @@ router.post('/alerts/:id/acknowledge', authenticateUser, authorizeRoles(['admin'
       success: true,
       id: alertId
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error acknowledging alert', error);
     res.status(500).json({ error: 'Failed to acknowledge alert' });
   }
@@ -374,7 +374,7 @@ router.post('/simulate-alert', authenticateUser, authorizeRoles(['admin']), (req
       success: true,
       alert: newAlert
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error creating simulated alert', error);
     res.status(500).json({ error: 'Failed to create simulated alert' });
   }

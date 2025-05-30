@@ -76,7 +76,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         .returning();
       
       return inventory;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -114,7 +114,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         .returning();
       
       return updatedInventory;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -139,7 +139,7 @@ export class InventoryService extends BaseService implements IInventoryService {
       });
       
       return inventory;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting inventory by product');
     }
   }
@@ -189,7 +189,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         page,
         limit
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting inventory by store');
     }
   }
@@ -319,7 +319,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         page,
         limit
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Searching inventory');
     }
   }
@@ -401,7 +401,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         
         return true;
       });
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -482,7 +482,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         
         return batch;
       });
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -501,7 +501,7 @@ export class InventoryService extends BaseService implements IInventoryService {
       });
       
       return batches;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting batches by product');
     }
   }
@@ -535,7 +535,7 @@ export class InventoryService extends BaseService implements IInventoryService {
       });
       
       return inventory;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting low stock items');
     }
   }
@@ -630,7 +630,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         valuationDate,
         breakdown
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting inventory valuation');
     }
   }

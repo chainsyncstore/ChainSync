@@ -54,7 +54,7 @@ export class ResilientHttpClient {
         useJitter: true,
         nonRetryableErrors: [
           // Don't retry client errors (4xx) except for specific ones
-          (error: any) => {
+          (error: unknown) => {
             const status = error.response?.status;
             return status >= 400 && status < 500 && 
                    status !== 408 && // Request Timeout
@@ -112,7 +112,7 @@ export class ResilientHttpClient {
    * @param config Additional Axios request configuration
    * @returns The response data
    */
-  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async post<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     return this.request<T>({
       method: 'POST',
       url,
@@ -129,7 +129,7 @@ export class ResilientHttpClient {
    * @param config Additional Axios request configuration
    * @returns The response data
    */
-  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async put<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     return this.request<T>({
       method: 'PUT',
       url,
@@ -161,7 +161,7 @@ export class ResilientHttpClient {
    * @param config Additional Axios request configuration
    * @returns The response data
    */
-  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async patch<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     return this.request<T>({
       method: 'PATCH',
       url,

@@ -144,7 +144,7 @@ export function httpMetricsMiddleware(req: Request, res: Response, next: NextFun
   const originalEnd = res.end;
   
   // Override end method to capture metrics before response is sent
-  res.end = function(...args: any[]) {
+  res.end = function(...args: unknown[]) {
     const responseTime = Date.now() - start;
     const route = req.route ? req.route.path : req.path;
     const method = req.method;

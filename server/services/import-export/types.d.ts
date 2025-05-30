@@ -1,9 +1,9 @@
 declare module 'csv-parser' {
-  export default function(): any;
+  export default function(): unknown;
 }
 
 declare module 'json2csv' {
-  export default function(): any;
+  export default function(): unknown;
 }
 
 import { Request, Response, NextFunction } from 'express';
@@ -35,7 +35,7 @@ declare module 'multer' {
   export type File = MulterFile;
 
   export interface StorageEngine {
-    _handleFile(req: Request, file: MulterFile, cb: (error: Error | null, info: any) => void): void;
+    _handleFile(req: Request, file: MulterFile, cb: (error: Error | null, info: unknown) => void): void;
     _removeFile(req: Request, file: MulterFile, cb: (error: Error | null) => void): void;
   }
 
@@ -122,6 +122,6 @@ export interface ImportExportService {
   getImportProgress(importId: string): Promise<ImportExportProgress>;
   cancelImport(importId: string): Promise<void>;
   clearImport(importId: string): Promise<void>;
-  validateData(data: any[], type: 'products' | 'users' | 'transactions', options?: ValidationOptions): Promise<{ valid: any[]; invalid: { index: number; errors: string[] }[] }>;
+  validateData(data: unknown[], type: 'products' | 'users' | 'transactions', options?: ValidationOptions): Promise<{ valid: unknown[]; invalid: { index: number; errors: string[] }[] }>;
   exportProducts(userId: number, options?: { format?: 'csv' | 'xlsx' | 'json' }): Promise<Buffer>;
 }

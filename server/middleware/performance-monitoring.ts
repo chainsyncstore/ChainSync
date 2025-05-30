@@ -30,7 +30,7 @@ export function performanceMonitoring() {
     };
     
     // Override end method to calculate performance metrics
-    res.end = function(this: Response, ...args: any[]): Response {
+    res.end = function(this: Response, ...args: unknown[]): Response {
       const endTime = performance.now();
       const duration = Math.round(endTime - startTime);
       

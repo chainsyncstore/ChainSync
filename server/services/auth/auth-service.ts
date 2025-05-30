@@ -101,7 +101,7 @@ export class AuthService {
       session.lastActivity = new Date();
       
       return payload;
-    } catch (error) {
+    } catch (error: unknown) {
       return null;
     }
   }
@@ -122,7 +122,7 @@ export class AuthService {
       }
 
       return this.generateTokenPair(user);
-    } catch (error) {
+    } catch (error: unknown) {
       return null;
     }
   }

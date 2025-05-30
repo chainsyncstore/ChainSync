@@ -33,7 +33,7 @@ export class JWTAuthMiddleware {
 
       req.jwtUser = payload;
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Authentication error:', error);
       res.status(500).json({ error: 'Authentication failed' });
     }
@@ -53,7 +53,7 @@ export class JWTAuthMiddleware {
       }
       
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       // Continue without authentication
       next();
     }

@@ -28,7 +28,7 @@ export class ValidationService implements ValidationServiceInterface {
     this._cacheTTL = value;
   }
 
-  private getCacheKey(data: any, type: 'products' | 'users' | 'transactions'): string {
+  private getCacheKey(data: unknown, type: 'products' | 'users' | 'transactions'): string {
     return `${type}-${JSON.stringify(data)}`;
   }
 
@@ -38,7 +38,7 @@ export class ValidationService implements ValidationServiceInterface {
     return Date.now() - cacheEntry.timestamp < this._cacheTTL;
   }
 
-  async validate(data: any, type: 'products' | 'users' | 'transactions'): Promise<any> {
+  async validate(data: unknown, type: 'products' | 'users' | 'transactions'): Promise<any> {
     const schema = schemas[type];
     if (!schema) {
       throw new Error(`No validation schema found for type: ${type}`);
@@ -73,8 +73,8 @@ export class ValidationService implements ValidationServiceInterface {
     return result.data;
   }
 
-  async validateBatch(data: any[], type: 'products' | 'users' | 'transactions'): Promise<{
-    valid: any[];
+  async validateBatch(data: unknown[], type: 'products' | 'users' | 'transactions'): Promise<{
+    valid: unknown[];
     invalid: { index: number; errors: string[] }[];
   }> {
     const schema = schemas[type];
@@ -91,7 +91,7 @@ export class ValidationService implements ValidationServiceInterface {
       try {
         const validated = await schema.parseAsync(data[i]);
         results.valid.push(validated);
-      } catch (error) {
+      } catch (error: unknown) {
         results.invalid.push({
           index: i,
           errors: this.extractErrors(error)
@@ -128,7 +128,7 @@ export class ValidationService implements ValidationServiceInterface {
     this.cache.clear();
   }
 
-  clearCacheForData(data: any, type: 'products' | 'users' | 'transactions'): void {
+  clearCacheForData(data: unknown, type: 'products' | 'users' | 'transactions'): void {
     const cacheKey = this.getCacheKey(data, type);
     this.cache.delete(cacheKey);
   }

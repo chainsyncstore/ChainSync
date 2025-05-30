@@ -42,7 +42,7 @@ export abstract class ResultFormatter<T> {
     if (!metadataStr) return {};
     try {
       return JSON.parse(metadataStr);
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error parsing metadata:', e);
       return {};
     }
@@ -97,11 +97,11 @@ export class ServiceErrorHandler {
    * @param defaultErrorCode Error code to use if not an AppError
    * @throws Always throws an AppError with consistent formatting
    */
-  static handleError(error: any, operation: string, defaultErrorCode: ErrorCode = ErrorCode.INTERNAL_SERVER_ERROR): never {
+  static handleError(error: unknown, operation: string, defaultErrorCode: ErrorCode = ErrorCode.INTERNAL_SERVER_ERROR): never {
     console.error(`Error ${operation}:`, error);
 
     if (error instanceof AppError) {
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
 
     let message: string;

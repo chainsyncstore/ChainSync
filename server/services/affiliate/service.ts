@@ -13,7 +13,7 @@ try {
   if (process.env.FLW_PUBLIC_KEY && process.env.FLW_SECRET_KEY) {
     flwClient = new Flutterwave(process.env.FLW_PUBLIC_KEY, process.env.FLW_SECRET_KEY);
   }
-} catch (error) {
+} catch (error: unknown) {
   console.error('Failed to initialize Flutterwave client:', error);
 }
 
@@ -34,7 +34,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       const referralCode = `${baseCode}${randomString}`;
 
       return referralCode;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Generating referral code');
     }
   }
@@ -55,7 +55,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }).returning();
 
       return affiliate[0];
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Registering affiliate');
     }
   }
@@ -65,7 +65,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       return await db.query.affiliates.findFirst({
         where: eq(schema.affiliates.userId, userId)
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting affiliate by user ID');
     }
   }
@@ -75,7 +75,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       return await db.query.affiliates.findFirst({
         where: eq(schema.affiliates.referralCode, code)
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting affiliate by code');
     }
   }
@@ -103,7 +103,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }).returning();
 
       return referral[0];
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Tracking referral');
     }
   }
@@ -127,7 +127,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         discountedAmount,
         discountAmount
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Applying referral discount');
     }
   }
@@ -153,7 +153,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }).returning();
 
       return commission[0] !== undefined;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Processing affiliate commission');
     }
   }
@@ -201,14 +201,14 @@ export class AffiliateService extends BaseService implements IAffiliateService {
 
             payments.push(payment.data);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           // Log but continue processing other payouts
           console.error(`Failed to process payout for commission ${commission.id}:`, error);
         }
       }
 
       return payments;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Processing affiliate payouts');
     }
   }
@@ -284,7 +284,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         clicks: 0, // This would require additional tracking
         conversions: referrals[0].total
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting affiliate dashboard stats');
     }
   }
@@ -296,7 +296,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .from(schema.referrals)
         .where(eq(schema.referrals.referringUserId, userId))
         .orderBy(desc(schema.referrals.createdAt));
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting affiliate referrals');
     }
   }
@@ -308,7 +308,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .from(schema.affiliateCommissions)
         .where(eq(schema.affiliateCommissions.affiliateId, userId))
         .orderBy(desc(schema.affiliateCommissions.createdAt));
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Getting affiliate payments');
     }
   }
@@ -322,7 +322,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
 
       // This would require additional tracking table
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Tracking affiliate click');
     }
   }
@@ -358,7 +358,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .returning();
 
       return updated[0];
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Updating affiliate bank details');
     }
   }

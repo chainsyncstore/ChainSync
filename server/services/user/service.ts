@@ -66,7 +66,7 @@ export class UserService extends BaseService implements IUserService {
         .returning();
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -126,7 +126,7 @@ export class UserService extends BaseService implements IUserService {
         .returning();
       
       return updatedUser;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -148,7 +148,7 @@ export class UserService extends BaseService implements IUserService {
       }
       
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Deleting user');
     }
   }
@@ -166,7 +166,7 @@ export class UserService extends BaseService implements IUserService {
       });
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting user by ID');
     }
   }
@@ -184,7 +184,7 @@ export class UserService extends BaseService implements IUserService {
       });
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting user by username');
     }
   }
@@ -202,7 +202,7 @@ export class UserService extends BaseService implements IUserService {
       });
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Getting user by email');
     }
   }
@@ -230,7 +230,7 @@ export class UserService extends BaseService implements IUserService {
         .where(eq(schema.users.id, user.id));
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Validating credentials');
     }
   }
@@ -272,7 +272,7 @@ export class UserService extends BaseService implements IUserService {
         .where(eq(schema.users.id, userId));
       
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
@@ -309,7 +309,7 @@ export class UserService extends BaseService implements IUserService {
         });
       
       return token;
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleError(error, 'Requesting password reset');
     }
   }
@@ -362,7 +362,7 @@ export class UserService extends BaseService implements IUserService {
         .where(eq(schema.passwordResetTokens.id, resetToken.id));
       
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }

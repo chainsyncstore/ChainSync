@@ -29,7 +29,7 @@ export abstract class EnhancedBaseService extends BaseService {
    */
   protected async executeSqlWithFormatting<T>(
     query: string, 
-    params: any[] = [],
+    params: unknown[] = [],
     formatter: (row: Record<string, any>) => T
   ): Promise<T | null> {
     try {
@@ -40,7 +40,7 @@ export abstract class EnhancedBaseService extends BaseService {
       const result = await db.execute(sql.raw(query));
       const row = result.rows?.[0] || null;
       return row ? formatter(row) : null;
-    } catch (error) {
+    } catch (error: unknown) {
       throw ServiceErrorHandler.handleError(error, 'executing SQL query');
     }
   }
@@ -55,7 +55,7 @@ export abstract class EnhancedBaseService extends BaseService {
    */
   protected async executeSqlWithMultipleResults<T>(
     query: string,
-    params: any[] = [],
+    params: unknown[] = [],
     formatter: (row: Record<string, any>) => T
   ): Promise<T[]> {
     try {
@@ -66,7 +66,7 @@ export abstract class EnhancedBaseService extends BaseService {
       const result = await db.execute(sql.raw(query));
       const rows = result.rows || [];
       return rows.map(row => formatter(row));
-    } catch (error) {
+    } catch (error: unknown) {
       throw ServiceErrorHandler.handleError(error, 'executing SQL query with multiple results');
     }
   }
@@ -87,7 +87,7 @@ export abstract class EnhancedBaseService extends BaseService {
     try {
       const { query, values } = buildInsertQuery(tableName, data);
       return await this.executeSqlWithFormatting(query, values, formatter);
-    } catch (error) {
+    } catch (error: unknown) {
       throw ServiceErrorHandler.handleError(error, `inserting into ${tableName}`);
     }
   }
@@ -110,7 +110,7 @@ export abstract class EnhancedBaseService extends BaseService {
     try {
       const { query, values } = buildUpdateQuery(tableName, data, whereCondition);
       return await this.executeSqlWithFormatting(query, values, formatter);
-    } catch (error) {
+    } catch (error: unknown) {
       throw ServiceErrorHandler.handleError(error, `updating ${tableName}`);
     }
   }
@@ -132,7 +132,7 @@ export abstract class EnhancedBaseService extends BaseService {
       const preparedData = prepareSqlValues(data);
       const query = buildRawInsertQuery(tableName, preparedData);
       return await this.executeSqlWithFormatting(query, [], formatter);
-    } catch (error) {
+    } catch (error: unknown) {
       throw ServiceErrorHandler.handleError(error, `inserting into ${tableName}`);
     }
   }
@@ -156,7 +156,7 @@ export abstract class EnhancedBaseService extends BaseService {
       const preparedData = prepareSqlValues(data);
       const query = buildRawUpdateQuery(tableName, preparedData, whereCondition);
       return await this.executeSqlWithFormatting(query, [], formatter);
-    } catch (error) {
+    } catch (error: unknown) {
       throw ServiceErrorHandler.handleError(error, `updating ${tableName}`);
     }
   }
@@ -177,7 +177,7 @@ export abstract class EnhancedBaseService extends BaseService {
     try {
       const validatedData = validator.parse(data);
       return preparer(validatedData);
-    } catch (error) {
+    } catch (error: unknown) {
       throw ServiceErrorHandler.handleError(error, 'validating data', ErrorCode.VALIDATION_ERROR);
     }
   }
@@ -189,7 +189,7 @@ export abstract class EnhancedBaseService extends BaseService {
    * @param operation Description of the operation that failed
    * @returns Always throws, return type is for TypeScript compatibility
    */
-  protected handleError(error: any, operation: string): never {
+  protected handleError(error: unknown, operation: string): never {
     throw ServiceErrorHandler.handleError(error, operation);
   }
   

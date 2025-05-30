@@ -6,7 +6,7 @@ import { Request, Response, NextFunction } from 'express';
 // Instead, we'll define the multer module with compatible interfaces
 
 declare module 'multer' {
-  function multer(options?: any): any;
+  function multer(options?: unknown): unknown;
   
   namespace multer {
     function single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
@@ -15,9 +15,9 @@ declare module 'multer' {
     function any(): (req: Request, res: Response, next: NextFunction) => void;
     function none(): (req: Request, res: Response, next: NextFunction) => void;
     function diskStorage(options: {
-      destination?: string | ((req: Request, file: any, cb: (error: Error | null, destination: string) => void) => void);
-      filename?: (req: Request, file: any, cb: (error: Error | null, filename: string) => void) => void;
-    }): any;
-    function memoryStorage(): any;
+      destination?: string | ((req: Request, file: unknown, cb: (error: Error | null, destination: string) => void) => void);
+      filename?: (req: Request, file: unknown, cb: (error: Error | null, filename: string) => void) => void;
+    }): unknown;
+    function memoryStorage(): unknown;
   }
 }

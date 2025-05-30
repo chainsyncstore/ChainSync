@@ -88,7 +88,7 @@ export class OptimizedProductService {
   /**
    * Get products with optimized filtering, pagination, and caching
    */
-  async getProducts(filter: ProductFilter = {}): Promise<{ products: any[], total: number }> {
+  async getProducts(filter: ProductFilter = {}): Promise<{ products: unknown[], total: number }> {
     const {
       categoryId,
       search,
@@ -227,7 +227,7 @@ export class OptimizedProductService {
   /**
    * Create a new product with cache invalidation
    */
-  async createProduct(productData: any): Promise<any> {
+  async createProduct(productData: unknown): Promise<any> {
     return executeQuery(
       async (db) => {
         const result = await db.insert(products)
@@ -246,7 +246,7 @@ export class OptimizedProductService {
   /**
    * Update a product with cache invalidation
    */
-  async updateProduct(productId: number, productData: any): Promise<any> {
+  async updateProduct(productId: number, productData: unknown): Promise<any> {
     return executeQuery(
       async (db) => {
         const result = await db.update(products)

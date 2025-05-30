@@ -22,7 +22,7 @@ declare global {
       user?: {
         id: string;
         role: string;
-        [key: string]: any;
+        [key: string]: unknown;
       };
       progressId?: string;
       files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
@@ -35,7 +35,7 @@ interface MulterRequest extends Request {
   files?: {
     [fieldname: string]: Express.Multer.File[];
   } | Express.Multer.File[];
-  user?: any;
+  user?: unknown;
 }
 
 // File upload configuration
@@ -134,7 +134,7 @@ const upload = multer({
         extension: fileExt
       });
       cb(null, true);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('File validation failed', { 
         filename: file.originalname,
         error: error instanceof Error ? error.message : String(error)
@@ -471,7 +471,7 @@ export class FileUploadMiddleware {
       for (const sub of subscriptions) {
         try {
           sub.onProgress(progressData);
-        } catch (err) {
+        } catch (err: unknown) {
           console.error('Failed to notify subscriber:', err instanceof Error ? err.message : String(err));
         }
       }
@@ -504,7 +504,7 @@ export class FileUploadMiddleware {
           logger.info('Progress update', { progress });
           res.json(progress);
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
           logger.error('Progress error', error);
           res.status(error.status || 500).json({
             error: {
@@ -514,7 +514,7 @@ export class FileUploadMiddleware {
             }
           });
         },
-        onComplete: (result: any) => {
+        onComplete: (result: unknown) => {
           logger.info('Progress completed', { result });
           res.json(result);
         }

@@ -325,7 +325,7 @@ export function deviceFingerprinting() {
       (req as any).deviceFingerprint = fingerprintData;
       
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error in device fingerprinting middleware', { error });
       next();
     }
@@ -472,7 +472,7 @@ export function securityNonce() {
 /**
  * Apply all enhanced security middleware in the recommended order
  */
-export function applyAdvancedSecurity(app: any) {
+export function applyAdvancedSecurity(app: unknown) {
   // Apply security headers first
   app.use(enhancedSecurityHeaders());
   

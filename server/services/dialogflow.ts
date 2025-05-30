@@ -30,7 +30,7 @@ try {
       console.log("DIALOGFLOW_PROJECT_ID not found. Dialogflow client will use mock responses.");
     }
   }
-} catch (error) {
+} catch (error: unknown) {
   console.error("Failed to initialize Dialogflow client:", error);
   console.error("Error details:", error instanceof Error ? error.message : String(error));
 }
@@ -170,7 +170,7 @@ export async function getDialogflowResponse(userId: number, userMessage: string)
     }
 
     return responseText;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Dialogflow Service Error:", error);
     return "I'm having trouble connecting to my knowledge base right now. Please try again later.";
   }
@@ -282,7 +282,7 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
     // For now, we're just logging this (in a real implementation, you'd use the actual Dialogflow API)
     console.log("Business data prepared for Dialogflow contexts");
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error enriching Dialogflow with business data:", error);
   }
 }

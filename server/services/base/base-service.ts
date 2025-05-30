@@ -5,7 +5,7 @@ export abstract class BaseService {
   protected constructor(protected readonly logger: Logger) {}
 
   protected async withTransaction<T>(
-    callback: (trx: any) => Promise<T>
+    callback: (trx: unknown) => Promise<T>
   ): Promise<T> {
     return db.transaction(async (trx) => {
       return await callback(trx);

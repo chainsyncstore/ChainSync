@@ -6,7 +6,7 @@ export interface FileUploadConfig {
   allowedMimeTypes: string[];
   maxFiles: number;
   destination: string;
-  filename: (req: any, file: any, cb: (error: Error | null, filename: string) => void) => void;
+  filename: (req: unknown, file: unknown, cb: (error: Error | null, filename: string) => void) => void;
   allowedFileExtensions: string[];
   cleanupInterval: number;
   cacheTTL: number;
@@ -19,7 +19,7 @@ export interface FileUploadError extends AppError {
   category: ErrorCategory;
   retryable?: boolean;
   retryDelay?: number;
-  file?: any;
+  file?: unknown;
   error?: string;
 }
 
@@ -29,8 +29,19 @@ export const FileUploadErrors = {
     code: ErrorCode.FILE_TOO_LARGE,
     message: 'File size exceeds maximum allowed size',
     data: { fileSize: undefined },
-    status: 400,
+  },
+  INVALID_FILE_CONTENT: {
+    category: ErrorCategory.VALIDATION,
+    code: ErrorCode.INVALID_FILE,
+    message: 'Invalid file content or format',
+    retryable: false
+  },
+  UNTRUSTED_FILE_SOURCE: {
+    category: ErrorCategory.VALIDATION,
+    code: ErrorCode.INVALID_FILE,
+    message: 'File type not allowed from untrusted source',
     retryable: false,
+    status: 400,
     retryDelay: undefined
   } as FileUploadError,
   INVALID_FILE_TYPE: {

@@ -15,13 +15,13 @@ type Supplier = import('./suppliers').Supplier;
 declare global {
   namespace NodeJS {
     interface Global {
-      stores: any; // Will be populated at runtime
-      users: any;   // Will be populated at runtime
-      products: any; // Will be populated at runtime
-      categories: any; // Will be populated at runtime
-      inventory: any; // Will be populated at runtime
-      inventoryBatches: any; // Will be populated at runtime
-      suppliers: any; // Will be populated at runtime
+      stores: unknown; // Will be populated at runtime
+      users: unknown;   // Will be populated at runtime
+      products: unknown; // Will be populated at runtime
+      categories: unknown; // Will be populated at runtime
+      inventory: unknown; // Will be populated at runtime
+      inventoryBatches: unknown; // Will be populated at runtime
+      suppliers: unknown; // Will be populated at runtime
     }
   }
 }
@@ -32,7 +32,7 @@ export async function initializeGlobals() {
     try {
       const { stores } = await import('./stores');
       (global as any).stores = stores;
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Failed to initialize stores:', error);
     }
   }
@@ -41,7 +41,7 @@ export async function initializeGlobals() {
     try {
       const { users } = await import('./users');
       (global as any).users = users;
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Failed to initialize users:', error);
     }
   }
@@ -51,7 +51,7 @@ export async function initializeGlobals() {
       const { products, categories } = await import('./products'); // Assuming categories is in products.ts
       (global as any).products = products;
       (global as any).categories = categories;
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Failed to initialize products/categories:', error);
     }
   }
@@ -61,7 +61,7 @@ export async function initializeGlobals() {
       const { inventory, inventoryBatches } = await import('./inventory'); // Assuming inventoryBatches is in inventory.ts
       (global as any).inventory = inventory;
       (global as any).inventoryBatches = inventoryBatches;
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Failed to initialize inventory/inventoryBatches:', error);
     }
   }
@@ -70,7 +70,7 @@ export async function initializeGlobals() {
     try {
       const { suppliers } = await import('./suppliers');
       (global as any).suppliers = suppliers;
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn('Failed to initialize suppliers:', error);
     }
   }

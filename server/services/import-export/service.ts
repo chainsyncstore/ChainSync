@@ -10,7 +10,8 @@ import { promisify } from 'util';
 import { Parser } from 'json2csv';
 import { parse } from 'csv-parse';
 import * as ExcelJS from 'exceljs';
-import * as xlsx from 'xlsx';
+// Import secure xlsx wrapper instead of direct xlsx import
+import { SecureXlsx } from '../../utils/secure-xlsx';
 
 // Helper function to chunk arrays
 type Chunk<T> = T[][];
@@ -66,11 +67,11 @@ export class ImportExportService {
     this.validationService = new ValidationServiceImpl();
   }
 
-  async validateData(data: any[], options?: ValidationOptions): Promise<{
+  async validateData(data: unknown[], options?: ValidationOptions): Promise<{
     success: boolean;
     message: string;
-    data?: any[];
-    errors?: { record: any; errors: string[] }[];
+    data?: unknown[];
+    errors?: { record: unknown; errors: string[] }[];
     validCount: number;
     invalidCount: number;
     totalProcessed: number;
@@ -93,12 +94,12 @@ export class ImportExportService {
         totalProcessed: result.validCount + result.invalidCount,
         totalErrors: result.invalidCount
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.INVALID_DATA;
     }
   }
 
-  async importData(userId: number, data: any[], entityType: string, options?: {
+  async importData(userId: number, data: unknown[], entityType: string, options?: {
     batchSize?: number;
     delimiter?: string;
     includeHeaders?: boolean;
@@ -107,8 +108,8 @@ export class ImportExportService {
   }): Promise<{
     success: boolean;
     message: string;
-    data?: any[];
-    errors?: any[];
+    data?: unknown[];
+    errors?: unknown[];
     validCount: number;
     invalidCount: number;
     totalProcessed: number;
@@ -119,7 +120,7 @@ export class ImportExportService {
       const importId = await this.repository.createImport(userId, entityType, options);
       
       return await this.processImport(data, options || {}, importId); // Provide default for options
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.PROCESSING_ERROR;
     }
   }
@@ -138,12 +139,12 @@ export class ImportExportService {
         default:
           throw this.errors.INVALID_FILE_FORMAT;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.PROCESSING_ERROR;
     }
   }
 
-  async validateFile(file: Express.Multer.File): Promise<{ type: string; data: any[] }> {
+  async validateFile(file: Express.Multer.File): Promise<{ type: string; data: unknown[] }> {
     try {
       // Check file size
       if (file.size > 50 * 1024 * 1024) { // 50MB
@@ -172,7 +173,7 @@ export class ImportExportService {
         );
       }
 
-      let parsedData: any[] = [];
+      let parsedData: unknown[] = [];
 
       switch (extension) {
         case 'csv':
@@ -192,12 +193,12 @@ export class ImportExportService {
         type: extension || '',
         data: parsedData
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.INVALID_DATA;
     }
   }
 
-  async processImport(data: any[], options: {
+  async processImport(data: unknown[], options: {
     batchSize?: number;
     delimiter?: string;
     includeHeaders?: boolean;
@@ -238,12 +239,12 @@ export class ImportExportService {
         totalErrors: errors,
         importId
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.PROCESSING_ERROR;
     }
   }
 
-  async processBatch(data: any[], importId: string): Promise<{
+  async processBatch(data: unknown[], importId: string): Promise<{
     success: boolean;
     message: string;
     validCount: number;
@@ -264,12 +265,12 @@ export class ImportExportService {
         totalErrors: result.errors.length,
         importId
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.STORAGE_ERROR;
     }
   }
 
-  private async generateCSV(data: any[], options: {
+  private async generateCSV(data: unknown[], options: {
     format: string;
     includeHeaders: boolean;
     delimiter?: string;
@@ -284,20 +285,20 @@ export class ImportExportService {
       const parser = new Parser(config);
       const csv = parser.parse(data); // Changed from stringify to parse
       return Buffer.from(csv, 'utf8');
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.PROCESSING_ERROR;
     }
   }
 
-  private async generateJSON(data: any[]): Promise<Buffer> {
+  private async generateJSON(data: unknown[]): Promise<Buffer> {
     try {
       return Buffer.from(JSON.stringify(data, null, 2));
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.PROCESSING_ERROR;
     }
   }
 
-  private async generateExcel(data: any[], options: {
+  private async generateExcel(data: unknown[], options: {
     format: string;
     includeHeaders: boolean;
     delimiter?: string;
@@ -315,7 +316,7 @@ export class ImportExportService {
       });
 
       return await workbook.xlsx.writeBuffer() as Buffer;
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.PROCESSING_ERROR;
     }
   }
@@ -328,7 +329,7 @@ export class ImportExportService {
       });
 
       return new Promise((resolve, reject) => {
-        const results: any[] = [];
+        const results: unknown[] = [];
         parser.on('data', (row) => {
           results.push(row);
         });
@@ -341,7 +342,7 @@ export class ImportExportService {
         parser.write(buffer.toString());
         parser.end();
       });
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.INVALID_DATA;
     }
   }
@@ -349,57 +350,72 @@ export class ImportExportService {
   private async parseJSON(buffer: Buffer): Promise<any[]> {
     try {
       return JSON.parse(buffer.toString());
-    } catch (error) {
+    } catch (error: unknown) {
       throw this.errors.INVALID_DATA;
     }
   }
 
   private async parseExcel(buffer: Buffer): Promise<any[]> {
     try {
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(buffer);
-      const worksheet = workbook.getWorksheet(1);
-
-      if (!worksheet) {
-        // Handle case where the worksheet might not exist (e.g., empty or malformed Excel file)
-        throw new AppError('Excel file does not contain a valid worksheet.', ErrorCategory.IMPORT_EXPORT, 'INVALID_EXCEL_WORKSHEET');
+      // Use the secure xlsx wrapper with strict validation and sanitization
+      const secureXlsx = new SecureXlsx({
+        maxFileSize: 10 * 1024 * 1024, // 10MB limit for import files
+        maxSheets: 5,                // Limit to 5 sheets
+        maxRows: 5000                // Limit to 5000 rows per sheet
+      });
+      
+      // Parse the Excel file using the secure wrapper
+      const sheets = secureXlsx.readFile(buffer);
+      
+      // If no sheets were found, throw an error
+      if (!sheets || Object.keys(sheets).length === 0) {
+        throw new AppError(
+          ErrorCategory.IMPORT_EXPORT,
+          'Excel file does not contain any valid sheets.'
+        );
       }
       
-      const row1 = worksheet.getRow(1).values;
-      const headers = Array.isArray(row1) ? row1.slice(1) : []; // Assuming headers are in the first row, skipping the first element if it's an empty string from ExcelJS
-       
-      const results: any[] = [];
-      // Ensure rowCount is valid before iterating
-      if (worksheet.rowCount > 1) {
-        const rows = worksheet.getRows(2, worksheet.rowCount - 1); // Get all data rows (excluding header)
-        if (rows) { // Check if rows is not undefined
-          rows.forEach(row => {
-            if (!row) return; // Skip if a row is undefined
-
-            const rowData: any = {};
-            headers.forEach((header: any, index: number) => {
-              if (header) { // Ensure header exists
-                const cell = row.getCell(index + 1); // Cells are 1-indexed
-                rowData[String(header)] = cell?.value;
-              }
-            });
-            if (Object.keys(rowData).length > 0) { // Add rowData only if it's not empty
-              results.push(rowData);
-            }
-          });
+      // Get the first sheet's data
+      const firstSheetName = Object.keys(sheets)[0];
+      const sheetData = sheets[firstSheetName];
+      
+      if (!Array.isArray(sheetData) || sheetData.length === 0) {
+        return [];
+      }
+      
+      // If the first row contains headers, use them to create proper objects
+      const headers = sheetData[0];
+      const results: unknown[] = [];
+      
+      // Process data rows (skip header row)
+      for (let i = 1; i < sheetData.length; i++) {
+        const row = sheetData[i];
+        if (!row || !Array.isArray(row)) continue;
+        
+        const rowData: Record<string, any> = {};
+        
+        // Map each cell to its corresponding header
+        for (let j = 0; j < headers.length && j < row.length; j++) {
+          if (headers[j]) {
+            rowData[String(headers[j])] = row[j];
+          }
+        }
+        
+        if (Object.keys(rowData).length > 0) {
+          results.push(rowData);
         }
       }
       return results; // This should be outside the if, but inside try
-    } catch (error) {
-      if (error instanceof AppError) throw error;
+    } catch (error: unknown) {
+      if (error instanceof AppError) throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
       throw this.errors.INVALID_DATA;
     }
   }
 
-  private generatePrettyJSON(data: any[]): Buffer {
+  private generatePrettyJSON(data: unknown[]): Buffer {
     try {
       return Buffer.from(JSON.stringify(data, null, 2));
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error('Failed to generate JSON');
     }
   }

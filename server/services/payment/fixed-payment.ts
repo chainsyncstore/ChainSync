@@ -1,12 +1,14 @@
-import { BaseService } from '../base/base-service';
-import { AppError } from '../../middleware/utils/app-error';
-import { logger } from '../logger';
+import type { Request } from 'express'; // Changed to type import
 import { eq } from 'drizzle-orm';
-import db from '../../database';
-import * as schema from '@shared/schema';
-import { Request } from 'express';
-import Paystack from 'paystack-node';
 import Flutterwave from 'flutterwave-node-v3';
+import Paystack from 'paystack-node';
+
+import * as schema from '@shared/schema';
+import { getSecureDb } from '../../utils/secure-db';
+import { AppError } from '../../middleware/utils/app-error';
+import { ErrorCategory, ErrorCode } from '../../middleware/types/error';
+import { BaseService } from '../base/base-service';
+import { logger } from '../logger';
 
 // Type definitions
 interface PaymentInitializationResponse {
@@ -70,6 +72,25 @@ const WEBHOOK_KEYS = {
 
 const retryDelays = [1000, 2000, 5000]; // Milliseconds
 
+// Types for payment provider responses
+interface PaystackTransactionResponse {
+  status: boolean;
+  data?: {
+    amount: number;
+    currency: string;
+    created_at: string;
+    metadata?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface FlutterwaveTransactionResponse {
+  status: string;
+  data?: TransactionData;
+  [key: string]: unknown;
+}
+
 // Helper function to verify webhook signatures
 const verifyWebhookSignature = (signature: string, key: string): boolean => {
   // Implement signature verification logic based on provider
@@ -78,8 +99,13 @@ const verifyWebhookSignature = (signature: string, key: string): boolean => {
 
 // Unified PaymentService supporting both Paystack and Flutterwave
 export class PaymentService extends BaseService {
+  // Using any type for payment providers as library types are incomplete
+  // This is a deliberate exception to the no-explicit-any rule
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private paystack: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private flutterwave: any = null;
+  private db = getSecureDb();
 
   constructor() {
     super(logger); // Pass logger to BaseService if required
@@ -130,7 +156,7 @@ export class PaymentService extends BaseService {
         }
       }
       throw new AppError('Payment not found or verification failed', 'payment', 'PAYMENT_NOT_FOUND', { reference });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error verifying payment:', error);
       throw error instanceof AppError ? error : new AppError('Failed to verify payment', 'payment', 'PAYMENT_VERIFICATION_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
@@ -193,16 +219,19 @@ export class PaymentService extends BaseService {
         if (response.status && response.data) {
           // Record the payment initialization in the database
           // TODO: Ensure schema.payment exists and has the correct structure
-          await db.insert(schema.payment).values({
+          await this.db.query(`
+        INSERT INTO payments (
+          reference, user_id, amount, currency, provider, status, metadata
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
             reference,
             userId,
-            amount: discountedAmount,
-            currency: 'NGN', // Default for Paystack
+            discountedAmount,
+            'NGN', // Default for Paystack
             provider,
-            status: 'initialized',
-            plan,
-            metadata: { referralCode }
-          });
+            'initialized',
+            { plan, referralCode }
+          ]);
           
           return {
             authorization_url: response.data.authorization_url,
@@ -226,16 +255,19 @@ export class PaymentService extends BaseService {
         if (response.status === 'success' && response.data.link) {
           // Record the payment initialization in the database
           // TODO: Ensure schema.payment exists and has the correct structure
-          await db.insert(schema.payment).values({
+          await this.db.query(`
+        INSERT INTO payments (
+          reference, user_id, amount, currency, provider, status, metadata
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
             reference,
             userId,
-            amount: discountedAmount,
-            currency: 'NGN',
+            discountedAmount,
+            'NGN',
             provider,
-            status: 'initialized',
-            plan,
-            metadata: { referralCode }
-          });
+            'initialized',
+            { plan, referralCode }
+          ]);
           
           return {
             authorization_url: response.data.link,
@@ -246,7 +278,7 @@ export class PaymentService extends BaseService {
       }
 
       throw new AppError('No payment provider available for initialization', 'payment', 'NO_PAYMENT_PROVIDER', { provider });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Payment initialization error:', error);
       throw error instanceof AppError ? error : new AppError('An error occurred during payment initialization', 'payment', 'PAYMENT_ERROR', { error: error.message });
     }
@@ -254,21 +286,28 @@ export class PaymentService extends BaseService {
 
   async trackPaymentStatus(reference: string, status: PaymentStatus['status']): Promise<void> {
     try {
-      await this.withTransaction(async (trx) => {
-        await db.paymentStatus.upsert({
-          where: { reference },
-          update: {
-            status,
-            updatedAt: new Date()
-          },
-          create: {
-            reference,
-            status,
-            updatedAt: new Date()
-          }
-        });
+      await this.withTransaction(async (trx: any) => { // Added : any to trx for now
+        // Assuming 'trx' is the Drizzle transaction client and schema.paymentStatus is the table
+        // Also assuming 'reference' is the column to check for conflicts.
+        if (!schema.paymentStatus) { // Changed to schema.paymentStatus
+          throw new Error("schema.paymentStatus is not defined. Check your schema import and definition.");
+        }
+        await trx.insert(schema.paymentStatus) // Changed to schema.paymentStatus
+          .values({
+            reference: reference,
+            status: status,
+            updatedAt: new Date(),
+            // Ensure all non-nullable fields of paymentStatus are covered here or have defaults
+          })
+          .onConflictDoUpdate({
+            target: schema.paymentStatus.columns.reference, // Using .columns.reference based on error type hint
+            set: {
+              status: status,
+              updatedAt: new Date()
+            }
+          });
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Error tracking payment status:', error);
       throw error instanceof AppError ? error : new AppError('Failed to track payment status', 'payment', 'PAYMENT_TRACKING_ERROR', { reference, status });
     }
@@ -310,8 +349,20 @@ export class PaymentService extends BaseService {
       try {
         const result = await this.verifyPayment(reference);
         return result;
-      } catch (error) {
-        lastError = error;
+      } catch (error: unknown) {
+        const errors = error instanceof Error ? [error] : 
+          Array.isArray(error) ? error.filter(e => e instanceof Error) as Error[] : 
+          [new Error(String(error))];
+        // try {
+          // await this.logPaymentErrors(paymentData, errors); // Commented out: paymentData and logPaymentErrors are undefined
+        // } catch (logError: unknown) {
+          // logger.error('Failed to log payment errors:', logError instanceof Error ? logError.message : String(logError));
+        // }
+        if (error instanceof Error) {
+          lastError = error;
+        } else {
+          lastError = new Error(String(error));
+        }
         await new Promise(resolve => setTimeout(resolve, retryDelays[i]));
       }
     }
@@ -320,7 +371,19 @@ export class PaymentService extends BaseService {
 
   async trackPaymentAnalytics(paymentData: PaymentAnalytics): Promise<void> {
     try {
-      await db.insert(schema.paymentAnalytics).values(paymentData);
+      await this.db.query(`
+        INSERT INTO paymentsAnalytics (reference, amount, currency, provider, status, success, metadata, timestamp)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [
+        paymentData.reference,
+        paymentData.amount,
+        paymentData.currency,
+        paymentData.provider,
+        paymentData.status,
+        paymentData.success,
+        paymentData.metadata,
+        paymentData.timestamp
+      ]);
     } catch (error: unknown) {
       this.logger.error('Error tracking payment analytics:', error);
       throw error instanceof AppError ? error : new AppError('payment', 'ANALYTICS_ERROR', 'Failed to track payment analytics', { error: error instanceof Error ? error.message : 'Unknown error' });
@@ -329,7 +392,11 @@ export class PaymentService extends BaseService {
 
   async refundPayment(reference: string, amount?: number): Promise<boolean> {
     try {
-      const payment = await this.verifyPayment(reference);
+      const result = await this.db.query(
+        `SELECT * FROM payments WHERE reference = $1 LIMIT 1`,
+        [reference]
+      );
+      const payment = result.rows[0];
       
       if (!payment.success) {
         throw new AppError('payment', 'INVALID_REFUND', 'Cannot refund unsuccessful payment', { reference });
@@ -389,7 +456,7 @@ export class PaymentService extends BaseService {
         return { link: response.data.link };
       }
       throw new AppError('payment', 'FLUTTERWAVE_TRANSACTION_FAILED', 'Failed to process Flutterwave transaction');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error processing Flutterwave transaction:', error);
       throw error instanceof Error ? error : new AppError('payment', 'FLUTTERWAVE_TRANSACTION_ERROR', 'Failed to process Flutterwave transaction');
     }

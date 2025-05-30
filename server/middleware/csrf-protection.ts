@@ -61,7 +61,7 @@ function verifyToken(token: string, secret: string): boolean {
       Buffer.from(signature, 'hex'),
       Buffer.from(expectedSignature, 'hex')
     );
-  } catch (error) {
+  } catch (error: unknown) {
     return false;
   }
 }

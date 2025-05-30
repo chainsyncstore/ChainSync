@@ -23,7 +23,7 @@ function verifyPaystackSignature(signature: string, payload: string): boolean {
     
     const hash = crypto.createHmac("sha512", secret).update(payload).digest("hex");
     return hash === signature;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error verifying Paystack signature:", error);
     return false;
   }
@@ -42,7 +42,7 @@ function verifyFlutterwaveSignature(signature: string, payload: string): boolean
     
     const hash = crypto.createHmac("sha512", secret).update(payload).digest("hex");
     return hash === signature;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error verifying Flutterwave signature:", error);
     return false;
   }
@@ -80,7 +80,7 @@ export async function handlePaystackWebhook(signature: string, rawPayload: strin
         console.log(`Unhandled Paystack event: ${event}`);
         return true;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error handling Paystack webhook:", error);
     return false;
   }
@@ -118,7 +118,7 @@ export async function handleFlutterwaveWebhook(signature: string, rawPayload: st
         console.log(`Unhandled Flutterwave event: ${event}`);
         return true;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error handling Flutterwave webhook:", error);
     return false;
   }
@@ -127,7 +127,7 @@ export async function handleFlutterwaveWebhook(signature: string, rawPayload: st
 /**
  * Handle Paystack subscription create event
  */
-async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
+async function handlePaystackSubscriptionCreate(data: unknown): Promise<boolean> {
   try {
     // Extract user and subscription details
     const userId = data.customer.metadata.user_id;
@@ -190,7 +190,7 @@ async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
     }
     
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error handling Paystack subscription create:", error);
     return false;
   }
@@ -199,7 +199,7 @@ async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
 /**
  * Handle Paystack charge success event
  */
-async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
+async function handlePaystackChargeSuccess(data: unknown): Promise<boolean> {
   try {
     // This handles one-time payments and subscription renewals
     const metadata = data.metadata || {};
@@ -250,7 +250,7 @@ async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
     }
     
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error handling Paystack charge success:", error);
     return false;
   }
@@ -259,7 +259,7 @@ async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
 /**
  * Handle Paystack subscription disable event
  */
-async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
+async function handlePaystackSubscriptionDisable(data: unknown): Promise<boolean> {
   try {
     // Find the subscription
     const [subscription] = await db.select()
@@ -282,7 +282,7 @@ async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
     }
     
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error handling Paystack subscription disable:", error);
     return false;
   }
@@ -291,7 +291,7 @@ async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
 /**
  * Handle Flutterwave subscription create event
  */
-async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> {
+async function handleFlutterwaveSubscriptionCreate(data: unknown): Promise<boolean> {
   try {
     // Extract user and subscription details
     const userId = data.customer?.meta?.user_id;
@@ -353,7 +353,7 @@ async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> 
     }
     
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error handling Flutterwave subscription create:", error);
     return false;
   }
@@ -362,7 +362,7 @@ async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> 
 /**
  * Handle Flutterwave charge completed event
  */
-async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
+async function handleFlutterwaveChargeCompleted(data: unknown): Promise<boolean> {
   try {
     // Extract metadata
     const meta = data.meta || {};
@@ -413,7 +413,7 @@ async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
     }
     
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error handling Flutterwave charge completed:", error);
     return false;
   }
@@ -422,7 +422,7 @@ async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
 /**
  * Handle Flutterwave subscription cancelled event
  */
-async function handleFlutterwaveSubscriptionCancelled(data: any): Promise<boolean> {
+async function handleFlutterwaveSubscriptionCancelled(data: unknown): Promise<boolean> {
   try {
     // Find the subscription
     const [subscription] = await db.select()
@@ -445,7 +445,7 @@ async function handleFlutterwaveSubscriptionCancelled(data: any): Promise<boolea
     }
     
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error handling Flutterwave subscription cancelled:", error);
     return false;
   }

@@ -5,27 +5,27 @@ const { pathsToModuleNameMapper } = require('ts-jest');
 const { compilerOptions } = require('./tsconfig.server.json');
 
 const config = {
-  preset: 'ts-jest/presets/default-esm', // Reinstated preset
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/tests/setup-test-env.ts'],
-  // resolver: 'ts-jest/resolver', // Keep removed
+  extensionsToTreatAsEsm: ['.ts'], // Added this line
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths || {}, { prefix: '<rootDir>/' }),
   moduleDirectories: ['node_modules', '<rootDir>'],
   transform: {
-    '^.+\\.m?[tj]sx?$': ['ts-jest', { // More comprehensive regex for ESM
+    '^.+\\.m?[tj]sx?$': ['ts-jest', {
       tsconfig: '<rootDir>/tsconfig.server.json',
       useESM: true,
-      isolatedModules: false, // Explicitly set
+      // isolatedModules: true, // Recommended for ESM with ts-jest, but let's keep the user's 'false' for now if it was intentional.
+                               // Re-evaluating: The previous config had isolatedModules: false. Let's stick to that unless issues arise.
+      isolatedModules: false, 
     }]
   },
-  // extensionsToTreatAsEsm and moduleFileExtensions should be handled by the preset
   testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/dist/', '<rootDir>/test/e2e/'],
   testMatch: [
     '**/tests/**/*.test.ts',
     '**/test/**/*.test.ts',
-    // Kept for now, review if only .test.ts is used for Jest
-    '**/test/**/*.spec.ts',
-    '**/test/integration/**/*.test.ts'
+    '**/server/**/*.test.ts', // Added to include tests within server directory
+    '**/test/integration/**/*.test.ts',
   ],
   collectCoverage: true,
   collectCoverageFrom: [

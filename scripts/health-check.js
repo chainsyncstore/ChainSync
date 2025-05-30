@@ -17,7 +17,7 @@
 
 import http from 'http';
 import https from 'https';
-import { URL } from 'url';
+import url from 'url';
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
 
@@ -80,7 +80,7 @@ function makeRequest(endpoint) {
   return new Promise((resolve) => {
     const startTime = Date.now();
     const endpointUrl = config.baseUrl + endpoint.path;
-    const parsedUrl = url.parse(endpointUrl);
+    const parsedUrl = new URL(endpointUrl);
     
     const options = {
       hostname: parsedUrl.hostname,

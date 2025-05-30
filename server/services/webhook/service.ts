@@ -45,7 +45,7 @@ export class WebhookService extends BaseService implements IWebhookService {
             message: 'Unsupported event type'
           };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Handling Paystack webhook');
     }
   }
@@ -87,12 +87,12 @@ export class WebhookService extends BaseService implements IWebhookService {
             message: 'Unsupported event type'
           };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Handling Flutterwave webhook');
     }
   }
 
-  private async processPaystackPayment(data: any): Promise<{
+  private async processPaystackPayment(data: unknown): Promise<{
     success: boolean;
     message: string;
     orderId: number;
@@ -128,12 +128,12 @@ export class WebhookService extends BaseService implements IWebhookService {
         reference: transaction.reference,
         amount: transaction.amount
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Processing Paystack payment');
     }
   }
 
-  private async processPaystackPayout(data: any): Promise<{
+  private async processPaystackPayout(data: unknown): Promise<{
     success: boolean;
     message: string;
     orderId: number;
@@ -170,12 +170,12 @@ export class WebhookService extends BaseService implements IWebhookService {
         reference: transaction.reference,
         amount: transaction.amount
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Processing Paystack payout');
     }
   }
 
-  private async processFlutterwavePayment(data: any): Promise<{
+  private async processFlutterwavePayment(data: unknown): Promise<{
     success: boolean;
     message: string;
     orderId: number;
@@ -211,12 +211,12 @@ export class WebhookService extends BaseService implements IWebhookService {
         reference: transaction.reference,
         amount: transaction.amount
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Processing Flutterwave payment');
     }
   }
 
-  private async processFlutterwavePayout(data: any): Promise<{
+  private async processFlutterwavePayout(data: unknown): Promise<{
     success: boolean;
     message: string;
     orderId: number;
@@ -253,7 +253,7 @@ export class WebhookService extends BaseService implements IWebhookService {
         reference: transaction.reference,
         amount: transaction.amount
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleError(error, 'Processing Flutterwave payout');
     }
   }

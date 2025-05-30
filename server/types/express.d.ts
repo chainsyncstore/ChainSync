@@ -1,27 +1,27 @@
 import * as express from 'express';
 import * as multer from 'multer';
 
+export interface UserPayload {
+  id: string;
+  email: string;
+  role: string;
+  name: string; // Consistent name field
+  username?: string; // Optional username if distinct from name
+  storeId?: number; // Optional storeId
+  [key: string]: any; // Add index signature for compatibility
+}
+
 declare module 'express' {
   interface Request {
     file?: multer.File;
     files?: {
       [fieldname: string]: multer.File[] | multer.File;
     };
-    user?: {
-      id: string;
-      email: string;
-      role: string;
-      [key: string]: any;
-    };
+    user?: UserPayload; // Use the standardized UserPayload
   }
 
-  interface RequestHandler {
-    (req: Request, res: Response, next: NextFunction): void;
-  }
-
-  interface ErrorRequestHandler {
-    (err: any, req: Request, res: Response, next: NextFunction): void;
-  }
+  // RequestHandler and ErrorRequestHandler will use the augmented Request type by default
+  // No need to redeclare them here if Request is correctly augmented.
 }
 
 declare global {

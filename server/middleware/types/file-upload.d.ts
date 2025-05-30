@@ -45,7 +45,7 @@ export interface ProgressSubscription {
   progressId: string;
   onProgress: (progress: FileUploadProgress) => void;
   onError: (error: FileUploadError) => void;
-  onComplete: (result: any) => void;
+  onComplete: (result: unknown) => void;
 }
 
 export interface MulterOptions {

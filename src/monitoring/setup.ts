@@ -46,7 +46,7 @@ export function initializeMonitoring() {
     });
     
     logger.info('Sentry monitoring initialized successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize Sentry', { error });
   }
 }
@@ -77,7 +77,7 @@ export function configureSentryRequestHandler(app: Express) {
     } else {
       logger.warn('Sentry request handlers not available in this version');
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to configure Sentry request handlers', { error });
   }
 }
@@ -95,7 +95,7 @@ export function configureSentryErrorHandler(app: Express) {
     // Use the errorHandler if available in this version of Sentry
     if (Sentry.errorHandler) {
       app.use(Sentry.errorHandler({
-        shouldHandleError(error: any) {
+        shouldHandleError(error: unknown) {
           // Only report 5xx errors to Sentry
           const status = error.status || error.statusCode || 500;
           return status >= 500;
@@ -105,14 +105,14 @@ export function configureSentryErrorHandler(app: Express) {
       logger.info('Sentry error handler configured');
     } else {
       // Fallback for older Sentry versions
-      app.use((err: Error, req: any, res: any, next: any) => {
+      app.use((err: Error, req: unknown, res: unknown, next: unknown) => {
         Sentry.captureException(err);
         next(err);
       });
       
       logger.info('Sentry error handler configured (fallback mode)');
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to configure Sentry error handler', { error });
   }
 }
@@ -200,7 +200,7 @@ export function initializeTracing(app: Express) {
       serviceName: process.env.OTEL_SERVICE_NAME || 'chainsync-api',
       endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces'
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to initialize OpenTelemetry tracing', { 
       error: error instanceof Error ? error.message : String(error) 
     });
@@ -210,7 +210,7 @@ export function initializeTracing(app: Express) {
 /**
  * Initialize health checks for the application
  */
-export function initializeHealthChecks(app: Express, dbPool: any) {
+export function initializeHealthChecks(app: Express, dbPool: unknown) {
   // Set up periodic health checks
   const interval = parseInt(process.env.HEALTH_CHECK_INTERVAL || '60000', 10);
   
@@ -256,7 +256,7 @@ export function initializeHealthChecks(app: Express, dbPool: any) {
           }
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Health check failed', { error });
       captureException(error instanceof Error ? error : new Error('Health check failed'));
     }

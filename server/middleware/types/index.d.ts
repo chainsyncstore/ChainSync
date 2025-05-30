@@ -9,7 +9,7 @@ declare global {
       user?: {
         id: string;
         role: string;
-        [key: string]: any;
+        [key: string]: unknown;
       };
       progressId?: string;
       files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];

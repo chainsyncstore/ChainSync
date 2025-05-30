@@ -31,7 +31,7 @@ declare module 'multer' {
 }
 
 export interface StorageEngine {
-  _handleFile(req: Request, file: File, cb: (error: Error | null, info: any) => void): void;
+  _handleFile(req: Request, file: File, cb: (error: Error | null, info: unknown) => void): void;
   _removeFile(req: Request, file: File, cb: (error: Error | null) => void): void;
 }
 

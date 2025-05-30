@@ -58,7 +58,7 @@ export function requestLogger(logger: Logger) {
  * Express error handler middleware with structured logging
  */
 export function errorLogger(logger: Logger) {
-  return (err: any, req: Request, res: Response, next: NextFunction) => {
+  return (err: unknown, req: Request, res: Response, next: NextFunction) => {
     // Get request logger if available, otherwise use passed logger
     const requestLogger = (req as any).logger || logger;
     

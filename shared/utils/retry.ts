@@ -36,13 +36,13 @@ export class RetryStrategy {
     while (attempt < this.maxRetries) {
       try {
         return await operation();
-      } catch (error) {
+      } catch (error: unknown) {
         if (!errorFilter(error)) {
-          throw error;
+          throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
         }
 
         if (attempt === this.maxRetries - 1) {
-          throw error;
+          throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
         }
 
         const delay = this.calculateDelay(attempt);

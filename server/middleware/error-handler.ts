@@ -19,7 +19,7 @@ export const errorHandler = (
   }
   if (error instanceof AppError) {
     const status = error.statusCode || 500;
-    const response: any = {
+    const response: unknown = {
       error: {
         code: error.code,
         message: formatErrorForUser(error),

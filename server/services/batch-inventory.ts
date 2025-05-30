@@ -34,7 +34,7 @@ export async function getProductBatches(storeId: number, productId: number, incl
     }
     
     return await storage.getInventoryBatchesByProduct(storeId, productId, includeExpired);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error getting product batches:', error);
     throw new Error('Failed to retrieve product batches');
   }
@@ -47,7 +47,7 @@ export async function validateBatchImportFile(filePath: string) {
   try {
     // Read and parse CSV file
     const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const records: any[] = parse(fileContent, {
+    const records: unknown[] = parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
       trim: true
@@ -141,7 +141,7 @@ export async function validateBatchImportFile(filePath: string) {
       errors,
       data: validData
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error validating batch import file:', error);
     return {
       valid: false,
@@ -235,7 +235,7 @@ export async function importBatchInventory(data: BatchImportRow[]) {
         });
         
         results.successfulRows++;
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`Error processing row ${rowIndex}:`, error);
         results.errors.push({
           row: rowIndex,
@@ -249,7 +249,7 @@ export async function importBatchInventory(data: BatchImportRow[]) {
     }
     
     return results;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error importing batch inventory:', error);
     return {
       success: false,
@@ -321,7 +321,7 @@ export async function sellProductFromBatches(storeId: number, productId: number,
       batches: updatedBatches,
       auditLogs
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error selling with FIFO logic:', error);
     throw new Error('Failed to process sale: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }

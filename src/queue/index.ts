@@ -140,13 +140,13 @@ export function initWorker(
     
     try {
       return await processor(job);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error processing ${queueName} job`, error instanceof Error ? error : new Error(String(error)), {
         jobId: job.id,
         name: job.name,
         data: job.data
       });
-      throw error;
+      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }, {
     connection: getRedisConfig().connection,
@@ -207,7 +207,7 @@ export async function addJob<T = any>(
     });
     
     return job;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Error adding job to ${queueName} queue`, error instanceof Error ? error : new Error(String(error)), {
       jobName,
       data
@@ -251,7 +251,7 @@ export async function addRecurringJob<T = any>(
     });
     
     return job;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Error adding recurring job to ${queueName} queue`, error instanceof Error ? error : new Error(String(error)), {
       jobName,
       pattern,
@@ -270,8 +270,8 @@ export async function getJobStatus(
 ): Promise<{
   id: string;
   status: 'completed' | 'failed' | 'delayed' | 'active' | 'waiting' | 'unknown';
-  data?: any;
-  result?: any;
+  data?: unknown;
+  result?: unknown;
   error?: string;
 } | null> {
   try {
@@ -291,7 +291,7 @@ export async function getJobStatus(
       result: await job.getResult(),
       error: job.failedReason
     };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Error getting job status from ${queueName} queue`, error instanceof Error ? error : new Error(String(error)), {
       jobId
     });

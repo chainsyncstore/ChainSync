@@ -16,49 +16,134 @@ export class SecretsManager {
   private encryptionKey: Buffer;
 
   constructor() {
-    // Initialize encryption key from environment or generate one
+    // Initialize encryption key from environment
     const keyString = process.env.ENCRYPTION_KEY;
-    if (keyString) {
-      this.encryptionKey = Buffer.from(keyString, 'hex');
-    } else {
-      this.encryptionKey = crypto.randomBytes(32);
-      logger.warn('No ENCRYPTION_KEY found, generated temporary key. This should not happen in production!');
+    
+    // In production, ENCRYPTION_KEY must be provided
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    if (!keyString) {
+      if (isProduction) {
+        // Fail fast in production if encryption key is missing
+        const errorMsg = 'CRITICAL SECURITY ERROR: ENCRYPTION_KEY is required in production';
+        logger.error(errorMsg);
+        throw new Error(errorMsg);
+      } else {
+        // In development/test, generate a temporary key with warning
+        this.encryptionKey = crypto.randomBytes(32);
+        logger.warn(
+          'No ENCRYPTION_KEY found, generated temporary key. '
+          + 'This is only acceptable in development environments.'
+        );
+        return;
+      }
+    }
+    
+    // Validate key format and length
+    if (!/^[a-fA-F0-9]{64}$/.test(keyString)) {
+      const errorMsg = 'ENCRYPTION_KEY must be a 64-character hexadecimal string';
+      logger.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    // Convert the validated key to a buffer
+    this.encryptionKey = Buffer.from(keyString, 'hex');
+  }
+
+  /**
+   * Encrypt sensitive data using AES-256-GCM with proper IV handling
+   * @param text The plain text to encrypt
+   * @returns The encrypted text with IV prepended (format: iv:authTag:encrypted)
+   */
+  encrypt(text: string): string {
+    try {
+      // Generate a random initialization vector
+      const iv = crypto.randomBytes(16);
+      
+      // Create cipher with proper IV
+      const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
+      
+      // Encrypt the text
+      let encrypted = cipher.update(text, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      
+      // Get the authentication tag
+      const authTag = cipher.getAuthTag().toString('hex');
+      
+      // Return the IV, authentication tag, and encrypted text
+      return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+    } catch (error: unknown) {
+      logger.error('Encryption failed', { error });
+      throw new Error('Failed to encrypt data');
     }
   }
 
-  // Encrypt sensitive data
-  encrypt(text: string): string {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
-  }
-
-  // Decrypt sensitive data
+  /**
+   * Decrypt sensitive data using AES-256-GCM with proper IV and authentication
+   * @param encryptedText The encrypted text in format: iv:authTag:encrypted
+   * @returns The decrypted plain text
+   */
   decrypt(encryptedText: string): string {
-    const parts = encryptedText.split(':');
-    const iv = Buffer.from(parts[0], 'hex');
-    const encrypted = parts[1];
-    const decipher = crypto.createDecipher('aes-256-cbc', this.encryptionKey);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    try {
+      // Split the encrypted text into IV, auth tag, and encrypted data
+      const parts = encryptedText.split(':');
+      
+      if (parts.length !== 3) {
+        throw new Error('Invalid encrypted data format');
+      }
+      
+      const iv = Buffer.from(parts[0], 'hex');
+      const authTag = Buffer.from(parts[1], 'hex');
+      const encrypted = parts[2];
+      
+      // Create decipher with proper IV
+      const decipher = crypto.createDecipheriv('aes-256-gcm', this.encryptionKey, iv);
+      
+      // Set the authentication tag
+      decipher.setAuthTag(authTag);
+      
+      // Decrypt the data
+      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      
+      return decrypted;
+    } catch (error: unknown) {
+      logger.error('Decryption failed', { error });
+      throw new Error('Failed to decrypt data. The data may be corrupted or the encryption key may have changed.');
+    }
   }
 
-  // Store secret securely
+  /**
+   * Store a secret securely with encryption
+   * @param key The unique key for the secret
+   * @param value The secret value to encrypt and store
+   */
   setSecret(key: string, value: string): void {
+    if (!key || !value) {
+      throw new Error('Key and value are required for storing secrets');
+    }
+    
     this.secrets.set(key, this.encrypt(value));
     logger.info('Secret stored', { key });
   }
 
-  // Retrieve secret
+  /**
+   * Retrieve and decrypt a secret
+   * @param key The unique key for the secret to retrieve
+   * @returns The decrypted secret value or undefined if not found
+   */
   getSecret(key: string): string | undefined {
     const encrypted = this.secrets.get(key);
     if (!encrypted) {
       return undefined;
     }
-    return this.decrypt(encrypted);
+    
+    try {
+      return this.decrypt(encrypted);
+    } catch (error: unknown) {
+      logger.error(`Failed to decrypt secret: ${key}`, { error });
+      return undefined;
+    }
   }
 
   // Load secrets from environment
@@ -203,7 +288,7 @@ try {
   }
   
   logger.info('Secrets manager initialized successfully');
-} catch (error) {
+} catch (error: unknown) {
   logger.error('Failed to initialize secrets manager', error as Error);
   process.exit(1);
 }

@@ -42,11 +42,11 @@ export async function enhanceValidationWithAI(
     
     
     // Prepare a sample of validation issues for Dialogflow to analyze
-    const errorSample = result.errors.slice(0, 5).map((err: any) => 
+    const errorSample = result.errors.slice(0, 5).map((err: unknown) => 
       `Row ${err.row}: ${err.field} = "${err.value}" (${err.reason})`
     ).join("\n");
     
-    const missingSample = result.missingFields.slice(0, 5).map((field: any) => 
+    const missingSample = result.missingFields.slice(0, 5).map((field: unknown) => 
       `Row ${field.row}: ${field.field} is missing ${field.isRequired ? '(required)' : '(optional)'}`
     ).join("\n");
     
@@ -125,7 +125,7 @@ export async function enhanceValidationWithAI(
     console.log(`Updated import success status: ${result.success ? 'Success' : 'Validation issues remain'}`);
     console.log(`Importable rows: ${result.importedRows} of ${result.totalRows}`);
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error using Dialogflow for validation enhancement:", error);
     // Just log the error and continue with basic validation
   }
@@ -198,7 +198,7 @@ function applyAISuggestedFixes(
           const newValue = match[2];
           
           // Try to find errors with this value and fix them
-          result.errors.forEach((error: any) => {
+          result.errors.forEach((error: unknown) => {
             if (error.value === oldValue) {
               applyFix(result, error.row - 1, oldValue, newValue);
               
@@ -233,10 +233,10 @@ function applyAISuggestedFixes(
         
         // Apply default value to missing fields
         const missingFields = result.missingFields.filter(
-          (field: any) => field.field === fieldName
+          (field: unknown) => field.field === fieldName
         );
         
-        missingFields.forEach((missingField: any) => {
+        missingFields.forEach((missingField: unknown) => {
           const rowIndex = missingField.row - 1;
           if (result.mappedData[rowIndex]) {
             result.mappedData[rowIndex][fieldName] = defaultValue;
@@ -257,7 +257,7 @@ function applyAISuggestedFixes(
   const dataTypeDefaults = getDefaultValuesForDataType(dataType);
   
   // Apply data type specific defaults to remaining missing fields
-  result.missingFields.forEach((missingField: any) => {
+  result.missingFields.forEach((missingField: unknown) => {
     const rowIndex = missingField.row - 1;
     const fieldName = missingField.field;
     
@@ -281,12 +281,12 @@ function applyAISuggestedFixes(
   });
   
   // Remove fixed errors from the error list
-  result.errors = result.errors.filter((error: any) => 
+  result.errors = result.errors.filter((error: unknown) => 
     !fixedRows.has(error.row) || !fixedRows.get(error.row)?.has(error.field)
   );
   
   // Remove fixed missing fields
-  result.missingFields = result.missingFields.filter((field: any) =>
+  result.missingFields = result.missingFields.filter((field: unknown) =>
     !fixedMissingFields.has(field.row) || !fixedMissingFields.get(field.row)?.has(field.field)
   );
   
@@ -297,8 +297,8 @@ function applyAISuggestedFixes(
   } else {
     result.success = result.errors.length === 0;
     result.importedRows = result.totalRows - 
-      new Set(result.errors.map((e: any) => e.row)).size - 
-      new Set(result.missingFields.map((m: any) => m.row)).size;
+      new Set(result.errors.map((e: unknown) => e.row)).size - 
+      new Set(result.missingFields.map((m: unknown) => m.row)).size;
   }
 }
 

@@ -193,19 +193,19 @@ export async function withSpan<T>(name: string, fn: () => Promise<T>): Promise<T
     const { trace, context } = require('@opentelemetry/api');
     const tracer = trace.getTracer('chainsync-app');
     
-    return await tracer.startActiveSpan(name, async (span: any) => {
+    return await tracer.startActiveSpan(name, async (span: unknown) => {
       try {
         const result = await fn();
         span.end();
         return result;
-      } catch (error) {
+      } catch (error: unknown) {
         span.recordException(error);
         span.setStatus({ code: 2 }); // ERROR
         span.end();
-        throw error;
+        throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
-  } catch (error) {
+  } catch (error: unknown) {
     getModuleLogger().debug(`Error creating span for ${name}`, { error });
     return await fn();
   }

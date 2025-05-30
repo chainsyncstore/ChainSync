@@ -6,7 +6,7 @@ import { db } from "../../db";
 import Flutterwave from "flutterwave-node-v3";
 
 // Initialize Flutterwave client if credentials are available
-let flwClient: any = null;
+let flwClient: unknown = null;
 try {
   if (process.env.FLW_PUBLIC_KEY && process.env.FLW_SECRET_KEY) {
     flwClient = new Flutterwave(process.env.FLW_PUBLIC_KEY, process.env.FLW_SECRET_KEY);
@@ -14,7 +14,7 @@ try {
   } else {
     console.log("Flutterwave credentials not found. Payouts will be simulated.");
   }
-} catch (error) {
+} catch (error: unknown) {
   console.error("Failed to initialize Flutterwave client:", error);
 }
 
@@ -41,16 +41,16 @@ export async function generateReferralCode(userId: number): Promise<string> {
     const referralCode = `${baseCode}${randomString}`;
     
     return referralCode;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error generating referral code:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
 /**
  * Register a user as an affiliate
  */
-export async function registerAffiliate(userId: number, bankDetails?: any): Promise<schema.Affiliate> {
+export async function registerAffiliate(userId: number, bankDetails?: unknown): Promise<schema.Affiliate> {
   try {
     // Check if user is already an affiliate
     const existingAffiliate = await getAffiliateByUserId(userId);
@@ -72,9 +72,9 @@ export async function registerAffiliate(userId: number, bankDetails?: any): Prom
     const [newAffiliate] = await db.insert(schema.affiliates).values(affiliateData).returning();
     
     return newAffiliate;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error registering affiliate:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -85,9 +85,9 @@ export async function getAffiliateByUserId(userId: number): Promise<schema.Affil
   try {
     const [affiliate] = await db.select().from(schema.affiliates).where(eq(schema.affiliates.userId, userId)).limit(1);
     return affiliate || null;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting affiliate by user ID:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -98,9 +98,9 @@ export async function getAffiliateByCode(code: string): Promise<schema.Affiliate
   try {
     const [affiliate] = await db.select().from(schema.affiliates).where(eq(schema.affiliates.code, code)).limit(1);
     return affiliate || null;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting affiliate by code:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -137,9 +137,9 @@ export async function trackReferral(referralCode: string, newUserId: number): Pr
       .where(eq(schema.affiliates.id, affiliate.id));
     
     return newReferral;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error tracking referral:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -196,9 +196,9 @@ export async function applyReferralDiscount(userId: number, referralCode: string
       discountedAmount, 
       discountAmount 
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error applying referral discount:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -241,9 +241,9 @@ export async function processAffiliateCommission(userId: number, paymentAmount: 
       .where(eq(schema.affiliates.id, affiliate.id));
     
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error processing affiliate commission:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -315,7 +315,7 @@ export async function processAffiliatePayout(affiliateId?: number): Promise<sche
           paymentSuccess = true;
           transactionReference = `sim-pay-${payment.id}-${Date.now()}`;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`Error processing payment for affiliate ${affiliate.id}:`, error);
       }
       
@@ -346,9 +346,9 @@ export async function processAffiliatePayout(affiliateId?: number): Promise<sche
     }
     
     return payments;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error processing affiliate payouts:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -419,9 +419,9 @@ export async function getAffiliateDashboardStats(userId: number): Promise<{
       clicks: 0, // Would require additional tracking implementation
       conversions: activeReferrals
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting affiliate dashboard stats:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -450,9 +450,9 @@ export async function getAffiliateReferrals(userId: number): Promise<any[]> {
     .orderBy(desc(schema.referrals.signupDate));
     
     return referrals;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting affiliate referrals:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -472,9 +472,9 @@ export async function getAffiliatePayments(userId: number): Promise<schema.Refer
       .orderBy(desc(schema.referralPayments.createdAt));
     
     return payments;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting affiliate payments:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
@@ -487,7 +487,7 @@ export async function trackAffiliateClick(referralCode: string, source?: string)
     // For the MVP, we'll just log it
     console.log(`Click tracked for referral code: ${referralCode}, source: ${source || 'unknown'}`);
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error tracking affiliate click:", error);
     return false;
   }
@@ -521,8 +521,8 @@ export async function updateAffiliateBankDetails(
       .returning();
     
     return updatedAffiliate;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error updating affiliate bank details:", error);
-    throw error;
+    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }

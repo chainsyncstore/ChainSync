@@ -7,7 +7,7 @@ import { getLogger } from '../../src/logging';
 const logger = getLogger().child({ component: 'rate-limiter' });
 
 // Create a Redis client
-let redisClient: any;
+let redisClient: unknown;
 
 try {
   const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -21,11 +21,11 @@ try {
     try {
       await redisClient.connect();
       logger.info('Redis client connected for rate limiting');
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error('Failed to connect Redis client for rate limiting', { error: (err as Error).message });
     }
   })();
-} catch (err) {
+} catch (err: unknown) {
   logger.error('Failed to create Redis client for rate limiting', { error: (err as Error).message });
 }
 
@@ -37,7 +37,7 @@ function createStore() {
   if (redisClient && redisClient.isReady) {
     logger.info('Using Redis store for rate limiting');
     return new RedisStore({
-      sendCommand: (...args: any[]) => redisClient.sendCommand(args),
+      sendCommand: (...args: unknown[]) => redisClient.sendCommand(args),
       prefix: 'rl:'
     });
   }
@@ -168,7 +168,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
 /**
  * Applies appropriate rate limiters to routes based on sensitivity
  */
-export function applyRateLimiters(app: any) {
+export function applyRateLimiters(app: unknown) {
   // Apply standard limiter globally
   app.use(standardLimiter);
   
@@ -195,7 +195,7 @@ export async function shutdownRateLimiter() {
     try {
       await redisClient.quit();
       logger.info('Rate limiter Redis client closed');
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error('Error closing rate limiter Redis client', { error: (err as Error).message });
     }
   }
