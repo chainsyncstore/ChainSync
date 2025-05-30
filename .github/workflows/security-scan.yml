@@ -1,0 +1,116 @@
+name: Security Scan
+
+# This workflow runs security scans on the ChainSync codebase
+# It includes dependency vulnerability scanning, static code analysis, and secret scanning
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run a full scan every Sunday at midnight
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      # Dependency vulnerability scanning
+      - name: Run npm audit
+        run: npm audit --production --audit-level=high
+        continue-on-error: true
+        
+      # Use GitHub's native dependency scanning instead of Snyk
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Run npm audit
+        run: npm audit --json > npm-audit.json || true
+        
+      - name: Display vulnerabilities
+        run: |
+          cat npm-audit.json
+        continue-on-error: true
+          
+      # Initialize CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, typescript
+          queries: security-extended
+          
+      # Autobuild runs best for JavaScript/TypeScript projects
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        
+      # Run CodeQL Analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript,typescript"
+          
+      # Run Semgrep scan with fixed configuration
+      - name: Semgrep Scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >
+            p/typescript
+            p/owasp-top-ten
+            p/nodejs
+            p/jwt
+            p/react
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
+        id: semgrep
+        
+      # Upload Semgrep results if available (with a conditional check)
+      - name: Upload Semgrep results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && steps.semgrep.outputs.sarif != ''
+        with:
+          sarif_file: semgrep.sarif
+          
+      # Secret scanning with trufflehog
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@v3.63.2
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+        continue-on-error: true
+          
+      # Send notifications for critical issues
+      - name: Notify on failures
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2.2.1
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: security-alerts
+          SLACK_COLOR: danger
+          SLACK_TITLE: Security Scan Failed
+          SLACK_MESSAGE: 'Security scan failed on ${{ github.repository }}. Please check the logs at https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+          SLACK_FOOTER: 'ChainSync Security Pipeline'

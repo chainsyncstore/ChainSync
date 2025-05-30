@@ -1,0 +1,225 @@
+# Semgrep Rule Configuration for ChainSync
+# This file configures Semgrep to find security issues in the ChainSync codebase
+# with minimal false positives and actionable findings.
+
+rules:
+  # TypeScript-specific security rules
+  - id: typescript-sql-injection
+    pattern: |
+      sql`$...TEMPLATE_PARTS`
+    message: >-
+      Potential SQL injection detected. Ensure all variables are properly escaped
+      with the safeToString() helper method when using sql template literals.
+    languages: [typescript, javascript]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: sql-injection
+      confidence: MEDIUM
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A1:2017-Injection"
+      remediation: |
+        Use the safeToString() helper method when inserting variables into SQL template literals:
+        ```typescript
+        sql`SELECT * FROM users WHERE id = ${this.safeToString(userId)}`
+        ```
+    
+  - id: jwt-weak-secret
+    patterns:
+      - pattern: |
+          $SECRET = "..."
+      - pattern-inside: |
+          $JWT.sign($PAYLOAD, $SECRET, $OPTIONS)
+    message: >-
+      Potential hardcoded JWT secret. JWT secrets should be loaded from environment
+      variables or a secure configuration system.
+    languages: [typescript, javascript]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: crypto
+      confidence: HIGH
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A2:2017-Broken Authentication"
+  
+  - id: insecure-redis-connection
+    pattern: |
+      new Redis($...)
+    message: >-
+      Redis connection detected. Ensure that Redis connections:
+      1. Use TLS for production environments
+      2. Implement proper authentication
+      3. Don't expose Redis to public networks
+    languages: [typescript, javascript]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: insecure-configuration
+      confidence: MEDIUM
+      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
+  
+  - id: missing-helmet
+    patterns:
+      - pattern-not: |
+          $APP.use(helmet($...))
+      - pattern: |
+          $APP = express()
+          ...
+          $APP.listen($...)
+    message: >-
+      Express application without Helmet middleware. Helmet helps secure Express 
+      apps by setting HTTP security headers.
+    languages: [typescript, javascript]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: missing-security-header
+      confidence: MEDIUM
+      cwe: "CWE-693: Protection Mechanism Failure"
+      owasp: "A6:2017-Security Misconfiguration"
+  
+  - id: path-traversal
+    patterns:
+      - pattern: |
+          $FS.readFile(path.join($DIR, $PATH), $...)
+      - pattern-not-inside: |
+          $PATH = path.normalize($PATH)
+    message: >-
+      Potential path traversal vulnerability. Ensure user-provided paths are 
+      normalized and validated before file operations.
+    languages: [typescript, javascript]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: path-traversal
+      confidence: MEDIUM
+      cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory"
+      owasp: "A5:2017-Broken Access Control"
+  
+  - id: missing-auth-check
+    patterns:
+      - pattern: |
+          $ROUTER.$METHOD($ROUTE, $HANDLER)
+      - pattern-not-inside: |
+          $ROUTER.$METHOD($ROUTE, $AUTH_MIDDLEWARE, $HANDLER)
+      - pattern-not-inside: |
+          $ROUTER.$METHOD($ROUTE, [$AUTH_MIDDLEWARE, $...], $HANDLER)
+      - pattern-either:
+          - metavariable-regex:
+              metavariable: $ROUTE
+              regex: "(users|accounts|admin|settings|stores|inventory|transactions)"
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: "(put|post|delete|patch)"
+    message: >-
+      Potential missing authentication middleware. Routes that modify data or 
+      access sensitive information should be protected with authentication.
+    languages: [typescript, javascript]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: authentication
+      confidence: MEDIUM
+      cwe: "CWE-306: Missing Authentication for Critical Function"
+      owasp: "A2:2017-Broken Authentication"
+  
+  - id: weak-crypto
+    patterns:
+      - pattern-either:
+          - pattern: |
+              crypto.createHash("md5")
+          - pattern: |
+              crypto.createHash("sha1")
+          - pattern: |
+              crypto.createCipher($...)
+    message: >-
+      Weak cryptographic algorithm detected. Use modern alternatives:
+      - For hashing: SHA-256 or higher, or preferably a password-specific algorithm like bcrypt
+      - For encryption: crypto.createCipheriv() with AES-GCM or AES-CBC
+    languages: [typescript, javascript]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: crypto
+      confidence: HIGH
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp: "A3:2017-Sensitive Data Exposure"
+  
+  - id: possible-nosql-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $COLLECTION.find({$FIELD: $VALUE})
+          - pattern: |
+              $COLLECTION.findOne({$FIELD: $VALUE})
+          - pattern: |
+              $COLLECTION.update({$FIELD: $VALUE}, $...)
+      - pattern-not-inside: |
+          $VALUE = $VALIDATOR.validate($VALUE)
+    message: >-
+      Potential NoSQL injection. Ensure all query parameters from user input are 
+      validated with Zod or another validation library.
+    languages: [typescript, javascript]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: injection
+      confidence: MEDIUM
+      cwe: "CWE-943: Improper Neutralization of Special Elements in Data Query Logic"
+      owasp: "A1:2017-Injection"
+
+  - id: react-xss
+    patterns:
+      - pattern: |
+          <$ELEMENT dangerouslySetInnerHTML={{__html: $DATA}} />
+      - pattern-not-inside: |
+          $DATA = DOMPurify.sanitize($DATA)
+    message: >-
+      Potential XSS vulnerability with dangerouslySetInnerHTML. Sanitize HTML 
+      content with a library like DOMPurify before rendering.
+    languages: [typescript, tsx, javascript, jsx]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: xss
+      confidence: HIGH
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp: "A7:2017-Cross-Site Scripting (XSS)"
+
+  - id: env-exposure
+    pattern: |
+      process.env.$SECRET
+    pattern-inside: |
+      $APP.get($PATH, $HANDLER)
+    message: >-
+      Environment variable potentially exposed through an API endpoint. Avoid
+      sending sensitive environment variables directly in API responses.
+    languages: [typescript, javascript]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: information-disclosure
+      confidence: MEDIUM
+      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
+      owasp: "A3:2017-Sensitive Data Exposure"
+
+  - id: mass-assignment
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $MODEL.create($REQ.body)
+          - pattern: |
+              $MODEL.update($ID, $REQ.body)
+          - pattern: |
+              Object.assign($OBJ, $REQ.body)
+    message: >-
+      Potential mass assignment vulnerability. Explicitly pick only the properties
+      you want to allow updating rather than using the entire request body.
+    languages: [typescript, javascript]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: mass-assignment
+      confidence: MEDIUM
+      cwe: "CWE-915: Improperly Controlled Modification of Dynamically-Determined Object Attributes"
+      owasp: "A5:2017-Broken Access Control"

@@ -15,6 +15,7 @@ module.exports = {
     'plugin:import/recommended',
     'plugin:import/typescript',
     'plugin:jsx-a11y/recommended',
+    'plugin:security/recommended',
     'prettier',
   ],
   parser: '@typescript-eslint/parser',
@@ -33,18 +34,15 @@ module.exports = {
     'react-hooks',
     'import',
     'jsx-a11y',
+    'security',
     'prettier',
   ],
   settings: {
-    react: {
-      version: 'detect',
-    },
     'import/resolver': {
-      typescript: {},
-      node: {
-        extensions: ['.js', '.jsx', '.ts', '.tsx'],
-      },
-    },
+      typescript: {
+        project: './tsconfig.json'
+      }
+    }
   },
   rules: {
     // Core ESLint rules
@@ -58,7 +56,11 @@ module.exports = {
     
     // TypeScript specific rules
     '@typescript-eslint/explicit-function-return-type': 'off', // Too restrictive
-    '@typescript-eslint/no-explicit-any': 'warn', // Better to warn than error for incremental adoption
+    '@typescript-eslint/no-explicit-any': 'error', // Stricter enforcement to prevent type issues
+    '@typescript-eslint/no-unsafe-assignment': 'error',
+    '@typescript-eslint/no-unsafe-member-access': 'error',
+    '@typescript-eslint/no-unsafe-call': 'error',
+    '@typescript-eslint/no-unsafe-return': 'error',
     '@typescript-eslint/ban-ts-comment': ['warn', { 
       'ts-ignore': 'allow-with-description',
       minimumDescriptionLength: 10
@@ -110,7 +112,37 @@ module.exports = {
     ],
     
     // Prettier
-    'prettier/prettier': 'warn'
+    'prettier/prettier': 'warn',
+    
+    // Custom ChainSync rules
+    'no-restricted-imports': [
+      'error',
+      {
+        'paths': [
+          {
+            'name': 'drizzle-orm',
+            'importNames': ['sql'],
+            'message': 'Direct SQL usage is restricted. Use the SQL helpers from server/db/sqlHelpers.ts instead.'
+          }
+        ],
+        'patterns': [
+          {
+            'group': ['**/raw-sql*'],
+            'message': 'Raw SQL usage is restricted. Use the SQL helpers from server/db/sqlHelpers.ts instead.'
+          }
+        ]
+      }
+    ],
+    
+    // Security rules
+    'security/detect-object-injection': 'warn',
+    'security/detect-non-literal-regexp': 'warn',
+    'security/detect-unsafe-regex': 'error',
+    'security/detect-buffer-noassert': 'error',
+    'security/detect-eval-with-expression': 'error',
+    'security/detect-no-csrf-before-method-override': 'error',
+    'security/detect-non-literal-fs-filename': 'warn',
+    'security/detect-sql-literal-injection': 'error'
   },
   overrides: [
     // Override for test files
@@ -122,6 +154,12 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        'security/detect-object-injection': 'off',
+        'no-restricted-imports': 'off',
       },
     },
     // Override for JavaScript files

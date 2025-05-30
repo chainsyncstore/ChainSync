@@ -26,50 +26,65 @@ declare global {
   }
 }
 
+// Create a cross-environment global reference
+const getGlobalThis = (): any => {
+  if (typeof globalThis !== 'undefined') return globalThis;
+  if (typeof self !== 'undefined') return self;
+  if (typeof window !== 'undefined') return window;
+  if (typeof global !== 'undefined') return global;
+  throw new Error('Unable to locate global object');
+};
+
+// Use our safe global reference
+const globalRef = getGlobalThis();
+if (!globalRef.__chainSyncGlobals) {
+  globalRef.__chainSyncGlobals = {};
+}
+
 // Initialize global references
 export async function initializeGlobals() {
-  if (!(global as any).stores) {
+  if (!globalRef.__chainSyncGlobals.stores) {
     try {
       const { stores } = await import('./stores');
-      (global as any).stores = stores;
+      globalRef.__chainSyncGlobals.stores = stores;
     } catch (error: unknown) {
       console.warn('Failed to initialize stores:', error);
     }
   }
   
-  if (!(global as any).users) {
+  if (!globalRef.__chainSyncGlobals.users) {
     try {
       const { users } = await import('./users');
-      (global as any).users = users;
+      globalRef.__chainSyncGlobals.users = users;
     } catch (error: unknown) {
       console.warn('Failed to initialize users:', error);
     }
   }
 
-  if (!(global as any).products) {
+  if (!globalRef.__chainSyncGlobals.products) {
     try {
       const { products, categories } = await import('./products'); // Assuming categories is in products.ts
-      (global as any).products = products;
-      (global as any).categories = categories;
+      globalRef.__chainSyncGlobals.products = products;
+      globalRef.__chainSyncGlobals.categories = categories;
     } catch (error: unknown) {
       console.warn('Failed to initialize products/categories:', error);
     }
   }
 
-  if (!(global as any).inventory) {
+  if (!globalRef.__chainSyncGlobals.inventory) {
     try {
       const { inventory, inventoryBatches } = await import('./inventory'); // Assuming inventoryBatches is in inventory.ts
-      (global as any).inventory = inventory;
-      (global as any).inventoryBatches = inventoryBatches;
+      globalRef.__chainSyncGlobals.inventory = inventory;
+      globalRef.__chainSyncGlobals.inventoryBatches = inventoryBatches;
     } catch (error: unknown) {
       console.warn('Failed to initialize inventory/inventoryBatches:', error);
     }
   }
 
-  if (!(global as any).suppliers) {
+  if (!globalRef.__chainSyncGlobals.suppliers) {
     try {
       const { suppliers } = await import('./suppliers');
-      (global as any).suppliers = suppliers;
+      globalRef.__chainSyncGlobals.suppliers = suppliers;
     } catch (error: unknown) {
       console.warn('Failed to initialize suppliers:', error);
     }

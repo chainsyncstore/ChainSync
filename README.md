@@ -90,6 +90,44 @@ A modern inventory and store management system built with React, TypeScript, Nod
 
 See `.env.example` for all available environment variables.
 
+## Continuous Integration & Deployment
+
+ChainSync uses GitHub Actions for continuous integration and deployment. The workflows automate testing, security scanning, and deployment processes.
+
+### Workflows
+
+- **tests.yml** - Runs unit and integration tests on push and pull requests
+- **security-scan.yml** - Performs security scans including dependency analysis and code scanning
+- **deploy.yml** - Handles the deployment to staging and production environments
+- **validate-workflows.yml** - Validates GitHub Actions workflow files
+
+### Pre-commit Hooks
+
+The project uses pre-commit hooks to ensure code quality and prevent issues from being committed. To set up pre-commit hooks:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+This installs the following hooks:
+- actionlint - Validates GitHub Actions workflow files
+- trailing-whitespace - Removes trailing whitespace
+- end-of-file-fixer - Ensures files end with a newline
+- check-yaml - Validates YAML files
+- check-added-large-files - Prevents large files from being committed
+- gitleaks - Scans for secrets and credentials
+
+### Repository Secrets
+
+The following secrets must be configured in GitHub repository settings for CI/CD to function correctly:
+
+1. **SNYK_TOKEN** - For vulnerability scanning
+2. **SEMGREP_APP_TOKEN** - For code scanning
+3. **SLACK_WEBHOOK** - For Slack notifications
+
+See `.github/SECURITY.md` for detailed setup instructions.
+
 ## License
 
 MIT

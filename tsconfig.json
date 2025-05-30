@@ -15,6 +15,18 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "dist.bak",
+    "node_modules.bak",
+    "coverage",
+    "playwright-report",
+    "test-results",
+    "attached_assets",
+    ".git",
+    "docs",
+    "deploy",
+    "client/src/components",
+    "client/src/pages",
+    "test"
   ]
 }

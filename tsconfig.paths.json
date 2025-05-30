@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["server/*"],
+      "@shared/*": ["shared/*"],
+      "@db/*": ["server/db/*"],
+      "@services/*": ["server/services/*"],
+      "@utils/*": ["server/utils/*"],
+      "@src/": ["server/"],
+      "@shared/": ["shared/"],
+      "@db/": ["server/db/"],
+      "@services/": ["server/services/"],
+      "@utils/": ["server/utils/"]
+    }
+  }
+}

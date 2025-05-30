@@ -1,0 +1,61 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+
+# Ignore specific vulnerabilities
+ignore:
+  # Example of ignoring a specific vulnerability (uncomment and modify as needed)
+  # 'npm:ms:20170412':
+  #   - '*':
+  #       reason: Not exploitable in our context
+  #       expires: 2025-12-01T00:00:00.000Z
+        
+# Ignore specific paths or files
+exclude:
+  global:
+    # Exclude test files and fixtures
+    - '**/*.test.ts'
+    - '**/*.test.tsx'
+    - '**/*.spec.ts'
+    - '**/*.spec.tsx'
+    - '**/test/**'
+    - '**/tests/**'
+    - '**/fixtures/**'
+    # Exclude generated files
+    - '**/dist/**'
+    - '**/build/**'
+    - '**/node_modules/**'
+    # Exclude config files
+    - '**/*.config.js'
+    - '**/tsconfig.json'
+    - '**/package.json'
+    - '**/package-lock.json'
+
+# Configure severity thresholds
+severity-threshold: high
+
+# Project-specific configurations
+project-business-criticality: critical
+org: chainsync
+
+# Custom rules for TypeScript
+custom-rules:
+  typescript:
+    # JWT related rules
+    - id: chainsync:jwt-no-alg-none
+      title: JWT No Algorithm None
+      description: Detects when JWT algorithm is set to 'none'
+      severity: critical
+      languages: [typescript, javascript]
+      pattern: |
+        \.sign\(.*,.*,.*algorithm:\s*['"]none['"]
+      message: JWT algorithm should never be set to 'none'
+      
+    # SQL injection prevention for Drizzle
+    - id: chainsync:drizzle-sql-injection
+      title: Potential SQL Injection in Drizzle SQL Templates
+      description: Ensure that SQL template literals use the safeToString helper
+      severity: high
+      languages: [typescript]
+      pattern: |
+        sql`.*\$\{(?!this\.safeToString\().*\}`
+      message: Use this.safeToString() when passing values to SQL template literals

@@ -49,6 +49,10 @@
     "db:restore:latest": "node scripts/restore.js --latest",
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
+    "db:migrate:run": "tsx scripts/migrate.ts",
+    "db:migrate:validate": "tsx scripts/migrate.ts -- --validate-only",
+    "db:schema:check": "tsx scripts/migrate.ts -- --validate-only",
+    "db:schema:fix": "tsx scripts/migrate.ts",
     "// Linting and Type Checking": "",
     "lint": "eslint . --ext .ts,.tsx --fix",
     "lint:unused-vars": "eslint . --ext .ts,.tsx --rule 'no-unused-vars: error' --quiet",
@@ -67,7 +71,7 @@
     "postinstall": "npm run build",
     "// Git Hooks": "",
     "prepare": "husky install",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged --config=.lintstagedrc.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
@@ -235,6 +239,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "glob": "^11.0.2",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
     "lint-staged": "^16.1.0",
@@ -248,7 +253,7 @@
     "tsc-alias": "^1.8.8",
     "tsx": "^4.7.0",
     "typescript": "^5.8.3",
-    "vite": "^5.0.12",
+    "vite": "^6.3.5",
     "vite-tsconfig-paths": "^4.3.2"
   },
   "optionalDependencies": {

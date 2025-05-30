@@ -1,0 +1,200 @@
+name: ChainSync Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      # Set up PostgreSQL service for testing
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chaintest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Set up environment variables
+        run: |
+          echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/chaintest" >> .env.test
+          echo "NODE_ENV=test" >> .env.test
+          echo "JWT_SECRET=test-secret-key" >> .env.test
+      
+      - name: Run TypeScript type checking
+        run: npm run type-check
+      
+      - name: Run linting
+        run: npm run lint
+      
+      - name: Run all tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/chaintest
+      
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/chaintest
+      
+      - name: Build application
+        run: npm run build
+      
+      # Archive build artifacts for deployment
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: |
+            dist
+            public
+            package.json
+            package-lock.json
+  
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      # Run npm audit to check for vulnerabilities
+      - name: Check for vulnerabilities
+        run: npm audit --production
+        continue-on-error: true
+      
+      # Run security scan with GitHub Advanced Security
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, typescript
+          queries: security-extended
+        continue-on-error: true
+        
+      # Autobuild for JavaScript/TypeScript
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        continue-on-error: true
+        
+      # Run CodeQL Analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript,typescript"
+        continue-on-error: true
+      
+      # Upload security scan results as an artifact
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: ${{ github.workspace }}/reports
+        if: always()  # Always upload reports even if scanning fails
+  
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    environment:
+      name: staging # Must match an environment declared in your GitHub repo settings
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      
+      - name: Install production dependencies
+        run: npm ci --only=production
+      
+      - name: Deploy to staging
+        run: echo "Deploying to staging environment"
+        # Replace with actual deployment commands
+        # Example: 
+        # - name: Deploy to Render
+        #   run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_STAGING }}
+  
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.event.inputs.environment == 'production'
+    environment:
+      name: production # Must match an environment declared in your GitHub repo settings
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      
+      - name: Install production dependencies
+        run: npm ci --only=production
+      
+      - name: Deploy to production
+        run: echo "Deploying to production environment"
+        # Replace with actual deployment commands
+        # Example:
+        # - name: Deploy to Render
+        #   run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_PRODUCTION }}
+      
+      - name: Notify deployment status
+        if: success()
+        uses: rtCamp/action-slack-notify@v2.2.1
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK || '' }}
+          SLACK_CHANNEL: deployments
+          SLACK_COLOR: good
+          SLACK_TITLE: Production Deployment Successful
+          SLACK_MESSAGE: 'ChainSync has been successfully deployed to production!'
+          SLACK_FOOTER: 'ChainSync CI/CD Pipeline'

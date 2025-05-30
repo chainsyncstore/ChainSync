@@ -1,0 +1,72 @@
+name: Validate GitHub Actions
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+  push:
+    branches: [main, develop]
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@v1
+        with:
+          fail_on_error: true
+          reporter: github-pr-review
+          fail_level: error
+
+      - name: Check for deprecated GitHub Actions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const workflowsDir = '.github/workflows';
+            
+            // Define known deprecated or problematic actions
+            const deprecatedActions = [
+              { pattern: /uses:\s+[\'\"]?trufflesecurity\/trufflehog@main[\'\"]?/, message: 'Using @main tag for TruffleHog is not recommended, use a specific version instead' },
+              { pattern: /uses:\s+[\'\"]?snyk\/actions\/.*@master[\'\"]?/, message: 'Using @master tag for Snyk actions is not recommended, use a specific version instead' },
+              { pattern: /uses:\s+[\'\"]?dependency-check\/Dependency-Check_Action@main[\'\"]?/, message: 'Using @main tag for Dependency-Check is not recommended, use a specific version instead' },
+              { pattern: /generateSarif:/, message: 'The "generateSarif" property should be "generate-sarif" for Semgrep' }
+            ];
+            
+            const files = fs.readdirSync(workflowsDir);
+            let hasErrors = false;
+            
+            for (const file of files) {
+              if (path.extname(file) === '.yml' || path.extname(file) === '.yaml') {
+                const content = fs.readFileSync(path.join(workflowsDir, file), 'utf8');
+                
+                for (const { pattern, message } of deprecatedActions) {
+                  if (pattern.test(content)) {
+                    console.error(`Error in ${file}: ${message}`);
+                    hasErrors = true;
+                  }
+                }
+              }
+            }
+            
+            if (hasErrors) {
+              core.setFailed('Found deprecated GitHub Actions patterns');
+            }
+
+      - name: Notify on failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2.2.1
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK || '' }}
+          SLACK_CHANNEL: ci-alerts
+          SLACK_COLOR: danger
+          SLACK_TITLE: Workflow Validation Failed
+          SLACK_MESSAGE: 'GitHub Actions validation failed for ${{ github.repository }}. Please check your workflow files.'
+          SLACK_FOOTER: 'ChainSync CI Pipeline'
