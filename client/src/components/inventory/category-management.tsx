@@ -286,7 +286,7 @@ export default function CategoryManagement() {
                         Loading categories...
                       </TableCell>
                     </TableRow>
-                  ) : categories && categories.length > 0 ? (
+                  ) : Array.isArray(categories) && categories.length > 0 ? (
                     categories.map((category: Category) => (
                       <TableRow key={category.id}>
                         <TableCell>

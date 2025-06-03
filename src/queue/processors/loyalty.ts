@@ -1,8 +1,10 @@
 // src/queue/processors/loyalty.ts
 import { Job } from 'bullmq';
-import { getLogger } from '../../logging';
+import { getLogger } from '@shared/logging'; // Using path alias
 import { initWorker, QueueType, JobPriority, addJob } from '../index';
 import { getRedisClient } from '../../cache/redis';
+import { AppError } from '@shared/types/errors';
+import { Logger as PinoLoggerType } from 'pino'; // Use a different alias to avoid conflict if Logger is used elsewhere
 
 // Get logger for loyalty job processor
 const logger = getLogger().child({ component: 'loyalty-processor' });
@@ -117,7 +119,7 @@ async function processLoyaltyJob(job: Job): Promise<any> {
  */
 async function processTransaction(
   data: ProcessTransactionData,
-  logger: unknown
+  logger: PinoLoggerType // Use the imported Pino Logger type
 ): Promise<{ pointsAwarded: number; newTotal: number }> {
   logger.info('Processing transaction for loyalty points', {
     transactionId: data.transactionId,
@@ -188,7 +190,7 @@ async function processTransaction(
  */
 async function applyLoyaltyPoints(
   data: ApplyPointsData,
-  logger: unknown
+  logger: PinoLoggerType // Use the imported Pino Logger type
 ): Promise<{ success: boolean; newTotal: number }> {
   logger.info('Applying loyalty points', {
     customerId: data.customerId,
@@ -246,7 +248,7 @@ async function applyLoyaltyPoints(
  */
 async function reverseLoyaltyPoints(
   data: ReversePointsData,
-  logger: unknown
+  logger: PinoLoggerType // Use the imported Pino Logger type
 ): Promise<{ success: boolean; newTotal: number }> {
   logger.info('Reversing loyalty points', {
     customerId: data.customerId,
@@ -304,7 +306,7 @@ async function reverseLoyaltyPoints(
  */
 async function calculateRewards(
   data: CalculateRewardsData,
-  logger: unknown
+  logger: PinoLoggerType // Use the imported Pino Logger type
 ): Promise<{ availableRewards: number }> {
   logger.info('Calculating rewards for customer', {
     customerId: data.customerId,
@@ -353,7 +355,7 @@ async function calculateRewards(
  */
 async function syncLoyaltyStatus(
   data: SyncLoyaltyStatusData,
-  logger: unknown
+  logger: PinoLoggerType // Use the imported Pino Logger type
 ): Promise<{ success: boolean }> {
   logger.info('Syncing loyalty status with external systems', {
     customerId: data.customerId,

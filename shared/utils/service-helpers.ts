@@ -6,8 +6,7 @@
  * database operations.
  */
 import { fromDatabaseFields } from './field-mapping';
-import { ErrorCode } from '../types/errors';
-import { AppError } from '../types/errors';
+import { ErrorCode, ErrorCategory, AppError } from '../types/errors';
 
 /**
  * Abstract base class for formatting database results into domain objects
@@ -101,21 +100,25 @@ export class ServiceErrorHandler {
     console.error(`Error ${operation}:`, error);
 
     if (error instanceof AppError) {
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      // If it's already an AppError, re-throw it directly.
+      throw error;
     }
 
-    let message: string;
-    if (error && typeof error.message === 'string') {
-      message = `Error ${operation}: ${error.message}`;
-    } else {
-      message = `Error ${operation}: Unknown error`;
+    let detailMessage = 'Unknown error';
+    if (error instanceof Error) {
+      detailMessage = error.message;
+    } else if (typeof error === 'string') {
+      detailMessage = error;
     }
+    
+    const message = `Error ${operation}: ${detailMessage}`;
 
     // Use generic category for default errors
     throw new AppError(
       message,
-      defaultErrorCode === ErrorCode.NOT_FOUND ? 'NOT_FOUND' : 'INTERNAL_SERVER_ERROR',
-      defaultErrorCode
+      defaultErrorCode === ErrorCode.NOT_FOUND ? ErrorCategory.RESOURCE : ErrorCategory.SYSTEM,
+      defaultErrorCode,
+      { cause: error } 
     );
   }
   
@@ -136,7 +139,7 @@ export class ServiceErrorHandler {
     if (!result) {
       throw new AppError(
         `${entityName} not found`,
-        'NOT_FOUND',
+        ErrorCategory.RESOURCE,
         errorCode
       );
     }

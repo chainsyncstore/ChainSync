@@ -82,7 +82,8 @@ jobs:
             p/jwt
             p/react
         env:
-          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+          # Use empty string fallback to avoid workflow failure if secret is missing
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN || '' }}
         continue-on-error: true
         id: semgrep
         
@@ -108,7 +109,8 @@ jobs:
         if: failure()
         uses: rtCamp/action-slack-notify@v2.2.1
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          # Use empty string fallback to avoid workflow failure if secret is missing
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK || '' }}
           SLACK_CHANNEL: security-alerts
           SLACK_COLOR: danger
           SLACK_TITLE: Security Scan Failed

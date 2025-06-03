@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, Application, CookieOptions } from 'express'; // Added CookieOptions
 import { getLogger } from '../../src/logging';
-import { parse as parseContentSecurityPolicy } from 'content-security-policy-parser';
+import parseContentSecurityPolicy from 'content-security-policy-parser'; // Changed import style
 import { UAParser } from 'ua-parser-js';
 import ipRangeCheck from 'ip-range-check';
 import { randomBytes } from 'crypto';
@@ -258,10 +258,10 @@ export function ipFilter(
   
   return (req: Request, res: Response, next: NextFunction) => {
     const ipAddress = (
-      req.headers['x-forwarded-for'] as string || 
-      req.connection.remoteAddress || 
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || 
+      req.socket.remoteAddress || 
       ''
-    ).split(',')[0].trim();
+    );
     
     // Always allow localhost if configured
     if (config.allowLocalhost && (ipAddress === '127.0.0.1' || ipAddress === '::1')) {
@@ -415,16 +415,19 @@ export function enhancedSecurityHeaders() {
 export function secureCookies() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Override res.cookie method to add secure attributes
-    const originalCookie = res.cookie;
-    res.cookie = function(name, value, options = {}) {
-      const secureOptions = {
+    const originalCookie: (name: string, value: any, options?: CookieOptions) => Response = res.cookie;
+    res.cookie = function(this: Response, name: string, value: any, options: CookieOptions = {}) { // Typed options and this
+      const secureOptions: CookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         ...options
       };
       
-      return originalCookie.call(this, name, value, secureOptions);
+      // originalCookie.call expects (this, name, value, options)
+      // but originalCookie itself is (name, value, options)
+      // The `this` for originalCookie.call should be `res`
+      return (originalCookie as any).call(res, name, value, secureOptions);
     };
     
     next();
@@ -445,22 +448,25 @@ export function securityNonce() {
     
     // Modify CSP header to include nonce if present
     const cspHeader = res.getHeader('Content-Security-Policy');
-    if (cspHeader) {
-      const csp = parseContentSecurityPolicy(cspHeader.toString());
+    if (typeof cspHeader === 'string') { // Ensure cspHeader is a string
+      const cspMap = parseContentSecurityPolicy(cspHeader); // Returns Map<string, string[]> according to error
       
-      // Add nonce to script-src and style-src
-      if (csp['script-src']) {
-        csp['script-src'].push(`'nonce-${nonce}'`);
-      }
+      // Add nonce to script-src
+      const scriptSrc = cspMap.get('script-src') || [];
+      scriptSrc.push(`'nonce-${nonce}'`);
+      cspMap.set('script-src', scriptSrc);
       
-      if (csp['style-src']) {
-        csp['style-src'].push(`'nonce-${nonce}'`);
-      }
+      // Add nonce to style-src
+      const styleSrc = cspMap.get('style-src') || [];
+      styleSrc.push(`'nonce-${nonce}'`);
+      cspMap.set('style-src', styleSrc);
       
       // Rebuild CSP header
-      const updatedCsp = Object.entries(csp)
-        .map(([key, values]) => `${key} ${values.join(' ')}`)
-        .join('; ');
+      const directives: string[] = [];
+      cspMap.forEach((values, key) => {
+        directives.push(`${key} ${values.join(' ')}`);
+      });
+      const updatedCsp = directives.join('; ');
       
       res.setHeader('Content-Security-Policy', updatedCsp);
     }
@@ -472,30 +478,30 @@ export function securityNonce() {
 /**
  * Apply all enhanced security middleware in the recommended order
  */
-export function applyAdvancedSecurity(app: unknown) {
+export function applyAdvancedSecurity(app: Application) {
   // Apply security headers first
-  app.use(enhancedSecurityHeaders());
+  app.use(enhancedSecurityHeaders() as any);
   
   // Apply Content Security Policy
-  app.use(contentSecurityPolicy());
+  app.use(contentSecurityPolicy() as any);
   
   // Apply Permissions Policy
-  app.use(permissionsPolicy());
+  app.use(permissionsPolicy() as any);
   
   // Apply security nonce
-  app.use(securityNonce());
+  app.use(securityNonce() as any);
   
   // Apply secure cookies
-  app.use(secureCookies());
+  app.use(secureCookies() as any);
   
   // Apply CORS preflight cache
-  app.use(corsPreflightCache());
+  app.use(corsPreflightCache() as any);
   
   // Apply device fingerprinting for fraud detection
-  app.use(deviceFingerprinting());
+  app.use(deviceFingerprinting() as any);
   
   // Apply Trusted Types (for modern browsers)
-  app.use(trustedTypes());
+  app.use(trustedTypes() as any);
   
   logger.info('Advanced security middleware applied');
 }

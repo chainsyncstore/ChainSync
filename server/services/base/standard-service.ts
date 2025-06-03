@@ -6,13 +6,19 @@
  */
 
 import { z } from 'zod';
-import { Logger } from '../../utils/logger';
+import { Logger } from '../../../src/logging'; // Use logger from src
 import { DrizzleClient, Transaction } from '../../db/types';
 import { CacheService } from '../cache/cache-service';
 import { ErrorCode, ErrorCategory } from '../../../shared/types/errors';
 import { eq, and, sql, SQL } from 'drizzle-orm';
 import { safeToString, sqlIdentifier, sqlTemplate } from '../../db/sqlTemplateHelper';
 import { ServiceConfig } from './service-factory';
+export type { ServiceConfig } from './service-factory';
+
+// Drizzle ORM table type (import or define a fallback)
+// If you have a Drizzle type, import it. Otherwise, define a minimal fallback:
+type DrizzleTable = { name: string };
+
 import { ValidationHelpers } from '../../utils/zod-helpers';
 
 /**
@@ -95,7 +101,7 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
   
   // Abstract properties that concrete services must implement
   protected abstract readonly entityName: string;
-  protected abstract readonly tableName: string;
+  protected abstract readonly tableName: string | DrizzleTable;
   protected abstract readonly primaryKeyField: string;
   protected abstract readonly createSchema: z.ZodType<CreateDTO>;
   protected abstract readonly updateSchema: z.ZodType<UpdateDTO>;
@@ -130,9 +136,10 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
       // Fetch from database if not in cache
       const result = await this.executeQuery(
         async (db) => {
+          const tableNameStr = typeof this.tableName === 'string' ? this.tableName : this.tableName.name;
           // Use the safe SQL template pattern with proper type handling
-          return db.execute(sqlTemplate`
-            SELECT * FROM ${sqlIdentifier(this.tableName)}
+          return db.execute(sql`
+            SELECT * FROM ${sqlIdentifier(tableNameStr)}
             WHERE ${sqlIdentifier(this.primaryKeyField)} = ${id}
             LIMIT 1
           `);
@@ -140,7 +147,8 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
         `${this.entityName}.getById`
       );
       
-      const entity = result[0] || null;
+      // Handle QueryResult properly by treating it as Record<string, any>[] when it's an array
+      const entity = Array.isArray(result) && result.length > 0 ? result[0] as T : null;
       
       // Cache the result if we have a cache service
       if (entity && cacheKey && this.cache) {
@@ -176,9 +184,10 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
           const whereClause = whereConditions.length > 0 
             ? sql`WHERE ${sql.join(whereConditions, sql` AND `)}`
             : sql``;
+          const tableNameStr = typeof this.tableName === 'string' ? this.tableName : this.tableName.name;
             
           return db.execute(sql`
-            SELECT COUNT(*) as count FROM ${sqlIdentifier(this.tableName)}
+            SELECT COUNT(*) as count FROM ${sqlIdentifier(tableNameStr)}
             ${whereClause}
           `);
         },
@@ -199,9 +208,10 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
           const orderClause = sortBy
             ? sql`ORDER BY ${sqlIdentifier(sortBy)} ${sortDirection === 'desc' ? sql`DESC` : sql`ASC`}`
             : sql``;
+          const tableNameStr = typeof this.tableName === 'string' ? this.tableName : this.tableName.name;
             
           return db.execute(sql`
-            SELECT * FROM ${this.tableName}
+            SELECT * FROM ${sqlIdentifier(tableNameStr)}
             ${whereClause}
             ${orderClause}
             LIMIT ${limit} OFFSET ${offset}
@@ -236,21 +246,28 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
       // Insert into database
       const result = await this.executeQuery(
         async (db) => {
+          const tableNameStr = typeof this.tableName === 'string' ? this.tableName : this.tableName.name;
           // Use direct SQL for insert
           return db.execute(sqlTemplate`
-            INSERT INTO ${sqlIdentifier(this.tableName)}
+            INSERT INTO ${sqlIdentifier(tableNameStr)}
             (${sql.join(Object.keys(validatedData as Record<string, unknown>).map(key => sql`${key}`), sql`, `)})
             VALUES (${sql.join(Object.values(validatedData as Record<string, unknown>).map(val => sql`${val}`), sql`, `)})
             RETURNING *
           `);
         },
-        `${this.entityName}.create`
-      );
-      
-      const entity = result[0];
-      
-      if (!entity) {
-        throw new ServiceError(
+      `${this.entityName}.create`
+    );
+    
+    // Access the first row from the result, which might be nested under a 'rows' property
+    // Also, ensure that result itself is not null/undefined before trying to access rows
+    const entity = result && (result as any).rows && (result as any).rows.length > 0 
+      ? (result as any).rows[0] as T 
+      : Array.isArray(result) && result.length > 0 
+        ? result[0] as T 
+        : null;
+    
+    if (!entity) {
+      throw new ServiceError(
           ErrorCode.DATABASE_ERROR,
           `Failed to create ${this.entityName}`,
           { data }
@@ -280,9 +297,10 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
           // Build SET clause for update
           const setValues = Object.entries(validatedData as Record<string, unknown>)
             .map(([key, value]) => sql`${sqlIdentifier(String(key))} = ${value}`);
+          const tableNameStr = typeof this.tableName === 'string' ? this.tableName : this.tableName.name;
           
           return db.execute(sqlTemplate`
-            UPDATE ${sqlIdentifier(this.tableName)}
+            UPDATE ${sqlIdentifier(tableNameStr)}
             SET ${sql.join(setValues, sql`, `)}
             WHERE ${sqlIdentifier(this.primaryKeyField)} = ${id}
             RETURNING *
@@ -291,7 +309,8 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
         `${this.entityName}.update`
       );
       
-      const entity = result[0] || null;
+      // Handle QueryResult properly by treating it as Record<string, any>[] when it's an array
+      const entity = Array.isArray(result) && result.length > 0 ? result[0] as T : null;
       
       if (entity) {
         // Invalidate cache for this entity
@@ -318,9 +337,10 @@ export abstract class BaseService<T, CreateDTO, UpdateDTO> implements IService<T
       // Delete from database
       const deleteResult = await this.executeQuery(
         async (db) => {
+          const tableNameStr = typeof this.tableName === 'string' ? this.tableName : this.tableName.name;
           return db.execute(sql`
-            DELETE FROM ${this.tableName}
-            WHERE ${this.primaryKeyField} = ${id}
+            DELETE FROM ${sqlIdentifier(tableNameStr)}
+            WHERE ${sqlIdentifier(this.primaryKeyField)} = ${id}
             RETURNING *
           `);
         },

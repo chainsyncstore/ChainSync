@@ -54,7 +54,7 @@ export function safeToString(value: unknown): string {
  * @returns A safe SQL identifier
  */
 export function safeIdentifier(name: string): SQL<unknown> {
-  return sql.identifier(name);
+  return sql.identifier(name) as SQL<unknown>;
 }
 
 /**
@@ -365,11 +365,13 @@ export async function existsById(
   return withDbTryCatch(
     executor,
     async (db) => {
-      const results = await db.select({ count: sql`COUNT(*)` })
+      const results = await db.select({ count: sql<string>`COUNT(*)` }) // Assume count is string
         .from(table)
         .where(eq(table[idColumn], id));
       
-      return results[0].count > 0;
+      // Ensure results[0] exists and count is a string representing a number
+      const countValue = results[0]?.count;
+      return typeof countValue === 'string' && parseInt(countValue, 10) > 0;
     },
     `existsById:${table}:${id}`
   );
@@ -397,21 +399,23 @@ export async function joinTables<T>(
   return withDbTryCatch(
     executor,
     async (db) => {
-      let query = db.select()
+      let queryBuilder: any = db.select() // Initialize with 'any' to simplify chaining
         .from(baseTable)
-        .innerJoin(joinTable, eq(baseTable[baseColumn], joinTable[joinColumn]));
+        .innerJoin(joinTable, eq((baseTable as any)[baseColumn], (joinTable as any)[joinColumn]));
       
       if (whereClause) {
-      // Use the whereClause as SQL
-        query = query.where(whereClause);
+        queryBuilder = queryBuilder.where(whereClause);
       }
       
       if (pagination) {
-        query = query.limit(pagination.limit || 20).offset(((pagination.page || 1) - 1) * (pagination.limit || 20));
+        const limit = pagination.limit || 20;
+        const page = pagination.page || 1;
+        const offset = (page - 1) * limit;
+        queryBuilder = queryBuilder.limit(limit).offset(offset);
       }
       
-      return await query as T[];
+      return await queryBuilder as T[];
     },
-    `joinTables:${baseTable}:${joinTable}`
+    `joinTables:${(baseTable as any).name || 'baseTable'}:${(joinTable as any).name || 'joinTable'}`
   );
 }

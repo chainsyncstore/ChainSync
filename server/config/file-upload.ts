@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorCategory } from '../middleware/types/error';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 export interface FileUploadConfig {
   maxFileSize: number; // in bytes
@@ -24,72 +24,46 @@ export interface FileUploadError extends AppError {
 }
 
 export const FileUploadErrors = {
-  FILE_TOO_LARGE: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.FILE_TOO_LARGE,
-    message: 'File size exceeds maximum allowed size',
-    data: { fileSize: undefined },
-  },
-  INVALID_FILE_CONTENT: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.INVALID_FILE,
-    message: 'Invalid file content or format',
-    retryable: false
-  },
-  UNTRUSTED_FILE_SOURCE: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.INVALID_FILE,
-    message: 'File type not allowed from untrusted source',
-    retryable: false,
-    status: 400,
-    retryDelay: undefined
-  } as FileUploadError,
-  INVALID_FILE_TYPE: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.INVALID_FILE,
-    message: 'Invalid file type',
-    data: { fileType: undefined },
-    status: 400,
-    retryable: false,
-    retryDelay: undefined
-  } as FileUploadError,
-  TOO_MANY_FILES: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.UPLOAD_LIMIT_EXCEEDED,
-    message: 'Too many files uploaded',
-    data: { fileCount: undefined },
-    status: 400,
-    retryable: false,
-    retryDelay: undefined
-  } as FileUploadError,
-  UPLOAD_FAILED: {
-    category: ErrorCategory.SYSTEM,
-    code: ErrorCode.INTERNAL_ERROR,
-    message: 'Failed to upload file',
-    data: { error: undefined },
-    status: 500,
-    retryable: true,
-    retryDelay: 5000
-  } as FileUploadError,
-  STORAGE_ERROR: {
-    category: ErrorCategory.SYSTEM,
-    code: ErrorCode.INTERNAL_ERROR,
-    message: 'Failed to store uploaded file',
-    data: { error: undefined },
-    status: 500,
-    retryable: true,
-    retryDelay: 5000
-  } as FileUploadError,
-  INVALID_FILE_NAME: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.INVALID_FILE,
-    message: 'Invalid file name',
-    data: { fileName: undefined },
-    status: 400,
-    retryable: false,
-    retryDelay: undefined,
-    description: 'Please use a valid file name'
-  } as FileUploadError
+  FILE_TOO_LARGE: new AppError(
+    'File size exceeds maximum allowed size',
+    ErrorCategory.VALIDATION,
+    ErrorCode.PAYLOAD_TOO_LARGE // Corrected ErrorCode
+  ),
+  INVALID_FILE_CONTENT: new AppError(
+    'Invalid file content or format',
+    ErrorCategory.VALIDATION,
+    ErrorCode.UNPROCESSABLE_ENTITY // Corrected ErrorCode
+  ),
+  UNTRUSTED_FILE_SOURCE: new AppError(
+    'File type not allowed from untrusted source',
+    ErrorCategory.VALIDATION,
+    ErrorCode.FORBIDDEN // Corrected ErrorCode
+  ),
+  INVALID_FILE_TYPE: new AppError(
+    'Invalid file type',
+    ErrorCategory.VALIDATION,
+    ErrorCode.UNSUPPORTED_MEDIA_TYPE // Corrected ErrorCode
+  ),
+  TOO_MANY_FILES: new AppError(
+    'Too many files uploaded',
+    ErrorCategory.VALIDATION,
+    ErrorCode.PAYLOAD_TOO_LARGE // Corrected ErrorCode (or a more specific one if available)
+  ),
+  UPLOAD_FAILED: new AppError(
+    'Failed to upload file',
+    ErrorCategory.SYSTEM,
+    ErrorCode.INTERNAL_SERVER_ERROR
+  ),
+  STORAGE_ERROR: new AppError(
+    'Failed to store uploaded file',
+    ErrorCategory.SYSTEM,
+    ErrorCode.INTERNAL_SERVER_ERROR
+  ),
+  INVALID_FILE_NAME: new AppError(
+    'Invalid file name',
+    ErrorCategory.VALIDATION,
+    ErrorCode.BAD_REQUEST // Corrected ErrorCode
+  )
 };
 
 export const defaultFileUploadConfig: FileUploadConfig = {
@@ -98,7 +72,7 @@ export const defaultFileUploadConfig: FileUploadConfig = {
   allowedMimeTypes: ['image/jpeg', 'image/png', 'application/pdf'],
   maxFiles: 10,
   destination: './uploads',
-  filename: (req, file, cb) => {
+  filename: (req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix);
   },

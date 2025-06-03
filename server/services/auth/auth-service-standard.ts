@@ -13,9 +13,13 @@ import Redis from 'ioredis';
 import { eq } from 'drizzle-orm';
 
 import { BaseService, ServiceError, ServiceConfig } from '../base/standard-service';
-import { users } from '@shared/db/users';
+import { users, UserRole as DbUserRole, UserStatus as DbUserStatus, PasswordResetToken, NewPasswordResetToken } from '@shared/db/users'; // Import UserRole, UserStatus, PasswordResetToken, NewPasswordResetToken
 import { ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { SecurityLogger, SecurityEventType } from '@src/logging';
+import { SecurityLogger, SecurityEventType, SecuritySeverity } from '../../../src/logging'; // Added SecuritySeverity
+
+// Type alias for DB UserRole to avoid naming conflict if needed locally
+type UserRole = DbUserRole;
+type UserStatus = DbUserStatus; // Added UserStatus type alias
 
 // Schema definitions for input validation
 const loginSchema = z.object({
@@ -28,9 +32,9 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  username: z.string().min(3).optional(),
+  username: z.string().min(3), // Made username non-optional
   fullName: z.string().min(1),
-  role: z.enum(['admin', 'manager', 'cashier', 'viewer']).default('cashier'),
+  role: z.enum(Object.values(DbUserRole) as [UserRole, ...UserRole[]]).default(DbUserRole.CASHIER), // Use imported UserRole
   storeId: z.number().optional(),
 });
 
@@ -40,34 +44,37 @@ const resetPasswordSchema = z.object({
 });
 
 const changePasswordSchema = z.object({
-  userId: z.string(),
+  userId: z.number(), // Changed to number
   currentPassword: z.string(),
   newPassword: z.string().min(8),
 });
 
 // Type definitions
 export interface User {
-  id: string;
+  id: number; 
   email: string;
-  username?: string;
-  password: string;
-  role: 'admin' | 'manager' | 'cashier' | 'viewer';
-  permissions: string[];
-  isActive: boolean;
-  lastLogin?: Date;
-  failedLoginAttempts: number;
-  lockedUntil?: Date;
-  storeId?: number;
-  fullName?: string;
+  username: string; 
+  password: string; // Changed to non-optional to match DB schema
+  role: UserRole; 
+  status: UserStatus; // Added status
+  permissions?: string[]; // Not a direct DB column, kept optional
+  isActive: boolean; 
+  lastLogin?: Date | null; 
+  failedLoginAttempts: number; 
+  lockedUntil?: Date | null; 
+  storeId?: number | null; 
+  fullName: string; 
+  createdAt: Date; // Changed to non-optional
+  updatedAt: Date; // Changed to non-optional
 }
 
 export interface JWTPayload {
-  userId: string;
+  userId: number; // Changed to number
   email: string;
-  role: string;
-  permissions: string[];
+  role: string; // Consider using UserRole type here too
+  permissions?: string[]; // Made optional to align with User.permissions?
   sessionId: string;
-  storeId?: number;
+  storeId?: number | null; // Changed to allow null
   iat: number;
   exp: number;
 }
@@ -79,7 +86,7 @@ export interface AuthTokens {
 }
 
 export interface SessionData {
-  userId: string;
+  userId: number; // Changed to number
   lastActivity: Date;
   expiresAt: Date;
   ipAddress?: string;
@@ -96,9 +103,9 @@ export interface LoginParams {
 export interface RegisterParams {
   email: string;
   password: string;
-  username?: string;
+  username: string; // Made username non-optional
   fullName: string;
-  role?: 'admin' | 'manager' | 'cashier' | 'viewer';
+  role?: UserRole; // Use imported UserRole type
   storeId?: number;
 }
 
@@ -108,7 +115,7 @@ export interface ResetPasswordParams {
 }
 
 export interface ChangePasswordParams {
-  userId: string;
+  userId: number; // Changed to number
   currentPassword: string;
   newPassword: string;
 }
@@ -123,11 +130,13 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
   protected readonly createSchema = registerSchema;
   protected readonly updateSchema = z.object({
     email: z.string().email().optional(),
-    username: z.string().min(3).optional(),
+    username: z.string().min(3).optional(), // Username updates might be restricted
     fullName: z.string().min(1).optional(),
-    role: z.enum(['admin', 'manager', 'cashier', 'viewer']).optional(),
+    role: z.enum(Object.values(DbUserRole) as [UserRole, ...UserRole[]]).optional(), // Use imported UserRole
+    status: z.enum(Object.values(DbUserStatus) as [UserStatus, ...UserStatus[]]).optional(), // Added status
     isActive: z.boolean().optional(),
     storeId: z.number().optional(),
+    // failedLoginAttempts and lockedUntil are typically not updated directly via a generic update endpoint
   });
 
   private readonly redis: Redis;
@@ -173,15 +182,15 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       const user = await this.findUserByEmail(email);
       
       if (!user) {
-        this.securityLogger.log(
-          SecurityEventType.FAILED_LOGIN,
+        this.securityLogger.logAuthentication(
           'User not found',
-          { email, ipAddress },
-          SecurityEventType.MEDIUM
+          'FAILURE',
+          SecuritySeverity.MEDIUM,
+          { email, ipAddress }
         );
         
         throw new ServiceError(
-          ErrorCode.AUTHENTICATION_FAILED,
+          ErrorCode.INVALID_CREDENTIALS, // Corrected ErrorCode
           'Invalid email or password',
           { email },
           false
@@ -190,32 +199,54 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       
       // Check if account is locked
       if (user.lockedUntil && user.lockedUntil > new Date()) {
-        this.securityLogger.log(
-          SecurityEventType.ACCOUNT_LOCKED,
+        this.securityLogger.logAuthentication(
           'Attempted login to locked account',
-          { userId: user.id, email, ipAddress },
-          SecurityEventType.HIGH
+          'FAILURE',
+          SecuritySeverity.HIGH,
+          { userId: user.id, email, ipAddress }
         );
         
         const waitMinutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
         
         throw new ServiceError(
-          ErrorCode.ACCOUNT_LOCKED,
+          ErrorCode.LOCKED, // Corrected ErrorCode
           `Account is locked. Please try again in ${waitMinutes} minutes`,
           { email, lockedUntil: user.lockedUntil },
           false
         );
       }
+
+      // Check if user status is active
+      if (user.status !== DbUserStatus.ACTIVE) {
+         this.securityLogger.logAuthentication(
+          'Attempted login to inactive/pending account',
+          'FAILURE',
+          SecuritySeverity.MEDIUM,
+          { userId: user.id, email, status: user.status, ipAddress }
+        );
+        let message = 'Account is not active.';
+        if (user.status === DbUserStatus.PENDING_VERIFICATION) {
+          message = 'Account is pending verification. Please check your email.';
+        } else if (user.status === DbUserStatus.SUSPENDED) {
+          message = 'Account has been suspended.';
+        }
+        throw new ServiceError(
+          ErrorCode.UNAUTHORIZED, 
+          message,
+          { email, status: user.status },
+          false
+        );
+      }
       
-      // Verify password
-      const isPasswordValid = await this.verifyPassword(password, user.password);
+      // Verify password (user.password is string if user exists and is fetched correctly)
+      const isPasswordValid = await this.verifyPassword(password, user.password!); // Added non-null assertion
       
       if (!isPasswordValid) {
         // Increment failed login attempts
         await this.handleFailedLogin(user, ipAddress);
         
         throw new ServiceError(
-          ErrorCode.AUTHENTICATION_FAILED,
+          ErrorCode.INVALID_CREDENTIALS, // Corrected ErrorCode
           'Invalid email or password',
           { email },
           false
@@ -233,11 +264,11 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       // Generate tokens
       const tokens = await this.generateTokenPair(user, { ipAddress, userAgent });
       
-      this.securityLogger.log(
-        SecurityEventType.SUCCESSFUL_LOGIN,
+      this.securityLogger.logAuthentication(
         'User logged in successfully',
-        { userId: user.id, email, ipAddress },
-        SecurityEventType.LOW
+        'SUCCESS',
+        SecuritySeverity.LOW,
+        { userId: user.id, email, ipAddress }
       );
       
       return tokens;
@@ -275,13 +306,13 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
           return db.insert(users).values({
             email: validatedInput.email,
             password: hashedPassword,
-            username: validatedInput.username,
+            username: validatedInput.username, // Now guaranteed to be string
             fullName: validatedInput.fullName,
-            role: validatedInput.role || 'cashier',
+            role: validatedInput.role || DbUserRole.CASHIER, // Use imported UserRole
+            status: DbUserStatus.PENDING_VERIFICATION, // Default status
             storeId: validatedInput.storeId,
-            isActive: true,
-            failedLoginAttempts: 0,
-            createdAt: new Date()
+            // isActive, failedLoginAttempts, lockedUntil will use DB defaults or are set by other logic
+            // createdAt will be handled by baseTable or DB default
           }).returning();
         },
         'user.register'
@@ -291,24 +322,39 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       
       if (!user) {
         throw new ServiceError(
-          ErrorCode.DATABASE_ERROR,
-          'Failed to create user',
-          { email: validatedInput.email },
+          ErrorCode.DATABASE_ERROR, // Reverted: More appropriate for creation failure
+          'Failed to create user',    // Corrected message
+          { email: validatedInput.email }, // Corrected details
           false
         );
       }
       
       // Log security event
-      this.securityLogger.log(
-        SecurityEventType.USER_CREATED,
+      this.securityLogger.logAuthentication( // Assuming user creation is an authentication-related event for now
         'New user registered',
-        { userId: user.id, email: user.email },
-        SecurityEventType.MEDIUM
+        'SUCCESS',
+        SecuritySeverity.MEDIUM,
+        { userId: user.id, email: user.email }
       );
       
-      // Return user without password
-      const { password, ...userWithoutPassword } = user;
-      return { ...userWithoutPassword, password: '[REDACTED]' } as User;
+      // Construct the User object to be returned, ensuring it matches the User interface
+      const registeredUser: User = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        password: user.password, 
+        role: user.role, 
+        status: user.status, // Added status
+        fullName: user.fullName,
+        isActive: user.isActive, 
+        lastLogin: user.lastLogin, 
+        failedLoginAttempts: user.failedLoginAttempts, 
+        lockedUntil: user.lockedUntil, 
+        storeId: user.storeId, 
+        createdAt: user.createdAt, 
+        updatedAt: user.updatedAt,
+      };
+      return registeredUser;
     } catch (error) {
       return this.handleError(error, 'User registration failed');
     }
@@ -384,7 +430,7 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       // Get user data
       const user = await this.getById(payload.userId);
       
-      if (!user || !user.isActive) {
+      if (!user || !user.isActive || user.status !== DbUserStatus.ACTIVE) { // Check status as well
         return null;
       }
       
@@ -418,11 +464,11 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       if (sessionData) {
         const session = JSON.parse(sessionData) as SessionData;
         
-        this.securityLogger.log(
-          SecurityEventType.LOGOUT,
+        this.securityLogger.logAuthentication( // Assuming logout is an authentication-related event
           'User logged out',
-          { userId: session.userId, sessionId },
-          SecurityEventType.LOW
+          'SUCCESS',
+          SecuritySeverity.LOW,
+          { userId: session.userId, sessionId }
         );
       }
       
@@ -453,16 +499,16 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       const resetKey = `${this.resetTokenPrefix}${resetToken}`;
       await this.redis.set(
         resetKey,
-        user.id,
+        user.id.toString(), // user.id is now number
         'EX',
         60 * 60 // 1 hour in seconds
       );
       
-      this.securityLogger.log(
-        SecurityEventType.PASSWORD_RESET_REQUESTED,
+      this.securityLogger.logAuthentication( // Password reset is an authentication flow
         'Password reset requested',
-        { userId: user.id, email },
-        SecurityEventType.MEDIUM
+        'SUCCESS', // The request itself was successful
+        SecuritySeverity.MEDIUM,
+        { userId: user.id, email }
       );
       
       return resetToken;
@@ -483,9 +529,9 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       
       // Check if token exists in Redis
       const resetKey = `${this.resetTokenPrefix}${token}`;
-      const userId = await this.redis.get(resetKey);
+      const userIdString = await this.redis.get(resetKey);
       
-      if (!userId) {
+      if (!userIdString) {
         throw new ServiceError(
           ErrorCode.INVALID_TOKEN,
           'Invalid or expired reset token',
@@ -493,6 +539,7 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
           false
         );
       }
+      const userId = parseInt(userIdString, 10); // Parse userId to number
       
       // Hash new password
       const hashedPassword = await this.hashPassword(password);
@@ -504,9 +551,10 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
             .set({
               password: hashedPassword,
               failedLoginAttempts: 0,
-              lockedUntil: null
+              lockedUntil: null,
+              status: DbUserStatus.ACTIVE // Set status to active after password reset
             })
-            .where(eq(users.id, userId));
+            .where(eq(users.id, userId)); // userId is number
         },
         'user.resetPassword'
       );
@@ -515,13 +563,13 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       await this.redis.del(resetKey);
       
       // Invalidate all sessions for this user
-      await this.invalidateUserSessions(userId);
+      await this.invalidateUserSessions(userId); // userId is number
       
-      this.securityLogger.log(
-        SecurityEventType.PASSWORD_RESET_COMPLETED,
+      this.securityLogger.logAuthentication( // Password reset completion
         'Password reset completed',
-        { userId },
-        SecurityEventType.MEDIUM
+        'SUCCESS',
+        SecuritySeverity.MEDIUM,
+        { userId }
       );
       
       return true;
@@ -540,7 +588,7 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       const { userId, currentPassword, newPassword } = validatedInput;
       
       // Get user
-      const user = await this.getById(userId);
+      const user = await this.getById(userId); // userId is number, assuming getById handles number
       
       if (!user) {
         throw new ServiceError(
@@ -551,12 +599,12 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
         );
       }
       
-      // Verify current password
-      const isPasswordValid = await this.verifyPassword(currentPassword, user.password);
+      // Verify current password (user.password is string if user exists and is fetched correctly)
+      const isPasswordValid = await this.verifyPassword(currentPassword, user.password!); // Added non-null assertion
       
       if (!isPasswordValid) {
         throw new ServiceError(
-          ErrorCode.AUTHENTICATION_FAILED,
+          ErrorCode.INVALID_CREDENTIALS, // Corrected ErrorCode
           'Current password is incorrect',
           { userId },
           false
@@ -571,16 +619,16 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
         async (db) => {
           return db.update(users)
             .set({ password: hashedPassword })
-            .where(eq(users.id, userId));
+            .where(eq(users.id, userId)); // userId is number
         },
         'user.changePassword'
       );
       
-      this.securityLogger.log(
-        SecurityEventType.PASSWORD_CHANGED,
+      this.securityLogger.logAuthentication( // Password change
         'Password changed',
-        { userId },
-        SecurityEventType.MEDIUM
+        'SUCCESS',
+        SecuritySeverity.MEDIUM,
+        { userId }
       );
       
       return true;
@@ -592,16 +640,16 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
   /**
    * Invalidate all sessions for a user
    */
-  async invalidateUserSessions(userId: string): Promise<void> {
+  async invalidateUserSessions(userId: number): Promise<void> { // userId is number
     try {
       // Find all sessions for this user
       const sessionKeys = await this.redis.keys(`${this.sessionPrefix}*`);
       
       for (const sessionKey of sessionKeys) {
-        const sessionData = await this.redis.get(sessionKey);
+        const sessionDataString = await this.redis.get(sessionKey);
         
-        if (sessionData) {
-          const session = JSON.parse(sessionData) as SessionData;
+        if (sessionDataString) {
+          const session = JSON.parse(sessionDataString) as SessionData; // session.userId is number
           
           if (session.userId === userId) {
             // Get session ID from key
@@ -615,11 +663,11 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
         }
       }
       
-      this.securityLogger.log(
-        SecurityEventType.SESSIONS_INVALIDATED,
+      this.securityLogger.logAuthentication( // Session invalidation
         'All sessions invalidated for user',
-        { userId },
-        SecurityEventType.MEDIUM
+        'SUCCESS',
+        SecuritySeverity.MEDIUM,
+        { userId }
       );
     } catch (error) {
       this.logger.error('Failed to invalidate user sessions', { error, userId });
@@ -638,7 +686,7 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
         'user.findByEmail'
       );
       
-      return result[0] || null;
+      return (result[0] as User) || null;
     } catch (error) {
       this.logger.error('Error finding user by email', { error, email });
       return null;
@@ -674,7 +722,7 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       userId: user.id,
       email: user.email,
       role: user.role,
-      permissions: user.permissions || [],
+      permissions: user.permissions, 
       sessionId,
       storeId: user.storeId
     };
@@ -705,9 +753,7 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       userAgent: metadata.userAgent
     };
     
-    // Store both the refresh token and session data in Redis
     try {
-      // Store refresh token with expiration
       await this.redis.set(
         `${this.tokenPrefix}${sessionId}`,
         refreshToken,
@@ -715,7 +761,6 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
         7 * 24 * 60 * 60 // 7 days in seconds
       );
       
-      // Store session data with expiration
       await this.redis.set(
         `${this.sessionPrefix}${sessionId}`,
         JSON.stringify(sessionData),
@@ -747,13 +792,10 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
       const failedAttempts = user.failedLoginAttempts + 1;
       let lockedUntil: Date | null = null;
       
-      // Lock account after 5 failed attempts
       if (failedAttempts >= 5) {
-        // Lock for 30 minutes
         lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
       }
       
-      // Update user
       await this.executeQuery(
         async (db) => {
           return db.update(users)
@@ -766,11 +808,11 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
         'user.updateFailedLoginAttempts'
       );
       
-      this.securityLogger.log(
-        SecurityEventType.FAILED_LOGIN,
+      this.securityLogger.logAuthentication(
         failedAttempts >= 5 ? 'Account locked after multiple failed attempts' : 'Failed login attempt',
-        { userId: user.id, email: user.email, ipAddress, failedAttempts, lockedUntil },
-        failedAttempts >= 5 ? SecurityEventType.HIGH : SecurityEventType.MEDIUM
+        'FAILURE',
+        failedAttempts >= 5 ? SecuritySeverity.HIGH : SecuritySeverity.MEDIUM,
+        { userId: user.id, email: user.email, ipAddress, failedAttempts, lockedUntil }
       );
     } catch (error) {
       this.logger.error('Failed to update login attempts', { error, userId: user.id });
@@ -780,7 +822,7 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
   /**
    * Reset failed login attempts
    */
-  private async resetFailedLoginAttempts(userId: string): Promise<void> {
+  private async resetFailedLoginAttempts(userId: number): Promise<void> { 
     try {
       await this.executeQuery(
         async (db) => {
@@ -789,7 +831,7 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
               failedLoginAttempts: 0,
               lockedUntil: null
             })
-            .where(eq(users.id, userId));
+            .where(eq(users.id, userId)); 
         },
         'user.resetFailedLoginAttempts'
       );
@@ -801,13 +843,13 @@ export class AuthService extends BaseService<User, RegisterParams, Partial<User>
   /**
    * Update last login timestamp
    */
-  private async updateLastLogin(userId: string): Promise<void> {
+  private async updateLastLogin(userId: number): Promise<void> { 
     try {
       await this.executeQuery(
         async (db) => {
           return db.update(users)
             .set({ lastLogin: new Date() })
-            .where(eq(users.id, userId));
+            .where(eq(users.id, userId)); 
         },
         'user.updateLastLogin'
       );

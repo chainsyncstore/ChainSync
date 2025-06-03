@@ -66,7 +66,7 @@ function sanitizeObject(obj: unknown, options: SanitizationOptions = {}): unknow
   }
   
   if (obj && typeof obj === 'object') {
-    const sanitized: unknown = {};
+    const sanitized: Record<string, any> = {}; // Changed type from unknown
     for (const [key, value] of Object.entries(obj)) {
       // Sanitize the key as well
       const sanitizedKey = sanitizeString(key, { maxLength: 100, allowHtml: false });
@@ -91,12 +91,12 @@ export function inputSanitization(options: SanitizationOptions = {}) {
       
       // Sanitize query parameters
       if (req.query && typeof req.query === 'object') {
-        req.query = sanitizeObject(req.query, options);
+        req.query = sanitizeObject(req.query, options) as any; // Cast to any
       }
       
       // Sanitize route parameters
       if (req.params && typeof req.params === 'object') {
-        req.params = sanitizeObject(req.params, options);
+        req.params = sanitizeObject(req.params, options) as any; // Cast to any
       }
       
       next();

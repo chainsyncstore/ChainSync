@@ -19,27 +19,37 @@ export const errorHandler = (
   }
   if (error instanceof AppError) {
     const status = error.statusCode || 500;
-    const response: unknown = {
-      error: {
-        code: error.code,
-        message: formatErrorForUser(error),
-        category: error.category,
-        details: error.details,
-      },
+    
+    // Define a type for the error response payload
+    interface AppErrorResponsePayload {
+      code: ErrorCode | string; // Assuming error.code can be string or from ErrorCode enum
+      message: string;
+      category: ErrorCategory;
+      details?: any;
+      retryable?: boolean;
+      retryAfter?: number;
+      validationErrors?: any;
+    }
+
+    const errorPayload: AppErrorResponsePayload = {
+      code: error.code,
+      message: formatErrorForUser(error),
+      category: error.category,
+      details: error.details,
     };
 
     // Only include retryable and retryAfter if they are set
     if (error.retryable !== undefined) {
-      response.error.retryable = error.retryable;
+      errorPayload.retryable = error.retryable;
     }
     if (error.retryAfter !== undefined) {
-      response.error.retryAfter = error.retryAfter;
+      errorPayload.retryAfter = error.retryAfter;
     }
     if (error.validationErrors) {
-      response.error.validationErrors = error.validationErrors;
+      errorPayload.validationErrors = error.validationErrors;
     }
 
-    return res.status(status).json(response);
+    return res.status(status).json({ error: errorPayload });
   }
 
   // Handle Zod validation errors

@@ -1,8 +1,9 @@
 // src/monitoring/setup.ts
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { getLogger } from '../logging';
-import { Express } from 'express';
+import { Express, Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import os from 'os';
 import { initTracing, traceContextMiddleware } from './tracing';
 
 // Get logger for monitoring setup
@@ -25,9 +26,9 @@ export function initializeMonitoring() {
       dsn,
       environment: process.env.NODE_ENV || 'development',
       tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
-      profilesSampleRate: 0.1,
+      profilesSampleRate: 0.1, 
       integrations: [
-        new ProfilingIntegration(),
+        nodeProfilingIntegration(), // Corrected usage
       ],
       beforeSend(event) {
         // Don't send events in development mode
@@ -51,71 +52,9 @@ export function initializeMonitoring() {
   }
 }
 
-/**
- * Configure Sentry request handler for Express
- */
-export function configureSentryRequestHandler(app: Express) {
-  if (!process.env.SENTRY_DSN) {
-    return;
-  }
-  
-  try {
-    // Import Sentry handlers dynamically to work around TypeScript issues
-    const requestHandler = Sentry.requestHandler ? Sentry.requestHandler() : null;
-    const tracingHandler = Sentry.tracingHandler ? Sentry.tracingHandler() : null;
-    
-    if (requestHandler) {
-      // RequestHandler creates a separate execution context for every request
-      app.use(requestHandler);
-      
-      // TracingHandler creates a trace for every incoming request
-      if (tracingHandler) {
-        app.use(tracingHandler);
-      }
-      
-      logger.info('Sentry request handlers configured');
-    } else {
-      logger.warn('Sentry request handlers not available in this version');
-    }
-  } catch (error: unknown) {
-    logger.error('Failed to configure Sentry request handlers', { error });
-  }
-}
-
-/**
- * Configure Sentry error handler for Express
- * This should be added after all controllers but before any other error middleware
- */
-export function configureSentryErrorHandler(app: Express) {
-  if (!process.env.SENTRY_DSN) {
-    return;
-  }
-  
-  try {
-    // Use the errorHandler if available in this version of Sentry
-    if (Sentry.errorHandler) {
-      app.use(Sentry.errorHandler({
-        shouldHandleError(error: unknown) {
-          // Only report 5xx errors to Sentry
-          const status = error.status || error.statusCode || 500;
-          return status >= 500;
-        },
-      }));
-      
-      logger.info('Sentry error handler configured');
-    } else {
-      // Fallback for older Sentry versions
-      app.use((err: Error, req: unknown, res: unknown, next: unknown) => {
-        Sentry.captureException(err);
-        next(err);
-      });
-      
-      logger.info('Sentry error handler configured (fallback mode)');
-    }
-  } catch (error: unknown) {
-    logger.error('Failed to configure Sentry error handler', { error });
-  }
-}
+// Removed configureSentryRequestHandler and configureSentryErrorHandler from this file
+// as Sentry.Handlers seems unavailable and this duplicates setup from sentryIntegration.ts.
+// Sentry Express middleware setup should be centralized.
 
 /**
  * Set user context in Sentry
@@ -194,7 +133,7 @@ export function initializeTracing(app: Express) {
     initTracing();
     
     // Add trace context middleware to Express
-    app.use(traceContextMiddleware);
+    app.use(traceContextMiddleware as any); // Cast to any if it causes issues, to be reviewed with tracing.ts
     
     logger.info('OpenTelemetry distributed tracing initialized successfully', {
       serviceName: process.env.OTEL_SERVICE_NAME || 'chainsync-api',
@@ -210,28 +149,37 @@ export function initializeTracing(app: Express) {
 /**
  * Initialize health checks for the application
  */
-export function initializeHealthChecks(app: Express, dbPool: unknown) {
+export function initializeHealthChecks(app: Express, dbPool: { connect: () => Promise<{ query: (sql: string) => Promise<{ rowCount: number }>, release: () => void }> } | any) { // Added a more specific placeholder for dbPool
   // Set up periodic health checks
   const interval = parseInt(process.env.HEALTH_CHECK_INTERVAL || '60000', 10);
   
   setInterval(async () => {
+    let dbHealthy = false;
     try {
       // Check database connection
-      const dbClient = await dbPool.connect();
-      const result = await dbClient.query('SELECT 1');
-      dbClient.release();
+      if (dbPool && typeof dbPool.connect === 'function') {
+        const dbClient = await dbPool.connect();
+        const result = await dbClient.query('SELECT 1');
+        dbClient.release();
+        if (result.rowCount === 1) {
+          dbHealthy = true;
+        }
+        logger.info('Health check: Database connection attempt completed', { successful: dbHealthy });
+      } else {
+        logger.warn('Health check: dbPool does not have a connect method or is not provided.');
+      }
       
       // Check memory usage
       const memoryUsage = process.memoryUsage();
-      const memoryUsagePercent = Math.round(memoryUsage.heapUsed / memoryUsage.heapTotal * 100);
+      const memoryUsagePercent = memoryUsage.heapTotal > 0 ? Math.round(memoryUsage.heapUsed / memoryUsage.heapTotal * 100) : 0;
       
       // Check CPU usage
-      const os = require('os');
-      const cpuUsage = os.loadavg()[0] / os.cpus().length * 100;
+      const cpus = os.cpus();
+      const cpuUsage = cpus.length > 0 ? (os.loadavg()[0] / cpus.length * 100) : 0;
       
       // Log health status
       logger.info('Health check completed', {
-        database: result.rowCount === 1 ? 'healthy' : 'unhealthy',
+        database: dbHealthy ? 'healthy' : 'unhealthy',
         memory: {
           used: memoryUsage.heapUsed,
           total: memoryUsage.heapTotal,

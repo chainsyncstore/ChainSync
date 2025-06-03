@@ -5,7 +5,7 @@
  * throughout the ChainSync application.
  */
 
-import { z } from 'zod';
+import { z, type EnumLike } from 'zod'; // Added EnumLike import
 
 /**
  * Common validation schemas
@@ -95,7 +95,7 @@ export const SchemaUtils = {
   /**
    * Converts number enum values to a Zod schema
    */
-  numberEnumToSchema: <T extends Record<string, number>>(enumObj: T) => {
+  numberEnumToSchema: <T extends EnumLike>(enumObj: T) => { // Changed constraint to EnumLike
     return z.nativeEnum(enumObj);
   },
   

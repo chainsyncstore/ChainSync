@@ -1,4 +1,5 @@
 import { RequestHandler, ErrorRequestHandler } from 'express';
+export * from './file-upload'; // Re-export file-upload types
 
 export interface IMiddleware {
   [key: string]: RequestHandler | ErrorRequestHandler | ((...args: unknown[]) => RequestHandler);

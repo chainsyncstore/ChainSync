@@ -107,8 +107,8 @@ export function CashierSessionManager() {
     return formatDuration(durationMs);
   };
 
-  const activeSession = activeSessionQuery.data?.session as CashierSession | undefined;
-  const stores = storesQuery.data || [];
+  const activeSession = activeSessionQuery.data && typeof activeSessionQuery.data === 'object' && 'session' in activeSessionQuery.data ? activeSessionQuery.data.session as CashierSession | undefined : undefined;
+  const stores = Array.isArray(storesQuery.data) ? storesQuery.data : [];
 
   const handleStartSession = () => {
     if (!selectedStore) {
@@ -137,7 +137,7 @@ export function CashierSessionManager() {
 
   // Set default store selection if user only has one store
   useEffect(() => {
-    if (storesQuery.data?.length === 1 && !selectedStore) {
+    if (Array.isArray(storesQuery.data) && storesQuery.data.length === 1 && !selectedStore) {
       setSelectedStore(storesQuery.data[0].id.toString());
     }
   }, [storesQuery.data, selectedStore]);
@@ -259,7 +259,7 @@ export function CashierSessionManager() {
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                     </div>
                   ) : (
-                    stores.map((store: any) => (
+                    Array.isArray(stores) && stores.map((store: any) => (
                       <SelectItem key={store.id} value={store.id.toString()}>
                         {store.name}
                       </SelectItem>

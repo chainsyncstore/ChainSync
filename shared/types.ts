@@ -68,3 +68,28 @@ export interface LoyaltyMemberData {
   status: string;
   tierId?: number;
 }
+
+// Auth Types
+export interface UserAuthInfo {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  fullName?: string;
+  storeId?: number | null; // Allow null from DB
+  lastLogin?: string | Date | null; // Allow null from DB, string from JSON
+  createdAt?: string | Date | null; // Allow null from DB, string from JSON
+  updatedAt?: string | Date | null; // Allow null from DB, string from JSON
+  // Add other user-specific fields as needed
+}
+
+export interface AuthResponse {
+  authenticated: boolean;
+  user: UserAuthInfo | null;
+  // token and refreshToken are typically part of login-specific responses,
+  // not the /api/auth/me (check auth status) response.
+  // If /api/auth/me also returns tokens on initial load, they can be added here.
+  // For now, assuming /api/auth/me is primarily for auth status and user info.
+  token?: string; // Optional: if /me endpoint can also refresh/provide token
+  refreshToken?: string; // Optional
+}

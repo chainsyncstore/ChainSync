@@ -70,13 +70,13 @@ export const getErrorMessage = (code: ErrorCode, details?: unknown): string => {
   }
   
   // Add specific details to the message if available
-  if (details && Object.keys(details).length > 0) {
-    const detailKeys = Object.keys(details);
-    if (detailKeys.includes('field')) {
-      return `${translation.message}: ${details.field}`;
+  if (details && typeof details === 'object' && details !== null && Object.keys(details).length > 0) {
+    const detailObj = details as Record<string, any>;
+    if ('field' in detailObj && typeof detailObj.field === 'string') {
+      return `${translation.message}: ${detailObj.field}`;
     }
-    if (detailKeys.includes('resourceType')) {
-      return `${translation.message}: ${details.resourceType}`;
+    if ('resourceType' in detailObj && typeof detailObj.resourceType === 'string') {
+      return `${translation.message}: ${detailObj.resourceType}`;
     }
   }
   

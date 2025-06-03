@@ -73,12 +73,20 @@ declare module '@opentelemetry/instrumentation-redis' {
 }
 
 declare module '@opentelemetry/api' {
-  export const trace: {
-    getTracer(name: string): unknown;
-    getSpan(context: unknown): unknown;
+  import { Tracer as ActualTracer, Span as ActualSpan, Context as ActualContext, TraceAPI, ContextAPI } from '@opentelemetry/api';
+
+  export const trace: TraceAPI & {
+    getTracer(name: string, version?: string): ActualTracer;
+    getSpan(context: ActualContext): ActualSpan | undefined;
   };
   
-  export const context: {
-    active(): unknown;
+  export const context: ContextAPI & {
+    active(): ActualContext;
   };
+
+  // Re-exporting core types that might be needed
+  export type Span = ActualSpan;
+  export type Context = ActualContext;
+  export type Tracer = ActualTracer;
+  export * from '@opentelemetry/api'; // Re-export everything else to be safe
 }

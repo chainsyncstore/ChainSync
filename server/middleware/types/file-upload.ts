@@ -1,4 +1,4 @@
-import { ErrorCategory, ErrorCode } from './error';
+import { AppError, ErrorCategory, ErrorCode } from './app-error'; // Updated import
 
 export interface FileUploadProgress {
   id: string;
@@ -27,14 +27,15 @@ export interface ProgressSubscription {
   onComplete?: (result: unknown) => void;
 }
 
-export interface AppError {
-  category: ErrorCategory;
-  code: ErrorCode;
-  message: string;
-  data?: Record<string, any>;
-  status: number;
-  retryable?: boolean;
-  retryDelay?: number;
-  description?: string;
-  stack?: string;
-}
+// Removed local AppError interface, will use the imported one from ./app-error.ts
+// export interface AppError {
+//   category: ErrorCategory;
+//   code: ErrorCode;
+//   message: string;
+//   data?: Record<string, any>;
+//   status: number;
+//   retryable?: boolean;
+//   retryDelay?: number;
+//   description?: string;
+//   stack?: string;
+// }

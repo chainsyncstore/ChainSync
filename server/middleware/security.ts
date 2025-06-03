@@ -127,12 +127,12 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
   const csrfToken = req.headers['x-csrf-token'] || req.body._csrf;
   
   // Compare with session token
-  if (!csrfToken || csrfToken !== (req.session as any).csrfToken) {
+  if (!csrfToken || csrfToken !== (req.session as SessionWithCsrf).csrfToken) {
     reqLogger.warn('CSRF validation failed', {
       path: req.path,
       method: req.method,
       ip: req.ip,
-      hasSessionToken: !!(req.session as any).csrfToken,
+      hasSessionToken: !!(req.session as SessionWithCsrf).csrfToken,
       hasRequestToken: !!csrfToken
     });
     
@@ -151,13 +151,13 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
  */
 export const generateCsrfToken = (req: Request, res: Response, next: NextFunction) => {
   // Generate random token if not already set
-  if (!(req.session as any).csrfToken) {
+  if (!(req.session as SessionWithCsrf).csrfToken) {
     const crypto = require('crypto');
-    (req.session as any).csrfToken = crypto.randomBytes(32).toString('hex');
+    (req.session as SessionWithCsrf).csrfToken = crypto.randomBytes(32).toString('hex');
   }
   
   // Expose CSRF token to frontend via safe response header
-  res.set('X-CSRF-Token', (req.session as any).csrfToken);
+  res.set('X-CSRF-Token', (req.session as SessionWithCsrf).csrfToken);
   
   // Set security-focused headers not covered by helmet
   res.set('Cache-Control', 'no-store, max-age=0');

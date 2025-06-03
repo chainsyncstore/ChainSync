@@ -56,8 +56,9 @@ export function sqlTemplate(strings: TemplateStringsArray, ...values: unknown[])
  * @param name Table or column name
  * @returns A SQL identifier
  */
-export function sqlIdentifier(name: string): SQL<unknown> {
-  return sql.identifier(name);
+export function sqlIdentifier(name: string | { name: string }): SQL<unknown> {
+  const tableName = typeof name === 'string' ? name : name.name;
+  return sql`${sql.identifier(tableName)}`;
 }
 
 /**

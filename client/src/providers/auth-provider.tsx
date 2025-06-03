@@ -10,13 +10,13 @@ import type { AuthResponse } from '@shared/schema';
 export interface User {
   id: number;
   username: string;
-  fullName: string;
+  fullName?: string; // Made optional to align with UserAuthInfo
   email: string;
   role: 'admin' | 'manager' | 'cashier' | 'affiliate';
   storeId?: number;
-  lastLogin?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  lastLogin?: Date | string; // Allow string for initial JSON parse
+  createdAt: Date | string;   // Allow string for initial JSON parse
+  updatedAt: Date | string;   // Allow string for initial JSON parse
 }
 
 // Define login credentials type
@@ -100,7 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Convert possibly null values to undefined
       const storeId = authData.user.storeId === null ? undefined : authData.user.storeId;
-      const lastLogin = authData.user.lastLogin === null ? undefined : authData.user.lastLogin;
+      const lastLogin = authData.user.lastLogin ? (typeof authData.user.lastLogin === 'string' ? new Date(authData.user.lastLogin) : authData.user.lastLogin) : undefined;
+      const createdAt = authData.user.createdAt ? (typeof authData.user.createdAt === 'string' ? new Date(authData.user.createdAt) : authData.user.createdAt) : new Date(); // Fallback to new Date if null/undefined
+      const updatedAt = authData.user.updatedAt ? (typeof authData.user.updatedAt === 'string' ? new Date(authData.user.updatedAt) : authData.user.updatedAt) : new Date(); // Fallback to new Date if null/undefined
       
       return {
         id: authData.user.id,
@@ -110,8 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: validRole,
         storeId,
         lastLogin,
-        createdAt: authData.user.createdAt,
-        updatedAt: authData.user.updatedAt
+        createdAt,
+        updatedAt
       };
     }
     return null;
@@ -148,7 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Convert possibly null values to undefined
       const storeId = user.storeId === null ? undefined : user.storeId;
-      const lastLogin = user.lastLogin === null ? undefined : user.lastLogin;
+      const lastLogin = user.lastLogin ? (typeof user.lastLogin === 'string' ? new Date(user.lastLogin) : user.lastLogin) : undefined;
+      const createdAt = user.createdAt ? (typeof user.createdAt === 'string' ? new Date(user.createdAt) : user.createdAt) : new Date(); // Fallback
+      const updatedAt = user.updatedAt ? (typeof user.updatedAt === 'string' ? new Date(user.updatedAt) : user.updatedAt) : new Date(); // Fallback
       
       // Return properly typed user object
       return {
@@ -159,8 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: validRole,
         storeId,
         lastLogin,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
+        createdAt,
+        updatedAt
       };
     },
     onSuccess: (userData) => {
@@ -251,10 +255,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Convert possibly null values to undefined
       const storeId = data.user.storeId === null ? undefined : data.user.storeId;
-      const lastLogin = data.user.lastLogin === null ? undefined : data.user.lastLogin;
+      const lastLogin = data.user.lastLogin ? (typeof data.user.lastLogin === 'string' ? new Date(data.user.lastLogin) : data.user.lastLogin) : undefined;
+      const createdAt = data.user.createdAt ? (typeof data.user.createdAt === 'string' ? new Date(data.user.createdAt) : data.user.createdAt) : new Date(); // Fallback
+      const updatedAt = data.user.updatedAt ? (typeof data.user.updatedAt === 'string' ? new Date(data.user.updatedAt) : data.user.updatedAt) : new Date(); // Fallback
       
       // Type conversion to match our User interface
-      const user: User = {
+      const userResult: User = {
         id: data.user.id,
         username: data.user.username,
         fullName: data.user.fullName,
@@ -262,10 +268,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: validRole,
         storeId,
         lastLogin,
-        createdAt: data.user.createdAt,
-        updatedAt: data.user.updatedAt
+        createdAt,
+        updatedAt
       };
-      return user;
+      return userResult;
     }
     
     return null;

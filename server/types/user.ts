@@ -6,55 +6,25 @@
  */
 
 /**
- * Represents a user in the system with consistent property naming
+ * Represents the detailed payload of an authenticated user.
+ * When accessing req.user, it will need to be cast to this type
+ * from the more generic type defined in the global Express.Request augmentation.
+ * e.g., const specificUser = req.user as UserPayload;
  */
-export interface User {
-  /**
-   * User's unique identifier
-   */
+export interface UserPayload {
   id: string;
-  
-  /**
-   * User's role (admin, manager, cashier, viewer)
-   */
   role: string;
-  
-  /**
-   * User's store identifier (optional)
-   */
+  name?: string; 
+  email: string; 
   storeId?: number;
-  
-  /**
-   * User's display name
-   */
-  name: string;
-  
-  /**
-   * User's email address
-   */
-  email?: string;
-  
-  /**
-   * User's permissions
-   */
+  username?: string; 
   permissions?: string[];
-  
-  /**
-   * Current session identifier
-   */
   sessionId?: string;
+  createdAt?: string | Date | number; // Added for enhanced-rate-limit
+  // Index signature to allow other properties if necessary,
+  // though direct usage of UserPayload is preferred after casting.
+  [key: string]: unknown; 
 }
 
-/**
- * Extends Express Request interface to include user property
- */
-declare global {
-  namespace Express {
-    interface Request {
-      /**
-       * Authenticated user information
-       */
-      user?: User;
-    }
-  }
-}
+// Global Express.Request augmentation is handled in server/types/express.d.ts
+// to ensure it's the single point of augmentation for Express types.

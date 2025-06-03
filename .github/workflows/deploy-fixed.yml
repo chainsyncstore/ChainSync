@@ -192,6 +192,7 @@ jobs:
         if: success()
         uses: rtCamp/action-slack-notify@v2.2.1
         env:
+          # Use empty string fallback to avoid workflow failure if secret is missing
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK || '' }}
           SLACK_CHANNEL: deployments
           SLACK_COLOR: good

@@ -9,16 +9,28 @@ export const UserRole = {
   ADMIN: "admin",
   MANAGER: "manager",
   CASHIER: "cashier",
-  AFFILIATE: "affiliate"
+  AFFILIATE: "affiliate", // Kept affiliate as it's in schema
+  VIEWER: "viewer" // Added viewer from auth service type
 } as const;
 
 export type UserRole = typeof UserRole[keyof typeof UserRole];
+
+// User statuses enum
+export const UserStatus = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  SUSPENDED: "suspended",
+  PENDING_VERIFICATION: "pending_verification"
+} as const;
+
+export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
 
 export const userRoleSchema = z.enum([
   UserRole.ADMIN,
   UserRole.MANAGER,
   UserRole.CASHIER,
-  UserRole.AFFILIATE
+  UserRole.AFFILIATE,
+  UserRole.VIEWER
 ]);
 
 // Initialize global references
@@ -31,11 +43,17 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
   email: text("email").notNull().unique(),
-  role: text("role", { enum: Object.values(UserRole) as [string, ...string[]] })
+  role: text("role", { enum: Object.values(UserRole) as [UserRole, ...UserRole[]] }) // Use UserRole type for enum values
     .notNull()
     .default(UserRole.CASHIER),
-  storeId: integer("store_id").references(/* Will be set in relations */ () => ({} as any).id, { onDelete: "set null" }),
+  status: text("status", { enum: Object.values(UserStatus) as [UserStatus, ...UserStatus[]] }) // Added status field
+    .notNull()
+    .default(UserStatus.PENDING_VERIFICATION),
+  storeId: integer("store_id").references(/* Will be set in relations */ () => (global as any).stores.id, { onDelete: "set null" }), // Assuming global.stores.id
   lastLogin: timestamp("last_login"),
+  isActive: boolean("is_active").notNull().default(true), // This might be redundant if 'status' field is used actively
+  failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
 }, (table) => ({
   usernameIndex: index("idx_users_username").on(table.username),
   emailIndex: index("idx_users_email").on(table.email),
@@ -130,5 +148,3 @@ export const createPasswordResetTokenSchema = passwordResetTokenInsertSchema.pic
   token: true,
   expiresAt: true
 });
-
-

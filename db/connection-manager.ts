@@ -1,9 +1,9 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { drizzle, type NeonDatabase } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 // Import the specific 'schema' object
 import { schema } from "@shared/schema"; 
-import { getLogger } from '../src/logging';
+import { getLogger } from '../shared/logging.js';
 
 const logger = getLogger().child({ component: 'db-connection-manager' });
 
@@ -23,7 +23,7 @@ const STATEMENT_TIMEOUT_MS = 30000; // 30 seconds
 class DbConnectionManager {
   private static instance: DbConnectionManager;
   private pool!: Pool;
-  private drizzleDb!: ReturnType<typeof drizzle>;
+  private drizzleDb!: NeonDatabase<typeof schema>;
   private isInitialized = false;
   private connectionMetrics = {
     totalConnections: 0,
@@ -91,7 +91,7 @@ class DbConnectionManager {
     });
 
     // Initialize Drizzle with the connection pool
-    this.drizzleDb = drizzle(this.pool, { schema });
+    this.drizzleDb = drizzle(this.pool, { schema }); // Pass pool directly
     this.isInitialized = true;
 
     logger.info('Database connection pool initialized', { 
@@ -103,7 +103,7 @@ class DbConnectionManager {
   /**
    * Get the Drizzle database instance
    */
-  public getDb(): ReturnType<typeof drizzle> {
+  public getDb(): NeonDatabase<typeof schema> {
     if (!this.isInitialized) {
       this.initializePool();
     }
@@ -114,7 +114,7 @@ class DbConnectionManager {
    * Execute a database query with performance tracking
    */
   public async executeQuery<T>(
-    queryFn: (db: ReturnType<typeof drizzle>) => Promise<T>,
+    queryFn: (db: NeonDatabase<typeof schema>) => Promise<T>,
     queryName = 'unnamed-query'
   ): Promise<T> {
     const startTime = performance.now();
@@ -194,7 +194,7 @@ export const db = dbManager.getDb();
 
 // Export a helper function for executing queries with tracking
 export async function executeQuery<T>(
-  queryFn: (db: ReturnType<typeof drizzle>) => Promise<T>,
+  queryFn: (db: NeonDatabase<typeof schema>) => Promise<T>,
   queryName = 'unnamed-query'
 ): Promise<T> {
   return dbManager.executeQuery(queryFn, queryName);

@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { schema } from "../shared/db/index"; // Direct import from shared/db/index
-import { AppError, ErrorCategory, ErrorCode } from "../shared/types/errors";
+import { AppError, ErrorCategory, ErrorCode } from "@shared/types/errors";
 import {
   eq,
   and,
@@ -1392,7 +1392,7 @@ export const storage = {
         .returning();
 
       // Add all items
-      const createdItems: schema.TransactionItem[] = [];
+      const createdItems: (typeof schema.transactionItems.$inferSelect)[] = [];
 
       for (const item of items) {
         try {
@@ -1468,27 +1468,15 @@ export const storage = {
   ) {
     const offset = (page - 1) * limit;
 
-    let whereClause;
+    const conditions: (SQL | undefined)[] = [eq(schema.transactions.storeId, storeId)];
 
-    if (startDate && endDate) {
-      whereClause = and(
-        eq(schema.transactions.storeId, storeId),
-        gte(schema.transactions.createdAt, startDate),
-        lte(schema.transactions.createdAt, endDate),
-      );
-    } else if (startDate) {
-      whereClause = and(
-        eq(schema.transactions.storeId, storeId),
-        gte(schema.transactions.createdAt, startDate),
-      );
-    } else if (endDate) {
-      whereClause = and(
-        eq(schema.transactions.storeId, storeId),
-        lte(schema.transactions.createdAt, endDate),
-      );
-    } else {
-      whereClause = eq(schema.transactions.storeId, storeId);
+    if (startDate) {
+      conditions.push(gte(schema.transactions.createdAt, startDate));
     }
+    if (endDate) {
+      conditions.push(lte(schema.transactions.createdAt, endDate));
+    }
+    const whereClause = and(...conditions);
 
     const transactions = await db.query.transactions.findMany({
       where: whereClause,
@@ -1528,25 +1516,21 @@ export const storage = {
     startDate?: Date,
     endDate?: Date,
   ) {
-    let whereClause = sql`1=1`;
+    const conditions: (SQL | undefined)[] = [];
 
     if (storeId) {
-      whereClause = and(whereClause, eq(schema.transactions.storeId, storeId));
+      conditions.push(eq(schema.transactions.storeId, storeId));
     }
 
     if (startDate) {
-      whereClause = and(
-        whereClause,
-        gte(schema.transactions.createdAt, startDate),
-      );
+      conditions.push(gte(schema.transactions.createdAt, startDate));
     }
 
     if (endDate) {
-      whereClause = and(
-        whereClause,
-        lte(schema.transactions.createdAt, endDate),
-      );
+      conditions.push(lte(schema.transactions.createdAt, endDate));
     }
+    // .where() clause handles undefined by selecting all. If conditions is empty, and() might return undefined or an SQL object that means 'true'.
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const result = await db
       .select({ count: count() })
@@ -1566,27 +1550,15 @@ export const storage = {
   ) {
     const offset = (page - 1) * limit;
 
-    let whereClause;
+    const conditions: (SQL | undefined)[] = [eq(schema.returns.storeId, storeId)];
 
-    if (startDate && endDate) {
-      whereClause = and(
-        eq(schema.returns.storeId, storeId),
-        gte(schema.returns.createdAt, startDate),
-        lte(schema.returns.createdAt, endDate),
-      );
-    } else if (startDate) {
-      whereClause = and(
-        eq(schema.returns.storeId, storeId),
-        gte(schema.returns.createdAt, startDate),
-      );
-    } else if (endDate) {
-      whereClause = and(
-        eq(schema.returns.storeId, storeId),
-        lte(schema.returns.createdAt, endDate),
-      );
-    } else {
-      whereClause = eq(schema.returns.storeId, storeId);
+    if (startDate) {
+      conditions.push(gte(schema.returns.createdAt, startDate));
     }
+    if (endDate) {
+      conditions.push(lte(schema.returns.createdAt, endDate));
+    }
+    const whereClause = and(...conditions);
 
     const refunds = await db.query.refunds.findMany({
       where: whereClause,

@@ -21,12 +21,14 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
+  const userRole = user.role as 'admin' | 'manager' | 'cashier';
+
   return (
     <div className="flex h-screen overflow-hidden bg-neutral-100">
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
-        role={user.role} 
+        role={userRole} 
       />
       
       <div className="flex flex-col flex-1 overflow-hidden">

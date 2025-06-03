@@ -25,9 +25,8 @@ export class RetryStrategy {
 
   public async retry<T>(
     operation: () => Promise<T>,
-    errorFilter: (error: Error) => boolean = (error) => {
-      const appError = error as AppError;
-      return appError.retryable !== undefined;
+    errorFilter: (error: Error) => boolean = (err) => { // Renamed parameter for clarity
+      return err instanceof AppError && err.retryable !== undefined;
     },
     onRetry?: (error: Error, attempt: number) => void
   ): Promise<T> {
@@ -37,17 +36,21 @@ export class RetryStrategy {
       try {
         return await operation();
       } catch (error: unknown) {
-        if (!errorFilter(error)) {
-          throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+        const errorInstance = error instanceof Error ? error : new Error(String(error));
+
+        if (!errorFilter(errorInstance)) {
+          // Re-throw the original error if it's an AppError, otherwise wrap it.
+          throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { cause: error });
         }
 
         if (attempt === this.maxRetries - 1) {
-          throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+          // Re-throw the original error if it's an AppError, otherwise wrap it.
+          throw error instanceof AppError ? error : new AppError('Max retries exceeded', 'system', 'MAX_RETRIES_EXCEEDED', { cause: error });
         }
 
         const delay = this.calculateDelay(attempt);
         if (onRetry) {
-          onRetry(error, attempt);
+          onRetry(errorInstance, attempt + 1); // Pass attempt number (1-based for onRetry)
         }
 
         await new Promise(resolve => setTimeout(resolve, delay));

@@ -19,6 +19,8 @@ async function migrateToBatchInventory() {
       const expiryDate = item.expiryDate || null;
       // @ts-ignore - handling migration from old schema
       const batchNumber = item.batchNumber || `BATCH-INITIAL-${Date.now()}-${item.id}`;
+      // @ts-ignore - handling migration from old schema
+      const costPerUnit = item.costPerUnit || '0'; // Default to '0' if not present
       
       console.log(`Creating batch for product ${item.productId} in store ${item.storeId}`);
       
@@ -28,6 +30,7 @@ async function migrateToBatchInventory() {
           inventoryId: item.id,
           batchNumber: batchNumber,
           quantity: quantity,
+          costPerUnit: String(costPerUnit), // Ensure it's a string
           expiryDate: expiryDate,
           receivedDate: new Date(),
           createdAt: new Date(),

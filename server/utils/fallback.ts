@@ -1,5 +1,6 @@
 import { getLogger } from '../../src/logging';
 import { retry, RetryOptions } from './retry';
+import { AppError } from '@shared/types/errors';
 
 const logger = getLogger().child({ component: 'fallback-utils' });
 

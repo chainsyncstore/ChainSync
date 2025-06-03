@@ -1,21 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
-import { Multer } from 'multer';
+import type { Multer as MulterInstanceType } from 'multer'; // Correctly import Multer instance type
 import { LRUCache } from 'lru-cache';
 
 // Type definitions
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: string;
-        [key: string]: unknown;
-      };
-      progressId?: string;
-      files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
-    }
-  }
-}
+// Removed redundant global Express augmentation. This should be handled by server/types/express.d.ts
+// declare global {
+//   namespace Express {
+//     interface Request {
+//       user?: {
+//         id: string;
+//         role: string;
+//         [key: string]: unknown;
+//       };
+//       progressId?: string;
+//       files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
+//     }
+//   }
+// }
 
 export interface FileUploadProgress {
   id: string;
@@ -73,34 +74,19 @@ export interface FileValidationCache {
   timestamp: number;
 }
 
-export interface MulterFile extends Express.Multer.File {
-  buffer?: Buffer;
-}
+// Removed local MulterFile, use Express.Multer.File or import from 'multer'
+// export interface MulterFile extends Express.Multer.File {
+//   buffer?: Buffer;
+// }
 
-export interface MulterRequest extends Request {
-  files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
-}
+// Removed MulterRequest as Express.Request is globally augmented sufficiently
+// export interface MulterRequest extends Request { 
+//   files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[] | Express.Multer.File; 
+// }
 
-export type MulterInstance = Multer.Instance;
+export type MulterInstance = MulterInstanceType;
 
-export interface AppError {
-  code: string;
-  category: string;
-  message: string;
-  details?: Record<string, unknown>;
-  statusCode?: number;
-}
-
-export enum ErrorCategory {
-  VALIDATION = 'VALIDATION',
-  AUTH = 'AUTH',
-  SYSTEM = 'SYSTEM'
-}
-
-export enum ErrorCode {
-  INVALID_FILE_TYPE = 'INVALID_FILE_TYPE',
-  FILE_TOO_LARGE = 'FILE_TOO_LARGE',
-  UPLOAD_LIMIT_EXCEEDED = 'UPLOAD_LIMIT_EXCEEDED',
-  INVALID_FILENAME = 'INVALID_FILENAME',
-  UPLOAD_FAILED = 'UPLOAD_FAILED'
-}
+// Removed local AppError, ErrorCategory, ErrorCode. Use from shared/types/errors.ts via app-error.ts
+// export interface AppError { ... }
+// export enum ErrorCategory { ... }
+// export enum ErrorCode { ... }

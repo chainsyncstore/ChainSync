@@ -1,5 +1,5 @@
 import * as xlsx from 'xlsx';
-import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { getLogger } from '../../src/logging';
 
 /**
@@ -38,7 +38,7 @@ export class SecureXlsx {
   /**
    * Safely read an Excel file buffer with validation and sanitization
    */
-  public readFile(fileBuffer: Buffer): unknown {
+  public readFile(fileBuffer: Buffer): Record<string, any[]> {
     try {
       // Check file size
       if (fileBuffer.length > this.maxFileSize) {
@@ -82,13 +82,14 @@ export class SecureXlsx {
         const worksheet = workbook.Sheets[sheetName];
         
         // Validate worksheet
-        if (!worksheet || typeof worksheet !== 'object') {
-          this.logger.warn(`Invalid worksheet: ${sheetName}`);
+        if (!worksheet || typeof worksheet !== 'object' || !worksheet['!ref']) {
+          this.logger.warn(`Invalid or empty worksheet: ${sheetName}`);
+          result[sheetName] = []; // Assign empty array for invalid/empty sheets
           continue;
         }
 
         // Get sheet range
-        const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1');
+        const range = xlsx.utils.decode_range(worksheet['!ref']);
         
         // Check row count
         if (range.e.r > this.maxRows) {
@@ -115,10 +116,16 @@ export class SecureXlsx {
       return result;
     } catch (error: unknown) {
       if (error instanceof AppError) {
-        throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+        // If it's already an AppError, rethrow it
+        throw error;
       }
       
-      this.logger.error('Error processing Excel file', { error });
+      // Log the original error for debugging
+      this.logger.error('Error processing Excel file', { 
+        originalError: error instanceof Error ? { message: error.message, stack: error.stack, name: error.name } : error 
+      });
+      
+      // Throw a new AppError for consistent error handling
       throw new AppError(
         'Unable to process Excel file',
         ErrorCategory.IMPORT_EXPORT,
@@ -148,14 +155,15 @@ export class SecureXlsx {
       const sanitizedRow: Record<string, any> = Object.create(null);
       
       // Copy only valid properties
-      Object.keys(row).forEach(key => {
+      const indexableRow = row as Record<string, any>;
+      Object.keys(indexableRow).forEach(key => {
         // Skip __proto__ and constructor properties
         if (key === '__proto__' || key === 'constructor') {
           return;
         }
         
         // Sanitize values
-        let value = row[key];
+        let value = indexableRow[key];
         
         // Convert objects to strings to prevent nested pollution
         if (value !== null && typeof value === 'object') {

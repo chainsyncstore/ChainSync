@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { File } from 'multer';
+// Removed: import { File } from 'multer'; // This causes an error. Use Express.Multer.File
 
 export interface FileUploadConfig {
   maxFileSize: number;
@@ -7,7 +7,7 @@ export interface FileUploadConfig {
   allowedMimeTypes: string[];
   maxFiles: number;
   destination: string;
-  filename: (req: Request, file: File, cb: (error: Error | null, filename: string) => void) => void;
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => void;
   allowedFileExtensions: string[];
   cleanupInterval: number;
   cacheTTL: number;
@@ -48,31 +48,17 @@ export interface ProgressSubscription {
   onComplete: (result: unknown) => void;
 }
 
-export interface MulterOptions {
-  dest?: string;
-  fileFilter?: (req: Request, file: File, cb: (error: Error | null, acceptFile: boolean) => void) => void;
-  limits?: {
-    fileSize?: number;
-    files?: number;
-  };
-}
-
-export interface MulterInstance {
-  single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
-  array(fieldname: string, maxCount?: number): (req: Request, res: Response, next: NextFunction) => void;
-  fields(fields: Array<{ name: string; maxCount: number }>): (req: Request, res: Response, next: NextFunction) => void;
-  any(): (req: Request, res: Response, next: NextFunction) => void;
-  none(): (req: Request, res: Response, next: NextFunction) => void;
-}
-
-export interface Multer {
-  new (options?: MulterOptions): MulterInstance;
-}
+// Removed local MulterOptions, MulterInstance, Multer as these should come from the 'multer' package itself.
+// Standard multer types (e.g., multer.Options, multer.Multer) should be used in implementations.
 
 export interface FileUploadMiddleware {
-  upload: Multer;
+  // The 'upload' property would typically be an instance of multer, i.e., multer.Multer
+  // For typing, we can use the Multer interface from the 'multer' package if needed,
+  // or more specifically, the result of calling multer(options).
+  // For simplicity, if it's just storing the multer instance:
+  upload: import('multer').Multer; // Use the actual Multer type from the library
   validateUploadedFiles(req: Request, res: Response, next: (error?: Error | null) => void): Promise<void>;
-  updateProgress(req: Request, file: MulterFile, progress: number): void;
+  updateProgress(req: Request, file: Express.Multer.File, progress: number): void; // Use Express.Multer.File
   cleanupResources(): void;
   startPeriodicCleanup(): void;
   validateFileExtension(mimeType: string): boolean;

@@ -1,12 +1,12 @@
 // src/logging/middleware.ts
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler, ErrorRequestHandler } from 'express';
 import { Logger } from './Logger';
 import * as crypto from 'crypto';
 
 /**
  * Express middleware for request logging and correlation tracking
  */
-export function requestLogger(logger: Logger) {
+export function requestLogger(logger: Logger): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     // Generate unique request ID if not present
     const requestId = req.headers['x-request-id'] as string || 
@@ -57,18 +57,35 @@ export function requestLogger(logger: Logger) {
 /**
  * Express error handler middleware with structured logging
  */
-export function errorLogger(logger: Logger) {
-  return (err: unknown, req: Request, res: Response, next: NextFunction) => {
+export function errorLogger(logger: Logger): ErrorRequestHandler {
+  return (err: any, req: Request, res: Response, next: NextFunction) => { // Changed err: unknown to err: any
     // Get request logger if available, otherwise use passed logger
-    const requestLogger = (req as any).logger || logger;
+    const requestLoggerInstance = (req as any).logger || logger;
     
-    // Structured error logging
-    requestLogger.error('Request error', err, {
-      stack: err.stack,
-      status: err.status || 500,
-      code: err.code,
-      type: err.constructor.name
-    });
+    const meta: Record<string, any> = {};
+
+    if (err instanceof Error) {
+      meta.stack = err.stack;
+      // Standard error properties might be on err directly
+      if ('status' in err) meta.status = (err as any).status;
+      if ('statusCode' in err && !meta.status) meta.status = (err as any).statusCode;
+      if ('code' in err) meta.code = (err as any).code;
+    }
+    
+    // Ensure status is set, default to 500
+    meta.status = meta.status || (typeof err === 'object' && err !== null && 'status' in err ? (err as any).status : undefined) || 
+                  (typeof err === 'object' && err !== null && 'statusCode' in err ? (err as any).statusCode : undefined) || 500;
+
+    // Ensure code is set if available
+    meta.code = meta.code || (typeof err === 'object' && err !== null && 'code' in err ? (err as any).code : undefined);
+    
+    // Determine type
+    meta.type = (typeof err === 'object' && err !== null && err.constructor) ? err.constructor.name : typeof err;
+
+    // Log with an actual Error object as the second argument if possible
+    const errorToLog = err instanceof Error ? err : new Error(String(err));
+    
+    requestLoggerInstance.error('Request error', errorToLog, meta);
     
     // Continue to next error handler
     next(err);

@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClient } from 'redis';
+import { createClient, RedisClientType } from 'redis'; 
+import { getLogger } from '../../src/logging'; 
+import { UserPayload } from '../types/user'; // Corrected: Import UserPayload from ../types/user
+
+const logger = getLogger().child({ component: 'enhanced-rate-limit' });
 
 /**
  * Enhanced Rate Limiting Middleware
@@ -27,27 +31,31 @@ interface RateLimitStore {
  * Redis-based rate limit store
  */
 class RedisRateLimitStore implements RateLimitStore {
-  private client: unknown;
+  private client: RedisClientType | null = null; 
   private connected: boolean = false;
 
   constructor() {
     if (process.env.REDIS_URL || process.env.REDIS_HOST) {
-      this.client = createClient({
+      const redisClient = createClient({
         url: process.env.REDIS_URL || `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}`
       });
+      this.client = redisClient as RedisClientType;
       
-      this.client.on('error', (err: Error) => {
-        console.error('Redis rate limit store error:', err);
+      redisClient.on('error', (err: Error) => {
+        logger.error('Redis rate limit store error:', err);
         this.connected = false;
       });
       
-      this.client.on('connect', () => {
+      redisClient.on('connect', () => {
+        logger.info('Redis rate limit store connected.');
         this.connected = true;
       });
       
-      this.client.connect().catch((err: Error) => {
-        console.error('Failed to connect to Redis for rate limiting:', err);
+      redisClient.connect().catch((err: Error) => {
+        logger.error('Failed to connect to Redis for rate limiting:', err);
       });
+    } else {
+      logger.warn('Redis not configured for rate limiting. Falling back to in-memory store.');
     }
   }
 
@@ -58,18 +66,36 @@ class RedisRateLimitStore implements RateLimitStore {
     }
 
     try {
-      const multi = this.client.multi();
-      const resetTime = Date.now() + windowMs;
-      
+      const redisClient = this.client; // Already checked for null above
+      const multi = redisClient.multi();
       multi.incr(key);
       multi.expire(key, Math.ceil(windowMs / 1000));
       
-      const results = await multi.exec();
-      const count = results[0];
+      const results = await multi.exec(); // Returns Promise<Array<string | number | Buffer | null | Error | (string | number | Buffer)[]>>
+      
+      if (!Array.isArray(results) || results.length < 2) {
+        logger.error('Redis multi.exec did not return at least two results', { results });
+        throw new Error('Invalid results array structure from Redis multi.exec()');
+      }
+      
+      const incrResult = results[0];
+      const expireResult = results[1]; // For potential future use or logging
+
+      if (incrResult instanceof Error) {
+        logger.error('Redis INCR command in transaction failed', incrResult);
+        throw incrResult;
+      }
+      if (expireResult instanceof Error) {
+        logger.error('Redis EXPIRE command in transaction failed', expireResult);
+        // Decide if this is critical enough to throw; often INCR is the main one.
+      }
+
+      const count = typeof incrResult === 'number' ? incrResult : 0;
+      const resetTime = Date.now() + windowMs; 
       
       return { count, resetTime };
     } catch (error: unknown) {
-      console.error('Redis rate limit error:', error);
+      logger.error('Redis rate limit increment error:', error instanceof Error ? error : new Error(String(error)));
       return this.memoryFallback(key, windowMs);
     }
   }
@@ -79,7 +105,7 @@ class RedisRateLimitStore implements RateLimitStore {
       try {
         await this.client.del(key);
       } catch (error: unknown) {
-        console.error('Redis rate limit reset error:', error);
+        logger.error('Redis rate limit reset error:', error instanceof Error ? error : new Error(String(error)));
       }
     }
   }
@@ -199,8 +225,8 @@ export function createRateLimit(options: RateLimitOptions = {}) {
       next();
     } catch (error: unknown) {
       console.error('Rate limiting error:', error);
-      // Continue without rate limiting if there's an error
-      next();
+      logger.error('Rate limiting middleware encountered an error', error instanceof Error ? error : new Error(String(error)));
+      next(); // Pass control even if rate limiting fails
     }
   };
 }
@@ -236,25 +262,23 @@ export function createAdaptiveRateLimit(authenticatedOptions: RateLimitOptions, 
  * Progressive rate limiting (increases limits for trusted users)
  */
 export function createProgressiveRateLimit(baseOptions: RateLimitOptions) {
-  const getMultiplier = (req: Request): number => {
-    const trustLevel = getUserTrustLevel(req);
-    const baseLimit = baseOptions.max || 100;
-    switch (trustLevel) {
-      case 'high': return baseLimit * 3;
-      case 'medium': return baseLimit * 2;
-      case 'low': return baseLimit;
-      default: return baseLimit;
-    }
-  };
-
+  // This function needs to be adapted based on how max is dynamically handled by the store or middleware logic.
+  // The current createRateLimit doesn't dynamically adjust max per request based on keyGenerator.
+  // For simplicity, this example will use a fixed multiplier for demonstration if we were to adjust options.
+  // However, the current structure of createRateLimit uses a single `max` from options.
+  // A more complex implementation would involve passing a function for `max` or modifying the store.
+  
+  // For now, this function will return a rate limiter with a key that includes trust level.
+  // The actual dynamic limit adjustment is not implemented by this simple structure.
+  logger.warn('Progressive rate limiting with dynamic max based on trust level is not fully implemented by default createRateLimit. Key will include trust level.');
   return createRateLimit({
     ...baseOptions,
     keyGenerator: (req: Request) => {
       const baseKey = req.ip || 'unknown';
-      const userTrust = getUserTrustLevel(req);
+      const userTrust = getUserTrustLevel(req); // Assuming UserPayload has createdAt
       return `${baseKey}:trust:${userTrust}`;
     },
-    max: baseOptions.max || 100 // Will be dynamically adjusted in the middleware
+    // max: dynamicallyCalculatedMax, // This would require opts.max to be a function or store to handle it
   });
 }
 
@@ -263,16 +287,29 @@ export function createProgressiveRateLimit(baseOptions: RateLimitOptions) {
  */
 function getUserTrustLevel(req: Request): 'low' | 'medium' | 'high' {
   // This is a simplified example - implement based on your needs
-  const user = req.user as any;
+  // Assumes req.user is UserPayload and UserPayload includes createdAt
+  const user = req.user as UserPayload; 
   
-  if (!user) return 'low';
+  if (!user || !user.createdAt) return 'low';
   
-  const accountAge = Date.now() - new Date(user.createdAt).getTime();
-  const daysSinceCreation = accountAge / (1000 * 60 * 60 * 24);
-  
-  if (daysSinceCreation > 365) return 'high';
-  if (daysSinceCreation > 30) return 'medium';
-  return 'low';
+  try {
+    // Ensure createdAt is a valid date or timestamp
+    const createdAtTime = new Date(user.createdAt as string | number | Date).getTime(); // Cast user.createdAt
+    if (isNaN(createdAtTime)) {
+      logger.warn('Invalid createdAt date for user trust level calculation', { userId: user.id, createdAt: user.createdAt });
+      return 'low';
+    }
+
+    const accountAge = Date.now() - createdAtTime;
+    const daysSinceCreation = accountAge / (1000 * 60 * 60 * 24);
+    
+    if (daysSinceCreation > 365) return 'high';
+    if (daysSinceCreation > 30) return 'medium';
+    return 'low'; // Default if account is young but no error
+  } catch (e) {
+    logger.error('Error calculating user trust level from createdAt', e instanceof Error ? e : new Error(String(e)));
+    return 'low'; // Fallback on error
+  }
 }
 
 /**

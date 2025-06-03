@@ -13,3 +13,6 @@ export const loyaltyTiers = pgTable("loyalty_tiers", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type NewLoyaltyTier = typeof loyaltyTiers.$inferInsert;

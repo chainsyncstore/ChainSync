@@ -7,9 +7,9 @@ if (!process.env.DATABASE_URL) {
 export default defineConfig({
   out: "./db/migrations",
   schema: "./shared/schema.ts", // Point to the correct schema location
-  dialect: "postgresql",
+  driver: "pg", // Specify the node-postgres driver
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL!,
   },
   verbose: true,
 });

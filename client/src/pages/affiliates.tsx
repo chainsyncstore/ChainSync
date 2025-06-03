@@ -95,7 +95,7 @@ export default function AffiliatePage() {
     onSuccess: (data) => {
       // Call login with username and password from form data
       const formData = loginForm.getValues();
-      login(formData.username, formData.password);
+      login({ username: formData.username, password: formData.password });
       
       toast({
         title: "Login successful!",
@@ -134,7 +134,7 @@ export default function AffiliatePage() {
     onSuccess: (data) => {
       // Call login with username and password from form data
       const formData = signupForm.getValues();
-      login(formData.username, formData.password);
+      login({ username: formData.username, password: formData.password });
       
       toast({
         title: "Registration successful!",

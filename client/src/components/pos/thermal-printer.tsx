@@ -50,7 +50,7 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
   
   // Function to check if Web USB API is available and if printers are connected
   const checkPrinterAvailability = async () => {
-    if (!navigator.usb) {
+    if (typeof navigator.usb === 'undefined') {
       setPrinterStatus('not-available');
       return;
     }

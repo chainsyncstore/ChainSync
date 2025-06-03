@@ -1,5 +1,6 @@
 // src/logging/SentryLogger.ts
 import * as Sentry from '@sentry/node';
+import { Request } from 'express'; // Added import
 
 import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger';
 
@@ -73,7 +74,7 @@ export class SentryLogger extends BaseLogger {
     Sentry.setUser(null);
   }
 
-  public setRequestContext(req: unknown): void {
+  public setRequestContext(req: Partial<Request>): void { // Changed req type to Partial<Request>
     // Extract useful context from Express/HTTP request
     const requestContext: Record<string, any> = {
       url: req.url,
@@ -81,14 +82,14 @@ export class SentryLogger extends BaseLogger {
       query: req.query,
     };
 
-    if (req.body && Object.keys(req.body).length > 0) {
+    if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
       // Filter sensitive data
       const filteredBody = { ...req.body };
       const sensitiveFields = ['password', 'token', 'secret', 'credit_card', 'card'];
       
       sensitiveFields.forEach(field => {
         if (field in filteredBody) {
-          filteredBody[field] = '[FILTERED]';
+          (filteredBody as any)[field] = '[FILTERED]';
         }
       });
 
@@ -96,21 +97,23 @@ export class SentryLogger extends BaseLogger {
     }
 
     if (req.headers) {
+      const currentHeaders = req.headers; // currentHeaders is now definitely defined
       // Only include safe headers
       const safeHeaders = ['user-agent', 'accept', 'content-type', 'referer'];
-      const headers: Record<string, string> = {};
+      const headersToLog: Record<string, string | string[] | undefined> = {};
       
-      safeHeaders.forEach(header => {
-        if (header in req.headers) {
-          headers[header] = req.headers[header];
+      safeHeaders.forEach(headerName => {
+        // Check if headerName is a key of currentHeaders before accessing
+        if (Object.prototype.hasOwnProperty.call(currentHeaders, headerName)) {
+          headersToLog[headerName] = currentHeaders[headerName];
         }
       });
 
-      requestContext.headers = headers;
+      requestContext.headers = headersToLog;
     }
 
     // Set transaction in Sentry
-    const transaction = `${req.method} ${req.path || req.url}`;
+    const transaction = `${req.method || 'UNKNOWN_METHOD'} ${req.path || req.url || 'UNKNOWN_PATH'}`;
     Sentry.withScope(scope => {
       scope.setTransactionName(transaction);
     });

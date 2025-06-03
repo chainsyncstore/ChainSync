@@ -314,10 +314,11 @@ export default function SignupPage() {
     },
     onError: (error: ApiError) => {
       // Handle field-specific errors
-      if (error.field) {
+      if (error.field && typeof error.field === 'string') {
+        const fieldKey: string = error.field; // Explicitly type and assign
         setErrors(prev => ({
           ...prev,
-          [error.field]: error.message
+          [fieldKey]: error.message
         }));
       } else {
         // General error

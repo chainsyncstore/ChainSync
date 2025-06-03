@@ -14,7 +14,7 @@ import { requestLogger, errorLogger } from '../src/logging/middleware';
 
 // Import security middleware
 import { securityHeaders, csrfProtection, generateCsrfToken, validateContentType } from './middleware/security';
-import { rateLimitMiddleware, authRateLimiter, sensitiveOpRateLimiter } from './middleware/rate-limit';
+import { rateLimitMiddleware, authRateLimiter, sensitiveOpRateLimiter, applyRateLimiters } from './middleware/rate-limiter'; // Updated import
 import { isAuthenticated, validateSession } from './middleware/auth';
 import { validateBody } from './middleware/validation';
 
@@ -23,7 +23,7 @@ import { initRedis, getRedisClient } from '../src/cache/redis';
 import { initializeApp, registerHealthChecks } from '../src/startup';
 
 // Import routes
-import healthRoutes, { setDbPool } from './routes/health';
+import healthRoutes from './routes/health';
 import transactionRoutes from './routes/transactions';
 import monitoringRoutes from './routes/monitoring';
 import adminDashboardRoutes from './routes/admin-dashboard';
@@ -66,12 +66,9 @@ dbPool.on('error', (err) => {
 // Register database with health checks
 registerHealthChecks(dbPool);
 
-// Set database pool for health routes
-setDbPool(dbPool);
-
 // Initialize Redis for caching and session store
 const redisClient = initRedis();
-let sessionStore: unknown;
+let sessionStore: any; // Changed from unknown to any
 
 if (redisClient) {
   sessionStore = new RedisStore({ client: redisClient });
@@ -113,7 +110,7 @@ app.use(session({
 }));
 
 // Generate CSRF token for all routes that need it
-app.use(generateCsrfToken);
+app.use(generateCsrfToken as any); // Cast to any
 
 // Health check routes (no auth required)
 app.use('/api/health', healthRoutes);
@@ -126,11 +123,11 @@ app.use('/readyz', healthRoutes);
 const apiRoutes = express.Router();
 
 // Apply validation and rate limiting to API routes
-apiRoutes.use(validateContentType());
-apiRoutes.use(csrfProtection);
+apiRoutes.use(validateContentType() as any); // Cast to any
+apiRoutes.use(csrfProtection as any); // Cast to any
 
 // Apply different rate limits to different types of endpoints
-apiRoutes.use('/auth', authRateLimiter);
+apiRoutes.use('/auth', authRateLimiter as any); // Cast to any
 apiRoutes.use(['/transactions', '/loyalty'], sensitiveOpRateLimiter);
 
 // Register API routes
@@ -175,7 +172,7 @@ app.use((req, res, next) => {
 // Sentry error handler middleware is already configured via configureSentry
 
 // Global error handler - must be the last middleware
-app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use(((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Error is already logged by the errorLogger middleware
   // Just send appropriate response to client
   
@@ -191,7 +188,7 @@ app.use((err: unknown, req: express.Request, res: express.Response, next: expres
   }
   
   res.status(statusCode).json(errorResponse);
-});
+}) as any); // Cast to any
 
 // Initialize application components (caching, job queues, etc.)
 if (process.env.NODE_ENV !== 'test') {

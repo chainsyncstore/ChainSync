@@ -36,18 +36,16 @@ export class LoyaltyProgramFormatter extends ResultFormatter<LoyaltyProgram> {
     
     // Format the loyalty program with specific type handling
     return {
-      ...withDates,
+      // ...withDates, // Spread only known properties after explicit mapping
       id: Number(withDates.id),
       storeId: Number(withDates.storeId),
       name: String(withDates.name),
-      description: withDates.description || '',
+      description: String(withDates.description || ''),
       status: (withDates.status || 'active') as LoyaltyProgramStatus,
-      pointsPerPurchase: Number(withDates.pointsPerPurchase || 0),
-      minimumPurchase: String(withDates.minimumPurchase || '0.00'),
-      pointsValue: String(withDates.pointsValue || '0.01'),
-      tierLevels: withDates.tierLevels || [],
-      rules: withDates.rules || {},
-      isActive: Boolean(withDates.isActive),
+      createdAt: new Date(withDates.createdAt),
+      updatedAt: new Date(withDates.updatedAt),
+      // Removed: pointsPerPurchase, minimumPurchase, pointsValue, tierLevels, rules, isActive
+      // These should be in metadata if needed, or the LoyaltyProgram interface updated.
       metadata: metadata
     };
   }
@@ -82,16 +80,20 @@ export class LoyaltyMemberFormatter extends ResultFormatter<LoyaltyMember> {
     
     // Format the loyalty member with specific type handling
     return {
-      ...withDates,
+      // ...withDates, // Spread only known properties after explicit mapping
       id: Number(withDates.id),
+      loyaltyId: String(withDates.loyaltyId || ''), // Ensure loyaltyId is mapped
+      customerId: Number(withDates.customerId), // Changed from userId
       programId: Number(withDates.programId),
-      userId: Number(withDates.userId),
-      membershipId: String(withDates.membershipId || ''),
+      tierId: withDates.tierId ? Number(withDates.tierId) : null, // Changed from tierLevel
       points: Number(withDates.points || 0),
-      tierLevel: Number(withDates.tierLevel || 1),
-      totalSpent: String(withDates.totalSpent || '0.00'),
-      lifetimePoints: Number(withDates.lifetimePoints || 0),
-      isActive: Boolean(withDates.isActive),
+      lifetimePoints: Number(withDates.lifetimePoints || withDates.points || 0), // Default lifetimePoints to points if not available
+      status: (withDates.status || 'active') as LoyaltyMember['status'], // Changed from isActive
+      enrollmentDate: new Date(withDates.enrollmentDate || withDates.createdAt), // Default to createdAt if enrollmentDate not present
+      lastActivityDate: new Date(withDates.lastActivityDate || withDates.updatedAt), // Default to updatedAt if lastActivityDate not present
+      createdAt: new Date(withDates.createdAt),
+      updatedAt: new Date(withDates.updatedAt),
+      // Removed: membershipId (use loyaltyId), tierLevel (use tierId), totalSpent, isActive
       metadata: metadata
     };
   }
@@ -126,18 +128,19 @@ export class LoyaltyTransactionFormatter extends ResultFormatter<LoyaltyTransact
     
     // Format the loyalty transaction with specific type handling
     return {
-      ...withDates,
+      // ...withDates, // Spread only known properties after explicit mapping
       id: Number(withDates.id),
       memberId: Number(withDates.memberId),
       programId: Number(withDates.programId),
-      pointsEarned: Number(withDates.pointsEarned || 0),
-      pointsRedeemed: Number(withDates.pointsRedeemed || 0),
-      pointsBalance: Number(withDates.pointsBalance || 0),
-      transactionType: String(withDates.transactionType || 'earn'),
-      referenceId: withDates.referenceId || null,
-      description: withDates.description || '',
-      amount: String(withDates.amount || '0.00'),
-      metadata: metadata
+      transactionId: withDates.transactionId ? Number(withDates.transactionId) : null, // Map from referenceId or transaction_id
+      type: (withDates.type || 'earn') as LoyaltyTransaction['type'], // Changed from transactionType
+      points: Number(withDates.points || 0), // Use points directly
+      notes: withDates.notes || String(withDates.description || ''), // Map from description or notes
+      rewardId: withDates.rewardId ? Number(withDates.rewardId) : null,
+      userId: Number(withDates.userId), // Assuming userId is present in dbResult
+      createdAt: new Date(withDates.createdAt),
+      // Removed: pointsEarned, pointsRedeemed, pointsBalance, amount, metadata (unless added to interface)
+      // Ensure all fields in LoyaltyTransaction interface are covered
     };
   }
 }

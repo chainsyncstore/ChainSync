@@ -1,6 +1,6 @@
-import { db } from '../connection-manager';
+import { db } from '../connection-manager.js';
 import { sql } from 'drizzle-orm';
-import { getLogger } from '../../src/logging';
+import { getLogger } from '../../shared/logging.js';
 
 const logger = getLogger().child({ component: 'db-migrations' });
 

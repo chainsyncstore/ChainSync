@@ -1,5 +1,6 @@
 // src/monitoring/tracing.ts
 import * as opentelemetry from '@opentelemetry/sdk-node';
+import { Span, trace, context as apiContext } from '@opentelemetry/api'; // Import trace and context here, alias context
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import * as otelResources from '@opentelemetry/resources'; // Changed to namespace import
@@ -8,6 +9,7 @@ import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
+import { AppError } from '@shared/types/errors';
 import { getLogger } from '../logging';
 import { Request, Response, NextFunction } from 'express';
 import type { Logger } from '../logging/Logger'; // Import Logger type for lazy init
@@ -136,8 +138,7 @@ export async function shutdownTracing() {
  */
 export function getCurrentTraceContext() {
   try {
-    const { trace, context } = require('@opentelemetry/api');
-    const activeSpan = trace.getSpan(context.active());
+    const activeSpan = trace.getSpan(apiContext.active()); // Use imported trace and apiContext
     
     if (activeSpan) {
       const spanContext = activeSpan.spanContext();
@@ -190,16 +191,15 @@ export function traceContextMiddleware(req: Request, res: Response, next: NextFu
  */
 export async function withSpan<T>(name: string, fn: () => Promise<T>): Promise<T> {
   try {
-    const { trace, context } = require('@opentelemetry/api');
-    const tracer = trace.getTracer('chainsync-app');
+    const tracer = trace.getTracer('chainsync-app'); // Use imported trace
     
-    return await tracer.startActiveSpan(name, async (span: unknown) => {
+    return await tracer.startActiveSpan(name, async (span: Span) => {
       try {
         const result = await fn();
         span.end();
         return result;
       } catch (error: unknown) {
-        span.recordException(error);
+        span.recordException(error as Error); // Cast to Error for recordException
         span.setStatus({ code: 2 }); // ERROR
         span.end();
         throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });

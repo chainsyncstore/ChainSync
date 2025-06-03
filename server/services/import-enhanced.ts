@@ -10,6 +10,8 @@ import { SessionsClient } from '@google-cloud/dialogflow';
 import { enhanceValidationWithAI } from './import-ai';
 
 // Define types for import data
+export type BatchImportRow = Record<string, any>; // Represents a single row of data during batch import
+
 export interface ImportResult {
   success: boolean;
   totalRows: number;

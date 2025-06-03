@@ -10,11 +10,11 @@ import { toDatabaseFields, fromDatabaseFields } from './field-mapping';
 // Define interfaces for loyalty-related entities
 interface LoyaltyMember {
   id: number;
-  userId: number;
-  programId: number;
-  membershipId: string;
+  customerId: number; // Changed from userId
+  programId: number; // This might need review depending on how programs are linked
+  loyaltyId: string; // Changed from membershipId
   points: number;
-  tier: string;
+  tierId: number; // Changed from tier (string) to tierId (number)
   status: 'active' | 'inactive' | 'suspended';
   joinDate: Date;
   expiryDate?: Date;

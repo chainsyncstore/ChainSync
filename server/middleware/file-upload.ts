@@ -4,10 +4,21 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { FileUploadConfig } from '../config/file-upload';
 import { FileUploadProgress, ProgressSubscription } from './types/file-upload';
-import { logger } from './utils/logger';
+import { getLogger } from '../../src/logging'; 
 import { FileUtils } from './utils/file-utils';
-import { UploadMetricsTracker } from './utils/logger';
+import { UserPayload } from '../types/express'; // Import UserPayload
+// Assuming UploadMetricsTracker and logger from ./utils/logger are specific utilities,
+// or should also be replaced if ./utils/logger is just a wrapper for the main logger.
+// For now, only replacing the direct 'logger' import.
+// If UploadMetricsTracker uses its own logger, that's separate.
+// If './utils/logger' IS the main logger, this change is fine.
+// If not, UploadMetricsTracker might need its logger updated too.
+// For now, let's assume the direct 'logger' was the one to change.
+// We will also need a logger instance for this file.
+import { UploadMetricsTracker } from './utils/logger'; // Keeping this if it's a specific utility
 import { LRUCache } from 'lru-cache';
+
+const logger = getLogger().child({ component: 'file-upload-middleware' }); // Initialize main logger for this module
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import sanitize from 'sanitize-filename';
@@ -35,7 +46,7 @@ interface MulterRequest extends Request {
   files?: {
     [fieldname: string]: Express.Multer.File[];
   } | Express.Multer.File[];
-  user?: unknown;
+  user?: UserPayload; // Align with global Express.Request.user
 }
 
 // File upload configuration
@@ -54,9 +65,10 @@ const fileUploadConfig: FileUploadConfig = {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ],
   destination: './uploads',
-  filename: (req, file, cb) => {
+  filename: (req: unknown, file: unknown, cb: (error: Error | null, filename: string) => void) => { // req and file to unknown
+    const multerFile = file as Express.Multer.File; // Cast to access properties
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix);
+    cb(null, sanitize(multerFile.fieldname) + '-' + uniqueSuffix + path.extname(multerFile.originalname));
   },
   cleanupInterval: 3600000, // 1 hour
   cacheTTL: 300000 // 5 minutes
@@ -77,70 +89,65 @@ const upload = multer({
     fileSize: fileUploadConfig.maxFileSize,
     files: fileUploadConfig.maxFiles
   },
-  fileFilter: async (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
-    try {
-      UploadMetricsTracker.getInstance().trackRequest();
-      
-      // Validate file size
-      if (file.size > fileUploadConfig.maxFileSize) {
-        logger.warn('File size limit exceeded', { 
+  fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    // Wrap async logic to conform to synchronous fileFilter type if needed,
+    // or ensure @types/multer supports async fileFilter.
+    // For now, assuming it does or will be handled by Multer's error handling.
+    (async () => {
+      try {
+        UploadMetricsTracker.getInstance().trackRequest();
+        
+        // Validate file size
+        if (file.size > fileUploadConfig.maxFileSize) {
+          logger.warn('File size limit exceeded', { 
+            filename: file.originalname,
+            size: file.size,
+            maxSize: fileUploadConfig.maxFileSize
+          });
+          // Pass a standard Error to cb, with 'as any' on cb if needed
+          return (cb as any)(new Error('File size too large'), false);
+        }
+
+        // Check file type from buffer
+        const fileTypeInfo = await fileTypeFromBuffer(file.buffer);
+        
+        if (!fileTypeInfo || !fileUploadConfig.allowedMimeTypes.includes(fileTypeInfo.mime)) {
+          logger.warn('Invalid file MIME type', {
+            filename: file.originalname,
+            detectedMime: fileTypeInfo?.mime,
+            allowedMimes: fileUploadConfig.allowedMimeTypes.join(', ')
+          });
+          return (cb as any)(new Error('Invalid file type'), false);
+        }
+
+        // Validate file extension (secondary check)
+        const fileExt = path.extname(file.originalname).toLowerCase();
+        if (!fileUploadConfig.allowedFileExtensions.includes(fileExt)) {
+          logger.warn('Invalid file extension', { 
+            filename: file.originalname,
+            extension: fileExt,
+            allowedExtensions: fileUploadConfig.allowedFileExtensions.join(', ')
+          });
+          return (cb as any)(new Error('Invalid file extension'), false);
+        }
+
+        // Log successful validation
+        logger.info('File validation succeeded', { 
           filename: file.originalname,
           size: file.size,
-          maxSize: fileUploadConfig.maxFileSize
-        });
-        const error = new Error('File size too large') as any;
-        error.code = ErrorCode.BAD_REQUEST;
-        error.category = ErrorCategory.VALIDATION;
-        error.details = { maxSize: fileUploadConfig.maxFileSize };
-        error.statusCode = 400;
-        cb(error, false);
-        return;
-      }
-
-      // Check file type
-      const fileType = await fileTypeFromBuffer(file.buffer);
-      const isValidType = fileType ? await FileUtils.validateFileExtension(fileType.mime) : false;
-      
-      if (!fileType || !isValidType) {
-        logger.warn('Invalid file type', {
-          filename: file.originalname,
-          mimeType: fileType?.mime
-        });
-        const error = new Error('Invalid file type') as any;
-        error.code = ErrorCode.BAD_REQUEST;
-        error.category = ErrorCategory.VALIDATION;
-        error.details = { allowedTypes: await FileUtils.validateFileExtension.toString() };
-        error.statusCode = 400;
-        cb(error, false);
-        return;
-      }
-
-      // Validate file extension
-      const fileExt = path.extname(file.originalname).toLowerCase();
-      if (!fileExt || !fileUploadConfig.allowedFileExtensions.includes(fileExt)) {
-        logger.warn('Invalid file extension', { 
-          filename: file.originalname,
+          mimeType: fileTypeInfo.mime,
           extension: fileExt
         });
-        cb(null, false);
-        return;
+        cb(null, true);
+      } catch (error: unknown) {
+        logger.error('File validation failed unexpectedly', { 
+          filename: file.originalname,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Pass a generic error to cb, with 'as any' on cb if needed
+        (cb as any)(new Error('File validation failed'), false);
       }
-
-      // Log successful validation
-      logger.info('File validation succeeded', { 
-        filename: file.originalname,
-        size: file.size,
-        mimeType: fileType.mime,
-        extension: fileExt
-      });
-      cb(null, true);
-    } catch (error: unknown) {
-      logger.error('File validation failed', { 
-        filename: file.originalname,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      cb(null, false);
-    }
+    })();
   }
 });
 
@@ -411,7 +418,17 @@ export class FileUploadMiddleware {
       }
 
       // Check rate limiting
-      const userId = req.user.id;
+      // Ensure req.user and req.user.id exist and are correctly typed
+      const userId = (req.user as UserPayload)?.id; 
+      if (!userId) {
+        throw new AppError(
+          'User ID not found for rate limiting',
+          ErrorCategory.AUTHENTICATION,
+          ErrorCode.UNAUTHORIZED,
+          {},
+          401
+        );
+      }
       const attempts = this.uploadAttempts.get(userId) || 0;
       if (attempts >= this.fileUploadConfig.maxUploadAttempts) {
         throw new AppError(
@@ -470,13 +487,15 @@ export class FileUploadMiddleware {
       const subscriptions = subscriptionCache.get(progressId) || [];
       for (const sub of subscriptions) {
         try {
-          sub.onProgress(progressData);
+          if (sub && typeof sub.onProgress === 'function') {
+            sub.onProgress(progressData);
+          }
         } catch (err: unknown) {
-          console.error('Failed to notify subscriber:', err instanceof Error ? err.message : String(err));
+          logger.error('Failed to notify subscriber:', err instanceof Error ? err : new Error(String(err)));
         }
       }
     } catch (error: unknown) {
-      console.error('File upload error:', error instanceof Error ? error.message : String(error));
+      logger.error('File upload error:', error instanceof Error ? error : new Error(String(error)));
       throw new AppError(
         'File upload error',
         ErrorCategory.SYSTEM,
@@ -505,12 +524,19 @@ export class FileUploadMiddleware {
           res.json(progress);
         },
         onError: (error: unknown) => {
-          logger.error('Progress error', error);
-          res.status(error.status || 500).json({
+          const errToLog = error instanceof Error ? error : new Error(String(error));
+          logger.error('Progress error', errToLog);
+          const statusCode = (error instanceof AppError && error.statusCode) || 
+                           (typeof error === 'object' && error && (error as any).status) || 
+                           500;
+          const errMessage = (error instanceof Error && error.message) || 'Unknown progress error';
+          const errCode = (typeof error === 'object' && error && (error as any).code) || ErrorCode.INTERNAL_SERVER_ERROR;
+          
+          res.status(statusCode).json({
             error: {
-              message: error.message,
-              code: error.code,
-              status: error.status
+              message: errMessage,
+              code: errCode,
+              status: statusCode
             }
           });
         },
@@ -526,7 +552,7 @@ export class FileUploadMiddleware {
 
       // Send initial progress
       const progressData = progressCache.get(progressId);
-      if (progressData) {
+      if (progressData && typeof subscription.onProgress === 'function') {
         subscription.onProgress(progressData);
       }
     } catch (subscriptionError: unknown) {

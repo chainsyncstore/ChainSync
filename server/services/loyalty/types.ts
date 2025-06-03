@@ -1,18 +1,98 @@
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import * as schema from '@shared/schema';
+import * as schema from '../../../shared/schema';
 
-export type LoyaltyProgram = schema.LoyaltyProgram;
-export type LoyaltyMember = schema.LoyaltyMember;
-export type LoyaltyTransaction = schema.LoyaltyTransaction;
-export type LoyaltyProgramStatus = 'active' | 'inactive' | 'draft' | 'archived'; // Adjust as needed if enum/type exists in schema
+// Define proper interfaces based on schema tables
+export interface LoyaltyProgram {
+  id: number;
+  storeId: number;
+  name: string;
+  description: string;
+  status: LoyaltyProgramStatus; // Changed from isActive
+  metadata?: Record<string, unknown>; // Added metadata
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyMember {
+  id: number;
+  loyaltyId: string;
+  customerId: number;
+  programId: number;
+  tierId: number | null;
+  points: number;
+  lifetimePoints: number; // Added lifetimePoints
+  status: 'active' | 'inactive' | 'suspended'; // Added status
+  enrollmentDate: Date; // Added from enhanced-service usage
+  lastActivityDate: Date; // Added from enhanced-service usage
+  metadata?: Record<string, unknown>; // Added metadata
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MemberWithDetails extends LoyaltyMember {
+  customer: {
+    id: number;
+    name: string;
+    email: string;
+    phone?: string;
+  };
+  program: {
+    id: number;
+    name: string;
+  };
+  tier: {
+    id: number;
+    name: string;
+  };
+}
+
+export interface LoyaltyTransaction {
+  id: number;
+  memberId: number;
+  programId: number;
+  transactionId: number | null;
+  type: 'earn' | 'redeem' | 'adjust';
+  points: number;
+  notes: string | null;
+  rewardId: number | null;
+  userId: number;
+  createdAt: Date;
+}
+
+export interface LoyaltyTier {
+  id: number;
+  programId: number;
+  name: string;
+  description: string;
+  pointsRequired: number;
+  multiplier: number;
+  benefits: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyReward {
+  id: number;
+  programId: number;
+  name: string;
+  description: string;
+  pointsRequired: number;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type LoyaltyProgramStatus = 'active' | 'inactive' | 'draft' | 'archived';
 
 export interface ILoyaltyService {
-  generateLoyaltyId(): Promise<string>;
+  generateLoyaltyId(userId: number, programId: number): Promise<string>; // Added parameters
   enrollCustomer(
     customerId: number,
     storeId: number,
     userId: number
-  ): Promise<schema.LoyaltyMember>;
+  ): Promise<LoyaltyMember>;
   calculatePointsForTransaction(
     subtotal: string | number,
     storeId: number,
@@ -29,9 +109,9 @@ export interface ILoyaltyService {
     userId: number
   ): Promise<{
     success: boolean;
-    transaction?: schema.LoyaltyTransaction;
+    transaction?: LoyaltyTransaction;
   }>;
-  getAvailableRewards(memberId: number): Promise<schema.LoyaltyReward[]>;
+  getAvailableRewards(memberId: number): Promise<LoyaltyReward[]>;
   applyReward(
     memberId: number,
     rewardId: number,
@@ -43,22 +123,22 @@ export interface ILoyaltyService {
     pointsRedeemed?: string;
     message?: string;
   }>;
-  getLoyaltyMember(identifier: string | number): Promise<schema.LoyaltyMember | null>;
-  getLoyaltyMemberByCustomerId(customerId: number): Promise<schema.LoyaltyMember | null>;
+  getLoyaltyMember(identifier: string | number): Promise<LoyaltyMember | null>;
+  getLoyaltyMemberByCustomerId(customerId: number): Promise<LoyaltyMember | null>;
   getMemberActivityHistory(
     memberId: number,
     limit?: number,
     offset?: number
-  ): Promise<schema.LoyaltyTransaction[]>;
-  getLoyaltyProgram(storeId: number): Promise<schema.LoyaltyProgram | null>;
+  ): Promise<LoyaltyTransaction[]>;
+  getLoyaltyProgram(storeId: number): Promise<LoyaltyProgram | null>;
   upsertLoyaltyProgram(
     storeId: number,
-    programData: Partial<schema.LoyaltyProgramInsert>
-  ): Promise<schema.LoyaltyProgram>;
-  createLoyaltyTier(tierData: schema.LoyaltyTierInsert): Promise<schema.LoyaltyTier>;
+    programData: Partial<LoyaltyProgram>
+  ): Promise<LoyaltyProgram>;
+  createLoyaltyTier(tierData: Partial<LoyaltyTier>): Promise<LoyaltyTier>;
   createLoyaltyReward(
-    rewardData: schema.LoyaltyRewardInsert
-  ): Promise<schema.LoyaltyReward>;
+    rewardData: Partial<LoyaltyReward>
+  ): Promise<LoyaltyReward>;
   processExpiredPoints(userId: number): Promise<number>;
   checkAndUpdateMemberTier(memberId: number): Promise<boolean>;
   getLoyaltyAnalytics(storeId: number): Promise<{
@@ -67,12 +147,133 @@ export interface ILoyaltyService {
     totalPointsEarned: string;
     totalPointsRedeemed: string;
     pointsBalance: string;
-    programDetails: schema.LoyaltyProgram | null;
+    programDetails: LoyaltyProgram | null;
     topRewards: Array<{
       name: string;
       redemptions: number;
     }>;
   }>;
+}
+
+// Params types for service methods
+export type CreateLoyaltyProgramParams = Partial<Omit<LoyaltyProgram, 'id' | 'createdAt' | 'updatedAt'>> &
+  Pick<LoyaltyProgram, 'storeId' | 'name'> &
+  { description?: string; metadata?: Record<string, unknown>; status?: LoyaltyProgramStatus };
+
+export type UpdateLoyaltyProgramParams = Partial<Omit<LoyaltyProgram, 'id' | 'storeId' | 'createdAt' | 'updatedAt'>> &
+  { metadata?: Record<string, unknown>; status?: LoyaltyProgramStatus };
+
+// Align with memberCreateSchema from server/services/loyalty/schemas.ts
+// which is z.infer<typeof memberCreateSchema>
+// This type should ideally be inferred or kept in sync with the Zod schema.
+export type CreateLoyaltyMemberParams = {
+  programId: number;
+  customerId: number;
+  loyaltyId?: string; // Optional, can be generated by service
+  points?: number | string; // Zod schema transforms to string
+  tierId?: number | null;
+  status?: 'active' | 'inactive' | 'suspended'; // Zod schema has isActive: z.boolean().default(true)
+  enrolledBy: number;
+  metadata?: Record<string, unknown>;
+  // These are conceptual fields used in enhanced-service, not directly in memberCreateSchema
+  userId: number; // Used to find customer/user, maps to customerId
+  membershipId?: string; // Alternative for loyaltyId input
+  tierLevel?: number; // Conceptual, maps to tierId
+  totalSpent?: string; // Conceptual
+  // lifetimePoints is part of LoyaltyMember, so it's covered by Omit if not updated, or included in Partial if it is.
+  // No, lifetimePoints is in LoyaltyMember, so it should be part of Omit.
+  // If we want to allow updating it, it should be in the second part of the intersection.
+  // Let's assume memberCreateSchema handles lifetimePoints if it's set at creation.
+  joinDate?: Date; // Conceptual, defaults to new Date()
+};
+
+// Omit points from LoyaltyMember to redefine it as number | string
+export type UpdateLoyaltyMemberParams = Partial<Omit<LoyaltyMember, 'id' | 'createdAt' | 'updatedAt' | 'loyaltyId' | 'customerId' | 'programId' | 'points'>> & {
+  points?: number | string; // Explicitly type points here to allow string or number for updates
+  metadata?: Record<string, unknown>;
+  lifetimePoints?: number; // Allow updating lifetimePoints
+  tierId?: number | null; // Allow updating tier
+  status?: 'active' | 'inactive' | 'suspended';
+};
+
+// For LoyaltyTransactionParams, based on usage in enhanced-service.ts and ILoyaltyService
+export type LoyaltyTransactionParams = {
+  memberId: number;
+  programId?: number; // Should be derivable from memberId or passed if creating member+tx
+  transactionId?: number | null; // External transaction_id from an order/sale
+  rewardId?: number | null;
+  type: 'earn' | 'redeem' | 'adjust' | 'enroll'; // Align with LoyaltyTransaction interface type & schema
+  points: number | string; // Zod schema transforms to string, matches LoyaltyTransaction.points which is number after formatting
+  userId: number; // User performing the action (cashier, system, etc.)
+  notes?: string | null;
+  metadata?: Record<string, unknown>;
+  // Conceptual fields used in enhanced-service logic, should map to the above fields.
+  // pointsEarned and pointsRedeemed are conceptual, 'points' field with 'type' handles this.
+  // referenceId and description are conceptual, map to transactionId and notes.
+};
+
+// These Params types are used by ILoyaltyService, ensure they are defined or use inline/Partial.
+// CreateLoyaltyTierParams and CreateLoyaltyRewardParams are fine as Partial.
+export type CreateLoyaltyTierParams = Partial<LoyaltyTier>;
+export type CreateLoyaltyRewardParams = Partial<LoyaltyReward>;
+
+// These are not directly used by ILoyaltyService method signatures if those use inline object types.
+// Keep them if they are used elsewhere or for clarity.
+// For now, assuming ILoyaltyService signatures are the source of truth for param/return types.
+// export type CalculatePointsParams = { // This is an inline type in ILoyaltyService
+//   subtotal: string | number;
+//   storeId: number;
+//   items: Array<{
+//     productId: number;
+//     quantity: number;
+//     unitPrice: number | string;
+//   }>;
+// };
+
+export type RecordPointsEarnedResult = { // This is an inline type in ILoyaltyService
+  success: boolean;
+  transaction?: LoyaltyTransaction;
+  message?: string; // Optional error message
+};
+
+export type ApplyRewardResult = { // This is an inline type in ILoyaltyService
+  success: boolean;
+  discountAmount?: string;
+  pointsRedeemed?: string; // Kept as string to match ILoyaltyService, conversion happens elsewhere
+  message?: string;
+};
+
+// export type GetMemberActivityHistoryParams = { // This is an inline type in ILoyaltyService
+//   memberId: number;
+//   limit?: number;
+//   offset?: number;
+// };
+
+export type GetLoyaltyAnalyticsResult = { // This is used by ILoyaltyService
+  memberCount: number;
+  activeMembers: number;
+  totalPointsEarned: string; // Should be number or string consistent with points
+  totalPointsRedeemed: string; // Should be number or string
+  pointsBalance: string; // Should be number or string
+  programDetails: LoyaltyProgram | null;
+  topRewards: Array<{
+    name: string;
+    redemptions: number;
+  }>;
+};
+
+// Define the ServiceError class that's missing
+export class ServiceError extends Error {
+  constructor(
+    message: string,
+    public code: ErrorCode,
+    public category: ErrorCategory,
+    public isOperational: boolean = true,
+    public retryAfter?: number
+  ) {
+    super(message);
+    this.name = 'ServiceError';
+  }
 }
 
 export interface ILoyaltyServiceErrors {
@@ -84,6 +285,9 @@ export interface ILoyaltyServiceErrors {
   TIER_NOT_FOUND: ServiceError;
   REWARD_NOT_FOUND: ServiceError;
   TRANSACTION_FAILED: ServiceError;
+  STORE_NOT_FOUND: ServiceError; // Added
+  USER_NOT_FOUND: ServiceError; // Added
+  MEMBER_NOT_FOUND: ServiceError; // Added
 }
 
 export const LoyaltyServiceErrors: ILoyaltyServiceErrors = {
@@ -128,5 +332,20 @@ export const LoyaltyServiceErrors: ILoyaltyServiceErrors = {
     ErrorCategory.SYSTEM,
     true,
     5000
+  ),
+  STORE_NOT_FOUND: new ServiceError(
+    'Store not found for loyalty program',
+    ErrorCode.RESOURCE_NOT_FOUND,
+    ErrorCategory.RESOURCE
+  ),
+  USER_NOT_FOUND: new ServiceError(
+    'User not found for loyalty enrollment',
+    ErrorCode.RESOURCE_NOT_FOUND,
+    ErrorCategory.RESOURCE
+  ),
+  MEMBER_NOT_FOUND: new ServiceError(
+    'Loyalty member not found',
+    ErrorCode.RESOURCE_NOT_FOUND,
+    ErrorCategory.RESOURCE
   )
 };

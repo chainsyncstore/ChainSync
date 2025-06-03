@@ -10,8 +10,8 @@ import {
   LoyaltyMemberFormatter, 
   LoyaltyTransactionFormatter 
 } from './formatter';
-import { loyaltyValidation } from '@shared/schema-validation';
-import { ILoyaltyService } from './interface';
+import { loyaltyValidation, loyaltyMemberSchema } from '@shared/schema-validation'; // Import loyaltyMemberSchema
+import { ILoyaltyService } from './types'; // Corrected import path
 import { 
   CreateLoyaltyProgramParams, 
   UpdateLoyaltyProgramParams,
@@ -21,13 +21,19 @@ import {
   CreateLoyaltyMemberParams,
   UpdateLoyaltyMemberParams,
   LoyaltyTransactionParams,
-  LoyaltyProgramStatus
-} from './types';
-import { LoyaltyServiceErrors } from './errors';
+  LoyaltyProgramStatus,
+  LoyaltyTier, // For Partial<LoyaltyTier>
+  LoyaltyReward, // For Partial<LoyaltyReward>
+  GetLoyaltyAnalyticsResult
+  // Removed other specific Param/Result types not directly used or covered by ILoyaltyService's inline/Partial types
+} from './types'; 
+import { LoyaltyServiceErrors } from './types'; 
 import { ErrorCode } from '@shared/types/errors';
-import { db } from '@server/db';
+import { db } from '@server/database'; 
+import logger from '@shared/logging'; 
 import { eq, and, or, like, desc, asc, sql } from 'drizzle-orm';
 import * as schema from '@shared/schema';
+import { z } from 'zod'; // Import z
 
 export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoyaltyService {
   private programFormatter: LoyaltyProgramFormatter;
@@ -35,10 +41,23 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
   private transactionFormatter: LoyaltyTransactionFormatter;
   
   constructor() {
-    super();
+    super({ db, logger }); // Pass db and logger in ServiceConfig
     this.programFormatter = new LoyaltyProgramFormatter();
     this.memberFormatter = new LoyaltyMemberFormatter();
     this.transactionFormatter = new LoyaltyTransactionFormatter();
+  }
+
+  /**
+   * Generate a unique loyalty ID
+   * @param userId User ID
+   * @param programId Program ID
+   * @returns A unique loyalty ID string
+   */
+  async generateLoyaltyId(userId: number, programId: number): Promise<string> {
+    // Using a simplified version of the old generateMembershipId logic
+    const prefix = 'LM';
+    const timestamp = Date.now().toString().slice(-6); // Original logic used this
+    return `${prefix}${programId}${userId}${timestamp}`; // Original logic
   }
   
   /**
@@ -57,21 +76,21 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       
       // Check for existing active program for this store
       const existingProgram = await this.getLoyaltyProgramByStore(params.storeId);
-      if (existingProgram && existingProgram.status === LoyaltyProgramStatus.ACTIVE) {
+      if (existingProgram && existingProgram.status === 'active') { // Compare with string literal
         return this.updateLoyaltyProgram(existingProgram.id, params);
       }
       
       // Prepare program data
       const programData = {
         ...params,
-        status: params.status || LoyaltyProgramStatus.ACTIVE,
+        status: params.status || 'active', // Use string literal
         createdAt: new Date(),
         updatedAt: new Date(),
         metadata: params.metadata ? JSON.stringify(params.metadata) : null
       };
       
       // Validate and prepare the data
-      const validatedData = loyaltyValidation.programInsert(programData);
+      const validatedData = loyaltyValidation.program.insert(programData);
       
       // Use the raw insert method to avoid TypeScript field mapping errors
       const program = await this.rawInsertWithFormatting(
@@ -110,7 +129,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       };
       
       // Validate the data
-      const validatedData = loyaltyValidation.programUpdate(updateData);
+      const validatedData = loyaltyValidation.program.update(updateData);
       
       // Use the raw update method to avoid TypeScript field mapping errors
       const updatedProgram = await this.rawUpdateWithFormatting(
@@ -204,36 +223,37 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       if (existingMember) {
         return this.updateLoyaltyMember(existingMember.id, {
           ...params,
-          isActive: true
+          status: 'active' // Changed from isActive: true
         });
       }
       
       // Generate membership ID if not provided
-      const membershipId = params.membershipId || this.generateMembershipId(params.userId, params.programId);
+      const loyaltyId = params.loyaltyId || params.membershipId || await this.generateLoyaltyId(params.userId, params.programId);
       
-      // Prepare member data
-      const memberData = {
-        ...params,
-        membershipId,
-        points: params.points || 0,
-        tierLevel: params.tierLevel || 1,
-        totalSpent: params.totalSpent || '0.00',
-        lifetimePoints: params.lifetimePoints || 0,
-        isActive: true,
-        enrollmentDate: new Date(),
-        lastActivityDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+      // Prepare member data for validation, aligning with loyaltyMemberSchema (from schema-validation.ts)
+      // This schema is derived from the Drizzle loyaltyMembers table.
+      const memberDataForValidation: z.input<typeof loyaltyMemberSchema> = {
+        programId: params.programId, // Added programId
+        customerId: params.customerId,
+        loyaltyId: loyaltyId, // This is validated by loyaltyMemberSchema's override
+        points: Number(params.points || 0), // DB expects number, Zod schema should align or transform
+        tierId: params.tierId || (params.tierLevel ? Number(params.tierLevel) : null), // DB expects number | null
+        status: params.status || 'active', // DB expects string, e.g., 'active'
+        // joinDate, createdAt, updatedAt are typically handled by DB defaults or ORM.
+        // isActive, enrolledBy are not part of loyaltyMembers table schema.
       };
-      
-      // Validate and prepare the data
-      const validatedData = loyaltyValidation.memberInsert(memberData);
-      
-      // Use the raw insert method to avoid TypeScript field mapping errors
+      // Note: If params.metadata is used, loyaltyMemberSchema and the DB table need to support it.
+      // Currently, loyaltyMembers table does not have a metadata column.
+
+      // Validate data against loyaltyMemberSchema
+      const validatedDataForDbInsert = loyaltyValidation.member.insert(memberDataForValidation);
+      // validatedDataForDbInsert should now conform to the structure expected by the loyalty_members table,
+      // as loyaltyMemberSchema is derived from it.
+
+      // Use the raw insert method with the validated data
       const member = await this.rawInsertWithFormatting(
         'loyalty_members',
-        validatedData,
+        validatedDataForDbInsert, // Use the data validated against DB-derived schema
         this.memberFormatter.formatResult.bind(this.memberFormatter)
       );
       
@@ -268,7 +288,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       };
       
       // Validate the data
-      const validatedData = loyaltyValidation.memberUpdate(updateData);
+      const validatedData = loyaltyValidation.member.update(updateData);
       
       // Use the raw update method to avoid TypeScript field mapping errors
       const updatedMember = await this.rawUpdateWithFormatting(
@@ -356,10 +376,24 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
         throw LoyaltyServiceErrors.PROGRAM_NOT_FOUND;
       }
       
-      // Calculate new points balance
-      const pointsEarned = params.pointsEarned || 0;
-      const pointsRedeemed = params.pointsRedeemed || 0;
-      const newPointsBalance = member.points + pointsEarned - pointsRedeemed;
+      // Calculate points change based on transaction type
+      let pointsChange = 0;
+      let lifetimePointsIncrement = 0;
+
+      if (params.type === 'earn') {
+        pointsChange = Number(params.points);
+        lifetimePointsIncrement = Number(params.points);
+      } else if (params.type === 'redeem') {
+        pointsChange = -Number(params.points);
+      } else if (params.type === 'adjust') {
+        pointsChange = Number(params.points);
+        // Adjustments might affect lifetime points if they are positive earnings
+        if (Number(params.points) > 0) {
+          lifetimePointsIncrement = Number(params.points);
+        }
+      }
+
+      const newPointsBalance = member.points + pointsChange;
       
       if (newPointsBalance < 0) {
         throw LoyaltyServiceErrors.INSUFFICIENT_POINTS;
@@ -368,28 +402,24 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       // Update member points
       await this.updateLoyaltyMember(member.id, {
         points: newPointsBalance,
-        lifetimePoints: member.lifetimePoints + pointsEarned
+        lifetimePoints: member.lifetimePoints + lifetimePointsIncrement
       });
       
-      // Prepare transaction data
-      const transactionData = {
+      // Prepare transaction data according to transactionCreateSchema
+      const transactionDataToValidate = {
         memberId: params.memberId,
-        programId: member.programId,
-        pointsEarned,
-        pointsRedeemed,
-        pointsBalance: newPointsBalance,
-        transactionType: params.transactionType || 'earn',
-        referenceId: params.referenceId,
-        description: params.description || '',
-        amount: params.amount || '0.00',
-        transactionDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        programId: member.programId, // Derived from member
+        transactionId: params.transactionId || null,
+        rewardId: params.rewardId || null,
+        type: params.type, // This is from LoyaltyTransactionParams
+        points: String(params.points), // This is from LoyaltyTransactionParams, schema expects string
+        userId: params.userId, // User performing the action
+        notes: params.notes || null,
+        // metadata is not in transactionCreateSchema
       };
       
       // Validate and prepare the data
-      const validatedData = loyaltyValidation.transactionInsert(transactionData);
+      const validatedData = loyaltyValidation.transaction.insert(transactionDataToValidate);
       
       // Use the raw insert method to avoid TypeScript field mapping errors
       const transaction = await this.rawInsertWithFormatting(
@@ -498,9 +528,198 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
    * @param programId Program ID
    * @returns Unique membership ID
    */
-  private generateMembershipId(userId: number, programId: number): string {
-    const prefix = 'LM';
-    const timestamp = Date.now().toString().slice(-6);
-    return `${prefix}${programId}${userId}${timestamp}`;
+  // This was the original private method, now made public and renamed to generateLoyaltyId
+  // private generateMembershipId(userId: number, programId: number): string {
+  //   const prefix = 'LM';
+  //   const timestamp = Date.now().toString().slice(-6);
+  //   return `${prefix}${programId}${userId}${timestamp}`;
+  // }
+
+  // Stubs for missing ILoyaltyService methods
+
+  async enrollCustomer(customerId: number, storeId: number, userId: number): Promise<LoyaltyMember> {
+    // TODO: Implement actual logic
+    // This might involve finding or creating a program for the store, then creating a member
+    this.logger.info(`Attempting to enroll customer ${customerId} for store ${storeId} by user ${userId}`);
+    const program = await this.getLoyaltyProgramByStore(storeId);
+    if (!program) {
+      throw LoyaltyServiceErrors.PROGRAM_NOT_FOUND;
+    }
+    return this.createLoyaltyMember({ customerId, programId: program.id, userId, enrolledBy: userId });
+  }
+
+  async calculatePointsForTransaction(
+    subtotal: string | number,
+    storeId: number,
+    items: Array<{ productId: number; quantity: number; unitPrice: number | string; }>
+  ): Promise<number> {
+    // TODO: Implement actual logic based on program rules
+    this.logger.info(`Calculating points for transaction in store ${storeId}`);
+    const program = await this.getLoyaltyProgramByStore(storeId);
+    if (!program || program.status !== 'active') {
+      return 0;
+    }
+    // Example: 1 point per dollar, consult program.metadata for actual rules
+    const numericSubtotal = typeof subtotal === 'string' ? parseFloat(subtotal) : subtotal;
+    const pointsPerDollar = (program.metadata?.pointsPerDollar as number) || 1; 
+    return Math.floor(numericSubtotal * pointsPerDollar);
+  }
+
+  async recordPointsEarned(
+    transactionId: number,
+    memberId: number,
+    points: number,
+    userId: number
+  ): Promise<{ success: boolean; transaction?: LoyaltyTransaction; }> {
+    // TODO: Implement actual logic
+    this.logger.info(`Recording ${points} points for member ${memberId}, transaction ${transactionId}`);
+    try {
+      const member = await this.getLoyaltyMemberById(memberId);
+      if (!member) throw LoyaltyServiceErrors.MEMBER_NOT_FOUND;
+
+      const loyaltyTx = await this.createLoyaltyTransaction({
+        memberId,
+        programId: member.programId, // Pass programId explicitly
+        transactionId, // Pass transactionId if available
+        points: points, 
+        type: 'earn', 
+        userId,
+        notes: `Earned ${points} points from transaction ${transactionId}`
+        // Other fields from LoyaltyTransactionParams like rewardId, metadata can be added if needed
+      });
+      return { success: true, transaction: loyaltyTx };
+    } catch (error) {
+      this.logger.error('Failed to record points earned', { error, memberId, transactionId });
+      return { success: false }; 
+    }
+  }
+
+  async getAvailableRewards(memberId: number): Promise<LoyaltyReward[]> {
+    // TODO: Implement actual logic based on member's points and program rewards
+    this.logger.info(`Fetching available rewards for member ${memberId}`);
+    const member = await this.getLoyaltyMemberById(memberId);
+    if (!member) return [];
+    // Example: Fetch all active rewards for the program, then filter by points
+    // This requires a method to get rewards by programId
+    // For now, returning empty array
+    return []; 
+  }
+
+  async applyReward(
+    memberId: number,
+    rewardId: number,
+    transactionId: number,
+    userId: number
+  ): Promise<{ success: boolean; discountAmount?: string; pointsRedeemed?: string; message?: string; }> {
+    // TODO: Implement actual logic
+    this.logger.info(`Applying reward ${rewardId} for member ${memberId}`);
+    // This would involve:
+    // 1. Fetching member and reward details.
+    // 2. Checking if member has enough points.
+    // 3. Creating a 'redeem' loyalty transaction.
+    // 4. Updating member's points.
+    // 5. Returning discount details.
+    return { success: false, message: 'Not implemented' };
+  }
+
+  async getLoyaltyMember(identifier: string | number): Promise<LoyaltyMember | null> {
+    if (typeof identifier === 'number') {
+      return this.getLoyaltyMemberById(identifier);
+    }
+    // If string, assume it's loyaltyId
+    // TODO: Implement lookup by loyaltyId string
+    this.logger.info(`Fetching loyalty member by identifier ${identifier}`);
+    const query = `SELECT * FROM loyalty_members WHERE loyalty_id = '${identifier}' LIMIT 1`;
+     return await this.executeSqlWithFormatting(
+        query,
+        [],
+        this.memberFormatter.formatResult.bind(this.memberFormatter)
+      );
+  }
+  
+  async getLoyaltyMemberByCustomerId(customerId: number): Promise<LoyaltyMember | null> {
+    // This might need to iterate through programs if a customer can be in multiple,
+    // or assume one program per store and customer is linked via store.
+    // For now, assuming a simpler lookup or that getLoyaltyMemberByUser can be adapted.
+    this.logger.info(`Fetching loyalty member by customer ID ${customerId}`);
+    const query = `SELECT * FROM loyalty_members WHERE customer_id = ${customerId} LIMIT 1`;
+     return await this.executeSqlWithFormatting(
+        query,
+        [],
+        this.memberFormatter.formatResult.bind(this.memberFormatter)
+      );
+  }
+
+  async getMemberActivityHistory(memberId: number, limit?: number, offset?: number): Promise<LoyaltyTransaction[]> {
+    this.logger.info(`Fetching activity history for member ${memberId}`);
+    let query = `SELECT * FROM loyalty_transactions WHERE member_id = ${memberId} ORDER BY created_at DESC`;
+    if (limit) query += ` LIMIT ${limit}`;
+    if (offset) query += ` OFFSET ${offset}`;
+    
+    return await this.executeSqlWithMultipleResults(
+      query,
+      [],
+      this.transactionFormatter.formatResult.bind(this.transactionFormatter)
+    );
+  }
+
+  async getLoyaltyProgram(storeId: number): Promise<LoyaltyProgram | null> {
+    return this.getLoyaltyProgramByStore(storeId);
+  }
+
+  async upsertLoyaltyProgram(storeId: number, programData: Partial<LoyaltyProgram>): Promise<LoyaltyProgram> {
+    const existingProgram = await this.getLoyaltyProgramByStore(storeId);
+    if (existingProgram) {
+      return this.updateLoyaltyProgram(existingProgram.id, programData);
+    } else {
+      // Ensure all required fields for creation are present
+      if (!programData.name) throw new Error("Program name is required for creation.");
+      return this.createLoyaltyProgram({ 
+        storeId, 
+        name: programData.name, 
+        description: programData.description,
+        status: programData.status || 'active',
+        metadata: programData.metadata 
+      });
+    }
+  }
+
+  async createLoyaltyTier(tierData: Partial<LoyaltyTier>): Promise<LoyaltyTier> {
+    // TODO: Implement actual logic
+    this.logger.info('Creating loyalty tier', { tierData });
+    throw new Error('createLoyaltyTier not implemented.');
+  }
+
+  async createLoyaltyReward(rewardData: Partial<LoyaltyReward>): Promise<LoyaltyReward> {
+    // TODO: Implement actual logic
+    this.logger.info('Creating loyalty reward', { rewardData });
+    throw new Error('createLoyaltyReward not implemented.');
+  }
+
+  async processExpiredPoints(userId: number): Promise<number> {
+    // TODO: Implement actual logic
+    this.logger.info(`Processing expired points for user ${userId}`);
+    return 0; // Placeholder
+  }
+
+  async checkAndUpdateMemberTier(memberId: number): Promise<boolean> {
+    // TODO: Implement actual logic
+    this.logger.info(`Checking and updating tier for member ${memberId}`);
+    return false; // Placeholder
+  }
+
+  async getLoyaltyAnalytics(storeId: number): Promise<GetLoyaltyAnalyticsResult> {
+    // TODO: Implement actual logic
+    this.logger.info(`Fetching loyalty analytics for store ${storeId}`);
+    // Placeholder structure
+    return {
+      memberCount: 0,
+      activeMembers: 0,
+      totalPointsEarned: '0',
+      totalPointsRedeemed: '0',
+      pointsBalance: '0',
+      programDetails: null,
+      topRewards: [],
+    };
   }
 }

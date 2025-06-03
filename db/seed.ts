@@ -1,5 +1,5 @@
-import { db } from './index';
-import * as schema from '../shared/schema';
+import { db } from './index.js';
+import * as schema from '../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 
@@ -410,6 +410,7 @@ async function seed() {
         const transactionData = {
           storeId: store.id,
           userId: cashier.id,
+          total: total.toFixed(2), // Added total field
           totalAmount: total.toFixed(2),
           paymentStatus: 'paid',
           paymentMethod: Math.random() > 0.3 ? 'credit_card' : 'cash',

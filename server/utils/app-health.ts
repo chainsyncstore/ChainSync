@@ -2,7 +2,8 @@ import { getLogger } from '../../src/logging';
 import { metricsCollector } from '../monitoring/metrics-collector';
 import { alertManager, AlertSeverity } from '../monitoring/alert-manager';
 import { EventEmitter } from 'events';
-import { db } from '../../db';
+import { db } from '../db/connection';
+import { sql } from 'drizzle-orm';
 import os from 'os';
 import { cpus } from 'os';
 
@@ -152,7 +153,7 @@ export class AppHealthManager extends EventEmitter {
       const startTime = Date.now();
       
       // Simple query to test database connection
-      await db.execute('SELECT 1');
+      await db.execute(sql`SELECT 1`);
       
       const responseTime = Date.now() - startTime;
       

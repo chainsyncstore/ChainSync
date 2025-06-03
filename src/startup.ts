@@ -5,6 +5,7 @@ import { initRedis } from './cache/redis';
 import { initQueue, QueueType, shutdownQueues } from './queue';
 import { initLoyaltyWorker } from './queue/processors/loyalty';
 import { Pool } from 'pg';
+import { AppError } from '@shared/types/errors';
 
 // Get startup logger
 const logger = getLogger().child({ component: 'startup' });

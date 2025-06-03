@@ -4,8 +4,7 @@ import crypto from 'crypto';
 import { Pool } from 'pg';
 import Redis from 'ioredis';
 import { getLogger, SecurityLogger, SecurityEventType, SecuritySeverity } from '../../../src/logging/index';
-import { ErrorCode, ErrorCategory } from '../../middleware/types/error';
-import { AppError } from '../../middleware/utils/app-error';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 const logger = getLogger().child({ component: 'unified-auth-service' });
 // Create a security logger instance for auth-specific security events
@@ -106,9 +105,10 @@ export class UnifiedAuthService {
     // Validate user is active
     if (!user.isActive) {
       throw new AppError(
+        'User is not active',
         ErrorCategory.AUTHENTICATION,
-        ErrorCode.AUTHENTICATION,
-        'User account is inactive'
+        ErrorCode.UNAUTHORIZED,
+        { reason: 'User account is inactive' }
       );
     }
     
@@ -169,11 +169,11 @@ export class UnifiedAuthService {
     } catch (error: unknown) {
       logger.error('Failed to store token in Redis', { error, userId: user.id });
       throw new AppError(
+        'Failed to store token in Redis',
         ErrorCategory.SYSTEM,
-        ErrorCode.INTERNAL_ERROR,
-        'Redis connection error',
-        { redisError: error },
-        503
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { redisError: (error as Error).message, reason: 'Redis connection error' },
+        503 // Service Unavailable
       );
     }
 
@@ -287,15 +287,15 @@ export class UnifiedAuthService {
     try {
       // Use parameterized query to prevent SQL injection
       const query = 'SELECT is_active FROM users WHERE id = $1';
-      const result = await this.db.query(query, [userId]);
+      const result = await (this.db as any).execute(query, [userId]);
       
       if (result.rows.length === 0) {
         return false;
       }
       
       return result.rows[0].is_active === true;
-    } catch (error: unknown) {
-      logger.error('Error checking user active status', { error, userId });
+    } catch (error) {
+      logger.error('Error checking user active status', { error: (error as Error).message, userId });
       return false;
     }
   }
@@ -316,7 +316,7 @@ export class UnifiedAuthService {
         WHERE email = $1
       `;
       
-      const result = await this.db.query(query, [email]);
+      const result = await (this.db as any).execute(query, [email]);
       
       if (result.rows.length === 0) {
         return null;
@@ -340,8 +340,8 @@ export class UnifiedAuthService {
         lockedUntil: row.lockedUntil,
         storeId: row.storeId
       };
-    } catch (error: unknown) {
-      logger.error('Error getting user by email', { error, email });
+    } catch (error) {
+      logger.error('Error getting user by email', { error: (error as Error).message, email });
       return null;
     }
   }
@@ -362,7 +362,7 @@ export class UnifiedAuthService {
         WHERE id = $1
       `;
       
-      const result = await this.db.query(query, [userId]);
+      const result = await (this.db as any).execute(query, [userId]);
       
       if (result.rows.length === 0) {
         return null;
@@ -386,8 +386,8 @@ export class UnifiedAuthService {
         lockedUntil: row.lockedUntil,
         storeId: row.storeId
       };
-    } catch (error: unknown) {
-      logger.error('Error getting user by ID', { error, userId });
+    } catch (error) {
+      logger.error('Error getting user by ID', { error: (error as Error).message, userId });
       return null;
     }
   }
@@ -490,10 +490,10 @@ export class UnifiedAuthService {
       );
       
       throw new AppError(
+        'Invalid refresh token',
         ErrorCategory.AUTHENTICATION,
-        ErrorCode.AUTHENTICATION,
-        'Account is temporarily locked due to too many failed login attempts',
-        { lockedUntil: user.lockedUntil }
+        ErrorCode.LOCKED,
+        { lockedUntil: user.lockedUntil, reason: 'Account is temporarily locked' }
       );
     }
 
@@ -537,9 +537,10 @@ export class UnifiedAuthService {
       );
       
       throw new AppError(
+        'User not found or token mismatch',
         ErrorCategory.AUTHENTICATION,
-        ErrorCode.AUTHENTICATION,
-        'Account is deactivated'
+        ErrorCode.UNAUTHORIZED,
+        { reason: 'Account is deactivated' }
       );
     }
 
@@ -577,8 +578,8 @@ export class UnifiedAuthService {
       // Remove token and session from Redis
       await this.redis.del(`${this.TOKEN_PREFIX}${sessionId}`);
       await this.redis.del(`${this.SESSION_PREFIX}${sessionId}`);
-    } catch (error: unknown) {
-      logger.error('Error during logout', { error, sessionId });
+    } catch (error) {
+      logger.error('Error during logout', { error: (error as Error).message, sessionId });
       // Non-blocking error - we consider the user logged out anyway
     }
   }
@@ -607,17 +608,18 @@ export class UnifiedAuthService {
               await this.redis.del(key);
             }
           }
-        } catch (error: unknown) {
-          logger.error('Error processing session during logout all', { error, key });
+        } catch (error) {
+          logger.error('Error processing session during logout all', { error: (error as Error).message, key });
           // Continue with other sessions
         }
       }
-    } catch (error: unknown) {
-      logger.error('Error during logout all sessions', { error, userId });
+    } catch (error) {
+      logger.error('Error during logout all sessions', { error: (error as Error).message, userId });
       throw new AppError(
+        'Error during logout all sessions',
         ErrorCategory.SYSTEM,
-        ErrorCode.INTERNAL_ERROR,
-        'Failed to log out all sessions'
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { reason: 'Failed to log out all sessions' }
       );
     }
   }
@@ -634,7 +636,7 @@ export class UnifiedAuthService {
         WHERE id = $1
       `;
       
-      const userResult = await this.db.query(userQuery, [userId]);
+      const userResult = await (this.db as any).execute(userQuery, [userId]);
       const currentFailedAttempts = userResult.rows[0]?.failed_login_attempts || 0;
       const willLockAccount = currentFailedAttempts + 1 >= 5;
       
@@ -650,7 +652,7 @@ export class UnifiedAuthService {
         RETURNING failed_login_attempts, locked_until
       `;
       
-      const result = await this.db.query(updateQuery, [userId]);
+      const result = await (this.db as any).execute(updateQuery, [userId]);
       const newFailedAttempts = result.rows[0]?.failed_login_attempts;
       const lockedUntil = result.rows[0]?.locked_until;
       
@@ -670,8 +672,8 @@ export class UnifiedAuthService {
           }
         );
       }
-    } catch (error: unknown) {
-      logger.error('Error handling failed login', { error, userId });
+    } catch (error) {
+      logger.error('Error handling failed login', { error: (error as Error).message, userId });
       // Non-blocking - we'll still return null for the login attempt
     }
   }
@@ -688,7 +690,7 @@ export class UnifiedAuthService {
         WHERE id = $1
       `;
       
-      const userResult = await this.db.query(userQuery, [userId]);
+      const userResult = await (this.db as any).execute(userQuery, [userId]);
       const wasLocked = userResult.rows[0]?.locked_until && new Date(userResult.rows[0].locked_until) > new Date();
       const previousFailedAttempts = userResult.rows[0]?.failed_login_attempts || 0;
       
@@ -700,7 +702,7 @@ export class UnifiedAuthService {
         WHERE id = $1
       `;
       
-      await this.db.query(query, [userId]);
+      await (this.db as any).execute(query, [userId]);
       
       // Log account unlock if it was previously locked
       if (wasLocked) {
@@ -716,8 +718,8 @@ export class UnifiedAuthService {
           }
         );
       }
-    } catch (error: unknown) {
-      logger.error('Error resetting failed login attempts', { error, userId });
+    } catch (error) {
+      logger.error('Error resetting failed login attempts', { error: (error as Error).message, userId });
       // Non-blocking - user can still log in
     }
   }
@@ -734,9 +736,9 @@ export class UnifiedAuthService {
         WHERE id = $1
       `;
       
-      await this.db.query(query, [userId, ipAddress || null]);
-    } catch (error: unknown) {
-      logger.error('Error updating last login', { error, userId });
+      await (this.db as any).execute(query, [userId, ipAddress || null]);
+    } catch (error) {
+      logger.error('Error updating last login', { error: (error as Error).message, userId });
       // Non-blocking - user can still log in
     }
   }
@@ -812,12 +814,13 @@ export class UnifiedAuthService {
       logger.info('Generated password reset token', { userId });
       
       return resetToken;
-    } catch (error: unknown) {
-      logger.error('Error generating reset token', { error, userId });
+    } catch (error) {
+      logger.error('Error generating reset token', { error: (error as Error).message, userId });
       throw new AppError(
+        'Error generating reset token',
         ErrorCategory.SYSTEM,
-        ErrorCode.INTERNAL_ERROR,
-        'Failed to generate password reset token'
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { reason: 'Failed to generate password reset token' }
       );
     }
   }
@@ -845,8 +848,8 @@ export class UnifiedAuthService {
       await this.redis.del(`${this.RESET_TOKEN_PREFIX}${hashedToken}`);
       
       return userId;
-    } catch (error: unknown) {
-      logger.error('Error validating reset token', { error });
+    } catch (error) {
+      logger.error('Error validating reset token', { error: (error as Error).message });
       return null;
     }
   }

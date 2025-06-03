@@ -27,51 +27,54 @@ export interface AIError extends AppError {
 export const AIServiceErrors = {
   INVALID_API_KEY: new AppError(
     'Invalid API key',
-    ErrorCode.AUTHENTICATION_ERROR,
     ErrorCategory.AUTHENTICATION,
-    false,
-    undefined,
-    'Please check your API key'
+    ErrorCode.AUTHENTICATION_ERROR,
+    { contextMessage: 'Please check your API key' },
+    undefined, // statusCode
+    false // retryable
   ),
   RATE_LIMIT_EXCEEDED: new AppError(
     'Rate limit exceeded',
-    ErrorCode.RATE_LIMIT_EXCEEDED,
     ErrorCategory.SYSTEM,
-    true,
-    60000, // 1 minute retry
-    'Too many requests. Please try again later'
+    ErrorCode.RATE_LIMIT_EXCEEDED,
+    { contextMessage: 'Too many requests. Please try again later' },
+    undefined, // statusCode
+    true, // retryable
+    60000 // retryAfter (1 minute)
   ),
   MODEL_NOT_FOUND: new AppError(
     'Model not found',
-    ErrorCode.RESOURCE_NOT_FOUND,
     ErrorCategory.RESOURCE,
-    false,
-    undefined,
-    'The requested model is not available'
+    ErrorCode.RESOURCE_NOT_FOUND,
+    { contextMessage: 'The requested model is not available' },
+    undefined, // statusCode
+    false // retryable
   ),
   INVALID_REQUEST: new AppError(
     'Invalid request',
-    ErrorCode.INVALID_REQUEST,
     ErrorCategory.VALIDATION,
-    false,
-    undefined,
-    'Please check your request parameters'
+    ErrorCode.INVALID_REQUEST,
+    { contextMessage: 'Please check your request parameters' },
+    undefined, // statusCode
+    false // retryable
   ),
   API_ERROR: new AppError(
     'AI service error',
-    ErrorCode.INTERNAL_SERVER_ERROR,
     ErrorCategory.SYSTEM,
-    true,
-    5000,
-    'Failed to process AI request. Please try again'
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    { contextMessage: 'Failed to process AI request. Please try again' },
+    undefined, // statusCode
+    true, // retryable
+    5000 // retryAfter
   ),
   CACHE_ERROR: new AppError(
     'Cache error',
-    ErrorCode.INTERNAL_SERVER_ERROR,
     ErrorCategory.SYSTEM,
-    true,
-    5000,
-    'Failed to access cache. Please try again'
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    { contextMessage: 'Failed to access cache. Please try again' },
+    undefined, // statusCode
+    true, // retryable
+    5000 // retryAfter
   )
 };
 

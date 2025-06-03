@@ -98,6 +98,7 @@ export interface UpdateInventoryParams {
 
 export interface InventoryAdjustmentParams {
   productId: number;
+  storeId: number; // Added storeId
   quantity: number;
   reason: string;
   type: InventoryAdjustmentType;
@@ -131,7 +132,7 @@ export interface InventorySearchParams {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortOrder?: 'asc' | 'desc'; // Standardized to sortOrder
 }
 
 export interface InventoryServiceErrors {
@@ -154,6 +155,29 @@ export const InventoryServiceErrors: InventoryServiceErrors = {
   INVALID_BATCH_OPERATION: new Error("Invalid batch operation")
 };
 
+// Renaming InventoryAdjustmentType to InventoryTransactionType for clarity if used broadly
+export { InventoryAdjustmentType as InventoryTransactionType };
+
+export interface InventoryTransaction {
+  id: number;
+  inventoryId: number;
+  itemId?: number; // Optional if transaction is for inventory as a whole
+  batchId?: number; // Optional
+  transactionType: InventoryAdjustmentType; // Using the existing enum
+  quantity: number;
+  beforeQuantity: number;
+  afterQuantity: number;
+  unitCost?: string; // Optional, might not apply to all transaction types
+  totalCost?: string; // Optional
+  referenceId?: string; // e.g., order ID, transfer ID
+  notes?: string;
+  performedBy?: number; // User ID
+  transactionDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  metadata?: Record<string, unknown>;
+}
+
 export interface IInventoryService {
   createInventory(params: CreateInventoryParams): Promise<schema.Inventory>;
   updateInventory(inventoryId: number, params: UpdateInventoryParams): Promise<schema.Inventory>;
@@ -169,6 +193,7 @@ export interface IInventoryService {
     total: number;
     page: number;
     limit: number;
+    totalPages: number; // Add totalPages
   }>;
   adjustInventory(params: InventoryAdjustmentParams): Promise<boolean>;
   addInventoryBatch(params: InventoryBatchParams): Promise<schema.InventoryBatch>;

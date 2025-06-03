@@ -1,5 +1,4 @@
-import { promisify } from 'util';
-import { fileTypeFromBuffer } from 'file-type';
+// Removed promisify and fileTypeFromBuffer as they are not used.
 import sanitize from 'sanitize-filename';
 import crypto from 'crypto';
 
@@ -14,7 +13,7 @@ export const FileUtils = {
         return FileUtils.VALID_FILENAME_REGEX.test(filename);
     },
 
-    validateFileExtension: async (mimeType: string): Promise<boolean> => {
+    validateFileExtension: (mimeType: string): boolean => {
         const allowedMimeTypes = [
             'application/pdf',
             'application/msword',

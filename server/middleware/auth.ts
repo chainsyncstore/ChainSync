@@ -3,7 +3,7 @@ import { db } from '../../db';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getLogger, getRequestLogger } from '../../src/logging';
-import { UserPayload } from '../types/express'; // Import UserPayload
+import { UserPayload } from '../types/user'; // Corrected: Import UserPayload from ../types/user
 
 // Get centralized logger for auth middleware
 const logger = getLogger().child({ component: 'auth-middleware' });
@@ -99,7 +99,7 @@ export const authorizeRoles = (allowedRoles: string[]) => {
       name: req.session.fullName || '',
       email: '', // Placeholder: email is not in session. validateSession should populate this.
       // username can be omitted as it's optional
-    };
+    } as UserPayload; // Cast to UserPayload
     
     next();
   };
@@ -409,14 +409,14 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
       // Ensure this conforms to UserPayload
       const userPayload: UserPayload = {
         id: String(user.id), // Ensure ID is a string
-        email: user.email,
+        email: user.email, // email is required in UserPayload
         role: user.role,
-        name: user.username || user.email, // Use username as name, fallback to email
+        name: user.username || user.email || '', // Ensure name is a string
         username: user.username,
-        // storeId is not directly available on the 'user' object from DB here,
-        // it's on req.session.storeId if needed and set by authorizeRoles
+        storeId: req.session.storeId, // Get storeId from session if available
+        // permissions and sessionId can be added if available/needed
       };
-      req.user = userPayload;
+      req.user = userPayload as any; // Cast to any to assign to Express.Request.user
       
     } catch (error: unknown) {
       reqLogger.error('Error validating session', error instanceof Error ? error : new Error(String(error)), {

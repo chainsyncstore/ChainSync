@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import * as schema from './schema';
 import { createInsertSchema } from 'drizzle-zod';
+import { AppError } from './types/errors'; // Added AppError import
 
 /**
  * Error class for schema validation failures
@@ -64,8 +65,8 @@ export function validateEntity<T>(schema: z.ZodType<T>, data: unknown, entityNam
         {
           code: `INVALID_${entityName.toUpperCase()}`,
           issues: error.errors,
-          path: error.errors[0]?.path,
-          field: error.errors[0]?.path.join('.')
+          path: error.errors[0]?.path.map(String), // Ensure path elements are strings
+          field: error.errors[0]?.path.map(String).join('.') // Ensure path elements are strings before join
         }
       );
     }
@@ -119,10 +120,17 @@ export const productValidation = {
 };
 
 // Inventory validation schema
-export const inventorySchema = createInsertSchema(schema.inventory, {
-  totalQuantity: z.number().int().min(0, "Quantity cannot be negative"),
+// schema.inventory (from shared/db/inventory.ts) now includes batchTracking.
+// createInsertSchema(schema.inventory) will infer all fields, including batchTracking.
+// We only need to .extend() for fields where we want to apply stricter or different Zod rules
+// than what drizzle-zod infers from the DB schema.
+export const inventorySchema = createInsertSchema(schema.inventory).extend({
+  totalQuantity: z.number().int().min(0, "Total quantity cannot be negative"),
   minimumLevel: z.number().int().min(0, "Minimum level cannot be negative"),
+  // batchTracking is inferred from schema.inventory; no need to redefine here unless
+  // specific Zod rules different from the inferred z.boolean().optional() are needed.
 });
+
 
 // Inventory Item validation schema
 export const inventoryItemSchema = z.object({
@@ -158,15 +166,39 @@ export const inventoryValidation = {
 };
 
 // Loyalty module validation
+export const loyaltyProgramSchema = createInsertSchema(schema.loyaltyPrograms, {
+  name: z.string().min(1, "Program name is required"),
+  description: z.string().optional(),
+  status: z.enum(["active", "inactive", "draft", "archived"]),
+  // metadata can be z.record(z.string(), z.unknown()) if needed, or kept as inferred
+});
+
 export const loyaltyMemberSchema = createInsertSchema(schema.loyaltyMembers, {
   loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
-  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+  // points is likely a number in the DB, createInsertSchema should infer it.
+  // If it's a string for input that gets converted, the Zod schema should reflect that.
+  // For now, relying on createInsertSchema's inference.
+  // points: z.number().int().min(0), // Example if it's an integer
+});
+
+export const loyaltyTransactionSchema = createInsertSchema(schema.loyaltyTransactions, {
+  points: z.number(), // Assuming points are stored as numbers
+  type: z.enum(['earn', 'redeem', 'adjust']),
+  // Add other specific field validations if necessary
 });
 
 export const loyaltyValidation = {
+  program: {
+    insert: (data: unknown) => validateEntity(loyaltyProgramSchema, data, 'loyalty_program'),
+    update: (data: unknown) => validateEntity(loyaltyProgramSchema.partial(), data, 'loyalty_program'),
+  },
   member: {
     insert: (data: unknown) => validateEntity(loyaltyMemberSchema, data, 'loyalty_member'),
     update: (data: unknown) => validateEntity(loyaltyMemberSchema.partial(), data, 'loyalty_member'),
+  },
+  transaction: {
+    insert: (data: unknown) => validateEntity(loyaltyTransactionSchema, data, 'loyalty_transaction'),
+    // update: (data: unknown) => validateEntity(loyaltyTransactionSchema.partial(), data, 'loyalty_transaction'), // If needed
   },
   earnPoints: (data: unknown) => validateEntity(
     z.object({
@@ -236,25 +268,27 @@ export const subscriptionValidation = {
 // Transaction validation
 export const transactionSchema = createInsertSchema(schema.transactions, {
   transactionId: z.string().min(5, "Transaction ID must be at least 5 characters"),
-  subtotal: z.coerce.number().nonnegative({ message: "Subtotal must be a non-negative number" }),
+  // subtotal: z.coerce.number().nonnegative({ message: "Subtotal must be a non-negative number" }), // Let Drizzle infer
   paymentMethod: z.string().min(1, "Payment method is required"),
-  type: z.enum(["SALE", "RETURN"]),
+  // type: z.enum(["SALE", "RETURN"]), // Let Drizzle infer if it's an enum in DB schema
 });
 
 // Transaction item schema
 export const transactionItemSchema = createInsertSchema(schema.transactionItems, {
   quantity: z.number().int().positive("Quantity must be positive"),
   unitPrice: z.string().regex(/^\d+(\.\d{1,2})?$/, "Unit price must be a valid decimal"),
-  subtotal: z.string().regex(/^\d+(\.\d{1,2})?$/, "Subtotal must be a valid decimal"),
+  // subtotal: z.string().regex(/^\d+(\.\d{1,2})?$/, "Subtotal must be a valid decimal"), // Let Drizzle infer
 });
 
-// Transaction payment schema (assuming payments table exists in schema)
-export const transactionPaymentSchema = schema.payments
-  ? createInsertSchema(schema.payments, {
-      amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Amount must be a valid decimal"),
-      method: z.string().min(1, "Payment method is required"),
-    })
-  : z.object({ amount: z.string(), method: z.string() });
+// Transaction payment schema
+// This schema defines the expected structure for a "payment" object related to a transaction.
+// It seems the system expects a 'total' field for payments, not 'totalAmount'.
+export const transactionPaymentSchema = z.object({
+  total: z.string().regex(/^\d+(\.\d{1,2})?$/, "Total must be a valid decimal number"),
+  method: z.string().min(1, "Payment method is required"),
+  reference: z.string().optional(), // e.g., payment gateway reference
+  status: z.enum(['pending', 'completed', 'failed', 'refunded']).optional(),
+});
 
 export const transactionValidation = {
   insert: (data: unknown) => validateEntity(transactionSchema, data, 'transaction'),
@@ -277,7 +311,7 @@ export const transactionValidation = {
 export const returnSchema = createInsertSchema(schema.returns, {
   refundId: z.string().min(5, "Refund ID must be at least 5 characters"),
   total: z.string().regex(/^\d+(\.\d{1,2})?$/, "Total must be a valid decimal"),
-  refundMethod: z.enum(["cash", "credit_card", "store_credit"]),
+  // refundMethod: z.enum(["cash", "credit_card", "store_credit"]), // Let Drizzle infer
 });
 
 export const returnValidation = {

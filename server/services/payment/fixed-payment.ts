@@ -5,10 +5,13 @@ import Paystack from 'paystack-node';
 
 import * as schema from '@shared/schema';
 import { getSecureDb } from '../../utils/secure-db';
-import { AppError } from '../../middleware/utils/app-error';
-import { ErrorCategory, ErrorCode } from '../../middleware/types/error';
+import { AppError, ErrorCode, ErrorCategory } from '../../../shared/types/errors';
 import { BaseService } from '../base/base-service';
-import { logger } from '../logger';
+// Import ConsoleLogger or a suitable logger that implements the Logger interface from src/logging
+import { ConsoleLogger, Logger as AppLoggerInterface, LogLevel } from '../../../src/logging/Logger'; 
+
+// Instantiate a compatible logger
+const serviceLogger: AppLoggerInterface = new ConsoleLogger(process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG);
 
 // Type definitions
 interface PaymentInitializationResponse {
@@ -108,7 +111,7 @@ export class PaymentService extends BaseService {
   private db = getSecureDb();
 
   constructor() {
-    super(logger); // Pass logger to BaseService if required
+    super(serviceLogger); // Pass the instantiated, compatible logger
     this.initializeProviders();
   }
 
@@ -124,7 +127,7 @@ export class PaymentService extends BaseService {
   async verifyPayment(reference: string): Promise<PaymentVerificationResponse> {
     try {
       if (!reference) {
-        throw new AppError('Payment reference is required', 'payment', 'INVALID_REFERENCE');
+        throw new AppError('Payment reference is required', ErrorCategory.PAYMENT, ErrorCode.INVALID_REFERENCE);
       }
       if (this.paystack) {
         const response = await this.paystack.verifyTransaction(reference);
@@ -155,10 +158,10 @@ export class PaymentService extends BaseService {
           };
         }
       }
-      throw new AppError('Payment not found or verification failed', 'payment', 'PAYMENT_NOT_FOUND', { reference });
+      throw new AppError('Payment not found or verification failed', ErrorCategory.PAYMENT, ErrorCode.PAYMENT_NOT_FOUND, { reference });
     } catch (error: unknown) {
-      logger.error('Error verifying payment:', error);
-      throw error instanceof AppError ? error : new AppError('Failed to verify payment', 'payment', 'PAYMENT_VERIFICATION_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      this.logger.error('Error verifying payment:', error as Error); // Use this.logger
+      throw error instanceof AppError ? error : new AppError('Failed to verify payment', ErrorCategory.PAYMENT, ErrorCode.PAYMENT_VERIFICATION_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -170,14 +173,14 @@ export class PaymentService extends BaseService {
     referralCode?: string
   ): Promise<void> {
     if (!userId || !email || !amount || !plan) {
-      throw new AppError('Missing required payment data', 'payment', 'INVALID_PAYMENT_DATA', { userId, email, amount, plan });
+      throw new AppError('Missing required payment data', ErrorCategory.PAYMENT, ErrorCode.INVALID_PAYMENT_DATA, { userId, email, amount, plan });
     }
     if (typeof amount !== 'number' || amount <= 0) {
-      throw new AppError('Invalid payment amount', 'payment', 'INVALID_AMOUNT', { amount });
+      throw new AppError('Invalid payment amount', ErrorCategory.PAYMENT, ErrorCode.INVALID_AMOUNT, { amount });
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new AppError('Invalid email format', 'payment', 'INVALID_EMAIL', { email });
+      throw new AppError('Invalid email format', ErrorCategory.PAYMENT, ErrorCode.INVALID_EMAIL, { email });
     }
   }
 
@@ -277,10 +280,11 @@ export class PaymentService extends BaseService {
         }
       }
 
-      throw new AppError('No payment provider available for initialization', 'payment', 'NO_PAYMENT_PROVIDER', { provider });
+      throw new AppError('No payment provider available for initialization', ErrorCategory.PAYMENT, ErrorCode.NO_PAYMENT_PROVIDER, { provider });
     } catch (error: unknown) {
-      this.logger.error('Payment initialization error:', error);
-      throw error instanceof AppError ? error : new AppError('An error occurred during payment initialization', 'payment', 'PAYMENT_ERROR', { error: error.message });
+      this.logger.error('Payment initialization error:', error as Error); // Use this.logger
+      const message = error instanceof Error ? error.message : 'Unknown error during payment initialization';
+      throw error instanceof AppError ? error : new AppError(message, ErrorCategory.PAYMENT, ErrorCode.PAYMENT_ERROR, { error: message });
     }
   }
 
@@ -308,15 +312,15 @@ export class PaymentService extends BaseService {
           });
       });
     } catch (error: unknown) {
-      this.logger.error('Error tracking payment status:', error);
-      throw error instanceof AppError ? error : new AppError('Failed to track payment status', 'payment', 'PAYMENT_TRACKING_ERROR', { reference, status });
+      this.logger.error('Error tracking payment status:', error as Error); // Use this.logger
+      throw error instanceof AppError ? error : new AppError('Failed to track payment status', ErrorCategory.PAYMENT, ErrorCode.PAYMENT_TRACKING_ERROR, { reference, status });
     }
   }
 
   async handleWebhook(request: Request): Promise<void> {
     const body = request.body as PaymentWebhookRequest;
     if (!body) {
-      throw new AppError('Empty webhook body', 'payment', 'INVALID_WEBHOOK', {});
+      throw new AppError('Empty webhook body', ErrorCategory.PAYMENT, ErrorCode.INVALID_WEBHOOK, {});
     }
 
     const { provider, reference, status, signature } = body;
@@ -324,7 +328,7 @@ export class PaymentService extends BaseService {
     // Verify webhook signature
     const expectedKey = WEBHOOK_KEYS[provider as 'paystack' | 'flutterwave'];
     if (!expectedKey || !signature || !verifyWebhookSignature(signature, expectedKey)) {
-      throw new AppError('Invalid webhook signature', 'payment', 'INVALID_WEBHOOK', { provider, reference });
+      throw new AppError('Invalid webhook signature', ErrorCategory.PAYMENT, ErrorCode.INVALID_WEBHOOK, { provider, reference });
     }
 
     // Process the webhook
@@ -385,8 +389,8 @@ export class PaymentService extends BaseService {
         paymentData.timestamp
       ]);
     } catch (error: unknown) {
-      this.logger.error('Error tracking payment analytics:', error);
-      throw error instanceof AppError ? error : new AppError('payment', 'ANALYTICS_ERROR', 'Failed to track payment analytics', { error: error instanceof Error ? error.message : 'Unknown error' });
+      this.logger.error('Error tracking payment analytics:', error as Error); // Use this.logger
+      throw error instanceof AppError ? error : new AppError('Failed to track payment analytics', ErrorCategory.PAYMENT, ErrorCode.ANALYTICS_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -399,7 +403,7 @@ export class PaymentService extends BaseService {
       const payment = result.rows[0];
       
       if (!payment.success) {
-        throw new AppError('payment', 'INVALID_REFUND', 'Cannot refund unsuccessful payment', { reference });
+        throw new AppError('Cannot refund unsuccessful payment', ErrorCategory.PAYMENT, ErrorCode.INVALID_REFUND, { reference });
       }
 
       const provider = payment.provider as 'paystack' | 'flutterwave';
@@ -410,7 +414,7 @@ export class PaymentService extends BaseService {
           await this.trackPaymentStatus(reference, 'refunded');
           return true;
         } else {
-          throw new AppError('payment', 'REFUND_FAILED', 'Failed to process refund with Paystack', { reference, amount });
+          throw new AppError('Failed to process refund with Paystack', ErrorCategory.PAYMENT, ErrorCode.REFUND_FAILED, { reference, amount });
         }
       } else if (provider === 'flutterwave' && this.flutterwave) {
         const refundResponse = await this.flutterwave.Transaction.refund({
@@ -422,14 +426,14 @@ export class PaymentService extends BaseService {
           await this.trackPaymentStatus(reference, 'refunded');
           return true;
         } else {
-          throw new AppError('payment', 'REFUND_FAILED', 'Failed to process refund with Flutterwave', { reference, amount });
+          throw new AppError('Failed to process refund with Flutterwave', ErrorCategory.PAYMENT, ErrorCode.REFUND_FAILED, { reference, amount });
         }
       }
       
-      throw new AppError('payment', 'NO_PAYMENT_PROVIDER', 'No payment provider available for refund', { provider });
+      throw new AppError('No payment provider available for refund', ErrorCategory.PAYMENT, ErrorCode.NO_PAYMENT_PROVIDER, { provider });
     } catch (error: unknown) {
-      this.logger.error('Refund processing error:', error);
-      throw error instanceof AppError ? error : new AppError('payment', 'REFUND_ERROR', 'An error occurred during refund processing', { error: error instanceof Error ? error.message : 'Unknown error' });
+      this.logger.error('Refund processing error:', error as Error); // Use this.logger
+      throw error instanceof AppError ? error : new AppError('An error occurred during refund processing', ErrorCategory.PAYMENT, ErrorCode.REFUND_FAILED, { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -455,10 +459,10 @@ export class PaymentService extends BaseService {
       if (response.status === 'success' && response.data.link) {
         return { link: response.data.link };
       }
-      throw new AppError('payment', 'FLUTTERWAVE_TRANSACTION_FAILED', 'Failed to process Flutterwave transaction');
+      throw new AppError('Failed to process Flutterwave transaction', ErrorCategory.PAYMENT, ErrorCode.FLUTTERWAVE_TRANSACTION_FAILED);
     } catch (error: unknown) {
-      logger.error('Error processing Flutterwave transaction:', error);
-      throw error instanceof Error ? error : new AppError('payment', 'FLUTTERWAVE_TRANSACTION_ERROR', 'Failed to process Flutterwave transaction');
+      this.logger.error('Error processing Flutterwave transaction:', error as Error); // Use this.logger
+      throw error instanceof Error ? error : new AppError('Failed to process Flutterwave transaction', ErrorCategory.PAYMENT, ErrorCode.FLUTTERWAVE_TRANSACTION_ERROR);
     }
   }
 }

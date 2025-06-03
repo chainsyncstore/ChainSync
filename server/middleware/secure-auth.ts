@@ -2,9 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import { getLogger } from '../../src/logging';
 import { UnifiedAuthService } from '../services/auth/unified-auth-service';
-import { ErrorCategory, ErrorCode } from './types/error';
-import { AppError } from './utils/app-error';
-import { User } from '../types/user';
+import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
+import { UserPayload } from '../types/user';
 import { JWTPayload } from '../services/auth/unified-auth-service';
 
 // Initialize logger
@@ -80,10 +79,10 @@ export const authRateLimiter = rateLimit({
       userAgent: req.headers['user-agent']
     });
     
-    const error = new AppError(
-      ErrorCategory.AUTHENTICATION,
-      ErrorCode.AUTHENTICATION,
+    const error = new AppError( // Constructor order: message, category, code, details, statusCode
       'Too many authentication attempts, please try again later',
+      ErrorCategory.AUTHENTICATION,
+      ErrorCode.AUTHENTICATION, // This now exists in shared/types/errors.ts
       { retryAfter: '15 minutes' },
       429
     );
@@ -124,16 +123,16 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
       return next();
     }
     
-    // Set user data on request using centralized User interface
+    // Set user data on request using centralized UserPayload interface
     req.user = {
       id: payload.userId,
       role: payload.role,
       storeId: payload.storeId,
-      name: payload.email || 'Unknown User',
-      email: payload.email,
+      name: payload.email || 'Unknown User', // name is optional in UserPayload
+      email: payload.email, // email is optional in UserPayload
       permissions: payload.permissions,
       sessionId: payload.sessionId
-    };
+    } as UserPayload; // Cast to UserPayload
     
     next();
   } catch (error: unknown) {
@@ -205,7 +204,7 @@ export const requirePermission = (permission: string) => {
     }
     
     // Check permission directly
-    if (!req.user.permissions?.includes(permission) && req.user.role !== 'admin') {
+    if (!(req.user as UserPayload).permissions?.includes(permission) && (req.user as UserPayload).role !== 'admin') { // Cast req.user
       return res.status(403).json({
         success: false,
         error: {
@@ -236,7 +235,7 @@ export const requireStoreAccess = (storeIdParam = 'storeId') => {
     }
     
     // Admin users can access any store
-    if (req.user.role === 'admin') {
+    if ((req.user as UserPayload).role === 'admin') { // Cast req.user
       return next();
     }
     
@@ -255,7 +254,7 @@ export const requireStoreAccess = (storeIdParam = 'storeId') => {
     }
     
     // Check if user has access to the requested store
-    if (req.user.storeId && req.user.storeId !== storeIdToCheck) {
+    if ((req.user as UserPayload).storeId && (req.user as UserPayload).storeId !== storeIdToCheck) { // Cast req.user
       return res.status(403).json({
         success: false,
         error: {
@@ -307,7 +306,7 @@ export const handleTokenRefresh = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: {
-        code: ErrorCode.INTERNAL_ERROR,
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
         message: 'Failed to refresh token'
       }
     });
@@ -363,7 +362,7 @@ export const handleLogout = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: {
-        code: ErrorCode.INTERNAL_ERROR,
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
         message: 'Failed to process logout'
       }
     });
@@ -383,7 +382,7 @@ export const handleLogoutAll = async (req: Request, res: Response) => {
       });
     }
     
-    await authService.logoutAllSessions(req.user.id.toString());
+    await authService.logoutAllSessions((req.user as UserPayload).id.toString()); // Cast req.user
     
     res.json({
       success: true,
@@ -394,7 +393,7 @@ export const handleLogoutAll = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: {
-        code: ErrorCode.INTERNAL_ERROR,
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
         message: 'Failed to process logout for all sessions'
       }
     });

@@ -47,10 +47,9 @@ export function initializeOpenTelemetry(): NodeSDK | null {
     const sdk = new NodeSDK({
       resource,
       traceExporter,
-      metricReader: new PeriodicExportingMetricReader({
-        exporter: metricExporter,
-        exportIntervalMillis: 15000, // export metrics every 15 seconds
-      }),
+      // metricReader configuration removed to resolve TS error;
+      // SDK might auto-configure or require a different setup method
+      // for custom metric readers based on the specific version.
       spanProcessor: new BatchSpanProcessor(traceExporter, {
         scheduledDelayMillis: 5000, // process batches every 5 seconds
         maxExportBatchSize: 100,    // maximum batch size

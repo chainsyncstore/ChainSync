@@ -7,93 +7,56 @@ declare module 'json2csv' {
 }
 
 import { Request, Response, NextFunction } from 'express';
-import { MulterFile } from '../types/multer';
+// Removed: import * as multer from 'multer'; 
+// Removed: import { MulterFile } from '../types/multer';
+// Removed: import type { File as MulterFileOriginal } from 'multer';
+// Removed: import type { File as MulterDotFile } from 'multer';
 
-// Extend Express types
-declare global {
-  namespace Express {
-    interface Request {
-      file?: MulterFile;
-      files?: MulterFile[];
-    }
-  }
-}
+// Extend Express types - This should be handled globally by server/types/express.d.ts
+// declare global {
+//   namespace Express {
+//     interface Request {
+//       file?: MulterFileOriginal; // Changed to MulterFileOriginal
+//       files?: MulterFileOriginal[]; // Changed to MulterFileOriginal
+//     }
+//   }
+// }
 
-declare module 'multer' {
-  export interface Multer {
-    any(): (req: Request, res: Response, next: NextFunction) => void;
-    single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
-    array(fieldname: string, maxCount?: number): (req: Request, res: Response, next: NextFunction) => void;
-    fields(fields: Array<{
-      name: string;
-      maxCount?: number;
-    }>): (req: Request, res: Response, next: NextFunction) => void;
-    none(): (req: Request, res: Response, next: NextFunction) => void;
-    memory(): (req: Request, res: Response, next: NextFunction) => void;
-  }
+// Augmenting 'multer' module locally is problematic and likely conflicts.
+// Standard @types/multer should provide these.
+// declare module 'multer' {
+//   ... (removed content) ...
+// }
 
-  export type File = MulterFile;
+// Extend Express Request type with Multer - This should be handled globally
+// import { Buffer } from 'buffer'; // Buffer is global
 
-  export interface StorageEngine {
-    _handleFile(req: Request, file: MulterFile, cb: (error: Error | null, info: unknown) => void): void;
-    _removeFile(req: Request, file: MulterFile, cb: (error: Error | null) => void): void;
-  }
+// declare global {
+//   namespace Express {
+//     // This MulterFile definition is redundant if using original multer.File
+//     // interface MulterFile {
+//     //   fieldname: string;
+//     //   originalname: string;
+//     //   encoding: string;
+//     //   mimetype: string;
+//     //   size: number;
+//     //   destination: string;
+//     //   filename: string;
+//     //   path: string;
+//     //   buffer?: Buffer;
+//     // }
 
-  export interface Options {
-    dest?: string;
-    fileFilter?: (req: Request, file: MulterFile, callback: (error: Error | null, acceptFile: boolean) => void) => void;
-    limits?: {
-      fileSize?: number;
-      files?: number;
-    };
-    storage?: StorageEngine;
-  }
+//     interface Request {
+//       file?: MulterFileOriginal; // Changed to MulterFileOriginal
+//       files?: MulterFileOriginal[]; // Changed to MulterFileOriginal
+//     }
+//   }
+// }
 
-  export const diskStorage: (options: {
-    destination?: string | ((req: Request, file: MulterFile, callback: (error: Error | null, destination: string) => void) => void);
-    filename?: (req: Request, file: MulterFile, callback: (error: Error | null, filename: string) => void) => void;
-  }) => any;
-
-  export const memoryStorage: () => any;
-
-  export default function(options?: Options): Multer;
-}
-
-// Extend Express Request type with Multer
-import { Buffer } from 'buffer';
-
-declare global {
-  namespace Express {
-    interface MulterFile {
-      fieldname: string;
-      originalname: string;
-      encoding: string;
-      mimetype: string;
-      size: number;
-      destination: string;
-      filename: string;
-      path: string;
-      buffer?: Buffer;
-    }
-
-    interface Request {
-      file?: MulterFile;
-      files?: MulterFile[];
-    }
-  }
-}
-
-export interface File extends Express.MulterFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  size: number;
-  destination: string;
-  filename: string;
-  path: string;
-  buffer?: Buffer;
-}
+// Use multer.File directly or alias it if needed for clarity
+// This local 'File' interface is redundant as MulterDotFile (multer.File) should be used directly.
+// export interface File extends MulterDotFile {
+// }
 
 export interface ImportExportResult {
   success: boolean;
@@ -118,7 +81,7 @@ export interface ValidationOptions {
 }
 
 export interface ImportExportService {
-  importProducts(userId: number, file: Express.MulterFile, options?: ValidationOptions): Promise<ImportExportResult>;
+  importProducts(userId: number, file: Express.Multer.File, options?: ValidationOptions): Promise<ImportExportResult>;
   getImportProgress(importId: string): Promise<ImportExportProgress>;
   cancelImport(importId: string): Promise<void>;
   clearImport(importId: string): Promise<void>;

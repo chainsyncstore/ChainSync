@@ -1,4 +1,5 @@
 // server/database.ts
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 // This file ensures that any parts of the server attempting to import a DB connection
 // from this path receive the correctly configured PostgreSQL Drizzle instance
 // from the central db management in the root 'db' folder.

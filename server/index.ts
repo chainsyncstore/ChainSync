@@ -34,23 +34,22 @@ initializeGlobals();
 setupSecurity(app);
 
 // Apply middleware
-const corsMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+const corsMiddleware = createRequestHandler((req: any, res: Response, next: NextFunction) => { // req as any
   applyCORS(req, res, next);
 });
 
 // Apply rate limiters directly to the app
 applyRateLimiters(app as Application); // Cast app to Application for type safety
 
-if (isMiddlewareFunction(corsMiddleware)) { // Removed rateLimiterMiddleware from this check
+if (isMiddlewareFunction(corsMiddleware)) { 
   app.use(corsMiddleware);
-  // app.use(rateLimiterMiddleware); // Removed as applyRateLimiters handles this
 }
 
 // Enforce HTTPS for secure routes in production
-const paymentRoutesMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+const paymentRoutesMiddleware = createRequestHandler((req: any, res: Response, next: NextFunction) => { // req as any
   enforceHttpsForPaymentRoutes(req, res, next);
 });
-const dialogflowRoutesMiddleware = createRequestHandler((req: Request, res: Response, next: NextFunction) => {
+const dialogflowRoutesMiddleware = createRequestHandler((req: any, res: Response, next: NextFunction) => { // req as any
   enforceHttpsForDialogflowRoutes(req, res, next);
 });
 
@@ -76,11 +75,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Add performance monitoring middleware
-app.use(performanceMonitoring());
-app.use(memoryMonitoring());
+app.use(performanceMonitoring() as any);
+app.use(memoryMonitoring() as any);
 
 // Error handling middleware
-const errorMiddleware = createErrorHandler((err: any, req: Request, res: Response, next: NextFunction) => {
+const errorMiddleware = createErrorHandler((err: any, req: any, res: Response, next: NextFunction) => { // req as any
   logger.error(err.message, { stack: err.stack });
 
   if (err instanceof Error) {
@@ -105,7 +104,7 @@ if (isMiddlewareFunction(errorMiddleware)) {
 }
 
 // Fallback error handler
-const fallbackMiddleware = createErrorHandler((err: any, req: Request, res: Response, next: NextFunction) => {
+const fallbackMiddleware = createErrorHandler((err: any, req: any, res: Response, next: NextFunction) => { // req as any
   logger.error('Unknown error:', err);
   res.status(500).json({
     success: false,
@@ -190,7 +189,7 @@ async function initialize() {
     const httpServer = setupSecureServer(app);
     
     // Use the HTTP server with routes and Socket.io
-    const ioServer = await registerRoutes(app);
+    await registerRoutes(app); // Removed unused ioServer assignment
 
     // Apply global error handler as the final middleware
     app.use(globalErrorHandler);

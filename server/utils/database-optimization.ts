@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { performance } from 'perf_hooks';
+import { AppError } from '@shared/types/errors';
 
 /**
  * Database Optimization Utilities

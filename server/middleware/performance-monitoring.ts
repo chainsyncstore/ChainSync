@@ -30,7 +30,7 @@ export function performanceMonitoring() {
     };
     
     // Override end method to calculate performance metrics
-    res.end = function(this: Response, ...args: unknown[]): Response {
+    res.end = function(this: Response, ...args: any[]): Response {
       const endTime = performance.now();
       const duration = Math.round(endTime - startTime);
       
@@ -54,7 +54,7 @@ export function performanceMonitoring() {
       res.setHeader('X-Response-Time', `${duration}ms`);
       
       // Execute original end method with the original arguments
-      return originalEnd.apply(this, args);
+      return originalEnd.apply(this, args as any);
     };
     
     // Pass to next middleware wrapped in a custom trace span
@@ -65,9 +65,17 @@ export function performanceMonitoring() {
         resolve(null);
       }),
       traceAttributes
-    ).catch(error => {
-      logger.error('Error in performance monitoring middleware', { error });
-      next(error);
+    ).catch(err => {
+      let loggedError: unknown = err;
+      if (err instanceof Error) {
+        loggedError = { 
+          message: err.message, 
+          name: err.name, 
+          stack: err.stack 
+        };
+      }
+      logger.error('Error in performance monitoring middleware', { error: loggedError });
+      next(err);
     });
   };
 }

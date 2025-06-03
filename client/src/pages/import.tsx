@@ -112,11 +112,7 @@ export default function ImportPage() {
     formData.append('dataType', dataType);
     
     try {
-      const response = await apiRequest('POST', '/api/import/analyze', formData, {
-        headers: {
-          // Don't set Content-Type with FormData, browser will set it with boundary
-        },
-      });
+      const response = await apiRequest('POST', '/api/import/analyze', formData);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -143,7 +139,7 @@ export default function ImportPage() {
         title: 'File analyzed successfully',
         description: `Found ${data.data.length} rows of data`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error analyzing file:', error);
       toast({
         title: 'Error analyzing file',
@@ -188,7 +184,7 @@ export default function ImportPage() {
         description: `${result.importedRows} of ${result.totalRows} rows are valid`,
         variant: result.success ? 'default' : 'destructive',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error validating data:', error);
       toast({
         title: 'Error validating data',
@@ -241,7 +237,7 @@ export default function ImportPage() {
         title: 'Import completed',
         description: `Successfully imported ${result.importedRows} of ${result.totalRows} rows`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error importing data:', error);
       toast({
         title: 'Error importing data',
@@ -258,19 +254,23 @@ export default function ImportPage() {
     if (!validationResult) return;
     
     try {
-      const response = await apiRequest('POST', '/api/import/error-report', {
-        validationResult,
-        dataType
-      }, {
+      const requestBody = { validationResult, dataType };
+      const response = await fetch('/api/import/error-report', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'text/csv',
+          "Cache-Control": "no-cache, no-store",
+          "Pragma": "no-cache"
         },
-        responseType: 'blob',
+        body: JSON.stringify(requestBody),
+        credentials: "include",
+        cache: "no-store"
       });
       
       if (!response.ok) {
-        throw new Error('Failed to generate error report');
+        const text = (await response.text()) || response.statusText;
+        throw new Error(`${response.status}: ${text}`);
       }
       
       // Create a download link and trigger the download
@@ -289,7 +289,7 @@ export default function ImportPage() {
         title: 'Error report downloaded',
         description: 'The error report has been downloaded as a CSV file',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error downloading error report:', error);
       toast({
         title: 'Error downloading report',

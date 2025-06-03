@@ -1,19 +1,2 @@
-export enum LOYALTY_ERROR_CODES {
-  PROGRAM_NOT_FOUND = 'PROGRAM_NOT_FOUND',
-  ALREADY_ENROLLED = 'ALREADY_ENROLLED',
-  MEMBER_NOT_FOUND = 'MEMBER_NOT_FOUND',
-  INSUFFICIENT_POINTS = 'INSUFFICIENT_POINTS',
-  REWARD_NOT_FOUND = 'REWARD_NOT_FOUND',
-  INVALID_POINTS = 'INVALID_POINTS',
-  TRANSACTION_NOT_FOUND = 'TRANSACTION_NOT_FOUND',
-  TIER_NOT_FOUND = 'TIER_NOT_FOUND',
-  INVALID_OPERATION = 'INVALID_OPERATION',
-  DATABASE_ERROR = 'DATABASE_ERROR'
-}
-
-export class AppError extends Error {
-  constructor(public code: LOYALTY_ERROR_CODES, message: string) {
-    super(message);
-    this.name = 'AppError';
-  }
-}
+// This file is deprecated. All error types are now defined in shared/types/errors.ts
+// Please update imports to point to the shared location.

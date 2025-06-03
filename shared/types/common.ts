@@ -1,16 +1,13 @@
-import { NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import * as schema from '@server/db/schema'; // Assuming this is the correct path to your Drizzle schema
+import type { NeonDatabase } from 'drizzle-orm/neon-serverless'; // Changed from neon-http to neon-serverless
+import * as schema from '@shared/schema'; // Changed to use @shared/schema for consistency
 
-export type DatabaseConnection = NeonHttpDatabase<typeof schema>;
+import { Logger } from '../../src/logging'; // Import the main Logger type
+
+export type DatabaseConnection = NeonDatabase<typeof schema>;
 
 export interface ServiceConfig {
   db: DatabaseConnection;
-  logger: {
-    info: (message: string, ...args: unknown[]) => void;
-    error: (message: string, ...args: unknown[]) => void;
-    warn: (message: string, ...args: unknown[]) => void;
-    debug: (message: string, ...args: unknown[]) => void;
-  };
+  logger: Logger; // Use the imported Logger type
 }
 
 export interface ServiceResult<T> {

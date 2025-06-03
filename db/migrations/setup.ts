@@ -1,9 +1,10 @@
 // db/migrations/setup.ts
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { db } from '../index';
+import { db } from '../index.js';
 import path from 'path';
 import fs from 'fs';
-import { getLogger } from '../../src/logging';
+import { getLogger } from '../../shared/logging.js';
+import { sql } from 'drizzle-orm';
 
 const logger = getLogger().child({ component: 'db-migrations' });
 
@@ -75,10 +76,10 @@ export function createMigration(name: string): string {
 export async function applyMigration(migrationPath: string): Promise<void> {
   try {
     // Read migration file
-    const sql = fs.readFileSync(migrationPath, 'utf8');
+    const sqlString = fs.readFileSync(migrationPath, 'utf8');
     
     // Execute SQL
-    await db.execute(sql);
+    await db.execute(sql.raw(sqlString));
     
     logger.info(`Applied migration: ${path.basename(migrationPath)}`);
   } catch (error) {

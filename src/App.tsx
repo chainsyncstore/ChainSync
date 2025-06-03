@@ -37,9 +37,10 @@ const RouteErrorFallback = ({ error, resetError }: { error: Error; resetError: (
 const SentryRoutes = Sentry.withErrorBoundary(
   Routes,
   {
-    fallback: ({ error, resetError }) => (
-      <RouteErrorFallback error={error} resetError={resetError} />
-    ),
+    fallback: ({ error, resetError }) => {
+      const errorInstance = error instanceof Error ? error : new Error(String(error));
+      return <RouteErrorFallback error={errorInstance} resetError={resetError} />;
+    },
   }
 );
 

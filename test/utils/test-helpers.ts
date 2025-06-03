@@ -6,17 +6,17 @@
  */
 
 import { db } from '../../server/db/connection';
-import { insertOne, executeQuery } from '../../server/db/sqlHelpers';
-import { products, users, orders, stores, customers } from '../../server/db/schema';
+import { insertOne, executeRawQuery } from '../../server/db/sqlHelpers';
+import { products, users, transactions as orders, stores, customers } from '../../shared/db';
 import { sql } from 'drizzle-orm';
-import type { 
-  Product, 
-  User, 
-  Order, 
-  Store, 
-  Customer 
-} from '../../server/db/types';
-import { v4 as uuidv4 } from 'uuid';
+// Types are now inferred from the schema objects below
+export type Product = typeof products.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type Order = typeof orders.$inferSelect; // 'orders' is an alias for 'transactions' schema object
+export type Store = typeof stores.$inferSelect;
+export type Customer = typeof customers.$inferSelect;
+import * as uuid from 'uuid';
+const { v4: uuidv4 } = uuid;
 
 /**
  * Start a database transaction for test isolation
@@ -43,7 +43,7 @@ export async function cleanupTestDatabase() {
   
   const tables = [
     'order_items',
-    'orders',
+    'transactions', // Renamed from 'orders'
     'products',
     'customers',
     'users',

@@ -1,4 +1,4 @@
-import { AppError, ErrorCategory, RetryableError } from '@shared/types/errors';
+import { AppError, ErrorCode, ErrorCategory, RetryableError } from '@shared/types/errors';
 import { ImportExportErrorCode, ImportExportErrorCodes } from '@shared/types/import-export-errors';
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
@@ -65,17 +65,17 @@ export class ErrorHandler extends EventEmitter {
     options?: Partial<RetryOptions>
   ): Promise<T> {
     const retryConfig = { ...this.config.retry, ...options };
-    let lastError: Error | null = null;
+    let lastError: Error | unknown | null = null;
 
     for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
       try {
         return await operation();
-      } catch (error: unknown) {
+      } catch (error) {
         lastError = error;
         this.handleError(error, { ...context, attempt });
 
         if (attempt === retryConfig.maxAttempts) {
-          throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+          throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
         }
 
         const delay = this.calculateDelay(attempt);
@@ -137,15 +137,15 @@ export class ErrorHandler extends EventEmitter {
     }
 
     // Determine error code based on context
-    let errorCode = "PROCESSING_ERROR";
+    let errorCode: ErrorCode = ErrorCode.PROCESSING_ERROR;
     if (error.message.includes('format')) {
-      errorCode = "INVALID_FILE_FORMAT";
+      errorCode = ErrorCode.INVALID_FILE_FORMAT;
     } else if (error.message.includes('size')) {
-      errorCode = "FILE_TOO_LARGE";
+      errorCode = ErrorCode.FILE_TOO_LARGE;
     } else if (error.message.includes('validate')) {
-      errorCode = "VALIDATION_ERROR";
+      errorCode = ErrorCode.VALIDATION_ERROR;
     } else if (error.message.includes('timeout')) {
-      errorCode = "TIMEOUT_ERROR";
+      errorCode = ErrorCode.REQUEST_TIMEOUT;
     }
 
     const enhancedError = new AppError(
@@ -158,7 +158,7 @@ export class ErrorHandler extends EventEmitter {
         userId: context.userId,
         requestId: context.requestId,
         attempt: context.attempt,
-        ...context.metadata
+        ...(context.metadata as Record<string, unknown> || {})
       },
       400,
       false,
@@ -210,13 +210,13 @@ export class ErrorHandler extends EventEmitter {
     category: ErrorCategory,
     retryable: boolean = false,
     retryDelay: number = 0,
-    context?: unknown
+    details?: Record<string, unknown>
   ): AppError {
     return new AppError(
       message,
       category,
-      code,
-      context || {},
+      code as ErrorCode,
+      details || {},
       400,
       retryable,
       retryDelay

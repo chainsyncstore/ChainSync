@@ -452,7 +452,7 @@ export const SalesTrends = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all_stores">All Stores</SelectItem>
-                  {stores?.map((store: any) => (
+                  {Array.isArray(stores) && stores.map((store: any) => (
                     <SelectItem key={store.id} value={store.id.toString()}>
                       {store.name}
                     </SelectItem>

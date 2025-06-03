@@ -1,6 +1,7 @@
 // src/components/ErrorBoundary.tsx
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import * as Sentry from '@sentry/react';
+import { AppError } from '@shared/types/errors';
 
 interface Props {
   children: ReactNode;

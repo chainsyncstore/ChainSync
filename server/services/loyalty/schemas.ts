@@ -74,7 +74,7 @@ export const pointsUpdateSchema = z.object({
   memberId: z.number().int().positive({ message: 'Member ID must be a positive integer' }),
   points: z.string().or(z.number())
     .transform(val => String(val)),
-  type: z.enum(['earn', 'redeem', 'adjust']),
+  type: z.enum(['earn', 'redeem', 'adjust', 'expire']), // Added 'expire'
   transactionId: z.number().int().positive().optional().nullable(),
   rewardId: z.number().int().positive().optional().nullable(),
   notes: z.string().optional(),
@@ -115,7 +115,7 @@ export const memberListingSchema = z.object({
   customerId: z.number().int().positive().optional(),
   isActive: z.boolean().optional(),
   query: z.string().optional(),
-  ...CommonSchemas.pagination,
+  ...CommonSchemas.pagination.shape, // Correctly spread the shape
 });
 
 /**

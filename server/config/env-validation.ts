@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 // Define the schema for environment variables
 const envSchema = z.object({
@@ -150,9 +151,22 @@ export function validateEnvironment(): EnvConfig {
       console.error('📖 Refer to .env.example for the complete list of variables.\n');
       
       process.exit(1);
+      // Ensure a return path for type checking, though process.exit will terminate
+      // This path should ideally not be reached if process.exit works as expected.
+      throw new AppError('Environment validation failed and process.exit was called', ErrorCategory.SYSTEM, ErrorCode.CONFIGURATION_ERROR);
     }
     
-    throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+    // Handle other errors (e.g., from production-specific checks)
+    console.error('❌ Environment validation failed:');
+    if (error instanceof Error) {
+      console.error(`  - ${error.message}`);
+    } else {
+      console.error(`  - Unknown error: ${String(error)}`);
+    }
+    console.error('\n💡 Please check your environment configuration.');
+    process.exit(1);
+    // Ensure a return path for type checking
+    throw new AppError('Environment validation failed and process.exit was called', ErrorCategory.SYSTEM, ErrorCode.CONFIGURATION_ERROR);
   }
 }
 

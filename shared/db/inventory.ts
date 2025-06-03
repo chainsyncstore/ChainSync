@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, decimal, timestamp, index, unique } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, decimal, timestamp, index, unique, boolean } from "drizzle-orm/pg-core"; // Added boolean
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -22,6 +22,7 @@ export const inventory = pgTable("inventory", {
   totalQuantity: integer("total_quantity").notNull().default(0),
   minimumLevel: integer("minimum_level").notNull().default(0),
   status: text("status", { enum: inventoryStatus.options }).notNull().default("available"),
+  batchTracking: boolean("batch_tracking").default(false).notNull(), // Added batchTracking
 }, (table) => ({
   storeProductIndex: index("idx_inventory_store_product").on(table.storeId, table.productId),
   statusIndex: index("idx_inventory_status").on(table.status),
@@ -31,10 +32,14 @@ export const inventory = pgTable("inventory", {
 }));
 
 // Zod schemas for inventory
+// batchTracking is now part of the inventory table, so createInsertSchema will infer it.
+// No need to explicitly define it in the overrides for createInsertSchema.
 export const inventoryInsertSchema = createInsertSchema(inventory);
 
 export const inventorySelectSchema = createSelectSchema(inventory);
 
+// For updates, batchTracking will be inferred as optional by .partial() from inventoryInsertSchema.
+// No need to explicitly add it via .extend() here if the inferred optional boolean is sufficient.
 export const inventoryUpdateSchema = inventoryInsertSchema.partial().omit({
   storeId: true,
   productId: true, // Usually, storeId and productId are not updatable in an inventory record
@@ -80,6 +85,11 @@ export const inventoryBatches = pgTable("inventory_batches", {
 export const inventoryBatchInsertSchema = createInsertSchema(inventoryBatches);
 
 export const inventoryBatchSelectSchema = createSelectSchema(inventoryBatches);
+
+export const inventoryBatchUpdateSchema = inventoryBatchInsertSchema.partial().omit({ 
+  inventoryId: true, // Typically, inventoryId is not updatable in a batch record directly
+  // batchNumber: true, // Batch number might also be non-updatable once set
+});
 
 // Type exports for inventory batches
 export type InventoryBatch = z.infer<typeof inventoryBatchSelectSchema>;

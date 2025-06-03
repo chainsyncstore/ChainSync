@@ -1,11 +1,7 @@
-import { Request } from 'express';
+import { Request } from 'express'; // Keep if Role or FileUtils are used with it.
 
-export interface User {
-    id: string;
-    username: string;
-    email: string;
-    role: string;
-}
+// Removed local User interface. Use UserPayload from server/types/express.d.ts or a central User type.
+// export interface User { ... }
 
 export interface Role {
     id: string;
@@ -13,28 +9,10 @@ export interface Role {
     permissions: string[];
 }
 
-export interface AppError extends Error {
-    code: string;
-    category: string;
-    details?: Record<string, unknown>;
-    statusCode?: number;
-}
-
-export enum ErrorCategory {
-    VALIDATION = 'validation',
-    AUTHENTICATION = 'authentication',
-    AUTHORIZATION = 'authorization',
-    RATE_LIMIT = 'rate_limit',
-    INTERNAL = 'internal'
-}
-
-export enum ErrorCode {
-    BAD_REQUEST = 'bad_request',
-    UNAUTHORIZED = 'unauthorized',
-    FORBIDDEN = 'forbidden',
-    TOO_MANY_REQUESTS = 'too_many_requests',
-    INTERNAL_ERROR = 'internal_error'
-}
+// Removed local AppError, ErrorCategory, ErrorCode. Use from shared/types/errors.ts via server/middleware/types/app-error.ts
+// export interface AppError extends Error { ... }
+// export enum ErrorCategory { ... }
+// export enum ErrorCode { ... }
 
 export interface FileUtils {
     VALID_FILENAME_REGEX: RegExp;
@@ -45,46 +23,9 @@ export interface FileUtils {
     calculateFileHash(buffer: Buffer): Promise<string>;
 }
 
-export interface FileUploadConfig {
-    destination: string;
-    maxFileSize: number;
-    maxFiles: number;
-    uploadRateLimit: number;
-    allowedMimeTypes: string[];
-    maxTotalUploadSize: number;
-    maxUploadAttempts: number;
-}
-
-export interface FileUploadErrors {
-    FILE_TOO_LARGE: string;
-    INVALID_FILE_TYPE: string;
-    INVALID_FILE_NAME: string;
-    UPLOAD_RATE_LIMIT: string;
-    TOTAL_SIZE_LIMIT: string;
-    MAX_ATTEMPTS: string;
-    UNKNOWN_ERROR: string;
-}
-
-export interface ProgressSubscription {
-    callback: (progress: FileUploadProgress) => void;
-    lastUpdate: number;
-}
-
-export interface FileUploadProgress {
-    id: string;
-    status: 'pending' | 'in_progress' | 'completed' | 'failed';
-    progress: number;
-    total: number;
-    uploaded: number;
-    startTime: number;
-    lastUpdate: number;
-    files: Record<string, {
-        name: string;
-        size: number;
-        status: 'pending' | 'in_progress' | 'completed' | 'failed';
-        progress: number;
-        uploaded: number;
-        error?: string;
-        path?: string;
-    }>;
-}
+// Removed FileUploadConfig, FileUploadErrors, ProgressSubscription, FileUploadProgress
+// These are (or should be) defined in server/middleware/types/file-upload.d.ts
+// export interface FileUploadConfig { ... }
+// export interface FileUploadErrors { ... }
+// export interface ProgressSubscription { ... }
+// export interface FileUploadProgress { ... }

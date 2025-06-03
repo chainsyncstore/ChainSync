@@ -1,6 +1,6 @@
 // db/pool.ts
 import { Pool } from 'pg';
-import { getLogger } from '../src/logging';
+import { getLogger } from '../shared/logging.js';
 
 const logger = getLogger().child({ component: 'db-pool' });
 

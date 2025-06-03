@@ -47,14 +47,16 @@ async function ensureMigrationsTable(): Promise<void> {
 async function getExecutedMigrations(): Promise<MigrationRecord[]> {
   await ensureMigrationsTable();
   
-  const result = await db.execute<MigrationRecord>(sql`
+  // Remove generic type argument, rely on type assertion for result.rows
+  const result = await db.execute(sql`
     SELECT id, name, executed_at as "executedAt", success
     FROM migrations
     ORDER BY id ASC
   `);
   
   // Convert query result to the expected array type
-  return result.rows as MigrationRecord[];
+  // First cast to unknown to satisfy TypeScript when asserting to a more specific type
+  return result.rows as unknown as MigrationRecord[];
 }
 
 /**

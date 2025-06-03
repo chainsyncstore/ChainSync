@@ -5,7 +5,7 @@
  * the new naming conventions defined in our schema style guide.
  */
 
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql, AlterColumnBuilder } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
   // Standardize loyalty module field names
@@ -38,13 +38,13 @@ export async function up(db: Kysely<any>): Promise<void> {
   // Add missing timestamps to ensure consistency
   await db.schema
     .alterTable('loyalty_transactions')
-    .addColumnIfNotExists('updated_at', sql`timestamp with time zone`)
+    .addColumn('updated_at', sql`timestamp with time zone`)
     .execute();
 
   // Add consistent boolean defaults
   await db.schema
     .alterTable('customers')
-    .alterColumn('is_active', (col) => col.setDefault(true))
+    .alterColumn('is_active', (col: AlterColumnBuilder) => col.setDefault(true))
     .execute();
 
   // Standardize timestamps across all tables to include updated_at
@@ -58,7 +58,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   for (const table of tables) {
     await db.schema
       .alterTable(table)
-      .addColumnIfNotExists('updated_at', sql`timestamp with time zone`)
+      .addColumn('updated_at', sql`timestamp with time zone`)
       .execute();
   }
 }
@@ -99,7 +99,7 @@ export async function down(db: Kysely<any>): Promise<void> {
   // Revert boolean default changes
   await db.schema
     .alterTable('customers')
-    .alterColumn('is_active', (col) => col.dropDefault())
+    .alterColumn('is_active', (col: AlterColumnBuilder) => col.dropDefault())
     .execute();
 
   // Revert timestamp additions across tables

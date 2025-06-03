@@ -1,3 +1,4 @@
+import { Request, Response, NextFunction } from 'express';
 import { getCacheValue, setCacheValue, deleteCachePattern } from './redis';
 import { getLogger } from '../logging';
 
@@ -110,10 +111,10 @@ export async function invalidateListCache(
  * Middleware for caching Express API responses
  */
 export function cacheMiddleware(
-  keyFn: (req: unknown) => string,
+  keyFn: (req: Request) => string,
   ttl = CACHE_TTL.MEDIUM
 ) {
-  return async (req: unknown, res: unknown, next: unknown) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (req.method !== 'GET') {
       return next();
     }
@@ -137,26 +138,46 @@ export function cacheMiddleware(
       const originalSend = res.send;
 
       // Override the send function
-      res.send = function(body: unknown) {
+      res.send = function(this: Response, body: unknown) {
         // Only cache successful responses
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          const responseData = JSON.parse(body);
-          setCacheValue(
-            cacheKey, 
-            { 
-              statusCode: res.statusCode, 
-              data: responseData 
-            }, 
-            ttl
-          ).catch(err => {
-            logger.error('Error caching API response', { 
-              path: req.path, 
+        if (this.statusCode >= 200 && this.statusCode < 300) {
+          let responseDataToCache: any;
+          const bodyAsString = Buffer.isBuffer(body) ? body.toString() : (typeof body === 'string' ? body : null);
+
+          if (bodyAsString !== null) {
+            try {
+              responseDataToCache = JSON.parse(bodyAsString);
+            } catch (e) {
+              logger.warn('Response body could not be parsed as JSON for caching.', { cacheKey, path: req.path, bodyPreview: bodyAsString.substring(0, 100) });
+              // Decide if you want to cache non-JSON string bodies or skip
+              // For now, let's assume we only cache parsable JSON
+              responseDataToCache = undefined; 
+            }
+          } else if (typeof body === 'object' && body !== null) {
+            // If body is already an object (e.g. if res.json() was used and somehow this override gets the object directly)
+            responseDataToCache = body;
+          } else {
+            logger.debug('Response body is not a string, Buffer, or object; skipping cache.', { cacheKey, path: req.path, type: typeof body });
+          }
+          
+          if (typeof responseDataToCache !== 'undefined') {
+            setCacheValue(
               cacheKey, 
-              error: err 
+              { 
+                statusCode: this.statusCode, 
+                data: responseDataToCache
+              }, 
+              ttl
+            ).catch(err => {
+              logger.error('Error caching API response', { 
+                path: req.path, 
+                cacheKey, 
+                error: err 
+              });
             });
-          });
+          }
         }
-        return originalSend.call(res, body);
+        return originalSend.call(this, body);
       };
 
       next();

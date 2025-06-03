@@ -1,4 +1,4 @@
-import { dbManager, db, executeQuery } from './connection-manager';
+import { dbManager, db, executeQuery } from './connection-manager.js';
 import * as schema from "@shared/schema";
 
 // Re-export db instance from the connection manager

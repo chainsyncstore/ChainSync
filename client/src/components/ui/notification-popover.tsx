@@ -80,6 +80,16 @@ export function NotificationPopover() {
   
   // Handle notification click - mark as read and navigate if link exists
   const handleNotificationClick = (notification: Notification) => {
+    // Ensure notification type is valid before proceeding
+    const validTypes: Notification['type'][] = ['alert', 'info', 'warning', 'success'];
+    if (!validTypes.includes(notification.type)) {
+      console.error("Invalid notification type:", notification.type);
+      // Optionally, handle this error, e.g., by not processing the click
+      // or by defaulting to a safe type if appropriate.
+      // For now, we'll just prevent further processing for invalid types.
+      return;
+    }
+
     if (!notification.isRead) {
       markAsReadMutation.mutate(notification.id);
     }
@@ -91,7 +101,7 @@ export function NotificationPopover() {
   };
   
   // Show example notifications if none exist
-  const notifications = notificationsData.notifications.length > 0 
+  const notifications: Notification[] = notificationsData.notifications.length > 0 
     ? notificationsData.notifications 
     : [
         {

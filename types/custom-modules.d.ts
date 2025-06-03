@@ -16,3 +16,8 @@ declare module 'some-module-without-types' {
 //   export function someFunction(): void;
 //   export const someValue: string;
 // }
+
+// Add type definition for WebUSB API
+interface Navigator {
+  usb: any; // You can replace 'any' with a more specific type if you have one
+}

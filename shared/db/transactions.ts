@@ -17,8 +17,8 @@ export const PaymentStatus = text("payment_status").notNull();
 export const PaymentMethod = text("payment_method").notNull();
 
 export const transactions = pgTable("transactions", {
-  cashierId: integer("cashier_id").references(() => users.id), // NEW: cashierId column
-  total: decimal("total").notNull(), // NEW: total column
+  cashierId: integer("cashier_id").references(() => users.id), 
+  total: decimal("total").notNull(), 
   ...baseTable,
   transactionId: serial("transaction_id").primaryKey(),
   storeId: integer("store_id").references(() => stores.id),
@@ -70,51 +70,57 @@ export const transactionPayments = pgTable("transaction_payments", {
 export const transactionInsertSchema = baseInsertSchema.extend({
   transactionId: z.number().int().optional(),
   storeId: z.number().int().positive("Store ID must be positive"),
-  userId: z.number().int().positive("User ID must be positive"),
+  userId: z.number().int().positive("User ID must be positive").optional(), // Made optional as cashierId might be used
+  cashierId: z.number().int().positive("Cashier ID must be positive").optional(), // Made optional as userId might be used
   customerId: z.number().int().positive("Customer ID must be positive").optional(),
   status: z.enum(["pending", "completed", "cancelled", "failed"]).default("pending"),
+  total: z.number().min(0, "Total must be positive").max(1000000, "Total cannot exceed 1,000,000"), // Added total
   totalAmount: z.number().min(0, "Total amount must be positive").max(1000000, "Total amount cannot exceed 1,000,000"),
   paymentStatus: z.enum(["pending", "paid", "partially_paid", "overpaid", "failed"]).default("pending"),
   paymentMethod: z.enum(["cash", "card", "bank_transfer", "mobile_money"]).default("cash"),
   notes: z.string().pipe(z.string().max(1000, "Notes cannot exceed 1000 characters")).optional(),
-  referenceNumber: z.string().min(1, "Reference number is required").pipe(z.string().max(50, "Reference number cannot exceed 50 characters")),
+  referenceNumber: z.string().min(1, "Reference number is required").pipe(z.string().max(50, "Reference number cannot exceed 50 characters")).optional(), // Made optional as it might be auto-generated
 });
 
 export const transactionSelectSchema = baseSelectSchema.extend({
   transactionId: z.number().int(),
   storeId: z.number().int(),
-  userId: z.number().int(),
+  userId: z.number().int().optional(),
+  cashierId: z.number().int().optional(),
   customerId: z.number().int().optional(),
   status: z.enum(["pending", "completed", "cancelled", "failed"]),
+  total: z.number().min(0), // Added total
   totalAmount: z.number().min(0),
   paymentStatus: z.enum(["pending", "paid", "partially_paid", "overpaid", "failed"]),
   paymentMethod: z.enum(["cash", "card", "bank_transfer", "mobile_money"]),
   notes: z.string().optional(),
-  referenceNumber: z.string(),
+  referenceNumber: z.string().optional(),
 });
 
 export const transactionItemInsertSchema = baseInsertSchema.extend({
   transactionItemId: z.number().int().optional(),
   transactionId: z.number().int().positive("Transaction ID must be positive"),
   productId: z.number().int().positive("Product ID must be positive"),
-  inventoryBatchId: z.number().int().positive("Inventory batch ID must be positive"),
+  inventoryBatchId: z.number().int().positive("Inventory batch ID must be positive").optional(), // Made optional
   quantity: z.number().int().min(1, "Quantity must be positive").max(1000, "Quantity cannot exceed 1000"),
-  unitPrice: z.number().min(0, "Unit price must be positive").max(100000, "Unit price cannot exceed 100,000"),
+  unitPrice: z.number().min(0, "Unit price must be positive").max(100000, "Unit price cannot exceed 100,000"), // Zod expects number, Drizzle handles decimal conversion
   discount: z.number().min(0, "Discount must be positive").max(100, "Discount cannot exceed 100%").optional(),
   tax: z.number().min(0, "Tax must be positive").max(100, "Tax cannot exceed 100%").optional(),
   notes: z.string().pipe(z.string().max(500, "Notes cannot exceed 500 characters")).optional(),
+  expiryDate: z.date().optional(), // Added from table schema
 });
 
 export const transactionItemSelectSchema = baseSelectSchema.extend({
   transactionItemId: z.number().int(),
   transactionId: z.number().int(),
   productId: z.number().int(),
-  inventoryBatchId: z.number().int(),
+  inventoryBatchId: z.number().int().optional(),
   quantity: z.number().int(),
   unitPrice: z.number(),
   discount: z.number().optional(),
   tax: z.number().optional(),
   notes: z.string().optional(),
+  expiryDate: z.date().optional(),
 });
 
 export const transactionPaymentInsertSchema = baseInsertSchema.extend({
@@ -122,7 +128,7 @@ export const transactionPaymentInsertSchema = baseInsertSchema.extend({
   transactionId: z.number().int().positive("Transaction ID must be positive"),
   amount: z.number().min(0, "Amount must be positive").max(1000000, "Amount cannot exceed 1,000,000"),
   paymentMethod: z.enum(["cash", "card", "bank_transfer", "mobile_money"]).default("cash"),
-  referenceNumber: z.string().min(1, "Reference number is required").pipe(z.string().max(50, "Reference number cannot exceed 50 characters")),
+  referenceNumber: z.string().min(1, "Reference number is required").pipe(z.string().max(50, "Reference number cannot exceed 50 characters")).optional(),
   notes: z.string().pipe(z.string().max(500, "Notes cannot exceed 500 characters")).optional(),
 });
 
@@ -141,11 +147,15 @@ export const transactionRelations = relations(transactions, (helpers) => ({
     fields: [transactions.storeId],
     references: [stores.id],
   }),
-  user: helpers.one(users, {
+  user: helpers.one(users, { // This is the general user who might have initiated (e.g. online order)
     fields: [transactions.userId],
     references: [users.id],
   }),
-  customer: helpers.one(users, {
+  cashier: helpers.one(users, { // This is the cashier who processed at POS
+    fields: [transactions.cashierId],
+    references: [users.id],
+  }),
+  customer: helpers.one(users, { // This is the customer associated with the transaction
     fields: [transactions.customerId],
     references: [users.id],
   }),
@@ -177,3 +187,5 @@ export const transactionPaymentRelations = relations(transactionPayments, (helpe
 
 export type TransactionItem = z.infer<typeof transactionItemSelectSchema>;
 export type TransactionItemInsert = z.infer<typeof transactionItemInsertSchema>;
+export type Transaction = z.infer<typeof transactionSelectSchema>;
+export type TransactionInsert = z.infer<typeof transactionInsertSchema>;

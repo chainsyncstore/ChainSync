@@ -1,19 +1,21 @@
 import { Request, Response } from 'express';
+import { sql } from 'drizzle-orm'; // Import for SQL building
 import { UnifiedAuthService } from '../services/auth/unified-auth-service';
-import { ErrorCode, ErrorCategory } from '../middleware/types/error';
-import { AppError } from '../middleware/utils/app-error';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { db } from '../../db';
+import { getRedisClient } from '../../src/cache/redis'; // Corrected Redis import
+import { getLogger } from '../../src/logging'; // Use the project's logger
 
 // Logger configuration
-const logger = {
-  info: console.info,
-  warn: console.warn,
-  error: console.error,
-  debug: console.debug,
-  child: () => logger
-};
+const controllerLogger = getLogger().child({ component: 'auth-controller' });
 
-const authService = new UnifiedAuthService();
+const redis = getRedisClient();
+if (!redis) {
+  controllerLogger.error('Redis client not available. AuthController cannot be initialized.');
+  throw new Error('Redis client not available for AuthController.');
+}
+
+const authService = new UnifiedAuthService(db, redis);
 
 /**
  * Controller for authentication-related endpoints
@@ -51,7 +53,7 @@ export class AuthController {
         return res.status(401).json({
           success: false,
           error: {
-            code: ErrorCode.AUTHENTICATION,
+            code: ErrorCode.INVALID_CREDENTIALS,
             message: 'Invalid email or password'
           }
         });
@@ -66,7 +68,7 @@ export class AuthController {
       });
       
       // Log successful login
-      logger.info('User logged in successfully', {
+      controllerLogger.info('User logged in successfully', {
         userId: result.user.id,
         email: result.user.email,
         ip: req.ip
@@ -99,13 +101,13 @@ export class AuthController {
         });
       }
       
-      logger.error('Login error', { error });
+      controllerLogger.error('Login error', { error });
       return res.status(500).json({
         success: false,
-        error: {
-          code: ErrorCode.INTERNAL_ERROR,
-          message: 'An error occurred during login'
-        }
+          error: {
+            code: ErrorCode.INTERNAL_SERVER_ERROR,
+            message: 'An error occurred during login'
+          }
       });
     }
   }
@@ -130,7 +132,7 @@ export class AuthController {
       
       // Check for existing user with parameterized query
       const existingUserResult = await db.execute(
-        'SELECT id FROM users WHERE email = \'' + email.replace(/'/g, "''") + '\''
+        sql`SELECT id FROM users WHERE email = ${email}`
       );
       
       if (existingUserResult.rows && existingUserResult.rows.length > 0) {
@@ -149,14 +151,9 @@ export class AuthController {
       // Default role for new users
       const role = 'viewer';
       
-      // Insert user with parameterized query - using string replacement for compatibility
-      // In a real production environment, we would use a proper ORM or parameterized queries
-      const safeEmail = email.replace(/'/g, "''");
-      const safeUsername = (username || email).replace(/'/g, "''");
-      const safeFullName = (fullName || '').replace(/'/g, "''");
-      
+      // Insert user with parameterized query
       const result = await db.execute(
-        `INSERT INTO users (
+        sql`INSERT INTO users (
           email, 
           password, 
           username, 
@@ -164,13 +161,13 @@ export class AuthController {
           role, 
           is_active, 
           created_at
-        ) VALUES ('${safeEmail}', '${hashedPassword}', '${safeUsername}', '${safeFullName}', '${role}', true, NOW()) RETURNING id`
+        ) VALUES (${email}, ${hashedPassword}, ${username || email}, ${fullName || null}, ${role}, true, NOW()) RETURNING id`
       );
       
       const userId = result.rows[0].id;
       
       // Log user creation
-      logger.info('New user registered', {
+      controllerLogger.info('New user registered', {
         userId,
         email,
         ip: req.ip
@@ -197,13 +194,13 @@ export class AuthController {
         });
       }
       
-      logger.error('Registration error', { error });
+      controllerLogger.error('Registration error', { error });
       return res.status(500).json({
         success: false,
-        error: {
-          code: ErrorCode.INTERNAL_ERROR,
-          message: 'An error occurred during registration'
-        }
+          error: {
+            code: ErrorCode.INTERNAL_SERVER_ERROR,
+            message: 'An error occurred during registration'
+          }
       });
     }
   }
@@ -225,29 +222,28 @@ export class AuthController {
         });
       }
       
-      // Check if user exists - using safe string replacement
-      const safeEmail = email.replace(/'/g, "''");
+      // Check if user exists
       const userResult = await db.execute(
-        `SELECT id, email, is_active FROM users WHERE email = '${safeEmail}'`
+        sql`SELECT id, email, is_active FROM users WHERE email = ${email}`
       );
       
       // Always return success even if user doesn't exist (to prevent user enumeration)
       if (!userResult.rows || userResult.rows.length === 0) {
-        logger.info('Password reset requested for non-existent email', { email });
+        controllerLogger.info('Password reset requested for non-existent email', { email });
         return res.json({
           success: true,
           message: 'If your email is registered, you will receive password reset instructions'
         });
       }
       
-      const user = userResult.rows[0];
+      const user = userResult.rows[0] as { id: string; email: string; is_active: boolean }; // Type assertion
       
       // Generate a secure random token
       const resetToken = await authService.generateResetToken(user.id);
       
       // In a real application, you would send an email with the reset link
       // For this exercise, we'll just log it
-      logger.info('Password reset token generated', {
+      controllerLogger.info('Password reset token generated', {
         userId: user.id,
         email: user.email,
         // In a real app, you would NOT log the actual token
@@ -259,13 +255,13 @@ export class AuthController {
         message: 'If your email is registered, you will receive password reset instructions'
       });
     } catch (error: unknown) {
-      logger.error('Password reset request error', { error });
+      controllerLogger.error('Password reset request error', { error });
       return res.status(500).json({
         success: false,
-        error: {
-          code: ErrorCode.INTERNAL_ERROR,
-          message: 'An error occurred while processing your request'
-        }
+          error: {
+            code: ErrorCode.INTERNAL_SERVER_ERROR,
+            message: 'An error occurred while processing your request'
+          }
       });
     }
   }
@@ -303,34 +299,34 @@ export class AuthController {
       // Update the user's password
       const hashedPassword = await authService.hashPassword(newPassword);
       
-      // Update user password with safe string replacement
+      // Update user password
       await db.execute(
-        `UPDATE users 
-         SET password = '${hashedPassword}', 
+        sql`UPDATE users 
+         SET password = ${hashedPassword}, 
              failed_login_attempts = 0, 
              locked_until = NULL,
              password_updated_at = NOW()
-         WHERE id = '${userId}'`
+         WHERE id = ${userId}`
       );
       
       // Invalidate all existing sessions for security
       await authService.logoutAllSessions(userId);
       
       // Log password reset
-      logger.info('Password reset completed', { userId });
+      controllerLogger.info('Password reset completed', { userId });
       
       return res.json({
         success: true,
         message: 'Password has been reset successfully'
       });
     } catch (error: unknown) {
-      logger.error('Password reset error', { error });
+      controllerLogger.error('Password reset error', { error });
       return res.status(500).json({
         success: false,
-        error: {
-          code: ErrorCode.INTERNAL_ERROR,
-          message: 'An error occurred while resetting your password'
-        }
+          error: {
+            code: ErrorCode.INTERNAL_SERVER_ERROR,
+            message: 'An error occurred while resetting your password'
+          }
       });
     }
   }

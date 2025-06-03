@@ -5,7 +5,7 @@
  * with proper dependency injection.
  */
 
-import { Logger } from '../../utils/logger';
+import { Logger, getLogger as getSrcLogger } from '../../../src/logging'; // Use logger from src
 import { DrizzleClient } from '../../db/types';
 import { RedisClientType } from 'redis';
 import { CacheService } from '../cache/cache-service';

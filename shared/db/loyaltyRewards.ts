@@ -15,3 +15,6 @@ export const loyaltyRewards = pgTable("loyalty_rewards", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type NewLoyaltyReward = typeof loyaltyRewards.$inferInsert;

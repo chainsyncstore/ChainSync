@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import * as uuid from 'uuid';
 import { Request, Response, NextFunction } from 'express';
 import { createClient, RedisClientType } from 'redis';
 import { getLogger } from '../../../src/logging';
@@ -108,14 +108,14 @@ export class SessionManager {
    * Create a new session for a user
    */
   async createSession(userId: string, role: string, req: Request): Promise<Session> {
-    const sessionId = uuidv4();
+    const sessionId = uuid.v4();
     const now = Date.now();
     
     const session: Session = {
       id: sessionId,
       userId,
       role,
-      ipAddress: req.ip || req.socket.remoteAddress || '',
+      ipAddress: (req as any).ip || (req as any).socket?.remoteAddress || '',
       userAgent: req.headers['user-agent'] || '',
       lastActive: now,
       created: now,
@@ -205,13 +205,13 @@ export class SessionManager {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         // Check if cookie-parser middleware is installed
-        if (!req.cookies) {
+        if (!(req as any).cookies) {
           logger.warn('cookie-parser middleware is not installed, session management will not work');
           return next();
         }
         
         // Extract session ID from cookie
-        const sessionId = req.cookies[this.options.cookieName];
+        const sessionId = (req as any).cookies[this.options.cookieName];
         
         if (!sessionId) {
           // No session cookie, continue without session

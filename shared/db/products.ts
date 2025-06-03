@@ -26,7 +26,7 @@ export const categories = pgTable("categories", {
   ...baseTable,
   name: text("name").notNull(),
   description: text("description"),
-  parentCategoryId: integer("parent_category_id").references(() => categories.id),
+  parentCategoryId: integer("parent_category_id").references(() => (categories as any).id),
 }, (table) => ({
   nameIndex: index("idx_categories_name").on(table.name)
 }));

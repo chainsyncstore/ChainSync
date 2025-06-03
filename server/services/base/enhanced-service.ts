@@ -6,6 +6,8 @@
  */
 import { BaseService } from './service';
 import { db } from '@server/database'; // Changed to named import
+import { DrizzleClient, Transaction } from '../../db/types'; // Added DrizzleClient and Transaction
+import { ServiceConfig } from './service-factory'; // Added import
 import { sql } from 'drizzle-orm';
 import { ZodSchema } from 'zod';
 import { ErrorCode } from '@shared/types/errors';
@@ -18,7 +20,15 @@ import {
   prepareSqlValues
 } from '@shared/utils/sql-helpers';
 
+
 export abstract class EnhancedBaseService extends BaseService {
+  protected readonly db: DrizzleClient; // Add db client
+
+  constructor(config: ServiceConfig) { // Add constructor to accept ServiceConfig
+    super(config); // Pass the full config object to BaseService constructor
+    this.db = config.db; // Initialize db client
+  }
+
   /**
    * Execute a SQL query and format the first result
    * 

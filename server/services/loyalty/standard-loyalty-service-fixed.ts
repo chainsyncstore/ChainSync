@@ -81,10 +81,9 @@ export class LoyaltyService extends BaseService<
       const query = sql`
         SELECT 
           m.id, m.loyalty_id, m.customer_id, m.program_id, m.tier_id, m.points, m.created_at, m.updated_at,
-          m.lifetime_points, m.status, m.enrollment_date, m.last_activity_date, m.metadata, -- Added fields
-          c.id as c_customer_id, c.name as customer_name, c.email as customer_email, c.phone as customer_phone, -- aliased customer_id to avoid conflict
-          p.id as p_program_id, p.name as program_name, -- aliased program_id
-          t.id as t_tier_id, t.name as tier_name -- aliased tier_id
+          c.id as customer_id, c.name as customer_name, c.email as customer_email, c.phone as customer_phone,
+          p.id as program_id, p.name as program_name,
+          t.id as tier_id, t.name as tier_name
         FROM loyalty_members m
         INNER JOIN customers c ON m.customer_id = c.id
         INNER JOIN loyalty_programs p ON m.program_id = p.id
@@ -112,31 +111,26 @@ export class LoyaltyService extends BaseService<
       const memberWithDetails: MemberWithDetails = {
         id: Number(row.id),
         loyaltyId: String(row.loyalty_id),
-        customerId: Number(row.customer_id), // This is m.customer_id
-        programId: Number(row.program_id), // This is m.program_id
+        customerId: Number(row.customer_id),
+        programId: Number(row.program_id),
         tierId: row.tier_id ? Number(row.tier_id) : null,
         points: Number(row.points),
-        lifetimePoints: row.lifetime_points ? Number(row.lifetime_points) : Number(row.points), // Default to points if not present
-        status: row.status ? String(row.status) as LoyaltyMember['status'] : 'active',
-        enrollmentDate: row.enrollment_date ? new Date(row.enrollment_date) : new Date(row.created_at),
-        lastActivityDate: row.last_activity_date ? new Date(row.last_activity_date) : new Date(row.updated_at),
-        metadata: row.metadata ? JSON.parse(String(row.metadata)) : undefined,
         createdAt: new Date(row.created_at),
         updatedAt: new Date(row.updated_at),
         customer: {
-          id: Number(row.c_customer_id), // Use aliased c_customer_id
+          id: Number(row.customer_id),
           name: row.customer_name ? String(row.customer_name) : '',
           email: String(row.customer_email),
           phone: row.customer_phone ? String(row.customer_phone) : undefined,
         },
         program: {
-          id: Number(row.p_program_id), // Use aliased p_program_id
+          id: Number(row.program_id),
           name: String(row.program_name),
         },
-        tier: row.t_tier_id ? { // Use aliased t_tier_id
-          id: Number(row.t_tier_id),
+        tier: row.tier_id ? {
+          id: Number(row.tier_id),
           name: String(row.tier_name),
-        } : { id: 0, name: 'Default Tier' }, // Consider if default tier should be null or fetched
+        } : { id: 0, name: 'Default Tier' },
       };
 
       if (this.cache) {
@@ -166,12 +160,9 @@ export class LoyaltyService extends BaseService<
 
       // Use raw SQL to avoid type issues with Drizzle
       let query;
-      // Added all fields from loyalty_members including new ones
-      const selectFields = `m.id, m.loyalty_id, m.customer_id, m.program_id, m.tier_id, m.points, m.created_at, m.updated_at, m.lifetime_points, m.status, m.enrollment_date, m.last_activity_date, m.metadata`;
-
       if (storeId !== undefined) {
         query = sql`
-          SELECT ${sql.raw(selectFields)} FROM loyalty_members m
+          SELECT m.* FROM loyalty_members m
           INNER JOIN loyalty_programs p ON m.program_id = p.id
           WHERE m.customer_id = ${this.safeToString(customerId)}
           AND p.store_id = ${this.safeToString(storeId)}
@@ -179,8 +170,8 @@ export class LoyaltyService extends BaseService<
         `;
       } else {
         query = sql`
-          SELECT ${sql.raw(selectFields)} FROM loyalty_members m
-          WHERE m.customer_id = ${this.safeToString(customerId)}
+          SELECT * FROM loyalty_members
+          WHERE customer_id = ${this.safeToString(customerId)}
           LIMIT 1
         `;
       }
@@ -204,11 +195,6 @@ export class LoyaltyService extends BaseService<
           programId: Number(row.program_id),
           tierId: row.tier_id !== null ? Number(row.tier_id) : null,
           points: Number(row.points),
-          lifetimePoints: row.lifetime_points ? Number(row.lifetime_points) : Number(row.points),
-          status: row.status ? String(row.status) as LoyaltyMember['status'] : 'active',
-          enrollmentDate: row.enrollment_date ? new Date(row.enrollment_date) : new Date(row.created_at),
-          lastActivityDate: row.last_activity_date ? new Date(row.last_activity_date) : new Date(row.updated_at),
-          metadata: row.metadata ? JSON.parse(String(row.metadata)) : undefined,
           createdAt: new Date(row.created_at),
           updatedAt: new Date(row.updated_at)
         };
@@ -240,10 +226,8 @@ export class LoyaltyService extends BaseService<
       }
 
       // Use raw SQL to avoid type issues with Drizzle
-      // Added all fields from loyalty_members including new ones
-      const selectFields = `id, loyalty_id, customer_id, program_id, tier_id, points, created_at, updated_at, lifetime_points, status, enrollment_date, last_activity_date, metadata`;
       const query = sql`
-        SELECT ${sql.raw(selectFields)} FROM loyalty_members
+        SELECT * FROM loyalty_members
         WHERE loyalty_id = ${this.safeToString(loyaltyId)}
         LIMIT 1
       `;
@@ -267,11 +251,6 @@ export class LoyaltyService extends BaseService<
           programId: Number(row.program_id),
           tierId: row.tier_id !== null ? Number(row.tier_id) : null,
           points: Number(row.points),
-          lifetimePoints: row.lifetime_points ? Number(row.lifetime_points) : Number(row.points),
-          status: row.status ? String(row.status) as LoyaltyMember['status'] : 'active',
-          enrollmentDate: row.enrollment_date ? new Date(row.enrollment_date) : new Date(row.created_at),
-          lastActivityDate: row.last_activity_date ? new Date(row.last_activity_date) : new Date(row.updated_at),
-          metadata: row.metadata ? JSON.parse(String(row.metadata)) : undefined,
           createdAt: new Date(row.created_at),
           updatedAt: new Date(row.updated_at)
         };
@@ -288,4 +267,88 @@ export class LoyaltyService extends BaseService<
     }
   }
 
+  /**
+   * Create a new loyalty member
+   */
+  async createMember(data: z.infer<typeof memberCreateSchema>): Promise<LoyaltyMember> {
+    try {
+      // Generate loyalty ID if not provided
+      if (!data.loyaltyId) {
+        data.loyaltyId = generateLoyaltyId();
+      }
+
+      const result = await super.create(data);
+      return result as LoyaltyMember;
+    } catch (error) {
+      this.logger.error('Error creating loyalty member', { error, data });
+      throw new AppError('Failed to create loyalty member', ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error });
+    }
+  }
+
+  /**
+   * Update an existing loyalty member
+   */
+  async updateMember(id: number, data: z.infer<typeof memberUpdateSchema>): Promise<LoyaltyMember> {
+    try {
+      const result = await super.update(id, data);
+      return result as LoyaltyMember;
+    } catch (error) {
+      this.logger.error('Error updating loyalty member', { error, id, data });
+      throw new AppError('Failed to update loyalty member', ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error });
+    }
+  }
+
+  /**
+   * Get all active loyalty members for a program
+   */
+  async getMembersByProgramId(programId: number): Promise<LoyaltyMember[]> {
+    try {
+      const cacheKey = `loyalty:members:program:${programId}`;
+      if (this.cache) {
+        const cached = await this.cache.get(cacheKey);
+        if (cached) {
+          this.logger.debug(`Cache hit for ${cacheKey}`);
+          return cached as LoyaltyMember[];
+        }
+      }
+
+      // Use raw SQL to avoid type issues with Drizzle
+      const query = sql`
+        SELECT * FROM loyalty_members
+        WHERE program_id = ${this.safeToString(programId)}
+      `;
+
+      const result = await this.executeQuery(
+        async (db) => {
+          return db.execute(query);
+        },
+        'loyalty.getMembersByProgramId'
+      );
+
+      // Map DB results to properly structured LoyaltyMember objects
+      const rows = result.rows || [];
+      const members: LoyaltyMember[] = rows.map(row => {
+        const typedRow = row as Record<string, any>;
+        return {
+          id: Number(typedRow.id),
+          loyaltyId: String(typedRow.loyalty_id),
+          customerId: Number(typedRow.customer_id),
+          programId: Number(typedRow.program_id),
+          tierId: typedRow.tier_id !== null ? Number(typedRow.tier_id) : null,
+          points: Number(typedRow.points),
+          createdAt: new Date(typedRow.created_at),
+          updatedAt: new Date(typedRow.updated_at)
+        };
+      });
+
+      if (this.cache) {
+        await this.cache.set(cacheKey, members, this.CACHE_TTL.LIST);
+      }
+
+      return members;
+    } catch (error) {
+      this.logger.error(`Error fetching loyalty members for program ID: ${programId}`, { error });
+      throw new AppError('Failed to get loyalty members for program', ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error, programId });
+    }
+  }
 }

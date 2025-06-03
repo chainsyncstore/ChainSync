@@ -17,7 +17,7 @@ const baseLogger = pino({
   level: process.env.LOG_LEVEL || defaultLogLevel,
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
-    level: (label) => {
+    level: (label: string) => {
       return { level: label };
     },
   },
@@ -129,9 +129,14 @@ export async function measureAndLog<T>(
       component: 'performance',
       operation,
       durationMs,
-      ...metadata,
+      ...(metadata || {}), // Ensure metadata is an object
     });
-    logger.error({ error }, `Error in ${operation} after ${durationMs}ms`);
+    // Use Pino's 'err' binding for better error serialization
+    if (error instanceof Error) {
+      logger.error({ err: error }, `Error in ${operation} after ${durationMs}ms`);
+    } else {
+      logger.error({ errorDetail: error }, `Error in ${operation} after ${durationMs}ms`);
+    }
     throw error;
   }
 }

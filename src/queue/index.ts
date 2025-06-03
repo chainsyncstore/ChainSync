@@ -1,7 +1,8 @@
 // src/queue/index.ts
-import { Queue, Worker, QueueScheduler, Job, ConnectionOptions } from 'bullmq';
+import { Queue, Worker, JobScheduler, Job, ConnectionOptions } from 'bullmq'; // Changed QueueScheduler to JobScheduler
 import { getLogger } from '../logging';
 import { getRedisClient } from '../cache/redis';
+import { AppError } from '@shared/types/errors';
 
 // Get logger for job queue operations
 const logger = getLogger().child({ component: 'job-queue' });
@@ -26,7 +27,7 @@ export enum JobPriority {
 // Queue registry to track active queues
 const queues: Record<string, Queue> = {};
 const workers: Record<string, Worker> = {};
-const schedulers: Record<string, QueueScheduler> = {};
+const schedulers: Record<string, JobScheduler> = {}; // Changed QueueScheduler to JobScheduler
 
 /**
  * Redis connection configuration
@@ -36,19 +37,17 @@ const getRedisConfig = (): ConnectionOptions => {
   
   // Use existing Redis client if available
   if (redisClient) {
-    return {
-      connection: redisClient
-    };
+    // BullMQ ConnectionOptions can be an ioredis client instance directly
+    return redisClient as unknown as ConnectionOptions; // Cast if getRedisClient returns a compatible type
   }
   
   // Otherwise create a new connection from environment variables
+  // This structure is directly what ConnectionOptions can be
   return {
-    connection: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      password: process.env.REDIS_PASSWORD,
-      db: parseInt(process.env.REDIS_DB || '0', 10)
-    }
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB || '0', 10)
   };
 };
 
@@ -65,7 +64,7 @@ export function initQueue(queueName: QueueType): Queue {
   logger.info(`Initializing ${queueName} queue`);
   
   const queue = new Queue(queueName, {
-    connection: getRedisConfig().connection,
+    connection: getRedisConfig(), // Pass the config object directly
     defaultJobOptions: {
       attempts: 3,
       backoff: {
@@ -101,15 +100,15 @@ export function getQueue(queueName: QueueType): Queue {
  * Initialize a queue scheduler
  * Used for delayed and repeating jobs
  */
-export function initScheduler(queueName: QueueType): QueueScheduler {
+export function initScheduler(queueName: QueueType): JobScheduler { // Changed QueueScheduler to JobScheduler
   if (schedulers[queueName]) {
     return schedulers[queueName];
   }
   
   logger.info(`Initializing ${queueName} scheduler`);
   
-  const scheduler = new QueueScheduler(queueName, {
-    connection: getRedisConfig().connection
+  const scheduler = new JobScheduler(queueName, { // Changed QueueScheduler to JobScheduler
+    connection: getRedisConfig() // Pass the config object directly
   });
   
   schedulers[queueName] = scheduler;
@@ -149,7 +148,7 @@ export function initWorker(
       throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }, {
-    connection: getRedisConfig().connection,
+    connection: getRedisConfig(), // Pass the config object directly
     concurrency
   });
   

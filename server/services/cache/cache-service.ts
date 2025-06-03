@@ -5,7 +5,7 @@
  */
 
 import { RedisClientType } from 'redis';
-import { Logger } from '../../utils/logger';
+import { Logger } from '../../../src/logging'; // Use logger from src
 
 interface CacheServiceConfig {
   redis: RedisClientType;
@@ -34,7 +34,7 @@ export class CacheService {
       const value = await this.redis.get(key);
       if (!value) return null;
       
-      return JSON.parse(value) as T;
+      return JSON.parse(value as string) as T;
     } catch (error) {
       this.logger.error('Error getting cached value', { key, error });
       return null;
@@ -104,7 +104,8 @@ export class CacheService {
    */
   async hget(key: string, field: string): Promise<string | null> {
     try {
-      return await this.redis.hGet(key, field);
+      const result = await this.redis.hGet(key, field);
+      return result === null ? null : result as string;
     } catch (error) {
       this.logger.error('Error getting hash field', { key, field, error });
       return null;

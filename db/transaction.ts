@@ -1,6 +1,6 @@
-import { db } from './connection-manager';
-import { getLogger } from '../src/logging';
-import { retry, RetryOptions } from '../server/utils/retry';
+import { db } from './connection-manager.js';
+import { getLogger } from '../shared/logging.js';
+import { retry, RetryOptions } from '../server/utils/retry.js';
 import { sql } from 'drizzle-orm';
 
 const logger = getLogger().child({ component: 'db-transaction' });

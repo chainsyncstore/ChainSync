@@ -87,17 +87,17 @@ export function Header({ user, onMenuClick, isSidebarOpen }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center focus:outline-none p-1">
                 <span className="hidden md:block mr-2 text-sm font-medium">
-                  {user.fullName}
+                  {user.fullName || ''}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
-                  <span className="text-sm font-medium">{getInitials(user.fullName)}</span>
+                  <span className="text-sm font-medium">{getInitials(user.fullName || '')}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="font-normal">
-                  <p className="text-sm font-medium">{user.fullName}</p>
+                  <p className="text-sm font-medium">{user.fullName || ''}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </DropdownMenuLabel>

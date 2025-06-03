@@ -1,6 +1,8 @@
 // src/monitoring/alerts.ts
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import express from 'express';
+import os from 'os';
 import { getLogger } from '../logging';
 import { 
   httpRequestsErrorCounter, 
@@ -56,7 +58,7 @@ export function getAlertThresholds() {
   const thresholds = { ...ALERT_THRESHOLDS };
   
   // Override from environment variables if set
-  Object.keys(thresholds).forEach(key => {
+  (Object.keys(thresholds) as Array<keyof typeof thresholds>).forEach(key => {
     const envKey = `ALERT_${key}`;
     if (process.env[envKey] && !isNaN(Number(process.env[envKey]))) {
       thresholds[key] = Number(process.env[envKey]);
@@ -121,7 +123,9 @@ export function initializeMonitoring(): void {
  * @param app Express application
  * @param dbPool Database connection pool
  */
-export function setupAlerts(app: unknown, dbPool: unknown): void {
+// Define a placeholder for DBPoolType if not already defined elsewhere
+// For example: type DBPoolType = { idleCount: number; totalCount: number; [key: string]: any };
+export function setupAlerts(app: express.Application, dbPool: { idleCount: number; totalCount: number; [key: string]: any } | any): void { // Using 'any' as a broad fallback for dbPool
   if (!process.env.SENTRY_DSN) {
     return;
   }
@@ -153,7 +157,7 @@ export function setupAlerts(app: unknown, dbPool: unknown): void {
 /**
  * Check system health and trigger alerts if needed
  */
-async function checkSystemHealth(dbPool: unknown): Promise<void> {
+async function checkSystemHealth(dbPool: { idleCount: number; totalCount: number; [key: string]: any } | any): Promise<void> { // Using 'any' as a broad fallback for dbPool
   try {
     // Check memory usage
     const memoryUsage = process.memoryUsage();
@@ -166,8 +170,9 @@ async function checkSystemHealth(dbPool: unknown): Promise<void> {
     }
     
     // Check CPU usage
-    const os = require('os');
-    const cpuUsage = os.loadavg()[0] / os.cpus().length * 100;
+    // const os = require('os'); // Now imported at the top
+    const cpus = os.cpus();
+    const cpuUsage = cpus.length > 0 ? (os.loadavg()[0] / cpus.length * 100) : 0;
     
     if (cpuUsage >= ALERT_THRESHOLDS.CPU_USAGE_CRITICAL) {
       triggerAlert('cpu_critical', `CPU usage critical: ${cpuUsage.toFixed(1)}%`, 'critical');

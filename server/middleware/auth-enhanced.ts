@@ -6,26 +6,15 @@ import { db } from '../../db';
 import crypto from 'crypto';
 import Redis from 'ioredis';
 import { getRedisClient, initRedis } from '../../src/cache/redis';
-import { User } from '../types/user'; // This might be your DB user type
-import { UserPayload } from '../types/express'; // Import the standardized UserPayload
+import { UserPayload } from '../types/user'; // Corrected: Import UserPayload from ../types/user
+// Removed incorrect import: import { UserPayload } from '../types/express'; 
 import { sql } from 'drizzle-orm';
+import { getLogger } from '../../src/logging'; // Import actual logger
 
-// Mock required utilities until actual files are available
-const logger = {
-  info: console.info,
-  warn: console.warn,
-  error: console.error,
-  debug: console.debug,
-  child: () => logger
-};
+const logger = getLogger().child({ component: 'auth-enhanced' }); // Use actual logger
 
-class AppError extends Error {
-  code: string;
-  constructor(message: string, code: string) {
-    super(message);
-    this.code = code;
-  }
-}
+// AppError and ErrorCode are now imported from the shared location
+import { AppError, ErrorCode as SharedErrorCode, ErrorCategory } from '../../shared/types/errors';
 
 // Define a type for the user object passed to generateTokenPair
 interface UserForTokenGeneration {
@@ -36,12 +25,11 @@ interface UserForTokenGeneration {
   username?: string;
 }
 
-enum ErrorCode {
-  INVALID_TOKEN = 'INVALID_TOKEN',
-  USER_NOT_FOUND = 'USER_NOT_FOUND',
-  UNAUTHORIZED = 'UNAUTHORIZED',
-  ACCESS_DENIED = 'ACCESS_DENIED'
-}
+// Local ErrorCode enum removed, use SharedErrorCode from shared/types/errors.ts
+// Ensure that any usage of the local ErrorCode (e.g. ErrorCode.INVALID_TOKEN)
+// is updated to use SharedErrorCode (e.g. SharedErrorCode.INVALID_TOKEN).
+// The specific codes used here (INVALID_TOKEN, USER_NOT_FOUND, UNAUTHORIZED, ACCESS_DENIED)
+// already exist in the shared ErrorCode enum or have equivalents (FORBIDDEN for ACCESS_DENIED).
 
 interface JWTPayload {
   userId: string;
@@ -533,16 +521,17 @@ export const authRateLimit = rateLimit({
 export const authenticateJWT = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   
-  if (!authHeader) {
+    if (!authHeader) {
     return next(); // No token, continue as unauthenticated
   }
 
   const token = authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
+    // Consider using AppError for structured errors
     return res.status(401).json({
       error: 'Access token required',
-      code: 'MISSING_TOKEN'
+      code: SharedErrorCode.UNAUTHORIZED // Or a more specific MISSING_TOKEN if added
     });
   }
 
@@ -552,7 +541,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
     if (!payload) {
       return res.status(401).json({
         error: 'Invalid or expired token',
-        code: 'INVALID_TOKEN'
+        code: SharedErrorCode.INVALID_TOKEN
       });
     }
 
@@ -577,7 +566,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
       await authService.revokeSession(payload.sessionId);
       return res.status(401).json({
         error: 'User account is inactive',
-        code: 'ACCOUNT_INACTIVE'
+        code: SharedErrorCode.USER_NOT_FOUND // Or a specific ACCOUNT_INACTIVE if added
       });
     }
 
@@ -586,11 +575,12 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
       id: user.id.toString(),
       role: user.role,
       storeId: user.store_id ?? undefined,
-      name: user.username, // Assuming username is the primary display name
-      email: user.email, // Assuming user.email is always a string from DB
-      username: user.username, // Explicitly set username
+      name: user.username, 
+      email: user.email, 
+      username: user.username, 
     };
-    req.user = authenticatedUserPayload;
+    req.user = authenticatedUserPayload as any; // Cast to any to assign to Express.Request.user
+
 
     // Log successful authentication
     logger.debug('User authenticated', { 
@@ -601,10 +591,11 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
 
     next();
   } catch (error: unknown) {
-    logger.error('JWT authentication error', error);
+    const errorToLog = error instanceof Error ? error : new Error(String(error));
+    logger.error('JWT authentication error', errorToLog);
     return res.status(401).json({
       error: 'Authentication failed',
-      code: 'AUTH_ERROR'
+      code: 'AUTH_ERROR' // Consider using SharedErrorCode here if applicable
     });
   }
 };
@@ -615,21 +606,21 @@ export const requireRole = (roles: string[]) => {
     if (!req.user) {
       return res.status(401).json({
         error: 'Authentication required',
-        code: 'UNAUTHENTICATED'
+        code: SharedErrorCode.UNAUTHORIZED // Or a specific UNAUTHENTICATED if added
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes((req.user as UserPayload).role)) { // Cast req.user
       logger.warn('Insufficient permissions', {
-        userId: req.user.id,
-        userRole: req.user.role,
+        userId: (req.user as UserPayload).id, // Cast req.user
+        userRole: (req.user as UserPayload).role, // Cast req.user
         requiredRoles: roles,
         path: req.path
       });
       
       return res.status(403).json({
         error: `Insufficient permissions. Required: ${roles.join(' or ')}`,
-        code: 'INSUFFICIENT_PERMISSIONS'
+        code: SharedErrorCode.FORBIDDEN // Or a specific INSUFFICIENT_PERMISSIONS if added
       });
     }
 
@@ -643,7 +634,7 @@ export const requireStoreAccess = (store_idParam = 'store_id') => {
     if (!req.user) {
       return res.status(401).json({
         error: 'Authentication required',
-        code: 'UNAUTHENTICATED'
+        code: SharedErrorCode.UNAUTHORIZED // Or a specific UNAUTHENTICATED if added
       });
     }
 
@@ -661,27 +652,27 @@ export const requireStoreAccess = (store_idParam = 'store_id') => {
     if (!store_id || isNaN(store_id)) {
       return res.status(400).json({
         error: 'Invalid store ID',
-        code: 'INVALID_STORE_ID'
+        code: SharedErrorCode.BAD_REQUEST // Or a specific INVALID_STORE_ID if added
       });
     }
 
     // Admins have access to all stores
-    if (req.user.role === 'admin') {
+    if ((req.user as UserPayload).role === 'admin') { // Cast req.user
       return next();
     }
 
     // Other users can only access their assigned store
-    if (req.user.storeId !== store_id) {
+    if ((req.user as UserPayload).storeId !== store_id) { // Cast req.user
       logger.warn('User tried to access unauthorized store', {
-        userId: req.user.id,
-        userStoreId: req.user.storeId,
+        userId: (req.user as UserPayload).id, // Cast req.user
+        userStoreId: (req.user as UserPayload).storeId, // Cast req.user
         requestedStoreId: store_id,
         path: req.path
       });
       
       return res.status(403).json({
         error: 'Access denied to this store',
-        code: 'STORE_ACCESS_DENIED'
+        code: SharedErrorCode.FORBIDDEN // Or a specific STORE_ACCESS_DENIED if added
       });
     }
 

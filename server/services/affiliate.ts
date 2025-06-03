@@ -1,6 +1,7 @@
 import { storage } from "../storage";
 import * as schema from "@shared/schema";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
 import { randomBytes } from "crypto";
 import { db } from "../../db";
 import Flutterwave from "flutterwave-node-v3";
@@ -30,7 +31,8 @@ export async function generateReferralCode(userId: number): Promise<string> {
   try {
     const user = await storage.getUserById(userId);
     if (!user) {
-      throw new Error("User not found");
+      // Consider throwing an AppError here for consistency if this case is expected
+      throw new AppError("User not found", ErrorCategory.RESOURCE, ErrorCode.USER_NOT_FOUND);
     }
 
     // Generate a base code from username or name
@@ -58,7 +60,7 @@ export async function registerAffiliate(userId: number, bankDetails?: unknown): 
       return existingAffiliate;
     }
 
-    const referralCode = await generateReferralCode(userId);
+    const referralCode = await generateReferralCode(userId); // This already throws AppError if user not found
     
     const affiliateData: schema.AffiliateInsert = {
       userId,
@@ -112,6 +114,9 @@ export async function trackReferral(referralCode: string, newUserId: number): Pr
     // Get the affiliate from the referral code
     const affiliate = await getAffiliateByCode(referralCode);
     if (!affiliate) {
+      // This case might not need an error throw if it's an expected outcome (e.g., invalid code entered)
+      // but logging is good. If an error is desired:
+      // throw new AppError(`Affiliate not found for code: ${referralCode}`, ErrorCategory.VALIDATION, ErrorCode.NOT_FOUND);
       console.error(`No affiliate found for referral code: ${referralCode}`);
       return null;
     }
@@ -154,6 +159,9 @@ export async function applyReferralDiscount(userId: number, referralCode: string
     // Check if the referral code is valid
     const affiliate = await getAffiliateByCode(referralCode);
     if (!affiliate) {
+      // Similar to above, this might be an expected outcome (invalid code)
+      // rather than an error to throw.
+      console.warn(`Referral discount attempted with invalid code: ${referralCode}`);
       return { 
         discountedAmount: subscriptionAmount, 
         discountAmount: 0 
@@ -220,6 +228,7 @@ export async function processAffiliateCommission(userId: number, paymentAmount: 
       .limit(1);
     
     if (!referral) {
+      // Expected outcome if user wasn't referred or referral expired/inactive
       return false;
     }
     
@@ -229,7 +238,8 @@ export async function processAffiliateCommission(userId: number, paymentAmount: 
     // Update the affiliate's pending earnings
     const affiliate = await getAffiliateByCode(referral.affiliateId.toString());
     if (!affiliate) {
-      return false;
+      // This would be an internal inconsistency if referral exists but affiliate doesn't
+      throw new AppError(`Affiliate not found for referral ID: ${referral.affiliateId}`, ErrorCategory.SYSTEM, ErrorCode.INTERNAL_SERVER_ERROR);
     }
     
     const newPendingEarnings = parseFloat(affiliate.pendingEarnings.toString()) + commissionAmount;
@@ -377,7 +387,7 @@ export async function getAffiliateDashboardStats(userId: number): Promise<{
     // Get the affiliate
     const affiliate = await getAffiliateByUserId(userId);
     if (!affiliate) {
-      throw new Error("User is not an affiliate");
+      throw new AppError("User is not an affiliate", ErrorCategory.VALIDATION, ErrorCode.USER_NOT_FOUND);
     }
     
     // Get referral stats

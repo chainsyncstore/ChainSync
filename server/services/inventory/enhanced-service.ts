@@ -4,627 +4,400 @@
  * A refactored version of the Inventory service that uses the enhanced base service
  * and utility abstractions to reduce code duplication and improve type safety.
  */
-import { EnhancedBaseService } from '@server/services/base/enhanced-service';
+import { EnhancedBaseService } from '../base/enhanced-service'; 
 import { 
   InventoryFormatter,
-  InventoryItemFormatter,
+  InventoryItemFormatter, // Assuming this formats InventoryBatch
   InventoryTransactionFormatter
 } from './formatter';
 import { inventoryValidation } from '@shared/schema-validation';
-import { IInventoryService } from './interface';
 import { 
   CreateInventoryParams,
   UpdateInventoryParams,
-  Inventory,
-  InventoryItem,
-  InventoryTransaction,
-  CreateInventoryItemParams,
-  UpdateInventoryItemParams,
   InventoryAdjustmentParams,
-  InventoryBatchParams,
-  InventoryTransactionType
+  InventoryBatchParams,      
+  InventoryTransactionType, 
+  IInventoryService,      
+  InventoryServiceErrors,
+  InventorySearchParams 
 } from './types';
-import { InventoryServiceErrors } from './errors';
 import { ErrorCode } from '@shared/types/errors';
-import { db } from '@server/db';
-import { eq, and, or, like, desc, asc, sql } from 'drizzle-orm';
+import { db } from '../../../db'; 
+import { eq, and, or, like, desc, asc, sql, gt, SQL, inArray, AnyColumn, getTableName } from 'drizzle-orm';
+// Removed PgSelect import, will let TypeScript infer 'query' type
 import * as schema from '@shared/schema';
+import { z } from 'zod';
+import { ServiceConfig } from '../base/service-factory'; 
 import { formatDateForSql, formatJsonForSql } from '@shared/utils/sql-helpers';
 
 export class EnhancedInventoryService extends EnhancedBaseService implements IInventoryService {
   private inventoryFormatter: InventoryFormatter;
-  private itemFormatter: InventoryItemFormatter;
+  private itemFormatter: InventoryItemFormatter; 
   private transactionFormatter: InventoryTransactionFormatter;
   
-  constructor() {
-    super();
+  constructor(config: ServiceConfig) { 
+    super(config); 
     this.inventoryFormatter = new InventoryFormatter();
-    this.itemFormatter = new InventoryItemFormatter();
+    this.itemFormatter = new InventoryItemFormatter(); 
     this.transactionFormatter = new InventoryTransactionFormatter();
   }
   
-  /**
-   * Create a new inventory record with validated data
-   * 
-   * @param params Inventory creation parameters
-   * @returns The created inventory record
-   */
-  async createInventory(params: CreateInventoryParams): Promise<Inventory> {
+  async createInventory(params: CreateInventoryParams): Promise<schema.Inventory> {
     try {
-      // Check if product exists
       const product = await this.getProductById(params.productId);
       if (!product) {
         throw InventoryServiceErrors.PRODUCT_NOT_FOUND;
       }
       
-      // Check if store exists
       const store = await this.getStoreById(params.storeId);
       if (!store) {
         throw InventoryServiceErrors.STORE_NOT_FOUND;
       }
       
-      // Check for existing inventory for this product and store
       const existingInventory = await this.getInventoryByProduct(params.productId, params.storeId);
       if (existingInventory) {
-        return this.updateInventory(existingInventory.id, params);
+        const updateParams: UpdateInventoryParams = {
+            totalQuantity: params.totalQuantity,
+            availableQuantity: params.availableQuantity,
+            minimumLevel: params.minimumLevel,
+            batchTracking: params.batchTracking
+        };
+        return this.updateInventory(existingInventory.id, updateParams);
       }
       
-      // Prepare inventory data
-      const inventoryData = {
-        ...params,
-        currentUtilization: params.currentUtilization || 0,
-        lastAuditDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+      const inventoryData: z.input<typeof schema.inventoryInsertSchema> = { 
+        productId: params.productId,
+        storeId: params.storeId,
+        totalQuantity: params.totalQuantity,
+        minimumLevel: params.minimumLevel,
+        batchTracking: params.batchTracking ?? false, 
+        status: schema.inventoryStatus.options[0], 
+        // createdAt and updatedAt are typically handled by DB defaults
+        // id is auto-generated
+        // deletedAt is nullable and optional
       };
       
-      // Validate and prepare the data
-      const validatedData = inventoryValidation.insert(inventoryData);
+      // The inventorySchema in schema-validation.ts should now correctly handle batchTracking
+      const validatedData = inventoryValidation.insert(inventoryData); 
       
-      // Use the raw insert method to avoid TypeScript field mapping errors
-      const inventory = await this.rawInsertWithFormatting(
-        'inventory',
+      const result = await this.rawInsertWithFormatting(
+        getTableName(schema.inventory), // Use getTableName
         validatedData,
         this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
       );
-      
-      // Ensure the inventory was created
-      return this.ensureExists(inventory, 'Inventory');
+      return this.ensureExists(result as schema.Inventory | null, 'Inventory') as schema.Inventory;
     } catch (error: unknown) {
       return this.handleError(error, 'creating inventory');
     }
   }
   
-  /**
-   * Update an inventory record with validated data
-   * 
-   * @param inventoryId ID of the inventory to update
-   * @param params Inventory update parameters
-   * @returns The updated inventory record
-   */
-  async updateInventory(inventoryId: number, params: UpdateInventoryParams): Promise<Inventory> {
+  async updateInventory(inventoryId: number, params: UpdateInventoryParams): Promise<schema.Inventory> {
     try {
-      // Get existing inventory
       const existingInventory = await this.getInventoryById(inventoryId);
       if (!existingInventory) {
         throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
       }
       
-      // Prepare update data with proper field names
-      const updateData = {
-        ...params,
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : existingInventory.metadata
+      const updateData: Partial<z.input<typeof schema.inventoryUpdateSchema>> = { 
+        totalQuantity: params.totalQuantity,
+        minimumLevel: params.minimumLevel,
+        batchTracking: params.batchTracking,
+        // id, productId, storeId are typically not updatable or handled by where clause
+        // createdAt, status, deletedAt might also be handled differently or not part of typical updates
+        // updatedAt is typically handled by DB defaults
       };
       
-      // Validate the data
-      const validatedData = inventoryValidation.update(updateData);
+      // The inventorySchema in schema-validation.ts should now correctly handle batchTracking
+      const validatedData = inventoryValidation.update(updateData); 
       
-      // Use the raw update method to avoid TypeScript field mapping errors
       const updatedInventory = await this.rawUpdateWithFormatting(
-        'inventory',
+        getTableName(schema.inventory), // Use getTableName
         validatedData,
         `id = ${inventoryId}`,
         this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
       );
       
-      // Ensure the inventory was updated
-      return this.ensureExists(updatedInventory, 'Inventory');
+      return this.ensureExists(updatedInventory as schema.Inventory | null, 'Inventory') as schema.Inventory;
     } catch (error: unknown) {
       return this.handleError(error, 'updating inventory');
     }
   }
   
-  /**
-   * Get an inventory record by ID
-   * 
-   * @param inventoryId ID of the inventory to retrieve
-   * @returns The inventory record or null if not found
-   */
-  async getInventoryById(inventoryId: number): Promise<Inventory | null> {
+  async getInventoryById(inventoryId: number): Promise<schema.Inventory | null> { 
     try {
-      // Create a simple query to fetch the inventory
-      const query = `
-        SELECT * FROM inventory WHERE id = ${inventoryId}
-      `;
-      
-      // Execute the query and format the result
-      return await this.executeSqlWithFormatting(
-        query,
-        [],
-        this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
-      );
+      const [result] = await db.select().from(schema.inventory).where(eq(schema.inventory.id, inventoryId)).limit(1);
+      return result || null;
     } catch (error: unknown) {
       return this.handleError(error, 'getting inventory by ID');
     }
   }
   
-  /**
-   * Get an inventory record by product and store
-   * 
-   * @param productId ID of the product
-   * @param storeId ID of the store
-   * @returns The inventory record or null if not found
-   */
-  async getInventoryByProduct(productId: number, storeId?: number): Promise<Inventory | null> {
+  async getInventoryByProduct(productId: number, storeId?: number): Promise<schema.Inventory | null> { 
     try {
-      // Create a query to fetch the inventory
-      let query = `
-        SELECT * FROM inventory 
-        WHERE product_id = ${productId}
-      `;
-      
+      const conditions: SQL[] = [eq(schema.inventory.productId, productId)];
       if (storeId) {
-        query += ` AND store_id = ${storeId}`;
+        conditions.push(eq(schema.inventory.storeId, storeId));
       }
-      
-      query += ' LIMIT 1';
-      
-      // Execute the query and format the result
-      return await this.executeSqlWithFormatting(
-        query,
-        [],
-        this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
-      );
+      const [result] = await db.select().from(schema.inventory).where(and(...conditions)).limit(1);
+      return result || null;
     } catch (error: unknown) {
       return this.handleError(error, 'getting inventory by product');
     }
   }
-  
-  /**
-   * Create an inventory item with validated data
-   * 
-   * @param params Inventory item creation parameters
-   * @returns The created inventory item
-   */
-  async createInventoryItem(params: CreateInventoryItemParams): Promise<InventoryItem> {
+
+  async addInventoryBatch(params: InventoryBatchParams): Promise<schema.InventoryBatch> {
     try {
-      // Check if inventory exists
-      const inventory = await this.getInventoryById(params.inventoryId);
-      if (!inventory) {
-        throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
-      }
-      
-      // Check if product exists
       const product = await this.getProductById(params.productId);
       if (!product) {
         throw InventoryServiceErrors.PRODUCT_NOT_FOUND;
       }
-      
-      // Prepare item data
-      const itemData = {
-        ...params,
-        sku: params.sku || `SKU-${params.productId}-${Date.now()}`,
-        quantity: params.quantity || 0,
-        reorderLevel: params.reorderLevel || 0,
-        reorderQuantity: params.reorderQuantity || 0,
-        receivedDate: params.receivedDate || new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
-      };
-      
-      // Validate and prepare the data
-      const validatedData = inventoryValidation.itemInsert(itemData);
-      
-      // Use the raw insert method to avoid TypeScript field mapping errors
-      const item = await this.rawInsertWithFormatting(
-        'inventory_items',
-        validatedData,
-        this.itemFormatter.formatResult.bind(this.itemFormatter)
-      );
-      
-      // Update inventory utilization
-      await this.updateInventoryUtilization(params.inventoryId);
-      
-      // Ensure the item was created
-      return this.ensureExists(item, 'Inventory Item');
-    } catch (error: unknown) {
-      return this.handleError(error, 'creating inventory item');
-    }
-  }
   
-  /**
-   * Update an inventory item with validated data
-   * 
-   * @param itemId ID of the item to update
-   * @param params Inventory item update parameters
-   * @returns The updated inventory item
-   */
-  async updateInventoryItem(itemId: number, params: UpdateInventoryItemParams): Promise<InventoryItem> {
-    try {
-      // Get existing item
-      const existingItem = await this.getInventoryItemById(itemId);
-      if (!existingItem) {
-        throw InventoryServiceErrors.ITEM_NOT_FOUND;
-      }
-      
-      // Prepare update data with proper field names
-      const updateData = {
-        ...params,
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : existingItem.metadata
-      };
-      
-      // Validate the data
-      const validatedData = inventoryValidation.itemUpdate(updateData);
-      
-      // Use the raw update method to avoid TypeScript field mapping errors
-      const updatedItem = await this.rawUpdateWithFormatting(
-        'inventory_items',
-        validatedData,
-        `id = ${itemId}`,
-        this.itemFormatter.formatResult.bind(this.itemFormatter)
-      );
-      
-      // Update inventory utilization if quantity changed
-      if (params.quantity !== undefined && params.quantity !== existingItem.quantity) {
-        await this.updateInventoryUtilization(existingItem.inventoryId);
-      }
-      
-      // Ensure the item was updated
-      return this.ensureExists(updatedItem, 'Inventory Item');
-    } catch (error: unknown) {
-      return this.handleError(error, 'updating inventory item');
-    }
-  }
-  
-  /**
-   * Get an inventory item by ID
-   * 
-   * @param itemId ID of the item to retrieve
-   * @returns The inventory item or null if not found
-   */
-  async getInventoryItemById(itemId: number): Promise<InventoryItem | null> {
-    try {
-      // Create a simple query to fetch the item
-      const query = `
-        SELECT * FROM inventory_items WHERE id = ${itemId}
-      `;
-      
-      // Execute the query and format the result
-      return await this.executeSqlWithFormatting(
-        query,
-        [],
-        this.itemFormatter.formatResult.bind(this.itemFormatter)
-      );
-    } catch (error: unknown) {
-      return this.handleError(error, 'getting inventory item by ID');
-    }
-  }
-  
-  /**
-   * Get all inventory items for an inventory
-   * 
-   * @param inventoryId ID of the inventory
-   * @returns Array of inventory items
-   */
-  async getInventoryItems(inventoryId: number): Promise<InventoryItem[]> {
-    try {
-      // Create a query to fetch the items
-      const query = `
-        SELECT * FROM inventory_items 
-        WHERE inventory_id = ${inventoryId}
-        ORDER BY created_at DESC
-      `;
-      
-      // Execute the query and format the results
-      return await this.executeSqlWithMultipleResults(
-        query,
-        [],
-        this.itemFormatter.formatResult.bind(this.itemFormatter)
-      );
-    } catch (error: unknown) {
-      return this.handleError(error, 'getting inventory items');
-    }
-  }
-  
-  /**
-   * Adjust inventory quantity with transaction tracking
-   * 
-   * @param params Inventory adjustment parameters
-   * @returns The created inventory transaction
-   */
-  async adjustInventory(params: InventoryAdjustmentParams): Promise<InventoryTransaction> {
-    try {
-      // Get inventory
-      const inventory = await this.getInventoryById(params.inventoryId);
-      if (!inventory) {
-        throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
-      }
-      
-      // Get item
-      const item = await this.getInventoryItemById(params.itemId);
-      if (!item) {
-        throw InventoryServiceErrors.ITEM_NOT_FOUND;
-      }
-      
-      // Calculate new quantity
-      const quantity = params.quantity;
-      const beforeQuantity = item.quantity;
-      const afterQuantity = beforeQuantity + quantity;
-      
-      // Check if sufficient stock for negative adjustments
-      if (quantity < 0 && afterQuantity < 0) {
-        throw InventoryServiceErrors.INSUFFICIENT_STOCK;
-      }
-      
-      // Update item quantity
-      await this.updateInventoryItem(item.id, {
-        quantity: afterQuantity
-      });
-      
-      // Prepare transaction data
-      const transactionData = {
-        inventoryId: params.inventoryId,
-        itemId: params.itemId,
-        transactionType: params.transactionType || 'adjustment',
-        quantity,
-        beforeQuantity,
-        afterQuantity,
-        unitCost: params.unitCost || item.unitCost,
-        totalCost: (Number(params.unitCost || item.unitCost) * Math.abs(quantity)).toFixed(2),
-        referenceId: params.referenceId,
-        notes: params.notes || '',
-        performedBy: params.performedBy,
-        transactionDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
-      };
-      
-      // Validate and prepare the data
-      // TODO: Implement transactionInsert validation in inventoryValidation if needed
-      const validatedData = transactionData; // Pass-through until validation is defined
-      
-      // Use the raw insert method to avoid TypeScript field mapping errors
-      const transaction = await this.rawInsertWithFormatting(
-        'inventory_transactions',
-        validatedData,
-        this.transactionFormatter.formatResult.bind(this.transactionFormatter)
-      );
-      
-      // Update inventory utilization
-      await this.updateInventoryUtilization(params.inventoryId);
-      
-      // Ensure the transaction was created
-      return this.ensureExists(transaction, 'Inventory Transaction');
-    } catch (error: unknown) {
-      return this.handleError(error, 'adjusting inventory');
-    }
-  }
-  
-  /**
-   * Add a new batch to inventory with batch tracking
-   * 
-   * @param params Inventory batch parameters
-   * @returns The created inventory item for the batch
-   */
-  async addInventoryBatch(params: InventoryBatchParams): Promise<InventoryItem> {
-    try {
-      // Check if product exists
-      const product = await this.getProductById(params.productId);
-      if (!product) {
-        throw InventoryServiceErrors.PRODUCT_NOT_FOUND;
-      }
-      
-      // Get or create inventory
       let inventory = await this.getInventoryByProduct(params.productId, params.storeId);
       if (!inventory) {
         inventory = await this.createInventory({
           productId: params.productId,
-          storeId: params.storeId || 1, // Default to main store if not specified
-          name: product.name,
-          description: product.description || '',
-          batchTracking: true
+          storeId: params.storeId,
+          totalQuantity: 0, 
+          availableQuantity: 0, 
+          minimumLevel: 0, 
+          batchTracking: true,
         });
       }
-      
-      // Enable batch tracking if not already enabled
-      if (!inventory.batchTracking) {
-        await this.updateInventory(inventory.id, {
-          batchTracking: true
-        });
+  
+      if (!inventory.batchTracking) { 
+        inventory = await this.updateInventory(inventory.id, { batchTracking: true });
       }
-      
-      // Create the batch as an inventory item
-      const batchItemParams: CreateInventoryItemParams = {
+  
+      const batchData: schema.InventoryBatchInsert = {
         inventoryId: inventory.id,
-        productId: params.productId,
-        name: product.name,
-        description: product.description || '',
-        sku: params.sku || `BATCH-${params.productId}-${Date.now()}`,
-        quantity: params.quantity,
-        unit: params.unit || 'each',
-        unitCost: params.unitCost || '0.00',
         batchNumber: params.batchNumber || `B${Date.now()}`,
-        manufactureDate: params.manufactureDate,
-        expiryDate: params.expiryDate,
-        supplier: params.supplier,
-        isActive: true,
-        metadata: params.metadata
-      };
-      
-      // Create the batch item
-      const batchItem = await this.createInventoryItem(batchItemParams);
-      
-      // Create a transaction record for the batch addition
-      await this.adjustInventory({
-        inventoryId: inventory.id,
-        itemId: batchItem.id,
         quantity: params.quantity,
-        transactionType: InventoryTransactionType.RECEIVE,
-        unitCost: params.unitCost,
-        referenceId: params.referenceId,
-        notes: `Batch ${params.batchNumber || batchItem.batchNumber} received`,
-        performedBy: params.performedBy
+        costPerUnit: params.cost,
+        expiryDate: params.expiryDate,
+        receivedDate: params.purchaseDate, 
+        supplierId: (params as any).supplierId, 
+      };
+  
+      const validatedBatchData = schema.inventoryBatchInsertSchema.parse(batchData);
+      
+      const [insertedBatch] = await db.insert(schema.inventoryBatches).values(validatedBatchData).returning();
+  
+      if (!insertedBatch) {
+        throw new Error("Failed to create inventory batch item.");
+      }
+      
+      await this.adjustInventory({
+        productId: params.productId, 
+        storeId: params.storeId, 
+        quantity: params.quantity,
+        type: InventoryTransactionType.PURCHASE, 
+        cost: params.cost,
+        reference: params.supplierReference || `BatchReceipt-${insertedBatch.id}`,
+        notes: params.notes || `Batch ${insertedBatch.batchNumber} received`,
+        userId: params.userId,
+        batchId: insertedBatch.id, 
+        reason: 'Batch receipt'
       });
       
-      return batchItem;
+      await db.update(schema.inventory)
+        .set({ totalQuantity: sql`${schema.inventory.totalQuantity} + ${params.quantity}` })
+        .where(eq(schema.inventory.id, inventory.id));
+
+      return insertedBatch;
     } catch (error: unknown) {
       return this.handleError(error, 'adding inventory batch');
     }
   }
-  
-  /**
-   * Get a transaction by ID
-   * 
-   * @param transactionId ID of the transaction to retrieve
-   * @returns The inventory transaction or null if not found
-   */
-  async getTransactionById(transactionId: number): Promise<InventoryTransaction | null> {
+
+  async adjustInventory(params: InventoryAdjustmentParams): Promise<boolean> {
     try {
-      // Create a simple query to fetch the transaction
-      const query = `
-        SELECT * FROM inventory_transactions WHERE id = ${transactionId}
-      `;
+      const { productId, storeId, quantity, type, cost, reference, notes, userId, batchId, reason } = params;
+
+      const inventoryRecord = await this.getInventoryByProduct(productId, storeId);
+      if (!inventoryRecord) {
+        throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
+      }
+
+      let itemToAdjust: schema.InventoryBatch | undefined;
+      let beforeQuantity: number;
+
+      if (batchId) {
+        const [foundBatch] = await db.select().from(schema.inventoryBatches)
+          .where(and(eq(schema.inventoryBatches.id, batchId), eq(schema.inventoryBatches.inventoryId, inventoryRecord.id)));
+        if (!foundBatch) throw InventoryServiceErrors.BATCH_NOT_FOUND;
+        itemToAdjust = foundBatch;
+        beforeQuantity = itemToAdjust.quantity;
+      } else {
+        beforeQuantity = inventoryRecord.totalQuantity;
+      }
       
-      // Execute the query and format the result
-      return await this.executeSqlWithFormatting(
-        query,
-        [],
-        this.transactionFormatter.formatResult.bind(this.transactionFormatter)
-      );
+      const afterQuantity = beforeQuantity + quantity;
+
+      if (quantity < 0 && afterQuantity < 0) {
+        throw InventoryServiceErrors.INSUFFICIENT_STOCK;
+      }
+
+      if (itemToAdjust) { 
+        await db.update(schema.inventoryBatches)
+          .set({ quantity: afterQuantity, updatedAt: new Date() })
+          .where(eq(schema.inventoryBatches.id, itemToAdjust.id));
+      }
+      
+      await db.update(schema.inventory)
+        .set({ 
+          totalQuantity: sql`${schema.inventory.totalQuantity} + ${quantity}`,
+          updatedAt: new Date() 
+        })
+        .where(eq(schema.inventory.id, inventoryRecord.id));
+      
+      const transactionData: schema.InventoryTransactionInsert = {
+        inventoryId: inventoryRecord.id,
+        itemId: itemToAdjust?.id, 
+        batchId: batchId, 
+        transactionType: type,
+        quantity: quantity,
+        beforeQuantity: beforeQuantity,
+        afterQuantity: afterQuantity,
+        unitCost: cost || (itemToAdjust?.costPerUnit ?? '0'),
+        totalCost: (Number(cost || itemToAdjust?.costPerUnit || '0') * Math.abs(quantity)).toFixed(2),
+        referenceId: reference,
+        notes: notes || reason,
+        performedBy: userId,
+        transactionDate: new Date(),
+      };
+      
+      const validatedTransactionData = schema.inventoryTransactionInsertSchema.parse(transactionData);
+      await db.insert(schema.inventoryTransactions).values(validatedTransactionData);
+      
+      return true; 
     } catch (error: unknown) {
-      return this.handleError(error, 'getting transaction by ID');
+      this.handleError(error, 'adjusting inventory');
+      return false; 
     }
   }
   
-  /**
-   * Get all transactions for an inventory
-   * 
-   * @param inventoryId ID of the inventory
-   * @returns Array of inventory transactions
-   */
-  async getTransactionsByInventory(inventoryId: number): Promise<InventoryTransaction[]> {
+  private async getProductById(productId: number): Promise<schema.Product | null> {
     try {
-      // Create a query to fetch the transactions
-      const query = `
-        SELECT * FROM inventory_transactions 
-        WHERE inventory_id = ${inventoryId}
-        ORDER BY transaction_date DESC
-      `;
-      
-      // Execute the query and format the results
-      return await this.executeSqlWithMultipleResults(
-        query,
-        [],
-        this.transactionFormatter.formatResult.bind(this.transactionFormatter)
-      );
+      const [product] = await db.select().from(schema.products).where(eq(schema.products.id, productId)).limit(1);
+      return product || null; 
     } catch (error: unknown) {
-      return this.handleError(error, 'getting transactions by inventory');
-    }
-  }
-  
-  /**
-   * Get all transactions for an inventory item
-   * 
-   * @param itemId ID of the inventory item
-   * @returns Array of inventory transactions
-   */
-  async getTransactionsByItem(itemId: number): Promise<InventoryTransaction[]> {
-    try {
-      // Create a query to fetch the transactions
-      const query = `
-        SELECT * FROM inventory_transactions 
-        WHERE item_id = ${itemId}
-        ORDER BY transaction_date DESC
-      `;
-      
-      // Execute the query and format the results
-      return await this.executeSqlWithMultipleResults(
-        query,
-        [],
-        this.transactionFormatter.formatResult.bind(this.transactionFormatter)
-      );
-    } catch (error: unknown) {
-      return this.handleError(error, 'getting transactions by item');
-    }
-  }
-  
-  /**
-   * Update inventory utilization based on current item quantities
-   * 
-   * @param inventoryId ID of the inventory to update
-   * @returns The updated inventory record
-   */
-  private async updateInventoryUtilization(inventoryId: number): Promise<Inventory | null> {
-    try {
-      // Get current total quantity across all items
-      const query = `
-        SELECT SUM(quantity) as total_quantity
-        FROM inventory_items
-        WHERE inventory_id = ${inventoryId}
-      `;
-      
-      const result = await db.execute(sql.raw(query));
-      const totalQuantity = Number(result.rows?.[0]?.total_quantity || 0);
-      
-      // Update inventory utilization
-      return this.updateInventory(inventoryId, {
-        currentUtilization: totalQuantity,
-        updatedAt: new Date()
-      });
-    } catch (error: unknown) {
-      console.error(`Error updating inventory utilization: ${error}`);
+      this.logger.error('Error fetching product by ID', { error, productId });
       return null;
     }
   }
   
-  /**
-   * Helper method to get a product by ID
-   * 
-   * @param productId ID of the product
-   * @returns The product or null if not found
-   */
-  private async getProductById(productId: number): Promise<any> {
+  private async getStoreById(storeId: number): Promise<schema.Store | null> {
     try {
-      const result = await db.execute(
-        sql.raw(`SELECT * FROM products WHERE id = ${productId} LIMIT 1`)
-      );
-      
-      return result.rows?.[0] || null;
+      const [store] = await db.select().from(schema.stores).where(eq(schema.stores.id, storeId)).limit(1);
+      return store || null;
     } catch (error: unknown) {
+      this.logger.error('Error fetching store by ID', { error, storeId });
       return null;
     }
   }
-  
-  /**
-   * Helper method to get a store by ID
-   * 
-   * @param storeId ID of the store
-   * @returns The store or null if not found
-   */
-  private async getStoreById(storeId: number): Promise<any> {
-    try {
-      const result = await db.execute(
-        sql.raw(`SELECT * FROM stores WHERE id = ${storeId} LIMIT 1`)
-      );
-      
-      return result.rows?.[0] || null;
-    } catch (error: unknown) {
-      return null;
+
+  async getBatchesByProduct(productId: number): Promise<schema.InventoryBatch[]> {
+    const inventoryRecord = await this.getInventoryByProduct(productId);
+    if (!inventoryRecord) return [];
+    return db.select().from(schema.inventoryBatches).where(eq(schema.inventoryBatches.inventoryId, inventoryRecord.id));
+  }
+
+  async getLowStockItems(storeId: number, limit: number = 20): Promise<schema.Inventory[]> {
+    return db.select().from(schema.inventory)
+      .where(and(
+        eq(schema.inventory.storeId, storeId),
+        sql`${schema.inventory.totalQuantity} <= ${schema.inventory.minimumLevel}`,
+        gt(schema.inventory.minimumLevel, 0) 
+      ))
+      .orderBy(asc(sql`${schema.inventory.totalQuantity} - ${schema.inventory.minimumLevel}`)) 
+      .limit(limit);
+  }
+
+  async getInventoryValuation(storeId: number): Promise<{
+    totalValue: string;
+    totalItems: number;
+    valuationDate: Date;
+    breakdown: Array<{
+      categoryId: number;
+      categoryName: string;
+      value: string;
+      itemCount: number;
+    }>
+  }> {
+    this.logger.warn('getInventoryValuation is a placeholder and needs a proper implementation.');
+    return {
+      totalValue: "0.00",
+      totalItems: 0,
+      valuationDate: new Date(),
+      breakdown: []
+    };
+  }
+
+  async searchInventory(params: InventorySearchParams): Promise<{
+    inventory: schema.Inventory[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number; 
+  }> {
+    const page = params.page || 1;
+    const limit = params.limit || 20;
+    const conditions: SQL[] = [];
+    if (params.storeId) {
+        conditions.push(eq(schema.inventory.storeId, params.storeId));
     }
+
+    if (params.query) {
+        this.logger.warn("Search by query in inventory requires joining products table - not fully implemented.");
+    }
+    if (params.categoryId) {
+        this.logger.warn("Search by categoryId in inventory requires joining products table - not fully implemented.");
+    }
+    if (params.lowStock) {
+      conditions.push(sql`${schema.inventory.totalQuantity} <= ${schema.inventory.minimumLevel}`);
+      conditions.push(gt(schema.inventory.minimumLevel, 0));
+    }
+    if (params.outOfStock) {
+      conditions.push(eq(schema.inventory.totalQuantity, 0));
+    }
+    if (params.batchTracking !== undefined) {
+      conditions.push(eq(schema.inventory.batchTracking, params.batchTracking));
+    }
+
+    const countResult = await db.select({ count: sql<number>`count(*)` }).from(schema.inventory).where(and(...conditions));
+    const total = Number(countResult[0]?.count || 0);
+
+    let query = db.select().from(schema.inventory).where(and(...conditions)); // Reverted to implicit typing for query
+    
+    if (params.sortBy && schema.inventory[params.sortBy as keyof typeof schema.inventory]) {
+      const sortColumn = schema.inventory[params.sortBy as keyof typeof schema.inventory] as AnyColumn;
+      const direction = params.sortOrder === 'desc' ? desc : asc; 
+      query = query.orderBy(direction(sortColumn));
+    } else {
+      query = query.orderBy(desc(schema.inventory.updatedAt)); 
+    }
+    
+    const items = await query.limit(limit).offset((page - 1) * limit);
+    return { inventory: items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+  
+  async getInventoryByStore(storeId: number, page: number = 1, limit: number = 20): Promise<{
+    inventory: schema.Inventory[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const conditions = [eq(schema.inventory.storeId, storeId)];
+    const countResult = await db.select({ count: sql<number>`count(*)` }).from(schema.inventory).where(and(...conditions));
+    const total = Number(countResult[0]?.count || 0);
+
+    const items = await db.select()
+        .from(schema.inventory)
+        .where(and(...conditions))
+        .orderBy(desc(schema.inventory.updatedAt)) 
+        .limit(limit)
+        .offset((page - 1) * limit);
+    
+    return { inventory: items, total, page, limit };
   }
 }

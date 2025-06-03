@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
-import { AuthService, JWTPayload } from '../services/auth/auth-service.js';
+import { AuthService, JWTPayload } from '../services/auth/auth-service.js'; // Assuming .js is intentional or types are provided
 import { Pool } from 'pg';
+import { getLogger } from '../../src/logging'; // Import application logger
+
+const logger = getLogger().child({ component: 'jwt-auth-middleware' }); // Initialize logger for this module
 
 // Extend Request interface for JWT auth
 declare module 'express-serve-static-core' {
@@ -31,10 +34,10 @@ export class JWTAuthMiddleware {
         return;
       }
 
-      req.jwtUser = payload;
+      (req as any).jwtUser = payload;
       next();
     } catch (error: unknown) {
-      console.error('Authentication error:', error);
+      logger.error('Authentication error in JWTAuthMiddleware.authenticate', error instanceof Error ? error : new Error(String(error)));
       res.status(500).json({ error: 'Authentication failed' });
     }
   };
@@ -48,12 +51,13 @@ export class JWTAuthMiddleware {
         const token = authHeader.substring(7);
         const payload = await this.authService.validateAccessToken(token);
         if (payload) {
-          req.jwtUser = payload;
+          (req as any).jwtUser = payload; 
         }
       }
       
       next();
     } catch (error: unknown) {
+      logger.error('Error in optionalAuth, continuing without authentication', error instanceof Error ? error : new Error(String(error)));
       // Continue without authentication
       next();
     }
@@ -61,17 +65,17 @@ export class JWTAuthMiddleware {
 
   // Role-based access control
   requireRole = (roles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction): void => {
-      if (!req.jwtUser) {
+    return (req: Request, res: Response, next: NextFunction): void => { 
+      if (!(req as any).jwtUser) { 
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      if (!roles.includes(req.jwtUser.role)) {
+      if (!roles.includes((req as any).jwtUser.role)) { 
         res.status(403).json({ 
           error: 'Insufficient permissions',
           required: roles,
-          current: req.jwtUser.role
+          current: (req as any).jwtUser.role
         });
         return;
       }
@@ -82,13 +86,13 @@ export class JWTAuthMiddleware {
 
   // Permission-based access control
   requirePermission = (permission: string) => {
-    return (req: Request, res: Response, next: NextFunction): void => {
-      if (!req.jwtUser) {
+    return (req: Request, res: Response, next: NextFunction): void => { 
+      if (!(req as any).jwtUser) { 
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      if (!this.authService.hasPermission(req.jwtUser, permission)) {
+      if (!this.authService.hasPermission((req as any).jwtUser, permission)) { 
         res.status(403).json({ 
           error: 'Insufficient permissions',
           required: permission
@@ -102,13 +106,13 @@ export class JWTAuthMiddleware {
 
   // Resource-based access control
   requireResourceAccess = (resource: string, action: string) => {
-    return (req: Request, res: Response, next: NextFunction): void => {
-      if (!req.jwtUser) {
+    return (req: Request, res: Response, next: NextFunction): void => { 
+      if (!(req as any).jwtUser) { 
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      if (!this.authService.canAccessResource(req.jwtUser, resource, action)) {
+      if (!this.authService.canAccessResource((req as any).jwtUser, resource, action)) { 
         res.status(403).json({ 
           error: 'Insufficient permissions',
           required: `${resource}:${action}`
@@ -121,13 +125,13 @@ export class JWTAuthMiddleware {
   };
 
   // Admin only access
-  requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.jwtUser) {
+  requireAdmin = (req: Request, res: Response, next: NextFunction): void => { 
+    if (!(req as any).jwtUser) { 
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
 
-    if (req.jwtUser.role !== 'admin') {
+    if ((req as any).jwtUser.role !== 'admin') {
       res.status(403).json({ error: 'Admin access required' });
       return;
     }

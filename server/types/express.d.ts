@@ -1,26 +1,20 @@
 import * as express from 'express';
 import * as multer from 'multer';
+import { UserPayload } from '../types/user'; // Import UserPayload from the central location
 
-export interface UserPayload {
-  id: string;
-  email: string;
-  role: string;
-  name: string; // Consistent name field
-  username?: string; // Optional username if distinct from name
-  storeId?: number; // Optional storeId
-  [key: string]: any; // Add index signature for compatibility
-}
+// Remove the local UserPayload definition, as it's now imported
 
 declare module 'express' {
-  interface Request {
-    file?: multer.File;
-    files?: {
-      [fieldname: string]: multer.File[] | multer.File;
-    };
-    user?: UserPayload; // Use the standardized UserPayload
-  }
+    interface Request {
+      file?: multer.File;
+      files?: {
+        [fieldname: string]: multer.File[] | multer.File;
+      };
+      user?: UserPayload; // Use the imported UserPayload
+      progressId?: string; // Added from middleware types
+    }
 
-  // RequestHandler and ErrorRequestHandler will use the augmented Request type by default
+    // RequestHandler and ErrorRequestHandler will use the augmented Request type by default
   // No need to redeclare them here if Request is correctly augmented.
 }
 

@@ -398,7 +398,7 @@ export default function ProductImport() {
                   <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
                 </div>
               ) : (
-                storesQuery.data?.map((store: any) => (
+                Array.isArray(storesQuery.data) && storesQuery.data.map((store: any) => (
                   <SelectItem key={store.id} value={store.id.toString()}>
                     {store.name}
                   </SelectItem>
@@ -733,7 +733,7 @@ export default function ProductImport() {
                   
                   {/* Store Selection Warning */}
                   {!selectedStoreId && (
-                    <Alert variant="warning">
+                    <Alert variant="default">
                       <AlertCircle className="h-4 w-4" />
                       <AlertTitle>Store Selection Required</AlertTitle>
                       <AlertDescription>
@@ -847,7 +847,7 @@ export default function ProductImport() {
                       <p className="text-sm text-muted-foreground">Target Store</p>
                       <div className="flex items-center text-xl font-semibold">
                         <Store className="h-4 w-4 mr-2 text-primary" />
-                        {storesQuery.data?.find((store: any) => 
+                        {Array.isArray(storesQuery.data) && storesQuery.data.find((store: any) => 
                           store.id.toString() === selectedStoreId
                         )?.name || `Store ID: ${selectedStoreId}`}
                       </div>
@@ -906,10 +906,10 @@ export default function ProductImport() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Product Import</AlertDialogTitle>
-            <AlertDialogDescription>
+              <AlertDialogDescription>
               You are about to import {validProducts.length} products into{' '}
               <span className="font-medium">
-                {storesQuery.data?.find((store: any) => 
+                {Array.isArray(storesQuery.data) && storesQuery.data.find((store: any) => 
                   store.id.toString() === selectedStoreId
                 )?.name || `Store ID: ${selectedStoreId}`}
               </span>.

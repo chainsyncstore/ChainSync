@@ -47,19 +47,24 @@ export const defineRelations = (table: unknown) => {
 
 // Common validation helpers
 export const commonValidators = {
-  name: (schema: unknown) => schema.string().min(1, "Name is required"),
-  description: (schema: unknown) => schema.string().optional(),
-  status: (schema: unknown) => schema.enum(["active", "inactive", "deleted"]),
-  price: (schema: unknown) => schema.number().min(0, "Price must be positive"),
-  quantity: (schema: unknown) => schema.number().min(0, "Quantity must be positive"),
-  amount: (schema: unknown) => schema.number().min(0, "Amount must be positive"),
-  email: (schema: unknown) => schema.string().email("Invalid email"),
-  phone: (schema: unknown) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+  name: (schema: typeof z) => schema.string().min(1, "Name is required"),
+  description: (schema: typeof z) => schema.string().optional(),
+  status: (schema: typeof z) => schema.enum(["active", "inactive", "deleted"]),
+  price: (schema: typeof z) => schema.number().min(0, "Price must be positive"),
+  quantity: (schema: typeof z) => schema.number().min(0, "Quantity must be positive"),
+  amount: (schema: typeof z) => schema.number().min(0, "Amount must be positive"),
+  email: (schema: typeof z) => schema.string().email("Invalid email"),
+  phone: (schema: typeof z) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
 };
 
 // Type guards
 export function isSoftDeleted(record: unknown): record is SoftDelete {
-  return record.deletedAt !== null;
+  return (
+    typeof record === 'object' &&
+    record !== null &&
+    'deletedAt' in record &&
+    (record as SoftDelete).deletedAt !== null
+  );
 }
 
 export function isActive(record: unknown): boolean {

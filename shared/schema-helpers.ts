@@ -30,10 +30,14 @@ export function prepareUserData(data: unknown) {
 
 // Products
 export function prepareProductData(data: unknown) {
+  if (typeof data !== 'object' || data === null) {
+    return { sku: `SKU-${Date.now()}` } as any; // Return a default or handle error
+  }
+  const dataObj = data as Record<string, any>;
   // Ensure SKU exists
   const preparedData = {
-    ...data,
-    sku: data.sku || `SKU-${Date.now()}`
+    ...dataObj,
+    sku: dataObj.sku || `SKU-${Date.now()}`
   };
   return preparedData as any;
 }
@@ -49,14 +53,18 @@ export function prepareInventoryData(data: unknown) {
 
 // Map field names between code and schema
 export function prepareLoyaltyTierData(data: unknown) {
+  if (typeof data !== 'object' || data === null) {
+    return {} as any;
+  }
+  const dataObj = data as Record<string, any>;
   // Schema uses 'requiredPoints', code uses 'pointsRequired'
   // Schema uses 'active', code uses 'status'
-  const preparedData = {
-    ...data,
+  const preparedData: Record<string, any> = {
+    ...dataObj,
     // Map pointsRequired to requiredPoints if it exists
-    ...(data.pointsRequired && { requiredPoints: data.pointsRequired }),
+    ...(dataObj.pointsRequired && { requiredPoints: dataObj.pointsRequired }),
     // Map status to active if it exists
-    ...(data.status && { active: data.status === 'active' })
+    ...(dataObj.status && { active: dataObj.status === 'active' })
   };
   
   // Remove unmapped fields to avoid conflicts
@@ -67,10 +75,14 @@ export function prepareLoyaltyTierData(data: unknown) {
 }
 
 export function prepareLoyaltyMemberData(data: unknown) {
+  if (typeof data !== 'object' || data === null) {
+    return {} as any;
+  }
+  const dataObj = data as Record<string, any>;
   // Schema uses 'isActive', code uses 'status'
-  const preparedData = {
-    ...data,
-    ...(data.status && { isActive: data.status === 'active' })
+  const preparedData: Record<string, any> = {
+    ...dataObj,
+    ...(dataObj.status && { isActive: dataObj.status === 'active' })
   };
   
   if (preparedData.status) delete preparedData.status;
@@ -89,40 +101,45 @@ export function prepareLoyaltyRedemptionData(data: unknown) {
  * Subscription Module Helpers
  */
 export function prepareSubscriptionData(data: unknown) {
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Subscription data must be an object.');
+  }
+  const dataObj = data as Record<string, any>;
+
   // Ensure required fields exist to satisfy Drizzle ORM expectations
   const requiredFields = ['userId', 'plan', 'amount', 'endDate'];
   for (const field of requiredFields) {
-    if (data[field] === undefined) {
+    if (dataObj[field] === undefined) {
       throw new Error(`Missing required field: ${field}`);
     }
   }
 
   // Create a base object with minimal required fields
   const baseData = {
-    user_id: data.userId,
-    plan: data.plan,
-    amount: data.amount,
-    end_date: data.endDate
+    user_id: dataObj.userId,
+    plan: dataObj.plan,
+    amount: dataObj.amount,
+    end_date: dataObj.endDate
   };
   
   // Build the full prepared data object with all fields
   const preparedData: Record<string, any> = {
     ...baseData,
     // Optional fields with defaults
-    status: data.status || 'active',
-    currency: data.currency || 'NGN',
-    auto_renew: data.autoRenew ?? true,
-    payment_provider: data.paymentProvider || 'paystack',
+    status: dataObj.status || 'active',
+    currency: dataObj.currency || 'NGN',
+    auto_renew: dataObj.autoRenew ?? true,
+    payment_provider: dataObj.paymentProvider || 'paystack',
     
     // Optional fields without defaults
-    referral_code: data.referralCode,
-    discount_applied: data.discountApplied,
-    discount_amount: data.discountAmount,
-    start_date: data.startDate,
-    payment_reference: data.paymentReference,
-    metadata: data.metadata,
-    created_at: data.createdAt,
-    updated_at: data.updatedAt
+    referral_code: dataObj.referralCode,
+    discount_applied: dataObj.discountApplied,
+    discount_amount: dataObj.discountAmount,
+    start_date: dataObj.startDate,
+    payment_reference: dataObj.paymentReference,
+    metadata: dataObj.metadata,
+    created_at: dataObj.createdAt,
+    updated_at: dataObj.updatedAt
   };
   
   // Filter out undefined values
@@ -180,32 +197,39 @@ export function formatRefundResult(refund: unknown) {
  * (reverse of the prepare functions)
  */
 export function formatLoyaltyTierResult(tier: unknown) {
-  if (!tier) return null;
-  
+  if (typeof tier !== 'object' || tier === null) {
+    return null;
+  }
+  const tierObj = tier as Record<string, any>;
   return {
-    ...tier,
-    pointsRequired: tier.requiredPoints,
-    status: tier.active ? 'active' : 'inactive'
+    ...tierObj,
+    pointsRequired: tierObj.requiredPoints,
+    status: tierObj.active ? 'active' : 'inactive'
   };
 }
 
 export function formatLoyaltyMemberResult(member: unknown) {
-  if (!member) return null;
-  
+  if (typeof member !== 'object' || member === null) {
+    return null;
+  }
+  const memberObj = member as Record<string, any>;
   return {
-    ...member,
-    status: member.isActive ? 'active' : 'inactive'
+    ...memberObj,
+    status: memberObj.isActive ? 'active' : 'inactive'
   };
 }
 
 export function formatSubscriptionResult(subscription: unknown) {
-  if (!subscription) return null;
+  if (typeof subscription !== 'object' || subscription === null) {
+    return null;
+  }
+  const subObj = subscription as Record<string, any>;
   
   // Parse metadata if it exists and is a string
-  let parsedMetadata = subscription.metadata;
-  if (typeof subscription.metadata === 'string' && subscription.metadata) {
+  let parsedMetadata = subObj.metadata;
+  if (typeof subObj.metadata === 'string' && subObj.metadata) {
     try {
-      parsedMetadata = JSON.parse(subscription.metadata);
+      parsedMetadata = JSON.parse(subObj.metadata);
     } catch (error: unknown) {
       console.warn('Failed to parse subscription metadata JSON:', error);
       // Keep original string if parsing fails
@@ -215,35 +239,36 @@ export function formatSubscriptionResult(subscription: unknown) {
   // Map fields from snake_case to camelCase
   // Create a properly typed object that matches our service expectations
   const result = {
-    id: subscription.id,
-    userId: subscription.user_id,
-    plan: subscription.plan,
-    status: subscription.status || 'active',
-    amount: subscription.amount,
-    currency: subscription.currency || 'NGN',
-    referralCode: subscription.referral_code,
-    discountApplied: subscription.discount_applied || false,
-    discountAmount: subscription.discount_amount || '0',
-    startDate: subscription.start_date instanceof Date ? subscription.start_date : new Date(subscription.start_date),
-    endDate: subscription.end_date instanceof Date ? subscription.end_date : new Date(subscription.end_date),
-    autoRenew: subscription.auto_renew ?? true,
-    paymentProvider: subscription.payment_provider || 'manual',
-    paymentReference: subscription.payment_reference || null,
+    id: subObj.id,
+    userId: subObj.user_id,
+    plan: subObj.plan,
+    status: subObj.status || 'active',
+    amount: subObj.amount,
+    currency: subObj.currency || 'NGN',
+    referralCode: subObj.referral_code,
+    discountApplied: subObj.discount_applied || false,
+    discountAmount: subObj.discount_amount || '0',
+    startDate: subObj.start_date instanceof Date ? subObj.start_date : new Date(subObj.start_date),
+    endDate: subObj.end_date instanceof Date ? subObj.end_date : new Date(subObj.end_date),
+    autoRenew: subObj.auto_renew ?? true,
+    paymentProvider: subObj.payment_provider || 'manual',
+    paymentReference: subObj.payment_reference || null,
     metadata: parsedMetadata,
-    createdAt: subscription.created_at instanceof Date ? subscription.created_at : new Date(subscription.created_at),
-    updatedAt: subscription.updated_at instanceof Date ? 
-      subscription.updated_at : 
-      (subscription.updated_at ? new Date(subscription.updated_at) : new Date(subscription.created_at))
+    createdAt: subObj.created_at instanceof Date ? subObj.created_at : new Date(subObj.created_at),
+    updatedAt: subObj.updated_at instanceof Date ? 
+      subObj.updated_at : 
+      (subObj.updated_at ? new Date(subObj.updated_at) : new Date(subObj.created_at))
   };
   
   // Add user information if available
-  if (subscription.user) {
+  if (subObj.user) {
+    const userObj = subObj.user as Record<string, any>;
     return {
       ...result,
       user: {
-        id: subscription.user.id,
-        name: subscription.user.name,
-        email: subscription.user.email
+        id: userObj.id,
+        name: userObj.name,
+        email: userObj.email
       }
     };
   }
