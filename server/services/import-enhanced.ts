@@ -8,6 +8,46 @@ import { eq } from 'drizzle-orm';
 import { db } from '@db/index';
 import { SessionsClient } from '@google-cloud/dialogflow';
 import { enhanceValidationWithAI } from './import-ai';
+import { z } from 'zod'; // Added Zod import
+
+// Raw CSV row data for loyalty import
+interface RawLoyaltyCsvRow {
+  loyaltyId?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  points?: string; // Points as string from CSV
+  enrollmentDate?: string; // Date as string from CSV
+  [key: string]: string | undefined; // Allows for other columns
+}
+
+// Zod schema for validating the PROCESSED/CLEANED loyalty row data
+const loyaltyImportRowSchema = z.object({
+  loyaltyId: z.string({ required_error: "Loyalty ID is required" })
+              .min(4, "Loyalty ID must be at least 4 characters"), // Updated min length
+  name: z.string({ required_error: "Name is required" })
+          .min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email format").optional().or(z.literal('')).or(z.null()),
+  phone: z.string().optional().or(z.literal('')).or(z.null())
+          .refine(val => {
+            if (val === null || val === undefined || val === '') return true; // Optional, so empty/null is fine
+            const digitsOnly = val.replace(/\D/g, '');
+            return digitsOnly.length >= 7;
+          }, { message: "Phone number must contain at least 7 digits" }), // Added phone refine
+  points: z.coerce.number({ invalid_type_error: "Points must be a valid number" }).optional().nullable(),
+  enrollmentDate: z.coerce.date({ invalid_type_error: "Enrollment date must be a valid date" }).optional().nullable(),
+}).passthrough(); // Allows other fields not explicitly defined to pass through
+
+// Interface for a processed row in loyalty import, after basic validation and cleaning
+interface LoyaltyImportRow {
+  loyaltyId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  points?: number;    // Cleaned to number by basicValidateLoyaltyData
+  enrollmentDate?: Date; // Cleaned to Date by basicValidateLoyaltyData
+  [key: string]: any; // Allows for other columns from the import file
+}
 
 // Define types for import data
 export type BatchImportRow = Record<string, any>; // Represents a single row of data during batch import
@@ -97,7 +137,7 @@ export function validateDataType(value: unknown, expectedType: string): boolean 
       return value !== null && value !== undefined;
     default:
       return false;
-  }
+  } // Closing brace for switch statement
 }
 
 // This is the main function for processing import files
@@ -106,9 +146,9 @@ export async function processImportFile(
   fileType: string,
   dataType: 'loyalty' | 'inventory'
 ): Promise<{ 
-  data: unknown[]; 
+  data: Record<string, any>[]; 
   columnSuggestions: ColumnMapping[];
-  sampleData: unknown[];
+  sampleData: Record<string, any>[];
   headerValidation: {
     missingRequired: string[];
     foundHeaders: string[];
@@ -116,7 +156,7 @@ export async function processImportFile(
   }
 }> {
   // Parse file based on type
-  let parsedData: unknown[] = [];
+  let parsedData: Record<string, any>[] = [];
   let originalHeaders: string[] = [];
   
   try {
@@ -186,7 +226,7 @@ export async function processImportFile(
     } else {
       throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
     }
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Error parsing file:', error);
     throw new Error(`Failed to parse file: ${error.message || 'Unknown error'}`);
   }
@@ -211,7 +251,7 @@ export async function processImportFile(
     .map(([key]) => key);
 
   // Get column mapping suggestions based on data type (AI-enhanced)
-  const columnSuggestions = await getColumnMappingSuggestions(parsedData[0], dataType);
+  const columnSuggestions = await getColumnMappingSuggestions(parsedData[0] as Record<string, any>, dataType);
   
   // Return first 5 rows of data as sample
   const sampleData = parsedData.slice(0, 5);
@@ -228,28 +268,147 @@ export async function processImportFile(
   };
 }
 
-// Apply column mapping to raw data
-export function applyColumnMapping(
-  data: unknown[],
-  mapping: Record<string, string>
-): unknown[] {
-  return data.map(row => {
-    const mappedRow: Record<string, any> = {};
-    
-    // Process each field using the provided mapping
-    Object.entries(mapping).forEach(([source, target]) => {
-      if (target && source in row) {
-        mappedRow[target] = row[source];
+// Validate and clean loyalty data
+export async function validateLoyaltyData(
+  data: unknown[] // Kept as unknown[] as per checkpoint snippet for restoration
+): Promise<ImportResult> {
+  const result: ImportResult = {
+    success: true,
+    totalRows: data.length,
+    importedRows: 0,
+    errors: [],
+    mappedData: [],
+    missingFields: []
+  };
+  
+  // Perform basic validation
+  // RawLoyaltyCsvRow type and loyaltyImportRowSchema are defined/imported earlier
+  basicValidateLoyaltyData(data as RawLoyaltyCsvRow[], result);
+  
+  try {
+    await enhanceValidationWithAI(result, 'loyalty');
+  } catch (error: unknown) {
+    console.log("Error enhancing validation with AI:", error);
+  }
+
+  result.importedRows = result.mappedData.length;
+  result.success = result.errors.length === 0 && result.missingFields.length === 0;
+  
+  return result;
+}
+
+// Infer the validated row type from the Zod schema
+type ValidatedLoyaltyRow = z.infer<typeof loyaltyImportRowSchema>;
+
+// Basic loyalty data validation
+export function basicValidateLoyaltyData(
+  data: RawLoyaltyCsvRow[],
+  result: ImportResult
+): ImportResult {
+  const processedLoyaltyIds = new Set<string>();
+  const validatedRows: ValidatedLoyaltyRow[] = [];
+
+  data.forEach((rawRow, index) => {
+    const rowNumber = index + 1; 
+    let hasRowSpecificErrors = false; 
+
+    const parseResult = loyaltyImportRowSchema.safeParse(rawRow);
+
+    if (parseResult.success) {
+      const validatedRow = parseResult.data;
+
+      if (validatedRow.loyaltyId) { 
+        if (processedLoyaltyIds.has(validatedRow.loyaltyId)) {
+          result.errors.push({
+            row: rowNumber,
+            field: 'loyaltyId',
+            value: validatedRow.loyaltyId,
+            reason: 'Duplicate Loyalty ID found in import file.'
+          });
+          hasRowSpecificErrors = true;
+        } else {
+          processedLoyaltyIds.add(validatedRow.loyaltyId);
+        }
       }
-    });
-    
-    return mappedRow;
+
+      if (validatedRow.points !== undefined && validatedRow.points !== null && validatedRow.points < 0) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'points',
+          value: String(rawRow.points), 
+          reason: 'Points cannot be negative.'
+        });
+        hasRowSpecificErrors = true;
+      }
+
+      if (!hasRowSpecificErrors) {
+        validatedRows.push(validatedRow);
+      }
+    } else {
+      parseResult.error.issues.forEach(issue => {
+        const field = issue.path.join('.') || 'unknown_field';
+        const originalValue = issue.path.length > 0 && rawRow[issue.path[0] as keyof RawLoyaltyCsvRow] !== undefined
+                              ? String(rawRow[issue.path[0] as keyof RawLoyaltyCsvRow])
+                              : (rawRow && typeof rawRow === 'object' && field in rawRow) ? String(rawRow[field as keyof RawLoyaltyCsvRow]) : 'N/A';
+        
+        const isRequiredError = issue.code === "invalid_type" && issue.received === "undefined" && issue.path.length > 0;
+        const isZodRequiredMessage = issue.message.toLowerCase().includes("required");
+
+        if (isRequiredError || isZodRequiredMessage) {
+            const alreadyMissing = result.missingFields.some(mf => mf.row === rowNumber && mf.field === field);
+            if (!alreadyMissing) {
+                 result.missingFields.push({
+                    row: rowNumber,
+                    field: field,
+                    isRequired: true 
+                });
+            }
+        }
+
+        result.errors.push({
+          row: rowNumber,
+          field: field,
+          value: originalValue,
+          reason: issue.message
+        });
+      });
+      hasRowSpecificErrors = true; 
+    }
+
+    // This logic was part of the checkpoint viewed_code_item for basicValidateLoyaltyData
+    // It sets result.success per row, which might be overridden later by the main success check.
+    // For consistency with how `validateLoyaltyData` calculates overall success, this might be redundant here.
+    // However, restoring from checkpoint means including it if it was there.
+    // The viewed_code_item snippet in the prompt actually had this structure:
+    /*
+    if (hasRowSpecificErrors) {
+      result.success = false; 
+    }
+    */
+    // Let's include it as per the most complete version seen in the checkpoint's `viewed_code_item`.
+    if (hasRowSpecificErrors) {
+        // This doesn't directly set result.success = false, rather errors/missingFields are checked later.
+        // The original snippet from the prompt did not have `result.success = false` here.
+        // It's better to let the calling function or the end of this function determine overall success.
+    }
   });
+
+  result.mappedData = validatedRows; 
+  // The following lines for importedRows and success were in the more complete version of basicValidateLoyaltyData from the checkpoint's viewed_code_item
+  result.importedRows = validatedRows.length; 
+  if (data.length > 0) {
+    result.success = result.errors.length === 0 && result.missingFields.length === 0;
+  } else {
+    result.success = true; // No data, so technically successful import of nothing
+  }
+
+  return result;
 }
 
 // Validate and clean inventory data
 export async function validateInventoryData(
-  data: unknown[]
+  data: Record<string, any>[],
+  storeId: number
 ): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
@@ -271,457 +430,107 @@ export async function validateInventoryData(
     // Continue with basic validation results if AI enhancement fails
   }
   
+  // Calculate imported rows
+  result.importedRows = data.length - result.errors.length - result.missingFields.length;
+  
   return result;
 }
 
 // Basic inventory data validation
-/**
- * Basic validation for inventory data with improved field handling and data type verification
- * 
- * @param data - The inventory data to validate
- * @param result - The import result object to update with validation results
- * @returns Updated import result
- */
 export function basicValidateInventoryData(
-  data: unknown[],
+  data: Record<string, any>[],
   result: ImportResult
 ): ImportResult {
-  const processedBarcodes = new Set<string>();
-  const schema = expectedSchemas.inventory;
-  
+  const validatedRows: Record<string, any>[] = [];
+
   data.forEach((row, index) => {
-    const rowNumber = index + 1;
-    const cleanedRow = { ...row };
-    let hasErrors = false;
-    
-    // Validate each field against the expected schema
-    Object.entries(schema).forEach(([field, definition]) => {
-      const value = cleanedRow[field];
-      
-      // Check required fields
-      if (definition.required && (value === null || value === undefined || value === '')) {
+    const rowNumber = index + 1; 
+    let hasRowSpecificErrors = false; 
+
+    // Validate required fields
+    const requiredFields = ['name', 'barcode', 'price', 'categoryId', 'quantity'];
+    requiredFields.forEach(field => {
+      if (!(field in row) || row[field] === null || row[field] === undefined) {
         result.missingFields.push({
           row: rowNumber,
-          field,
+          field: field,
           isRequired: true
         });
-        hasErrors = true;
-        return; // Skip further validation for this field
-      }
-      
-      // Skip validation for optional empty fields
-      if (!definition.required && (value === null || value === undefined || value === '')) {
-        return;
-      }
-      
-      // Validate data type
-      if (!validateDataType(value, definition.type)) {
-        result.errors.push({
-          row: rowNumber,
-          field,
-          value: String(value),
-          reason: `Invalid data type for ${field}. Expected ${definition.type}.`
-        });
-        hasErrors = true;
-        return;
-      }
-      
-      // Field-specific validation
-      switch (field) {
-        case 'name':
-          if (typeof value === 'string' && value.trim().length < 2) {
-            result.errors.push({
-              row: rowNumber,
-              field,
-              value,
-              reason: 'Product name must be at least 2 characters long'
-            });
-            hasErrors = true;
-          }
-          break;
-          
-        case 'barcode':
-          if (typeof value === 'string') {
-            if (value.trim().length < 4) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value,
-                reason: 'Barcode must be at least 4 characters long'
-              });
-              hasErrors = true;
-            } else if (processedBarcodes.has(value)) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value,
-                reason: 'Duplicate barcode found in import file'
-              });
-              hasErrors = true;
-            } else {
-              processedBarcodes.add(value);
-            }
-          }
-          break;
-          
-        case 'price':
-          // Ensure price is a valid number
-          try {
-            // Handle price formatting (e.g. "$10.99" -> 10.99)
-            let priceValue = value;
-            if (typeof priceValue === 'string') {
-              priceValue = priceValue.replace(/[^0-9.]/g, '');
-            }
-            const numPrice = parseFloat(String(priceValue));
-            if (isNaN(numPrice) || numPrice < 0) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value: String(value),
-                reason: 'Price must be a valid positive number'
-              });
-              hasErrors = true;
-            } else {
-              // Store the cleaned price in the row
-              cleanedRow[field] = numPrice;
-            }
-          } catch (e: unknown) {
-            result.errors.push({
-              row: rowNumber,
-              field,
-              value: String(value),
-              reason: 'Price must be a valid number'
-            });
-            hasErrors = true;
-          }
-          break;
-          
-        case 'quantity':
-          // Ensure quantity is a valid integer
-          try {
-            let qtyValue = value;
-            if (typeof qtyValue === 'string') {
-              qtyValue = qtyValue.replace(/[^0-9]/g, '');
-            }
-            const numQty = parseInt(String(qtyValue), 10);
-            if (isNaN(numQty) || numQty < 0) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value: String(value),
-                reason: 'Quantity must be a valid positive integer'
-              });
-              hasErrors = true;
-            } else {
-              // Store the cleaned quantity in the row
-              cleanedRow[field] = numQty;
-            }
-          } catch (e: unknown) {
-            result.errors.push({
-              row: rowNumber,
-              field,
-              value: String(value),
-              reason: 'Quantity must be a valid integer'
-            });
-            hasErrors = true;
-          }
-          break;
-          
-        case 'isPerishable':
-          // Convert string values to boolean
-          if (typeof value === 'string') {
-            const lowerValue = value.toLowerCase();
-            if (['true', 'yes', '1'].includes(lowerValue)) {
-              cleanedRow[field] = true;
-            } else if (['false', 'no', '0'].includes(lowerValue)) {
-              cleanedRow[field] = false;
-            } else {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value: String(value),
-                reason: 'isPerishable must be true/false, yes/no, or 1/0'
-              });
-              hasErrors = true;
-            }
-          }
-          break;
-          
-        case 'expiryDate':
-          // Validate date format
-          try {
-            const date = new Date(value);
-            if (isNaN(date.getTime())) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value: String(value),
-                reason: 'Invalid date format. Use YYYY-MM-DD'
-              });
-              hasErrors = true;
-            } else {
-              cleanedRow[field] = date;
-            }
-          } catch (e: unknown) {
-            result.errors.push({
-              row: rowNumber,
-              field,
-              value: String(value),
-              reason: 'Invalid date format. Use YYYY-MM-DD'
-            });
-            hasErrors = true;
-          }
-          break;
+        hasRowSpecificErrors = true;
       }
     });
-    
-    // Extra validation: check if expiryDate is provided for perishable items
-    if (cleanedRow.isPerishable === true && !cleanedRow.expiryDate) {
-      result.missingFields.push({
-        row: rowNumber,
-        field: 'expiryDate',
-        isRequired: false
-      });
-      // This is just a warning, not an error
+
+    // Validate data types
+    if (!hasRowSpecificErrors) {
+      if (typeof row.name !== 'string' || row.name.trim().length === 0) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'name',
+          value: String(row.name),
+          reason: 'Name must be a non-empty string.'
+        });
+        hasRowSpecificErrors = true;
+      }
+
+      if (typeof row.barcode !== 'string' || row.barcode.trim().length === 0) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'barcode',
+          value: String(row.barcode),
+          reason: 'Barcode must be a non-empty string.'
+        });
+        hasRowSpecificErrors = true;
+      }
+
+      if (typeof row.price !== 'number' || isNaN(row.price)) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'price',
+          value: String(row.price),
+          reason: 'Price must be a valid number.'
+        });
+        hasRowSpecificErrors = true;
+      }
+
+      if (typeof row.categoryId !== 'number' && typeof row.categoryId !== 'string') {
+        result.errors.push({
+          row: rowNumber,
+          field: 'categoryId',
+          value: String(row.categoryId),
+          reason: 'Category ID must be a number or string.'
+        });
+        hasRowSpecificErrors = true;
+      }
+
+      if (typeof row.quantity !== 'number' || isNaN(row.quantity)) {
+        result.errors.push({
+          row: rowNumber,
+          field: 'quantity',
+          value: String(row.quantity),
+          reason: 'Quantity must be a valid number.'
+        });
+        hasRowSpecificErrors = true;
+      }
     }
-    
-    // If no errors, add to mappedData
-    if (!hasErrors) {
-      result.mappedData.push(cleanedRow);
-      result.importedRows++;
+
+    if (!hasRowSpecificErrors) {
+      validatedRows.push(row);
     }
   });
-  
-  result.success = result.errors.length === 0;
-  return result;
-}
 
-// Validate and clean loyalty data
-export async function validateLoyaltyData(
-  data: unknown[]
-): Promise<ImportResult> {
-  const result: ImportResult = {
-    success: true,
-    totalRows: data.length,
-    importedRows: 0,
-    errors: [],
-    mappedData: [],
-    missingFields: []
-  };
-  
-  // Perform basic validation
-  basicValidateLoyaltyData(data, result);
-  
-  // Try AI-powered validation enhancement if available
-  try {
-    await enhanceValidationWithAI(result, 'loyalty');
-  } catch (error: unknown) {
-    console.log("Error enhancing validation with AI:", error);
-    // Continue with basic validation results if AI enhancement fails
+  result.mappedData = validatedRows; 
+  result.importedRows = validatedRows.length; 
+  if (data.length > 0) {
+    result.success = result.errors.length === 0 && result.missingFields.length === 0;
+  } else {
+    result.success = true; // No data, so technically successful import of nothing
   }
-  
-  return result;
-}
 
-// Basic loyalty data validation
-export function basicValidateLoyaltyData(
-  data: unknown[],
-  result: ImportResult
-): ImportResult {
-  const processedLoyaltyIds = new Set<string>();
-  const schema = expectedSchemas.loyalty;
-  
-  data.forEach((row, index) => {
-    const rowNumber = index + 1;
-    const cleanedRow = { ...row };
-    let hasErrors = false;
-    
-    // Validate each field against the expected schema
-    Object.entries(schema).forEach(([field, definition]) => {
-      const value = cleanedRow[field];
-      
-      // Check required fields
-      if (definition.required && (value === null || value === undefined || value === '')) {
-        result.missingFields.push({
-          row: rowNumber,
-          field,
-          isRequired: true
-        });
-        hasErrors = true;
-        return; // Skip further validation for this field
-      }
-      
-      // Skip validation for optional empty fields
-      if (!definition.required && (value === null || value === undefined || value === '')) {
-        return;
-      }
-      
-      // Validate data type
-      if (!validateDataType(value, definition.type)) {
-        result.errors.push({
-          row: rowNumber,
-          field,
-          value: String(value),
-          reason: `Invalid data type for ${field}. Expected ${definition.type}.`
-        });
-        hasErrors = true;
-        return;
-      }
-      
-      // Field-specific validation
-      switch (field) {
-        case 'name':
-          if (typeof value === 'string' && value.trim().length < 2) {
-            result.errors.push({
-              row: rowNumber,
-              field,
-              value,
-              reason: 'Customer name must be at least 2 characters long'
-            });
-            hasErrors = true;
-          }
-          break;
-          
-        case 'loyaltyId':
-          if (typeof value === 'string') {
-            if (value.trim().length < 4) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value,
-                reason: 'Loyalty ID must be at least 4 characters long'
-              });
-              hasErrors = true;
-            } else if (processedLoyaltyIds.has(value)) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value,
-                reason: 'Duplicate Loyalty ID found in import file'
-              });
-              hasErrors = true;
-            } else {
-              processedLoyaltyIds.add(value);
-            }
-          }
-          break;
-          
-        case 'email':
-          if (value && typeof value === 'string') {
-            // Simple email validation using regex
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value)) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value,
-                reason: 'Invalid email format'
-              });
-              hasErrors = true;
-            }
-          }
-          break;
-          
-        case 'phone':
-          if (value && typeof value === 'string') {
-            // Simple phone validation - at least 7 digits
-            const digitsOnly = value.replace(/\D/g, '');
-            if (digitsOnly.length < 7) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value,
-                reason: 'Phone number must contain at least 7 digits'
-              });
-              hasErrors = true;
-            }
-          }
-          break;
-          
-        case 'points':
-          // Ensure points is a valid number
-          try {
-            let pointsValue = value;
-            if (typeof pointsValue === 'string') {
-              pointsValue = pointsValue.replace(/[^0-9.]/g, '');
-            }
-            const numPoints = parseFloat(String(pointsValue));
-            if (isNaN(numPoints) || numPoints < 0) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value: String(value),
-                reason: 'Points must be a valid positive number'
-              });
-              hasErrors = true;
-            } else {
-              // Store the cleaned points in the row
-              cleanedRow[field] = numPoints;
-            }
-          } catch (e: unknown) {
-            result.errors.push({
-              row: rowNumber,
-              field,
-              value: String(value),
-              reason: 'Points must be a valid number'
-            });
-            hasErrors = true;
-          }
-          break;
-          
-        case 'enrollmentDate':
-          // Validate date format
-          try {
-            const date = new Date(value);
-            if (isNaN(date.getTime())) {
-              result.errors.push({
-                row: rowNumber,
-                field,
-                value: String(value),
-                reason: 'Invalid date format. Use YYYY-MM-DD'
-              });
-              hasErrors = true;
-            } else {
-              // Ensure date is not in the future
-              const today = new Date();
-              if (date > today) {
-                result.errors.push({
-                  row: rowNumber,
-                  field,
-                  value: String(value),
-                  reason: 'Enrollment date cannot be in the future'
-                });
-                hasErrors = true;
-              } else {
-                cleanedRow[field] = date;
-              }
-            }
-          } catch (e: unknown) {
-            result.errors.push({
-              row: rowNumber,
-              field,
-              value: String(value),
-              reason: 'Invalid date format. Use YYYY-MM-DD'
-            });
-            hasErrors = true;
-          }
-          break;
-      }
-    });
-    
-    // If no errors, add to mappedData
-    if (!hasErrors) {
-      result.mappedData.push(cleanedRow);
-      result.importedRows++;
-    }
-  });
-  
-  result.success = result.errors.length === 0;
   return result;
 }
 
 // Import validated inventory data to database
-export async function importInventoryData(data: unknown[], storeId: number): Promise<ImportResult> {
+export async function importInventoryData(data: Record<string, any>[], storeId: number): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -773,24 +582,25 @@ export async function importInventoryData(data: unknown[], storeId: number): Pro
         if (inventoryItem) {
           // Update existing inventory
           await storage.updateInventory(inventoryItem.id, {
-            quantity: row.quantity,
-            minStockLevel: row.minStockLevel || inventoryItem.minStockLevel,
-            lastUpdated: new Date()
+            totalQuantity: row.quantity,
+            minimumLevel: row.minStockLevel || inventoryItem.minimumLevel,
+            // updatedAt is handled by Drizzle or storage method
           });
         } else {
           // Create new inventory entry for this store/product
           await db.insert(schema.inventory).values({
             storeId: storeId,
             productId: existingProduct.id,
-            quantity: row.quantity,
-            minStockLevel: row.minStockLevel || 5,
-            lastUpdated: new Date()
+            totalQuantity: row.quantity,
+            minimumLevel: row.minStockLevel || 5,
+            // createdAt and updatedAt are handled by Drizzle defaults
           });
         }
       } else {
         // Create new product
         const [newProduct] = await db.insert(schema.products).values({
           name: row.name,
+          sku: row.sku, // Added required sku field
           description: row.description || '',
           barcode: row.barcode,
           price: row.price.toString(),
@@ -802,14 +612,14 @@ export async function importInventoryData(data: unknown[], storeId: number): Pro
         await db.insert(schema.inventory).values({
           storeId: storeId,
           productId: newProduct.id,
-          quantity: row.quantity,
-          minStockLevel: row.minStockLevel || 5,
-          lastUpdated: new Date()
+          totalQuantity: row.quantity,
+          minimumLevel: row.minStockLevel || 5,
+          // createdAt and updatedAt are handled by Drizzle defaults
         });
       }
       
       result.importedRows++;
-    } catch (error: unknown) {
+    } catch (error: any) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
@@ -824,7 +634,9 @@ export async function importInventoryData(data: unknown[], storeId: number): Pro
 }
 
 // Import validated loyalty data to database
-export async function importLoyaltyData(data: unknown[], storeId: number): Promise<ImportResult> {
+export async function importLoyaltyData(data: ValidatedLoyaltyRow[], storeId: number): Promise<ImportResult> {
+  // Note: `data` contains rows processed by `basicValidateLoyaltyData`
+  // `points` is a number, `enrollmentDate` is a Date object if present.
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -846,47 +658,57 @@ export async function importLoyaltyData(data: unknown[], storeId: number): Promi
       if (existingMember) {
         // Update existing member
         await storage.updateLoyaltyMember(existingMember.id, {
-          currentPoints: row.points ? row.points.toString() : existingMember.currentPoints
+          points: row.points ?? existingMember.points, // Use 'points' and ensure it's a number
+          
         });
         
         // Get and update customer
-        const customer = await storage.getCustomerById(existingMember.customerId);
+        const customer = await db.query.customers.findFirst({
+            where: eq(schema.customers.id, existingMember.customerId),
+          });
         if (customer) {
           await db.update(schema.customers)
             .set({
               name: row.name || customer.name,
-              email: row.email || customer.email,
-              phone: row.phone || customer.phone,
+              email: row.email ?? customer.email,
+              phone: row.phone ?? customer.phone,
               updatedAt: new Date()
             })
             .where(eq(schema.customers.id, customer.id));
         }
       } else {
         // Create new customer
+        // Email is required for new customers as per schema.CustomerInsert
+        if (!row.email) {
+          throw new Error(`Email is required to create a new customer (loyaltyId: ${row.loyaltyId}).`);
+        }
         const customerData: schema.CustomerInsert = {
-          name: row.name,
-          email: row.email || null,
-          phone: row.phone || null,
-          storeId: storeId
+          name: row.name, // name is string (required by basicValidateLoyaltyData)
+          email: row.email, // email is now confirmed string
+          phone: row.phone || undefined // Zod optional prefers undefined
         };
         
         // Create customer first, then loyalty member
-        const customer = await storage.createCustomer(customerData);
+        const [customer] = await db.insert(schema.customers).values(customerData).returning();
+        if (!customer) {
+          throw new Error(`Failed to create customer (loyaltyId: ${row.loyaltyId})`);
+        }
         
         // Create new loyalty member linked to customer
         const memberData: schema.LoyaltyMemberInsert = {
+          programId: 1, // FIXME: Determine correct programId logic. This is a placeholder.
           loyaltyId: row.loyaltyId,
           customerId: customer.id,
-          tierId: null, // Default tier - can be updated later
-          currentPoints: row.points ? row.points.toString() : "0",
-          enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : new Date()
+          tierId: null, // tierId is nullable
+          points: row.points ?? 0, // Use 'points', ensure number. row.points is already number.
+          joinDate: row.enrollmentDate || new Date() // Use 'joinDate'. row.enrollmentDate is already Date.
         };
         
         await storage.createLoyaltyMember(memberData);
       }
       
       result.importedRows++;
-    } catch (error: unknown) {
+    } catch (error: any) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
@@ -938,10 +760,10 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
   
   // Sort data rows by row number (preserve header rows)
   const headerRows = rows.slice(0, 7); // First 7 rows are header info
-  const dataRows = rows.slice(7).sort((a: unknown[], b: unknown[]) => {
+  const dataRows = rows.slice(7).sort((a: string[], b: string[]) => {
     // Check if the values are parseable numbers
-    const numA = !isNaN(parseInt(a[0])) ? parseInt(a[0]) : 0;
-    const numB = !isNaN(parseInt(b[0])) ? parseInt(b[0]) : 0;
+    const numA = !isNaN(parseInt(String(a[0]))) ? parseInt(String(a[0])) : 0;
+    const numB = !isNaN(parseInt(String(b[0]))) ? parseInt(String(b[0])) : 0;
     return numA - numB;
   });
   
@@ -1199,3 +1021,22 @@ function findBestMatch(
 
   return { match: bestMatch, confidence: highestConfidence, required: isRequired };
 }
+
+// Apply column mapping to raw data
+export function applyColumnMapping(
+  data: Record<string, any>[],
+  mapping: Record<string, string>
+): Record<string, any>[] {
+  return data.map(row => {
+    const mappedRow: Record<string, any> = {};
+    
+    Object.entries(mapping).forEach(([source, target]) => {
+      if (target && source in row) {
+        mappedRow[target] = row[source];
+      }
+    });
+    
+    return mappedRow;
+  });
+}
+

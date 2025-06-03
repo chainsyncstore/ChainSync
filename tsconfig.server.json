@@ -17,7 +17,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "allowImportingTsExtensions": false
   },
   "include": [
     "server/**/*.ts",

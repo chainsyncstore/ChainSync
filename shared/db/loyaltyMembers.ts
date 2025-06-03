@@ -1,6 +1,8 @@
 import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
 import { customers } from "./customers";
 import { loyaltyPrograms } from "./loyaltyPrograms"; // Import loyaltyPrograms
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
 
 export const loyaltyMembers = pgTable("loyalty_members", {
   id: serial("id").primaryKey(),
@@ -15,5 +17,20 @@ export const loyaltyMembers = pgTable("loyalty_members", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
-export type NewLoyaltyMember = typeof loyaltyMembers.$inferInsert;
+// Zod schema for selecting a loyalty member
+export const loyaltyMemberSelectSchema = createSelectSchema(loyaltyMembers);
+
+// Zod schema for inserting a loyalty member
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(1, { message: "Loyalty ID cannot be empty" }),
+  status: z.enum(["active", "inactive", "suspended", "cancelled"], {
+    errorMap: () => ({ message: "Invalid status value for loyalty member." })
+  }),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type LoyaltyMember = z.infer<typeof loyaltyMemberSelectSchema>;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
