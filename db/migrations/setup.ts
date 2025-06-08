@@ -5,8 +5,8 @@ import path from 'path';
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 
-import { getLogger } from '../../shared/logging.js';
-import { db } from '../index.js';
+import { getLogger } from '../../shared/logging';
+import { db } from '../index';
 
 const logger = getLogger('db-migrations').child({ component: 'db-migrations' });
 

@@ -1,12 +1,12 @@
 import { Express } from 'express';
 
-import { applyAdvancedSecurity } from './middleware/advanced-security.js';
-import { applyRateLimiters, shutdownRateLimiter } from './middleware/rate-limiter.js';
-import { alertManager, AlertSeverity } from './monitoring/alert-manager.js';
-import { metricsCollector } from './monitoring/metrics-collector.js';
-import sessionManager from './services/auth/session-manager.js';
-import { appHealthManager } from './utils/app-health.js';
-import { getLogger } from '../src/logging/index.js';
+import { applyAdvancedSecurity } from './middleware/advanced-security';
+import { applyRateLimiters, shutdownRateLimiter } from './middleware/rate-limiter';
+import { alertManager, AlertSeverity } from './monitoring/alert-manager';
+import { metricsCollector } from './monitoring/metrics-collector';
+import sessionManager from './services/auth/session-manager';
+import { appHealthManager } from './utils/app-health';
+import { getLogger } from '../src/logging/index';
 
 const logger = getLogger().child({ component: 'advanced-features' });
 

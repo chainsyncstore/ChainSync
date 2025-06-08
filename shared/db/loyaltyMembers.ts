@@ -2,8 +2,8 @@ import { pgTable, serial, integer, text, timestamp } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import { customers } from './customers.js';
-import { loyaltyPrograms } from './loyaltyPrograms.js'; // Import loyaltyPrograms
+import { customers } from './customers';
+import { loyaltyPrograms } from './loyaltyPrograms'; // Import loyaltyPrograms
 
 export const loyaltyMembers = pgTable('loyalty_members', {
   id: serial('id').primaryKey(),

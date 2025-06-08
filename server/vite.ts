@@ -6,7 +6,7 @@ import express, { type Express } from 'express';
 import { nanoid } from 'nanoid';
 import { createServer as createViteServer, createLogger } from 'vite';
 
-import viteConfig from '../vite.config.js';
+import viteConfig from '../vite.config';
 
 const viteLogger = createLogger();
 

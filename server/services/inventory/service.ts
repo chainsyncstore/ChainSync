@@ -19,7 +19,7 @@ import {
   InventorySearchParams,
   InventoryAdjustmentType,
 } from './types';
-import { db } from '../../db.js';
+import { db } from '../../db';
 import { BaseService } from '../base/service';
 
 export class InventoryService extends BaseService implements IInventoryService {

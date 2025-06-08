@@ -5,8 +5,8 @@
  * These helpers promote consistent patterns for result formatting, error handling, and
  * database operations.
  */
-import { fromDatabaseFields } from './field-mapping.js';
-import { ErrorCode, ErrorCategory, AppError } from '../types/errors.js';
+import { fromDatabaseFields } from './field-mapping';
+import { ErrorCode, ErrorCategory, AppError } from '../types/errors';
 
 /**
  * Abstract base class for formatting database results into domain objects
@@ -18,7 +18,7 @@ export abstract class ResultFormatter<T> {
    * @param dbResult The raw database result row
    * @returns A properly formatted domain object
    */
-  abstract formatResult(dbResult: Record<string, any>): T;
+  abstract formatResult(dbResult: Record<string, unknown>): T;
 
   /**
    * Format multiple database result rows into domain objects
@@ -26,7 +26,7 @@ export abstract class ResultFormatter<T> {
    * @param dbResults Array of raw database result rows
    * @returns Array of properly formatted domain objects
    */
-  formatResults(dbResults: Record<string, any>[]): T[] {
+  formatResults(dbResults: Record<string, unknown>[]): T[] {
     if (!dbResults || !Array.isArray(dbResults)) return [];
     return dbResults.map(result => this.formatResult(result));
   }
@@ -37,7 +37,7 @@ export abstract class ResultFormatter<T> {
    * @param metadataStr The raw metadata string from the database
    * @returns Parsed metadata object or empty object if parsing fails
    */
-  protected handleMetadata(metadataStr: string | null): Record<string, any> {
+  protected handleMetadata(metadataStr: string | null): Record<string, unknown> {
     if (!metadataStr) return {};
     try {
       return JSON.parse(metadataStr);
@@ -53,7 +53,7 @@ export abstract class ResultFormatter<T> {
    * @param dbResult The raw database result row
    * @returns An object with camelCase keys
    */
-  protected baseFormat(dbResult: Record<string, any>): Record<string, any> {
+  protected baseFormat(dbResult: Record<string, unknown>): Record<string, unknown> {
     if (!dbResult) return {};
     return fromDatabaseFields(dbResult);
   }
@@ -65,7 +65,7 @@ export abstract class ResultFormatter<T> {
    * @param dateFields Array of field names that should be converted to Date objects
    * @returns The same object with converted date fields
    */
-  protected formatDates(obj: Record<string, any>, dateFields: string[]): Record<string, any> {
+  protected formatDates(obj: Record<string, unknown>, dateFields: string[]): Record<string, unknown> {
     if (!obj) return {};
 
     dateFields.forEach(field => {

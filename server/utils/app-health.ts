@@ -3,10 +3,10 @@ import os, { cpus } from 'os';
 
 import { sql } from 'drizzle-orm';
 
-import { getLogger } from '../../src/logging/index.js';
-import { db } from '../db/connection.js';
-import { alertManager, AlertSeverity } from '../monitoring/alert-manager.js';
-import { metricsCollector } from '../monitoring/metrics-collector.js';
+import { getLogger } from '../../src/logging/index';
+import { db } from '../db/connection';
+import { alertManager, AlertSeverity } from '../monitoring/alert-manager';
+import { metricsCollector } from '../monitoring/metrics-collector';
 
 const logger = getLogger().child({ component: 'app-health' });
 

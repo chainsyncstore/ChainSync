@@ -2,11 +2,11 @@ import { relations } from 'drizzle-orm';
 import { pgTable, serial, timestamp, text, integer, decimal, index } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 
-import { baseTable, baseInsertSchema, baseSelectSchema, commonValidators } from './base.js';
-import { inventoryBatches } from './inventory.js';
-import { products } from './products.js';
-import { stores } from './stores.js';
-import { users } from './users.js';
+import { baseTable, baseInsertSchema, baseSelectSchema, commonValidators } from './base';
+import { inventoryBatches } from './inventory';
+import { products } from './products';
+import { stores } from './stores';
+import { users } from './users';
 
 // Transaction status enum
 export const TransactionStatus = text('transaction_status').notNull();

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 
-import { AppError, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCategory } from '@shared/types/errors';
 import { parse } from 'csv-parse';
 import * as ExcelJS from 'exceljs';
 import { Request, Express } from 'express';

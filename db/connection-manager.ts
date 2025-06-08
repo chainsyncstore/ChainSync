@@ -4,7 +4,7 @@ import { drizzle, type NeonDatabase } from 'drizzle-orm/neon-serverless';
 import ws from 'ws';
 
 // Import the specific 'schema' object
-import { getLogger } from '../shared/logging.js';
+import { getLogger } from '../shared/logging';
 
 const logger = getLogger('db-connection-manager').child({ component: 'db-connection-manager' });
 

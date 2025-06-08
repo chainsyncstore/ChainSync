@@ -4,7 +4,7 @@
  * A formatter class for the Transaction module that standardizes
  * conversion between database rows and domain objects.
  */
-import { ResultFormatter } from '@shared/utils/service-helpers.js';
+import { ResultFormatter } from '@shared/utils/service-helpers';
 
 import {
   Transaction,
@@ -13,7 +13,7 @@ import {
   TransactionStatus,
   PaymentStatus,
   PaymentMethod,
-} from './types.js';
+} from './types';
 
 /**
  * Formatter for transaction data from database to domain objects

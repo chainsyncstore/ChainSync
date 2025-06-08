@@ -5,7 +5,7 @@
  * ensuring proper standardization between code and database schema.
  */
 
-import * as schema from '@shared/schema.js';
+import * as schema from '@shared/schema';
 
 export type Subscription = schema.Subscription;
 

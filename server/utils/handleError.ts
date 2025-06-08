@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-import { AppError, ErrorCategory, ErrorCode } from '../../shared/types/errors.js';
-import { getLogger } from '../../src/logging/index.js';
+import { AppError, ErrorCategory, ErrorCode } from '../../shared/types/errors';
+import { getLogger } from '../../src/logging/index';
 
 const logger = getLogger().child({ component: 'error-handler' });
 

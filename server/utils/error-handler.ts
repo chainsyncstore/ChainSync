@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 
-import { AppError, ErrorCode, ErrorCategory, RetryableError } from '@shared/types/errors.js';
+import { AppError, ErrorCode, ErrorCategory, RetryableError } from '@shared/types/errors';
 import {
   ImportExportErrorCode,
   ImportExportErrorCodes,
-} from '@shared/types/import-export-errors.js';
+} from '@shared/types/import-export-errors';
 
 export interface ErrorContext {
   operation: string;

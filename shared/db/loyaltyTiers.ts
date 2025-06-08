@@ -1,6 +1,6 @@
 import { pgTable, serial, text, integer, timestamp, decimal } from 'drizzle-orm/pg-core';
 
-import { loyaltyPrograms } from './loyaltyPrograms.js';
+import { loyaltyPrograms } from './loyaltyPrograms';
 
 export const loyaltyTiers = pgTable('loyalty_tiers', {
   id: serial('id').primaryKey(),

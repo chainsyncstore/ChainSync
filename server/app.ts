@@ -8,37 +8,37 @@ import session from 'express-session';
 import { createClient } from 'redis';
 
 // Import logging and error handling
-import { dbPool } from './db.js'; // Or adjust path as needed
-import { isAuthenticated, validateSession } from './middleware/auth.js';
+import { dbPool } from './db'; // Or adjust path as needed
+import { isAuthenticated, validateSession } from './middleware/auth';
 import {
   rateLimitMiddleware,
   authRateLimiter,
   sensitiveOpRateLimiter,
   applyRateLimiters,
-} from './middleware/rate-limiter.js';
+} from './middleware/rate-limiter';
 import {
   securityHeaders,
   csrfProtection,
   generateCsrfToken,
   validateContentType,
-} from './middleware/security.js';
-import { validateBody } from './middleware/validation.js';
-import adminDashboardRoutes from './routes/admin-dashboard.js';
-import healthRoutes from './routes/health.js';
-import monitoringRoutes from './routes/monitoring.js';
-import transactionRoutes from './routes/transactions.js';
-import setupSwagger from './swagger.js';
-import { initRedis, getRedisClient } from '../src/cache/redis.js';
-import { getLogger } from '../src/logging/index.js';
-import { requestLogger, errorLogger } from '../src/logging/middleware.js';
-import { setupLogging, setupGlobalErrorHandlers } from '../src/logging/setup.js';
+} from './middleware/security';
+import { validateBody } from './middleware/validation';
+import adminDashboardRoutes from './routes/admin-dashboard';
+import healthRoutes from './routes/health';
+import monitoringRoutes from './routes/monitoring';
+import transactionRoutes from './routes/transactions';
+import setupSwagger from './swagger';
+import { initRedis, getRedisClient } from '../src/cache/redis';
+import { getLogger } from '../src/logging/index';
+import { requestLogger, errorLogger } from '../src/logging/middleware';
+import { setupLogging, setupGlobalErrorHandlers } from '../src/logging/setup';
 
 // Import security middleware
 
 // Import cache and job queue
-import { configureSentry } from '../src/monitoring/sentryIntegration.js';
-import { initializeHealthChecks, initializeTracing } from '../src/monitoring/setup.js';
-import { initializeApp, registerHealthChecks } from '../src/startup.js';
+import { configureSentry } from '../src/monitoring/sentryIntegration';
+import { initializeHealthChecks, initializeTracing } from '../src/monitoring/setup';
+import { initializeApp, registerHealthChecks } from '../src/startup';
 
 // Import routes
 // Import your actual route files when they're ready
@@ -222,7 +222,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Example: Ensure dbPool is properly typed and initialized
 // If using a specific ORM (e.g., Knex, Prisma), import and use the correct type
-// import { dbPool } from './db.js'; // Should be of type Pool from 'pg' or appropriate ORM type
+// import { dbPool } from './db'; // Should be of type Pool from 'pg' or appropriate ORM type
 
 // When using dbPool in your code, ensure you use the correct API for your ORM/driver.
 // For example, if using pg.Pool:

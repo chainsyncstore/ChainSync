@@ -5,7 +5,7 @@
  * and ensures consistent configuration across all services.
  */
 
-import { DbConnection } from '@db/types.js';
+import { DbConnection } from '@db/types';
 import { Logger } from '@src/logging';
 import Redis from 'ioredis';
 

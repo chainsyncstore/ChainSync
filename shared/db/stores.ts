@@ -3,7 +3,7 @@ import { pgTable, text, timestamp, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import { baseTable } from './base.js';
+import { baseTable } from './base';
 
 // Store status enum
 export const StoreStatus = {

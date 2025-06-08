@@ -5,9 +5,9 @@
  * and error handling according to our schema style guide.
  */
 
-import { Logger, getLogger } from '@shared/logging.js';
-import { transactionValidation, SchemaValidationError } from '@shared/schema-validation.js';
-import * as schema from '@shared/schema.js';
+import { Logger, getLogger } from '@shared/logging';
+import { transactionValidation, SchemaValidationError } from '@shared/schema-validation';
+import * as schema from '@shared/schema';
 import { eq, and, or, like, gte, lte, desc, asc, sql, between, inArray } from 'drizzle-orm';
 
 import {
@@ -20,14 +20,14 @@ import {
   PaymentMethod,
   TransactionType,
   TransactionStatus,
-} from './types.js';
-import { db } from '../../db.js';
-import { BaseService } from '../base/service.js';
-import { InventoryService } from '../inventory/service.js';
-import { InventoryAdjustmentType } from '../inventory/types.js';
+} from './types';
+import { db } from '../../db';
+import { BaseService } from '../base/service';
+import { InventoryService } from '../inventory/service';
+import { InventoryAdjustmentType } from '../inventory/types';
 
 // Import required services
-import { LoyaltyService } from '../loyalty/service.js';
+import { LoyaltyService } from '../loyalty/service';
 
 // Import the logging system
 

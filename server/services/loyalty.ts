@@ -1,17 +1,17 @@
-import { AppError } from '@shared/types/errors.js';
+import { AppError } from '@shared/types/errors';
 import { eq, and, desc, sum, count, gte, lte } from 'drizzle-orm';
 import { NodePgDatabase, drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import * as schema from '../../shared/schema.js';
+import * as schema from '../../shared/schema';
 import {
   loyaltyMemberToDatabaseFields,
   loyaltyMemberFromDatabaseFields,
   loyaltyProgramFromDatabaseFields,
   loyaltyTransactionToDatabaseFields,
   loyaltyTransactionFromDatabaseFields,
-} from '../../shared/utils/loyalty-mapping.js';
-import { getLogger } from '../../src/logging/index.js';
+} from '../../shared/utils/loyalty-mapping';
+import { getLogger } from '../../src/logging/index';
 
 const logger = getLogger().child({ component: 'loyalty-service' });
 

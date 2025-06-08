@@ -1,6 +1,6 @@
 import { createLogger, format, transports, Logform } from 'winston';
 
-import { AppError } from '../types/errors.js';
+import { AppError } from '../types/errors';
 
 const { combine, timestamp, label, printf } = format;
 

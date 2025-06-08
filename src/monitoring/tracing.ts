@@ -9,11 +9,11 @@ import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import * as otelResources from '@opentelemetry/resources'; // Changed to namespace import
 import * as opentelemetry from '@opentelemetry/sdk-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { AppError } from '@shared/types/errors.js';
+import { AppError } from '@shared/types/errors';
 import { Request, Response, NextFunction } from 'express';
 
-import { getLogger } from '../../shared/logging.js';
-import type { Logger } from '../../shared/logging.js'; // Import Logger type from shared logging
+import { getLogger } from '../../shared/logging';
+import type { Logger } from '../../shared/logging';
 
 let logger: Logger; // Declare logger
 const getModuleLogger = () => {

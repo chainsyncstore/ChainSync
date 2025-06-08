@@ -2,10 +2,10 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
-import { getLogger } from '../../src/logging/index.js';
-import { FileUploadErrors } from '../config/file-upload.js';
+import { getLogger } from '../../src/logging/index';
+import { FileUploadErrors } from '../config/file-upload';
 
 export class FileUtils {
   private static logger = getLogger();

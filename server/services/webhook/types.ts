@@ -1,5 +1,5 @@
-import { schema } from '@shared/schema.js';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { schema } from '@shared/schema';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 export interface IWebhookService {
   handlePaystackWebhook(

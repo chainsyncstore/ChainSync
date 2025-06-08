@@ -3,9 +3,9 @@ import type { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { Pool } from 'pg';
 
-import { getLogger } from '../../src/logging/index.js';
-import { authRateLimit, passwordResetRateLimit } from '../middleware/jwt-auth.js';
-import { AuthService } from '../services/auth/auth-service.js';
+import { getLogger } from '../../src/logging/index';
+import { authRateLimit, passwordResetRateLimit } from '../middleware/jwt-auth';
+import { AuthService } from '../services/auth/auth-service';
 
 const logger = getLogger().child({ component: 'auth-routes' });
 

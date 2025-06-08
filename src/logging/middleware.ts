@@ -3,7 +3,7 @@ import * as crypto from 'crypto';
 
 import { Request, Response, NextFunction, RequestHandler, ErrorRequestHandler } from 'express';
 
-import { Logger } from './Logger.js';
+import { Logger } from './Logger';
 
 /**
  * Express middleware for request logging and correlation tracking

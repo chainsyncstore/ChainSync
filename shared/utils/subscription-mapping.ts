@@ -5,10 +5,10 @@
  * These functions provide type-safe field mapping specifically for subscription-related data.
  */
 
-import type { Subscription } from '@server/services/subscription/types.js'; // Corrected import path
+import type { Subscription } from '@server/services/subscription/types';
 
-import { toDatabaseFields, fromDatabaseFields } from './field-mapping.js';
-import { subscriptionSchema, validateEntity, SchemaValidationError } from '../schema-validation.js';
+import { toDatabaseFields, fromDatabaseFields } from './field-mapping';
+import { subscriptionSchema, validateEntity, SchemaValidationError } from '../schema-validation';
 
 /**
  * Maps a subscription object from code (camelCase) to database (snake_case)

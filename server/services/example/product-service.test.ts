@@ -4,7 +4,7 @@
  * This demonstrates how to test services using the standardized database access patterns.
  */
 
-import { products, stores } from '@shared/schema.js';
+import { products, stores } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
 

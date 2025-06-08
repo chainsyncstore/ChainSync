@@ -1,6 +1,6 @@
-import { addPerformanceIndexes } from './add-indexes.js';
-import { getLogger } from '../../shared/logging.js';
-import { dbManager } from '../connection-manager.js';
+import { addPerformanceIndexes } from './add-indexes';
+import { getLogger } from '../../shared/logging';
+import { dbManager } from '../connection-manager';
 
 const logger = getLogger('db-migrations-runner').child({ component: 'db-migrations-runner' });
 

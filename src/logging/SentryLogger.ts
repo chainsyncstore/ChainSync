@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/node';
 import { Request } from 'express'; // Added import
 
-import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger.js';
+import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger';
 
 interface SentryLoggerOptions {
   dsn: string;
@@ -241,7 +241,7 @@ export class SentryLogger extends BaseLogger {
 }
 
 // Import this at the end to avoid circular dependency
-import { ConsoleLogger } from './Logger.js';
+import { ConsoleLogger } from './Logger';
 
 // Factory function to create a Sentry logger
 export function createSentryLogger(options: SentryLoggerOptions): SentryLogger {

@@ -2,7 +2,7 @@ import { pgTable, serial, text, boolean, timestamp, integer } from 'drizzle-orm/
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import { baseInsertSchema, baseSelectSchema } from './base.js'; // Assuming base schemas are in base.ts
+import { baseInsertSchema, baseSelectSchema } from './base';
 
 export const customers = pgTable('customers', {
   id: serial('id').primaryKey(),

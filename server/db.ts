@@ -1,8 +1,8 @@
-import { schema as actualDbSchema } from '@shared/db/index.js'; // Use comprehensive schema with relations
+import { schema as actualDbSchema } from '@shared/db/index'; // Use comprehensive schema with relations
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import { getLogger } from '../src/logging/index.js'; // Assuming logger is accessible
+import { getLogger } from '../src/logging/index'; // Assuming logger is accessible
 
 const logger = getLogger().child({ component: 'database-init' });
 

@@ -1,8 +1,8 @@
 import * as bcrypt from 'bcrypt';
 import { eq, and } from 'drizzle-orm';
 
-import { db } from './index.js';
-import * as schema from '../shared/schema.js';
+import { db } from './index';
+import * as schema from '../shared/schema';
 
 function getFirst<T>(result: any): T | undefined {
   if (Array.isArray(result)) return result[0];

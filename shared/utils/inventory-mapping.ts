@@ -5,8 +5,8 @@
  * These functions provide type-safe field mapping specifically for inventory-related data.
  */
 
-import { toDatabaseFields, fromDatabaseFields } from './field-mapping.js';
-import type { Inventory } from '../db/inventory.js';
+import { toDatabaseFields, fromDatabaseFields } from './field-mapping';
+import type { Inventory } from '../db/inventory';
 
 // Define types for inventory-related entities if not already defined in the db file
 type BatchInventory = {

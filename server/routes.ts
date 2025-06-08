@@ -7,7 +7,7 @@ import { Server } from 'socket.io';
 import { z } from 'zod';
 
 import { ZodError } from 'zod-validation-error';
-import { db } from '../db.js';
+import { db } from '../db';
 import { env } from './config/env';
 // SessionOptions is imported again later, remove one instance
 // import { SessionOptions } from 'express-session'; 

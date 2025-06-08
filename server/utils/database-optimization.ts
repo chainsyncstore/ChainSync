@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks';
 
-import { AppError } from '@shared/types/errors.js';
+import { AppError } from '@shared/types/errors';
 import { Pool } from 'pg';
 
 /**

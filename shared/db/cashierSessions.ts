@@ -1,7 +1,7 @@
 import { pgTable, serial, integer, text, timestamp } from 'drizzle-orm/pg-core';
 
-import { stores } from './stores.js';
-import { users } from './users.js';
+import { stores } from './stores';
+import { users } from './users';
 
 export const cashierSessions = pgTable('cashier_sessions', {
   id: serial('id').primaryKey(),

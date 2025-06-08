@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks';
 
-import { schema } from '@shared/schema.js';
+import { schema } from '@shared/schema';
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm';
 import { Redis } from 'ioredis';

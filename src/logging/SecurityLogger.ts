@@ -1,6 +1,6 @@
 // src/logging/SecurityLogger.ts
 
-import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger, ConsoleLogger } from './Logger.js';
+import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger, ConsoleLogger } from './Logger';
 
 /**
  * Security event types for categorizing security logs

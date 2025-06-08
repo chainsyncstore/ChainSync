@@ -1,4 +1,4 @@
-import { AppError, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCategory } from '@shared/types/errors';
 
 import { ValidationOptions } from './types';
 

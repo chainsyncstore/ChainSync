@@ -1,15 +1,15 @@
 import crypto from 'crypto';
 
-import { prepareSubscriptionData } from '@shared/schema-helpers.js';
-import * as schema from '@shared/schema.js';
-import { NewSubscription } from '@shared/schema.js'; // Import NewSubscription
+import { prepareSubscriptionData } from '@shared/schema-helpers';
+import * as schema from '@shared/schema';
+import { NewSubscription } from '@shared/schema'; // Import NewSubscription
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod'; // Import Zod
 
-import { db } from '../db.js';
-import { AffiliateService } from './affiliate/service.js';
-import { applyReferralDiscount, processAffiliateCommission } from './affiliate.js';
-import { PaymentService } from './payment/payment-service.js';
+import { db } from '../db';
+import { AffiliateService } from './affiliate/service';
+import { applyReferralDiscount, processAffiliateCommission } from './affiliate';
+import { PaymentService } from './payment/payment-service';
 
 // Zod Schemas for Paystack Payloads
 const PaystackCustomerMetadataSchema = z.object({

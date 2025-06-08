@@ -3,7 +3,7 @@ import crypto from 'crypto';
 
 import { Request } from 'express';
 
-import { getLogger } from '../../src/logging/index.js';
+import { getLogger } from '../../src/logging/index';
 
 // Get centralized logger for auth utilities
 const logger = getLogger().child({ component: 'auth-utils' });

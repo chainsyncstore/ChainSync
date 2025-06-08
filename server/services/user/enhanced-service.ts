@@ -1,6 +1,6 @@
-import { userValidation, SchemaValidationError } from '@shared/schema-validation.js';
-import * as schema from '@shared/schema.js';
-import { ServiceErrorHandler } from '@shared/utils/service-helpers.js';
+import { userValidation, SchemaValidationError } from '@shared/schema-validation';
+import * as schema from '@shared/schema';
+import { ServiceErrorHandler } from '@shared/utils/service-helpers';
 import * as bcrypt from 'bcrypt';
 import { eq, and } from 'drizzle-orm';
 
@@ -10,9 +10,9 @@ import {
   UpdateUserParams,
   UserRole,
   UserServiceErrors,
-} from './types.js';
-import { db } from '../../database.js';
-import { EnhancedBaseService } from '../base/enhanced-service.js';
+} from './types';
+import { db } from '../../database';
+import { EnhancedBaseService } from '../base/enhanced-service';
 
 export class EnhancedUserService extends EnhancedBaseService implements IUserService {
   async resetPassword(token: string, newPassword: string): Promise<boolean> {

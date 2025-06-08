@@ -3,7 +3,7 @@ import { pgTable, text, boolean, integer, decimal, index, AnyPgTable } from 'dri
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import { baseTable } from './base.js';
+import { baseTable } from './base';
 
 // Product status enum
 export const ProductStatus = {

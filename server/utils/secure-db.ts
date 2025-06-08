@@ -1,7 +1,7 @@
 import { Pool, QueryResult, PoolClient, QueryResultRow } from 'pg';
 
-import { AppError, ErrorCategory, ErrorCode } from '../../shared/types/errors.js';
-import { getLogger } from '../../src/logging/index.js';
+import { AppError, ErrorCategory, ErrorCode } from '../../shared/types/errors';
+import { getLogger } from '../../src/logging/index';
 
 // Type definitions to improve type safety
 type PostgresError = {

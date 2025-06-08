@@ -1,4 +1,4 @@
-import { AppError, RetryableError } from '../types/errors.js';
+import { AppError, RetryableError } from '../types/errors';
 
 export class RetryStrategy {
   private readonly maxRetries: number;

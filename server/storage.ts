@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
-import { db } from '@db/index.js';
-import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors.js';
+import { db } from '@db/index';
+import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
 import * as bcrypt from 'bcrypt';
 import {
   eq,
@@ -22,7 +22,7 @@ import {
   lt,
 } from 'drizzle-orm';
 
-import { schema } from '../shared/db/index.js'; // Direct import from shared/db/index
+import { schema } from '../shared/db/index'; // Direct import from shared/db/index
 
 /**
  * Type definitions for database entities and return values

@@ -1,5 +1,5 @@
 // server/database.ts
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 // This file ensures that any parts of the server attempting to import a DB connection
 // from this path receive the correctly configured PostgreSQL Drizzle instance
 // from the central db management in the root 'db' folder.
@@ -10,7 +10,7 @@ import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
 // Given the project structure, server/database.ts is likely at the root of /server.
 // So, the path to the root /db folder is '../db'.
 
-import { db, executeQuery, dbManager, schema } from '../db/index.js';
+import { db, executeQuery, dbManager, schema } from '../db/index';
 
 export { db, executeQuery, dbManager, schema };
 

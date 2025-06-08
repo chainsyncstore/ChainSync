@@ -5,7 +5,7 @@
  * These functions provide type-safe field mapping specifically for loyalty-related data.
  */
 
-import { toDatabaseFields, fromDatabaseFields } from './field-mapping.js';
+import { toDatabaseFields, fromDatabaseFields } from './field-mapping';
 
 // Define interfaces for loyalty-related entities
 interface LoyaltyMember {

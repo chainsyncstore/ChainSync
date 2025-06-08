@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors.js';
-import { getLogger } from '../../src/logging/index.js';
+import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
+import { getLogger } from '../../src/logging/index';
 
 const logger = getLogger().child({ component: 'validation' });
 

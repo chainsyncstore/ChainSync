@@ -13,10 +13,10 @@ import {
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import { baseTable, commonValidators } from './base.js';
-import { products } from './products.js';
-import { stores } from './stores.js';
-import { suppliers } from './suppliers.js';
+import { baseTable, commonValidators } from './base';
+import { products } from './products';
+import { stores } from './stores';
+import { suppliers } from './suppliers';
 
 // Inventory status enum
 export const inventoryStatus = z.enum(['available', 'low_stock', 'out_of_stock', 'reserved']);

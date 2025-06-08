@@ -1,8 +1,8 @@
 import crypto from 'crypto'; // Added crypto import
 
-import { db } from '@db/index.js';
+import { db } from '@db/index';
 import { SessionsClient } from '@google-cloud/dialogflow';
-import * as schema from '@shared/schema.js';
+import * as schema from '@shared/schema';
 import { parse as csvParse } from 'csv-parse/sync';
 import { stringify as csvStringify } from 'csv-stringify/sync';
 

@@ -1,14 +1,14 @@
 // src/logging/index.ts
-import { Logger, LogLevel, LogMeta, ConsoleLogger } from './Logger.js';
-import { requestLogger, errorLogger, getRequestLogger } from './middleware.js';
+import { Logger, LogLevel, LogMeta, ConsoleLogger } from './Logger';
+import { requestLogger, errorLogger, getRequestLogger } from './middleware';
 import {
   SecurityLogger,
   createSecurityLogger,
   SecurityEventType,
   SecuritySeverity,
-} from './SecurityLogger.js';
-import { SentryLogger, createSentryLogger } from './SentryLogger.js';
-import { TracingLogger, createTracingLogger } from './TracingLogger.js';
+} from './SecurityLogger';
+import { SentryLogger, createSentryLogger } from './SentryLogger';
+import { TracingLogger, createTracingLogger } from './TracingLogger';
 
 // Default logger instance - starts as ConsoleLogger but can be replaced
 let activeLogger: Logger = new ConsoleLogger(
@@ -108,25 +108,25 @@ export function setLogger(logger: Logger): void {
 }
 
 // Export interfaces, types, and enums for proper TypeScript handling
-export type { Logger, LogMeta, LoggableError } from './Logger.js';
+export type { Logger, LogMeta, LoggableError } from './Logger';
 
 // Export enums and constants
-export { LogLevel } from './Logger.js';
-export { SecurityEventType, SecuritySeverity } from './SecurityLogger.js';
+export { LogLevel } from './Logger';
+export { SecurityEventType, SecuritySeverity } from './SecurityLogger';
 
 // Export classes
-export { ConsoleLogger } from './Logger.js';
-export { SentryLogger } from './SentryLogger.js';
-export { TracingLogger } from './TracingLogger.js';
-export { SecurityLogger } from './SecurityLogger.js';
+export { ConsoleLogger } from './Logger';
+export { SentryLogger } from './SentryLogger';
+export { TracingLogger } from './TracingLogger';
+export { SecurityLogger } from './SecurityLogger';
 
 // Export factory functions
-export { createSentryLogger } from './SentryLogger.js';
-export { createTracingLogger } from './TracingLogger.js';
-export { createSecurityLogger } from './SecurityLogger.js';
+export { createSentryLogger } from './SentryLogger';
+export { createTracingLogger } from './TracingLogger';
+export { createSecurityLogger } from './SecurityLogger';
 
 // Export middleware
-export { requestLogger, errorLogger, getRequestLogger } from './middleware.js';
+export { requestLogger, errorLogger, getRequestLogger } from './middleware';
 
 // Our utility functions are already defined above, no need to re-export them
 

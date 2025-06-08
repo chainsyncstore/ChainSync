@@ -1,4 +1,4 @@
-import * as schema from '@shared/schema.js';
+import * as schema from '@shared/schema';
 import { eq, like, and, or, desc, asc, sql, inArray } from 'drizzle-orm';
 
 import { db, executeQuery } from '../../../db';

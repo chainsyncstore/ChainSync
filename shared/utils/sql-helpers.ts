@@ -7,7 +7,7 @@
  */
 import { sql } from 'drizzle-orm';
 
-import { toDatabaseFields } from './field-mapping.js';
+import { toDatabaseFields } from './field-mapping';
 
 /**
  * Safely convert any value to string for use in SQL template literals
@@ -16,7 +16,7 @@ import { toDatabaseFields } from './field-mapping.js';
  * @param value Any value to be converted to string for SQL
  * @returns String representation safe for SQL template literals
  */
-export function safeToString(value: any): string {
+export function safeToString(value: unknown): string {
   if (value === null || value === undefined) {
     return 'NULL';
   }
@@ -70,7 +70,7 @@ export function formatJsonForSql(data: unknown): string {
  */
 export function buildInsertQuery(
   tableName: string,
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   returnFields: string[] = ['*']
 ): { query: string; values: unknown[] } {
   const dbFields = toDatabaseFields(data);
@@ -99,7 +99,7 @@ export function buildInsertQuery(
  */
 export function buildUpdateQuery(
   tableName: string,
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   whereCondition: string,
   returnFields: string[] = ['*']
 ): { query: string; values: unknown[] } {
@@ -177,7 +177,7 @@ export function buildRawUpdateQuery(
  * @param data The source data object
  * @returns A new object with values formatted as SQL-safe strings
  */
-export function prepareSqlValues(data: Record<string, any>): Record<string, string> {
+export function prepareSqlValues(data: Record<string, unknown>): Record<string, string> {
   return Object.entries(data).reduce(
     (acc, [key, value]) => {
       if (value === undefined) return acc;

@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 
-import * as schema from '@shared/schema.js';
+import * as schema from '@shared/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import Flutterwave from 'flutterwave-node-v3';
 

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { getLogger } from '../../src/logging/index.js';
+import { getLogger } from '../../src/logging/index';
 
 const logger = getLogger().child({ component: 'secrets-manager' });
 

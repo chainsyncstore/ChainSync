@@ -1,4 +1,4 @@
-import { AppError, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCategory } from '@shared/types/errors';
 import { Express } from 'express';
 
 // Use Express types instead of custom File interface

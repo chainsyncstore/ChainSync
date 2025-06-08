@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { Request, Response, NextFunction } from 'express';
 import { fileTypeFromBuffer } from 'file-type';
 import { LRUCache } from 'lru-cache';
@@ -6,11 +6,11 @@ import multer from 'multer';
 import sanitize from 'sanitize-filename';
 import uuidv4 from 'uuid';
 
-import { FileUploadConfig } from '../config/file-upload.js';
-import { FileUploadProgress, ProgressSubscription } from './types/file-upload.js';
-import { FileUtils } from './utils/file-utils.js';
-import { getLogger } from '../../src/logging/index.js';
-import { UserPayload } from '../types/user.js'; // Import UserPayload from its actual source
+import { FileUploadConfig } from '../config/file-upload';
+import { FileUploadProgress, ProgressSubscription } from './types/file-upload';
+import { FileUtils } from './utils/file-utils';
+import { getLogger } from '../../src/logging/index';
+import { UserPayload } from '../types/user'; // Import UserPayload from its actual source
 // Assuming UploadMetricsTracker and logger from ./utils/logger are specific utilities,
 // or should also be replaced if ./utils/logger is just a wrapper for the main logger.
 // For now, only replacing the direct 'logger' import.
@@ -19,7 +19,7 @@ import { UserPayload } from '../types/user.js'; // Import UserPayload from its a
 // If not, UploadMetricsTracker might need its logger updated too.
 // For now, let's assume the direct 'logger' was the one to change.
 // We will also need a logger instance for this file.
-import { UploadMetricsTracker } from './utils/logger.js'; // Keeping this if it's a specific utility
+import { UploadMetricsTracker } from './utils/logger'; // Keeping this if it's a specific utility
 
 const logger = getLogger().child({ component: 'file-upload-middleware' }); // Initialize main logger for this module
 import * as fs from 'fs';

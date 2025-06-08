@@ -5,9 +5,9 @@ import {
   CircuitBreakerOptions,
   withFallback,
   FallbackOptions,
-} from './fallback.js';
-import { retry, RetryOptions } from './retry.js';
-import { getLogger } from '../../src/logging/index.js';
+} from './fallback';
+import { retry, RetryOptions } from './retry';
+import { getLogger } from '../../src/logging/index';
 
 const logger = getLogger().child({ component: 'resilient-http-client' });
 

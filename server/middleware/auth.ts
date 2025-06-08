@@ -1,4 +1,4 @@
-import * as schema from '@shared/schema.js';
+import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { Request, Response, NextFunction } from 'express';
 

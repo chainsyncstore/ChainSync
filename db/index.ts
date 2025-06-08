@@ -1,6 +1,6 @@
 import * as schema from '@shared/schema';
 
-import { dbManager, executeQuery } from './connection-manager.js';
+import { dbManager, executeQuery } from './connection-manager';
 
 // Minimal db stub for TypeScript compatibility
 export const db = {

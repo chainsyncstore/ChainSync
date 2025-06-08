@@ -131,8 +131,8 @@ export interface SupplierWithRelations extends Supplier {
 export type { UserRole };
 
 // Export schema types
-export type * from './users.js';
-export type * from './stores.js';
-export type * from './products.js';
-export type * from './inventory.js';
-export type * from './suppliers.js';
+export type * from './users';
+export type * from './stores';
+export type * from './products';
+export type * from './inventory';
+export type * from './suppliers';

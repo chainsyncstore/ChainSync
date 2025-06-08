@@ -1,4 +1,4 @@
-import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors.js';
+import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
 
 export type ImportExportErrorCategory =
   | ErrorCategory.IMPORT_EXPORT

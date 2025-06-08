@@ -8,8 +8,8 @@
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import * as schema from './schema.js';
-import { AppError } from './types/errors.js'; // Added AppError import
+import * as schema from './schema';
+import { AppError } from './types/errors';
 
 /**
  * Error class for schema validation failures

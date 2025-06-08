@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { sql } from 'drizzle-orm'; // Import for SQL building
 import { Request, Response } from 'express';
 

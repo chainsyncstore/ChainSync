@@ -1,4 +1,4 @@
-import { schema } from '@shared/schema.js';
+import { schema } from '@shared/schema';
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 export interface IAffiliateService {

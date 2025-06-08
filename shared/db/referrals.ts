@@ -1,7 +1,7 @@
 import { pgTable, serial, integer, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 
-import { affiliates } from './affiliates.js';
-import { users } from './users.js';
+import { affiliates } from './affiliates';
+import { users } from './users';
 
 export const referrals = pgTable('referrals', {
   id: serial('id').primaryKey(),

@@ -1,7 +1,7 @@
-import { AppError } from '@shared/types/errors.js';
+import { AppError } from '@shared/types/errors';
 
-import { retry, RetryOptions } from './retry.js';
-import { getLogger } from '../../src/logging/index.js';
+import { retry, RetryOptions } from './retry';
+import { getLogger } from '../../src/logging/index';
 
 const logger = getLogger().child({ component: 'fallback-utils' });
 

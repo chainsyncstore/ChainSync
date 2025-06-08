@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { Pool } from 'pg';
 
 import { getLogger } from '../../src/logging'; // Import application logger
-import { AuthService, JWTPayload } from '../services/auth/auth-service.js'; // Assuming .js is intentional or types are provided
+import { AuthService, JWTPayload } from '../services/auth/auth-service'; // Assuming .js is intentional or types are provided
 
 const logger = getLogger().child({ component: 'jwt-auth-middleware' }); // Initialize logger for this module
 

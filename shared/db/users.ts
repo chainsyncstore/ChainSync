@@ -3,9 +3,9 @@ import { pgTable, text, boolean, integer, timestamp, index } from 'drizzle-orm/p
 import { createInsertSchema } from 'drizzle-zod'; // Added import
 import { z } from 'zod';
 
-import { baseTable } from './base.js';
-import { stores } from './stores.js';
-import { initializeGlobals } from './types.js';
+import { baseTable } from './base';
+import { stores } from './stores';
+import { initializeGlobals } from './types';
 
 // User roles enum
 export const UserRole = {
@@ -129,7 +129,7 @@ export const userLoginSchema = z.object({
 });
 
 // Import the UserWithRelations type from types.ts
-import type { UserWithRelations } from './types.js';
+import type { UserWithRelations } from './types';
 
 // Re-export the User type for consistency
 export type { UserWithRelations };

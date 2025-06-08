@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 import * as schema from '../../../shared/schema';
 

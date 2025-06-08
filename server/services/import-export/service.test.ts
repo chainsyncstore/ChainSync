@@ -1,6 +1,6 @@
 import { PassThrough } from 'stream';
 
-import { AppError, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCategory } from '@shared/types/errors';
 
 // ValidationService is the actual class name in validation.ts
 // The service aliases it as ValidationServiceImpl internally.

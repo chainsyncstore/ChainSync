@@ -4,7 +4,7 @@
  * This file defines the interfaces and types for the transaction service.
  */
 
-import * as schema from '@shared/schema.js';
+import * as schema from '@shared/schema';
 
 export enum PaymentMethod {
   CASH = 'cash',

@@ -11,9 +11,9 @@ import {
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 
-import { inventory } from './inventory.js'; // Assuming inventory items/batches are linked to main inventory
-import { inventoryBatches } from './inventory.js'; // Assuming itemId refers to inventoryBatches
-import { users } from './users.js';
+import { inventory } from './inventory'; // Assuming inventory items/batches are linked to main inventory
+import { inventoryBatches } from './inventory'; // Assuming itemId refers to inventoryBatches
+import { users } from './users';
 
 // Using InventoryAdjustmentType from inventory/types.ts as the source of truth for transaction types
 // This might need to be a shared enum if used in more places, or defined here.

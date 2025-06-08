@@ -7,9 +7,9 @@
 
 import * as crypto from 'crypto';
 
-import { db } from '@db/index.js';
-import { userValidation, SchemaValidationError } from '@shared/schema-validation.js';
-import * as schema from '@shared/schema.js';
+import { db } from '@db/index';
+import { userValidation, SchemaValidationError } from '@shared/schema-validation';
+import * as schema from '@shared/schema';
 import * as bcrypt from 'bcrypt';
 import { eq, and } from 'drizzle-orm';
 
@@ -19,8 +19,8 @@ import {
   CreateUserParams,
   UpdateUserParams,
   UserRole,
-} from './types.js';
-import { BaseService } from '../base/service.js';
+} from './types';
+import { BaseService } from '../base/service';
 
 export class UserService extends BaseService implements IUserService {
   private static readonly SALT_ROUNDS = 10;

@@ -1,14 +1,14 @@
 import crypto from 'crypto';
 
-import { db } from '@db/index.js';
-import { schema as actualDbSchema } from '@shared/db/index.js'; // For precise Drizzle transaction typing
-import * as schema from '@shared/schema.js'; // Consolidated schema import
-import { transactions } from '@shared/schema.js'; // Keep for direct table access if preferred over schema.transactions
+import { db } from '@db/index';
+import { schema as actualDbSchema } from '@shared/db/index'; // For precise Drizzle transaction typing
+import * as schema from '@shared/schema'; // Consolidated schema import
+import { transactions } from '@shared/schema'; // Keep for direct table access if preferred over schema.transactions
 import { sql, eq } from 'drizzle-orm';
 import { NodePgTransaction } from 'drizzle-orm/node-postgres';
 
-import { IWebhookService, IWebhookAppErrors, WebhookAppErrors } from './types.js';
-import { BaseService } from '../base/service.js';
+import { IWebhookService, IWebhookAppErrors, WebhookAppErrors } from './types';
+import { BaseService } from '../base/service';
 
 // Define a more specific type for webhook data
 interface WebhookData {

@@ -1,5 +1,5 @@
 import { ServiceConfig, ServiceResult } from '@shared/types/common';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 export interface IServiceError extends Error {
   code: ErrorCode;

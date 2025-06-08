@@ -1,7 +1,7 @@
 import * as xlsx from 'xlsx';
 
-import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors.js';
-import { getLogger } from '../../src/logging/index.js';
+import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
+import { getLogger } from '../../src/logging/index';
 
 /**
  * Secure wrapper for xlsx library to mitigate known vulnerabilities

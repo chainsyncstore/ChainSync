@@ -5,8 +5,8 @@
  * and error handling according to our schema style guide.
  */
 
-import { Logger, getLogger } from '@shared/logging.js';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { Logger, getLogger } from '@shared/logging';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { eq, and, desc, lt, SQL, sql } from 'drizzle-orm';
 
 // Import from shared db instance

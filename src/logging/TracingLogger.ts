@@ -1,6 +1,6 @@
 // src/logging/TracingLogger.ts
-import { Logger, LogLevel, LogMeta, BaseLogger, ConsoleLogger } from './Logger.js';
-import { getCurrentTraceContext } from '../monitoring/tracing.js';
+import { Logger, LogLevel, LogMeta, BaseLogger, ConsoleLogger } from './Logger';
+import { getCurrentTraceContext } from '../monitoring/tracing';
 
 /**
  * Logger that automatically includes OpenTelemetry trace context in logs

@@ -1,4 +1,4 @@
-import { ErrorCode, ErrorCategory, AppError } from '../types/errors.js';
+import { ErrorCode, ErrorCategory, AppError } from '../types/errors';
 
 export interface ErrorTranslation {
   [key: string]: {

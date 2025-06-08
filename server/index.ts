@@ -3,27 +3,27 @@ import express, { type Request, Response, NextFunction, Application } from 'expr
 import {
   enforceHttpsForDialogflowRoutes,
   verifyDialogflowConfig,
-} from './config/dialogflow-security.js';
-import { env } from './config/env.js';
-import { setupSecureServer, enforceHttpsForPaymentRoutes } from './config/https.js';
-import { logNgrokInstructions } from './config/ngrok.js';
-import { applyCORS } from './middleware/cors.js';
+} from './config/dialogflow-security';
+import { env } from './config/env';
+import { setupSecureServer, enforceHttpsForPaymentRoutes } from './config/https';
+import { logNgrokInstructions } from './config/ngrok';
+import { applyCORS } from './middleware/cors';
 import {
   createRequestHandler,
   createErrorHandler,
   isMiddlewareFunction,
-} from './middleware/handler.js';
-import { performanceMonitoring, memoryMonitoring } from './middleware/performance-monitoring.js';
-import { applyRateLimiters } from './middleware/rate-limiter.js';
-import { registerRoutes } from './routes.js';
-import { setupVite, serveStatic, log } from './vite.js';
-import { dbManager } from '../db/index.js';
-import { runMigrations } from '../db/migrations.js';
-import { setupSecurity } from '../middleware/security.js';
-import { ServiceError } from './services/base/base-service.js';
-import { logger } from './services/logger.js';
-import { initializeMonitoring } from '../monitoring/opentelemetry.js';
-import { globalErrorHandler } from './utils/handleError.js';
+} from './middleware/handler';
+import { performanceMonitoring, memoryMonitoring } from './middleware/performance-monitoring';
+import { applyRateLimiters } from './middleware/rate-limiter';
+import { registerRoutes } from './routes';
+import { setupVite, serveStatic, log } from './vite';
+import { dbManager } from '../db/index';
+import { runMigrations } from '../db/migrations';
+import { setupSecurity } from '../middleware/security';
+import { ServiceError } from './services/base/base-service';
+import { logger } from './services/logger';
+import { initializeMonitoring } from '../monitoring/opentelemetry';
+import { globalErrorHandler } from './utils/handleError';
 
 const app = express();
 

@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks';
 
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { Redis } from 'ioredis';
 
 export interface RateLimitConfig {

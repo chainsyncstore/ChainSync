@@ -3,7 +3,7 @@ import { pgTable, text, varchar, serial } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import { baseTable } from './base.js';
+import { baseTable } from './base';
 
 // Suppliers table
 export const suppliers = pgTable('suppliers', {

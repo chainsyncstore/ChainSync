@@ -11,12 +11,12 @@ import {
 } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 
-import { baseTable, baseInsertSchema, baseSelectSchema } from './base.js';
-import { users } from './users.js';
+import { baseTable, baseInsertSchema, baseSelectSchema } from './base';
+import { users } from './users';
 import {
   subscriptionToDatabaseFields,
   subscriptionFromDatabaseFields,
-} from '../utils/subscription-mapping.js';
+} from '../utils/subscription-mapping';
 
 // Subscription status and plan enums as text fields
 export const subscriptions = pgTable(

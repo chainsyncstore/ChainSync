@@ -9,8 +9,8 @@
 
 import { eq, and, gt, lt, desc, sql, asc } from 'drizzle-orm';
 
-import { NewSubscription } from './db/subscriptions.js';
-import * as schema from './schema.js';
+import { NewSubscription } from './db/subscriptions';
+import * as schema from './schema';
 
 /**
  * Generic type assertion helper for database operations
