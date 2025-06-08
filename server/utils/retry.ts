@@ -1,4 +1,4 @@
-import { getLogger } from '../../src/logging';
+import { getLogger } from '../../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'retry-utils' });
 
@@ -8,25 +8,25 @@ const logger = getLogger().child({ component: 'retry-utils' });
 export interface RetryOptions {
   /** Maximum number of retry attempts (default: 3) */
   maxAttempts?: number;
-  
+
   /** Initial delay between retries in milliseconds (default: 500) */
   initialDelayMs?: number;
-  
+
   /** Factor by which to increase delay with each retry (default: 2) */
   backoffFactor?: number;
-  
+
   /** Maximum delay between retries in milliseconds (default: 10000) */
   maxDelayMs?: number;
-  
+
   /** Whether to use jitter to randomize delay times (default: true) */
   useJitter?: boolean;
-  
+
   /** List of error types/messages that should not be retried */
   nonRetryableErrors?: Array<string | RegExp | Function>;
-  
+
   /** Operation name for logging purposes */
   operationName?: string;
-  
+
   /** Custom function to determine if an error is retryable */
   isRetryable?: (error: unknown) => boolean;
 }
@@ -37,16 +37,16 @@ export interface RetryOptions {
 export interface RetryResult<T> {
   /** Whether the operation ultimately succeeded */
   success: boolean;
-  
+
   /** The result of the operation if successful */
   result?: T;
-  
+
   /** The error if the operation failed after all retries */
   error?: unknown;
-  
+
   /** Number of attempts made */
   attempts: number;
-  
+
   /** Total time spent in retry attempts in milliseconds */
   totalTimeMs: number;
 }
@@ -54,7 +54,9 @@ export interface RetryResult<T> {
 /**
  * Default retry options
  */
-const DEFAULT_OPTIONS: Required<Omit<RetryOptions, 'nonRetryableErrors' | 'operationName' | 'isRetryable'>> = {
+const DEFAULT_OPTIONS: Required<
+  Omit<RetryOptions, 'nonRetryableErrors' | 'operationName' | 'isRetryable'>
+> = {
   maxAttempts: 3,
   initialDelayMs: 500,
   backoffFactor: 2,
@@ -64,7 +66,7 @@ const DEFAULT_OPTIONS: Required<Omit<RetryOptions, 'nonRetryableErrors' | 'opera
 
 /**
  * Retry a function with exponential backoff
- * 
+ *
  * @param fn The function to retry
  * @param options Retry configuration options
  * @returns Result of the retry operation
@@ -78,16 +80,16 @@ export async function retry<T>(
   let attempts = 0;
   let lastError: unknown;
   let delay = config.initialDelayMs;
-  
+
   const opName = config.operationName || 'unnamed-operation';
 
   while (attempts < config.maxAttempts) {
     attempts++;
-    
+
     try {
       // Attempt the operation
       const result = await fn();
-      
+
       // Log success and return the result
       if (attempts > 1) {
         logger.info(`Operation ${opName} succeeded after ${attempts} attempts`, {
@@ -95,7 +97,7 @@ export async function retry<T>(
           totalTimeMs: Date.now() - startTime,
         });
       }
-      
+
       return {
         success: true,
         result,
@@ -104,17 +106,17 @@ export async function retry<T>(
       };
     } catch (error: unknown) {
       lastError = error;
-      
+
       // Check if the error is non-retryable
       if (isNonRetryableError(error, config)) {
         logger.warn(`Non-retryable error encountered for operation ${opName}`, {
           error,
           attempts,
         });
-        
+
         break;
       }
-      
+
       // Check if we've reached the maximum attempts
       if (attempts >= config.maxAttempts) {
         logger.error(`Operation ${opName} failed after ${attempts} attempts`, {
@@ -122,32 +124,29 @@ export async function retry<T>(
           attempts,
           totalTimeMs: Date.now() - startTime,
         });
-        
+
         break;
       }
-      
+
       // Calculate the next delay with exponential backoff
-      delay = Math.min(
-        delay * config.backoffFactor,
-        config.maxDelayMs
-      );
-      
+      delay = Math.min(delay * config.backoffFactor, config.maxDelayMs);
+
       // Add jitter if enabled
       if (config.useJitter) {
         delay = addJitter(delay);
       }
-      
+
       logger.warn(`Retry attempt ${attempts} for operation ${opName} after ${delay}ms delay`, {
         error: error instanceof Error ? error.message : String(error),
         attempt: attempts,
         nextDelayMs: delay,
       });
-      
+
       // Wait before the next retry
       await sleep(delay);
     }
   }
-  
+
   // If we've reached this point, all retries have failed
   return {
     success: false,
@@ -175,15 +174,15 @@ function isNonRetryableError(error: unknown, options: RetryOptions): boolean {
   if (options.isRetryable) {
     return !options.isRetryable(error);
   }
-  
+
   // No non-retryable errors specified
   if (!options.nonRetryableErrors || options.nonRetryableErrors.length === 0) {
     return false;
   }
-  
+
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorName = error instanceof Error ? error.constructor.name : typeof error;
-  
+
   // Check against the list of non-retryable errors
   for (const nonRetryable of options.nonRetryableErrors) {
     if (typeof nonRetryable === 'string') {
@@ -203,7 +202,7 @@ function isNonRetryableError(error: unknown, options: RetryOptions): boolean {
       }
     }
   }
-  
+
   return false;
 }
 
@@ -216,7 +215,7 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Create a retryable version of a function
- * 
+ *
  * @param fn The function to make retryable
  * @param options Retry configuration options
  * @returns A new function that retries the original function
@@ -227,11 +226,11 @@ export function createRetryable<T, Args extends any[]>(
 ): (...args: Args) => Promise<T> {
   return async (...args: Args): Promise<T> => {
     const result = await retry(() => fn(...args), options);
-    
+
     if (!result.success) {
       throw result.error;
     }
-    
+
     return result.result as T;
   };
 }

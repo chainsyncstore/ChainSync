@@ -1,10 +1,11 @@
 /**
  * Loyalty Service Validation Schemas
- * 
+ *
  * This file defines all validation schemas for the loyalty service
  */
 
 import { z } from 'zod';
+
 import { CommonSchemas, SchemaUtils } from '../../utils/zod-helpers';
 
 /**
@@ -26,9 +27,13 @@ export const tierCreateSchema = z.object({
   programId: z.number().int().positive({ message: 'Program ID must be a positive integer' }),
   name: CommonSchemas.nonEmptyString,
   description: z.string().optional(),
-  pointsRequired: z.string().or(z.number())
+  pointsRequired: z
+    .string()
+    .or(z.number())
     .transform(val => String(val)),
-  multiplier: z.string().or(z.number())
+  multiplier: z
+    .string()
+    .or(z.number())
     .transform(val => String(val)),
 });
 
@@ -41,7 +46,9 @@ export const rewardCreateSchema = z.object({
   programId: z.number().int().positive({ message: 'Program ID must be a positive integer' }),
   name: CommonSchemas.nonEmptyString,
   description: z.string().optional(),
-  pointsRequired: z.string().or(z.number())
+  pointsRequired: z
+    .string()
+    .or(z.number())
     .transform(val => String(val)),
   isActive: z.boolean().default(true),
   type: z.enum(['discount', 'free_item', 'service', 'gift', 'other']),
@@ -57,7 +64,9 @@ export const memberCreateSchema = z.object({
   programId: z.number().int().positive({ message: 'Program ID must be a positive integer' }),
   customerId: z.number().int().positive({ message: 'Customer ID must be a positive integer' }),
   loyaltyId: z.string().min(3).max(50),
-  points: z.string().or(z.number())
+  points: z
+    .string()
+    .or(z.number())
     .transform(val => String(val))
     .default('0'),
   tierId: z.number().int().positive().optional().nullable(),
@@ -72,7 +81,9 @@ export const memberUpdateSchema = memberCreateSchema.partial();
  */
 export const pointsUpdateSchema = z.object({
   memberId: z.number().int().positive({ message: 'Member ID must be a positive integer' }),
-  points: z.string().or(z.number())
+  points: z
+    .string()
+    .or(z.number())
     .transform(val => String(val)),
   type: z.enum(['earn', 'redeem', 'adjust', 'expire']), // Added 'expire'
   transactionId: z.number().int().positive().optional().nullable(),
@@ -90,7 +101,9 @@ export const transactionCreateSchema = z.object({
   transactionId: z.number().int().positive().optional().nullable(),
   rewardId: z.number().int().positive().optional().nullable(),
   type: z.enum(['earn', 'redeem', 'enroll', 'adjust']),
-  points: z.string().or(z.number())
+  points: z
+    .string()
+    .or(z.number())
     .transform(val => String(val)),
   userId: z.number().int().positive(),
   notes: z.string().optional(),

@@ -1,21 +1,20 @@
-import { AppError } from '@shared/types/errors';
 import { createLogger, format, transports, Logform } from 'winston';
+
+import { AppError } from '../types/errors.js';
 
 const { combine, timestamp, label, printf } = format;
 
-const myFormat = printf(({ level, message, label: logLabel, timestamp: ts, ...meta }: Logform.TransformableInfo) => {
-  // Ensure meta is an object before trying to get its keys or stringify
-  const metaString = meta && Object.keys(meta).length ? JSON.stringify(meta) : '';
-  return `${ts} [${logLabel}] ${level}: ${message} ${metaString}`;
-});
+const myFormat = printf(
+  ({ level, message, label: logLabel, timestamp: ts, ...meta }: Logform.TransformableInfo) => {
+    // Ensure meta is an object before trying to get its keys or stringify
+    const metaString = meta && Object.keys(meta).length ? JSON.stringify(meta) : '';
+    return `${ts} [${logLabel}] ${level}: ${message} ${metaString}`;
+  }
+);
 
 export const logger = createLogger({
   level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-  format: combine(
-    label({ label: 'chain-sync' }),
-    timestamp(),
-    myFormat
-  ),
+  format: combine(label({ label: 'chain-sync' }), timestamp(), myFormat),
   transports: [
     new transports.File({ filename: 'error.log', level: 'error' }),
     new transports.File({ filename: 'combined.log' }),
@@ -23,13 +22,11 @@ export const logger = createLogger({
 });
 
 if (process.env.NODE_ENV !== 'production') {
-  logger.add(new transports.Console({
-    format: combine(
-      label({ label: 'chain-sync' }),
-      timestamp(),
-      myFormat
-    ),
-  }));
+  logger.add(
+    new transports.Console({
+      format: combine(label({ label: 'chain-sync' }), timestamp(), myFormat),
+    })
+  );
 }
 
 interface LogEntryType {
@@ -68,7 +65,7 @@ export const logError = (error: Error, context: string = 'unknown') => {
     logEntry.code = 'UNHANDLED_ERROR';
     logEntry.category = 'SYSTEM';
   }
-  
+
   logger.error('Error occurred', logEntry);
 };
 

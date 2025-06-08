@@ -1,5 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Pencil, Trash2, Plus, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -18,37 +35,21 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Plus, Save } from 'lucide-react';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 
 // Category schema
 const categorySchema = z.object({
   name: z.string().min(2, { message: 'Category name must be at least 2 characters' }),
-  description: z.string().optional()
+  description: z.string().optional(),
 });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
@@ -71,8 +72,8 @@ export default function CategoryManagement() {
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
-      description: ''
-    }
+      description: '',
+    },
   });
 
   // Form for editing a category
@@ -80,8 +81,8 @@ export default function CategoryManagement() {
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
-      description: ''
-    }
+      description: '',
+    },
   });
 
   // Fetch categories
@@ -95,14 +96,14 @@ export default function CategoryManagement() {
       const response = await fetch('/api/products/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to add category');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -119,23 +120,23 @@ export default function CategoryManagement() {
         description: error.message,
         variant: 'destructive',
       });
-    }
+    },
   });
 
   // Update category mutation
   const updateCategoryMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: CategoryFormValues }) => {
+    mutationFn: async ({ id, data }: { id: number; data: CategoryFormValues }) => {
       const response = await fetch(`/api/products/categories/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update category');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -152,21 +153,21 @@ export default function CategoryManagement() {
         description: error.message,
         variant: 'destructive',
       });
-    }
+    },
   });
 
   // Delete category mutation
   const deleteCategoryMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/products/categories/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete category');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -183,7 +184,7 @@ export default function CategoryManagement() {
         description: error.message,
         variant: 'destructive',
       });
-    }
+    },
   });
 
   // Submit handler for adding a new category
@@ -196,15 +197,15 @@ export default function CategoryManagement() {
     setIsEditing(category.id);
     editForm.reset({
       name: category.name,
-      description: category.description || ''
+      description: category.description || '',
     });
   };
 
   // Submit handler for editing a category
   const handleUpdate = (id: number) => {
-    updateCategoryMutation.mutate({ 
-      id, 
-      data: editForm.getValues() 
+    updateCategoryMutation.mutate({
+      id,
+      data: editForm.getValues(),
     });
   };
 
@@ -225,9 +226,7 @@ export default function CategoryManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Category Management</CardTitle>
-          <CardDescription>
-            Create, edit, and manage product categories
-          </CardDescription>
+          <CardDescription>Create, edit, and manage product categories</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -247,7 +246,7 @@ export default function CategoryManagement() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="description"
@@ -262,14 +261,18 @@ export default function CategoryManagement() {
                     )}
                   />
                 </div>
-                
-                <Button type="submit" className="w-full sm:w-auto" disabled={addCategoryMutation.isPending}>
+
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto"
+                  disabled={addCategoryMutation.isPending}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Category
                 </Button>
               </form>
             </Form>
-            
+
             <div className="border rounded-md">
               <Table>
                 <TableHeader>
@@ -331,8 +334,8 @@ export default function CategoryManagement() {
                         </TableCell>
                         <TableCell className="text-right space-x-2">
                           {isEditing === category.id ? (
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               onClick={() => handleUpdate(category.id)}
                               disabled={updateCategoryMutation.isPending}
                             >
@@ -341,17 +344,17 @@ export default function CategoryManagement() {
                             </Button>
                           ) : (
                             <>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleEdit(category)}
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button 
-                                    size="sm" 
+                                  <Button
+                                    size="sm"
                                     variant="destructive"
                                     onClick={() => handleDelete(category.id)}
                                   >
@@ -362,8 +365,8 @@ export default function CategoryManagement() {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Delete Category</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to delete the category "{category.name}"? 
-                                      This action cannot be undone.
+                                      Are you sure you want to delete the category "{category.name}
+                                      "? This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

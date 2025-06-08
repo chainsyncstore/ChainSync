@@ -1,9 +1,11 @@
 // server/routes/monitoring.ts
+import os from 'os';
+
 import express from 'express';
-import { authenticateUser, authorizeRoles } from '../middleware/auth';
+
 import { getPool } from '../../db/pool';
 import { getLogger } from '../../src/logging';
-import os from 'os';
+import { authenticateUser, authorizeRoles } from '../middleware/auth';
 
 const router = express.Router();
 const logger = getLogger().child({ component: 'monitoring-api' });
@@ -48,15 +50,15 @@ router.get('/health', (req, res) => {
   try {
     const uptime = process.uptime();
     const timestamp = new Date().toISOString();
-    
+
     // Determine status based on uptime
     // This is a simple example - in a real app, you'd check various system metrics
     const status = uptime < 300 ? 'starting' : 'healthy';
-    
+
     res.json({
       status,
       uptime,
-      timestamp
+      timestamp,
     });
   } catch (error: unknown) {
     logger.error('Error getting health status', error);
@@ -112,19 +114,19 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async (req, 
     const dbPool = getPool();
     const timestamp = new Date().toISOString();
     const metrics = [];
-    
+
     // System CPU metrics
-    const cpuUsage = os.loadavg()[0] / os.cpus().length * 100;
+    const cpuUsage = (os.loadavg()[0] / os.cpus().length) * 100;
     const cpuWarningThreshold = Number(process.env.CPU_WARNING_THRESHOLD || 70);
     const cpuCriticalThreshold = Number(process.env.CPU_CRITICAL_THRESHOLD || 90);
-    
+
     let cpuStatus = 'normal';
     if (cpuUsage >= cpuCriticalThreshold) {
       cpuStatus = 'critical';
     } else if (cpuUsage >= cpuWarningThreshold) {
       cpuStatus = 'warning';
     }
-    
+
     metrics.push({
       name: 'CPU Usage',
       value: parseFloat(cpuUsage.toFixed(2)),
@@ -132,11 +134,11 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async (req, 
       status: cpuStatus,
       threshold: {
         warning: cpuWarningThreshold,
-        critical: cpuCriticalThreshold
+        critical: cpuCriticalThreshold,
       },
-      timestamp
+      timestamp,
     });
-    
+
     // Memory metrics
     const totalMemory = os.totalmem();
     const freeMemory = os.freemem();
@@ -144,14 +146,14 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async (req, 
     const memoryUsage = (usedMemory / totalMemory) * 100;
     const memoryWarningThreshold = Number(process.env.MEMORY_WARNING_THRESHOLD || 75);
     const memoryCriticalThreshold = Number(process.env.MEMORY_CRITICAL_THRESHOLD || 90);
-    
+
     let memoryStatus = 'normal';
     if (memoryUsage >= memoryCriticalThreshold) {
       memoryStatus = 'critical';
     } else if (memoryUsage >= memoryWarningThreshold) {
       memoryStatus = 'warning';
     }
-    
+
     metrics.push({
       name: 'Memory Usage',
       value: parseFloat(memoryUsage.toFixed(2)),
@@ -159,26 +161,26 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async (req, 
       status: memoryStatus,
       threshold: {
         warning: memoryWarningThreshold,
-        critical: memoryCriticalThreshold
+        critical: memoryCriticalThreshold,
       },
-      timestamp
+      timestamp,
     });
-    
+
     // Database connection metrics
     if (dbPool) {
       const idleCount = dbPool.idleCount;
       const totalCount = dbPool.totalCount;
-      const usedPercent = Math.round((totalCount - idleCount) / totalCount * 100);
+      const usedPercent = Math.round(((totalCount - idleCount) / totalCount) * 100);
       const dbConnWarningThreshold = Number(process.env.DB_CONN_WARNING_THRESHOLD || 70);
       const dbConnCriticalThreshold = Number(process.env.DB_CONN_CRITICAL_THRESHOLD || 90);
-      
+
       let dbStatus = 'normal';
       if (usedPercent >= dbConnCriticalThreshold) {
         dbStatus = 'critical';
       } else if (usedPercent >= dbConnWarningThreshold) {
         dbStatus = 'warning';
       }
-      
+
       metrics.push({
         name: 'DB Connections',
         value: usedPercent,
@@ -186,14 +188,14 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async (req, 
         status: dbStatus,
         threshold: {
           warning: dbConnWarningThreshold,
-          critical: dbConnCriticalThreshold
+          critical: dbConnCriticalThreshold,
         },
-        timestamp
+        timestamp,
       });
     }
-    
+
     // Add more metrics as needed
-    
+
     res.json(metrics);
   } catch (error: unknown) {
     logger.error('Error getting system metrics', error);
@@ -287,20 +289,20 @@ router.post('/alerts/:id/acknowledge', authenticateUser, authorizeRoles(['admin'
   try {
     const alertId = req.params.id;
     const alertIndex = activeAlerts.findIndex(alert => alert.id === alertId);
-    
+
     if (alertIndex === -1) {
       return res.status(404).json({ error: 'Alert not found' });
     }
-    
+
     // Update the alert
     activeAlerts[alertIndex].acknowledged = true;
-    
+
     // Log the acknowledgment
     logger.info(`Alert ${alertId} acknowledged by user ${req.user.id}`);
-    
+
     res.json({
       success: true,
-      id: alertId
+      id: alertId,
     });
   } catch (error: unknown) {
     logger.error('Error acknowledging alert', error);
@@ -349,11 +351,11 @@ router.post('/alerts/:id/acknowledge', authenticateUser, authorizeRoles(['admin'
 router.post('/simulate-alert', authenticateUser, authorizeRoles(['admin']), (req, res) => {
   try {
     const { level, message } = req.body;
-    
+
     if (!level || !message) {
       return res.status(400).json({ error: 'Level and message are required' });
     }
-    
+
     // Create a new alert
     const newAlert = {
       id: `alert-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -361,18 +363,18 @@ router.post('/simulate-alert', authenticateUser, authorizeRoles(['admin']), (req
       message,
       level,
       timestamp: new Date().toISOString(),
-      acknowledged: false
+      acknowledged: false,
     };
-    
+
     // Add to active alerts
     activeAlerts.push(newAlert);
-    
+
     // Log the alert
     logger.info(`Simulated alert created: ${level} - ${message}`);
-    
+
     res.json({
       success: true,
-      alert: newAlert
+      alert: newAlert,
     });
   } catch (error: unknown) {
     logger.error('Error creating simulated alert', error);

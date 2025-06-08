@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/node';
 import { Request } from 'express'; // Added import
 
-import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger';
+import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger.js';
 
 interface SentryLoggerOptions {
   dsn: string;
@@ -74,7 +74,8 @@ export class SentryLogger extends BaseLogger {
     Sentry.setUser(null);
   }
 
-  public setRequestContext(req: Partial<Request>): void { // Changed req type to Partial<Request>
+  public setRequestContext(req: Partial<Request>): void {
+    // Changed req type to Partial<Request>
     // Extract useful context from Express/HTTP request
     const requestContext: Record<string, any> = {
       url: req.url,
@@ -86,10 +87,10 @@ export class SentryLogger extends BaseLogger {
       // Filter sensitive data
       const filteredBody = { ...req.body };
       const sensitiveFields = ['password', 'token', 'secret', 'credit_card', 'card'];
-      
+
       sensitiveFields.forEach(field => {
         if (field in filteredBody) {
-          (filteredBody as any)[field] = '[FILTERED]';
+          filteredBody[field] = '[FILTERED]';
         }
       });
 
@@ -101,7 +102,7 @@ export class SentryLogger extends BaseLogger {
       // Only include safe headers
       const safeHeaders = ['user-agent', 'accept', 'content-type', 'referer'];
       const headersToLog: Record<string, string | string[] | undefined> = {};
-      
+
       safeHeaders.forEach(headerName => {
         // Check if headerName is a key of currentHeaders before accessing
         if (Object.prototype.hasOwnProperty.call(currentHeaders, headerName)) {
@@ -130,7 +131,7 @@ export class SentryLogger extends BaseLogger {
       const breadcrumb = {
         type: 'default',
         category: 'log',
-        level: this.getSentryLevel(level) as Sentry.SeverityLevel,
+        level: this.getSentryLevel(level),
         message,
         data: meta,
       };
@@ -143,7 +144,12 @@ export class SentryLogger extends BaseLogger {
     }
   }
 
-  protected logError(level: LogLevel, message: string, error: Error | LoggableError, meta?: LogMeta): void {
+  protected logError(
+    level: LogLevel,
+    message: string,
+    error: Error | LoggableError,
+    meta?: LogMeta
+  ): void {
     // Log to console first
     if (error instanceof Error) {
       this.consoleLogger.error(message, error, meta);
@@ -176,7 +182,12 @@ export class SentryLogger extends BaseLogger {
     });
   }
 
-  private captureException(level: LogLevel, message: string, error: Error | LoggableError, meta?: LogMeta): void {
+  private captureException(
+    level: LogLevel,
+    message: string,
+    error: Error | LoggableError,
+    meta?: LogMeta
+  ): void {
     Sentry.withScope(scope => {
       // Add context
       if (this.context) {
@@ -230,12 +241,10 @@ export class SentryLogger extends BaseLogger {
 }
 
 // Import this at the end to avoid circular dependency
-import { ConsoleLogger } from './Logger';
+import { ConsoleLogger } from './Logger.js';
 
 // Factory function to create a Sentry logger
 export function createSentryLogger(options: SentryLoggerOptions): SentryLogger {
   initSentry(options);
-  return new SentryLogger(
-    process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG
-  );
+  return new SentryLogger(process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG);
 }

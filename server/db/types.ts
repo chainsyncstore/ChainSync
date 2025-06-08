@@ -1,13 +1,12 @@
-import { z } from 'zod';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { PgTransaction } from 'drizzle-orm/pg-core';
+import { z } from 'zod';
 
 // Define the DrizzleClient type
 export type DrizzleClient = NodePgDatabase<any>;
 
 // Define the Transaction type
 export type Transaction = PgTransaction<any, any, any>;
-
 
 export interface LoyaltyProgram {
   id: number;

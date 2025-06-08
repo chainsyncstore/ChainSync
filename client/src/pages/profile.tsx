@@ -1,16 +1,17 @@
+import { ArrowLeft } from 'lucide-react';
 import React from 'react';
-import { useAuth } from '@/providers/auth-provider';
+import { Link } from 'wouter';
+
 import { AppShell } from '@/components/layout/app-shell';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Link } from 'wouter';
 import { formatDate } from '@/lib/utils';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  
+
   if (!user) {
     return (
       <AppShell>
@@ -53,29 +54,29 @@ export default function ProfilePage() {
               <Label className="text-muted-foreground">Full Name</Label>
               <p className="text-lg font-medium">{user.fullName}</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Email Address</Label>
               <p className="text-lg">{user.email}</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Username</Label>
               <p className="text-lg">{user.username}</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Role</Label>
               <p className="text-lg capitalize">{user.role}</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">User ID</Label>
               <p className="text-lg">{user.id}</p>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Account Information</CardTitle>
@@ -88,19 +89,19 @@ export default function ProfilePage() {
                 <p className="text-lg">{user.storeId}</p>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Account Created</Label>
               <p className="text-lg">{formatDate(user.createdAt)}</p>
             </div>
-            
+
             {user.lastLogin && (
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Last Login</Label>
                 <p className="text-lg">{formatDate(user.lastLogin)}</p>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label className="text-muted-foreground">Account Updated</Label>
               <p className="text-lg">{formatDate(user.updatedAt)}</p>

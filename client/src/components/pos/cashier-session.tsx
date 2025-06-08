@@ -1,18 +1,39 @@
-import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { AlertCircle, CheckCircle2, Clock, TimerOff } from 'lucide-react';
-import { formatCurrency, formatDateTime, formatDuration } from '@/lib/utils';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { formatCurrency, formatDateTime, formatDuration } from '@/lib/utils';
+import { useAuth } from '@/providers/auth-provider';
 
 type CashierSession = {
   id: number;
@@ -62,17 +83,17 @@ export function CashierSessionManager() {
       setShowStartDialog(false);
       setNotes('');
       toast({
-        title: "Session started",
-        description: "Your cashier session has been started successfully.",
+        title: 'Session started',
+        description: 'Your cashier session has been started successfully.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Failed to start session",
-        description: error.message || "There was an error starting your session.",
-        variant: "destructive",
+        title: 'Failed to start session',
+        description: error.message || 'There was an error starting your session.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // End session mutation
@@ -86,20 +107,20 @@ export function CashierSessionManager() {
       setShowEndDialog(false);
       setNotes('');
       toast({
-        title: "Session ended",
-        description: "Your cashier session has been ended successfully.",
+        title: 'Session ended',
+        description: 'Your cashier session has been ended successfully.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Failed to end session",
-        description: error.message || "There was an error ending your session.",
-        variant: "destructive",
+        title: 'Failed to end session',
+        description: error.message || 'There was an error ending your session.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
-  // Calculate session duration 
+  // Calculate session duration
   const calculateDuration = (startTime: string, endTime: string | null) => {
     const start = new Date(startTime);
     const end = endTime ? new Date(endTime) : new Date();
@@ -107,22 +128,27 @@ export function CashierSessionManager() {
     return formatDuration(durationMs);
   };
 
-  const activeSession = activeSessionQuery.data && typeof activeSessionQuery.data === 'object' && 'session' in activeSessionQuery.data ? activeSessionQuery.data.session as CashierSession | undefined : undefined;
+  const activeSession =
+    activeSessionQuery.data &&
+    typeof activeSessionQuery.data === 'object' &&
+    'session' in activeSessionQuery.data
+      ? (activeSessionQuery.data.session as CashierSession | undefined)
+      : undefined;
   const stores = Array.isArray(storesQuery.data) ? storesQuery.data : [];
 
   const handleStartSession = () => {
     if (!selectedStore) {
       toast({
-        title: "Store selection required",
-        description: "Please select a store to start your session.",
-        variant: "destructive",
+        title: 'Store selection required',
+        description: 'Please select a store to start your session.',
+        variant: 'destructive',
       });
       return;
     }
 
     startSessionMutation.mutate({
       storeId: parseInt(selectedStore),
-      notes: notes.trim() || undefined
+      notes: notes.trim() || undefined,
     });
   };
 
@@ -131,7 +157,7 @@ export function CashierSessionManager() {
 
     endSessionMutation.mutate({
       sessionId: activeSession.id,
-      notes: notes.trim() || undefined
+      notes: notes.trim() || undefined,
     });
   };
 
@@ -147,11 +173,9 @@ export function CashierSessionManager() {
       <Card className="mb-4">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Cashier Session</CardTitle>
-          <CardDescription>
-            Manage your current cashier session
-          </CardDescription>
+          <CardDescription>Manage your current cashier session</CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           {activeSessionQuery.isLoading ? (
             <div className="flex items-center justify-center py-4">
@@ -161,20 +185,23 @@ export function CashierSessionManager() {
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
                 <div>
-                  <Badge className="mb-2" variant={activeSession.status === 'active' ? 'default' : 'secondary'}>
+                  <Badge
+                    className="mb-2"
+                    variant={activeSession.status === 'active' ? 'default' : 'secondary'}
+                  >
                     {activeSession.status === 'active' ? 'Active Session' : 'Closed Session'}
                   </Badge>
                   <h3 className="text-lg font-semibold">
                     {activeSession.store?.name || `Store #${activeSession.storeId}`}
                   </h3>
                 </div>
-                
+
                 <div className="text-right">
                   <div className="text-muted-foreground text-sm">Started:</div>
                   <div className="font-medium">{formatDateTime(activeSession.startTime)}</div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="border rounded-md p-3 bg-primary/5">
                   <div className="text-muted-foreground text-sm">Duration</div>
@@ -185,7 +212,7 @@ export function CashierSessionManager() {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="border rounded-md p-3 bg-primary/5">
                   <div className="text-muted-foreground text-sm">Transactions</div>
                   <div className="flex items-center mt-1">
@@ -193,7 +220,7 @@ export function CashierSessionManager() {
                     <span className="text-lg font-semibold">{activeSession.transactionCount}</span>
                   </div>
                 </div>
-                
+
                 <div className="border rounded-md p-3 bg-primary/5">
                   <div className="text-muted-foreground text-sm">Total Sales</div>
                   <div className="flex items-center mt-1">
@@ -203,7 +230,7 @@ export function CashierSessionManager() {
                   </div>
                 </div>
               </div>
-              
+
               {activeSession.notes && (
                 <div className="mt-4 border-t pt-4">
                   <p className="text-sm text-muted-foreground">Notes:</p>
@@ -221,12 +248,10 @@ export function CashierSessionManager() {
             </Alert>
           )}
         </CardContent>
-        
+
         <CardFooter className="border-t pt-4">
           {!activeSession || activeSession.status !== 'active' ? (
-            <Button onClick={() => setShowStartDialog(true)}>
-              Start New Session
-            </Button>
+            <Button onClick={() => setShowStartDialog(true)}>Start New Session</Button>
           ) : (
             <Button variant="destructive" onClick={() => setShowEndDialog(true)}>
               <TimerOff className="mr-2 h-4 w-4" />
@@ -235,17 +260,18 @@ export function CashierSessionManager() {
           )}
         </CardFooter>
       </Card>
-      
+
       {/* Start Session Dialog */}
       <Dialog open={showStartDialog} onOpenChange={setShowStartDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Start Cashier Session</DialogTitle>
             <DialogDescription>
-              Select a store and start your shift. You'll need an active session to process transactions.
+              Select a store and start your shift. You'll need an active session to process
+              transactions.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="store">Store Location</Label>
@@ -259,7 +285,8 @@ export function CashierSessionManager() {
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                     </div>
                   ) : (
-                    Array.isArray(stores) && stores.map((store: any) => (
+                    Array.isArray(stores) &&
+                    stores.map((store: any) => (
                       <SelectItem key={store.id} value={store.id.toString()}>
                         {store.name}
                       </SelectItem>
@@ -268,18 +295,18 @@ export function CashierSessionManager() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="notes">Session Notes (Optional)</Label>
               <Textarea
                 id="notes"
                 placeholder="Add notes about this session"
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={e => setNotes(e.target.value)}
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowStartDialog(false)}>
               Cancel
@@ -294,23 +321,24 @@ export function CashierSessionManager() {
                   Starting...
                 </>
               ) : (
-                "Start Session"
+                'Start Session'
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* End Session Dialog */}
       <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>End Cashier Session</DialogTitle>
             <DialogDescription>
-              Are you sure you want to end your current session? You won't be able to process transactions until you start a new session.
+              Are you sure you want to end your current session? You won't be able to process
+              transactions until you start a new session.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {activeSession && (
               <div className="grid grid-cols-2 gap-4">
@@ -318,7 +346,7 @@ export function CashierSessionManager() {
                   <div className="text-muted-foreground text-sm">Transactions</div>
                   <div className="text-lg font-medium">{activeSession.transactionCount}</div>
                 </div>
-                
+
                 <div className="border rounded-md p-3">
                   <div className="text-muted-foreground text-sm">Total Sales</div>
                   <div className="text-lg font-medium">
@@ -327,18 +355,18 @@ export function CashierSessionManager() {
                 </div>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="end-notes">End Session Notes (Optional)</Label>
               <Textarea
                 id="end-notes"
                 placeholder="Add notes about this session"
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={e => setNotes(e.target.value)}
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEndDialog(false)}>
               Cancel
@@ -354,7 +382,7 @@ export function CashierSessionManager() {
                   Ending...
                 </>
               ) : (
-                "End Session"
+                'End Session'
               )}
             </Button>
           </DialogFooter>

@@ -1,5 +1,5 @@
+import { schema } from '@shared/schema.js';
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { schema } from '@shared/schema';
 
 export interface IAffiliateService {
   generateReferralCode(userId: number): Promise<string>;
@@ -96,5 +96,5 @@ export const AffiliateServiceErrors: IAffiliateServiceErrors = {
     'Invalid bank details provided',
     ErrorCode.INVALID_FIELD_VALUE,
     ErrorCategory.VALIDATION
-  )
+  ),
 };

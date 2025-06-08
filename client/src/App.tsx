@@ -1,33 +1,39 @@
-import React, { useEffect, Suspense } from "react";
-import { Switch, Route, Router, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider, useAuth } from "@/providers/auth-provider";
-import { CurrencyProvider } from "@/providers/currency-provider";
+import { QueryClientProvider } from '@tanstack/react-query';
+import React, { useEffect, Suspense } from 'react';
+import { Switch, Route, Router, useLocation } from 'wouter';
 
-import LoginPage from "@/pages/login";
-import DashboardPage from "@/pages/dashboard";
-import StoresPage from "@/pages/stores";
-import AnalyticsPage from "@/pages/analytics";
-import InventoryPage from "@/pages/inventory";
-import UsersPage from "@/pages/users";
-import SettingsPage from "@/pages/settings";
-import PosPage from "@/pages/pos";
-import ForgotPasswordPage from "@/pages/forgot-password";
-import ResetPasswordPage from "@/pages/reset-password";
-import LandingPage from "@/pages/landing";
-import NotFound from "@/pages/not-found";
-import PaymentTestingPage from "@/pages/payment-testing";
-import LoyaltyPage from "@/pages/loyalty";
-import ImportPage from "@/pages/import";
-import ProductImportPage from "@/pages/product-import";
-import AddProductPage from "@/pages/add-product";
-import AssistantPage from "@/pages/assistant";
-import ProfilePage from "@/pages/profile";
+import { queryClient } from './lib/queryClient';
+
+import { Toaster } from '@/components/ui/toaster';
+import AddProductPage from '@/pages/add-product';
+import AnalyticsPage from '@/pages/analytics';
+import AssistantPage from '@/pages/assistant';
+import DashboardPage from '@/pages/dashboard';
+import UsersPage from '@/pages/users';
+import SettingsPage from '@/pages/settings';
+import PosPage from '@/pages/pos';
+import ForgotPasswordPage from '@/pages/forgot-password';
+import ResetPasswordPage from '@/pages/reset-password';
+import LandingPage from '@/pages/landing';
+import NotFound from '@/pages/not-found';
+import PaymentTestingPage from '@/pages/payment-testing';
+import LoyaltyPage from '@/pages/loyalty';
+import ImportPage from '@/pages/import';
+import InventoryPage from '@/pages/inventory';
+import LoginPage from '@/pages/login';
+import ProductImportPage from '@/pages/product-import';
+import ProfilePage from '@/pages/profile';
+import StoresPage from '@/pages/stores';
+import { AuthProvider, useAuth } from '@/providers/auth-provider';
+import { CurrencyProvider } from '@/providers/currency-provider';
 
 // Protected route component
-function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
+function ProtectedRoute({
+  component: Component,
+  adminOnly = false,
+  isManagerOrAdmin = false,
+  ...rest
+}: any) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -35,20 +41,25 @@ function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAd
   useEffect(() => {
     // Redirect to landing page if not authenticated
     if (!isLoading && !isAuthenticated) {
-      setLocation("/");
+      setLocation('/');
       return;
     }
 
     // Check for admin access if required
-    if (!isLoading && isAuthenticated && adminOnly && user?.role !== "admin") {
-      setLocation("/dashboard");
+    if (!isLoading && isAuthenticated && adminOnly && user?.role !== 'admin') {
+      setLocation('/dashboard');
       return;
     }
-    
+
     // Check for manager or admin access if required
-    if (!isLoading && isAuthenticated && isManagerOrAdmin && 
-        user?.role !== "admin" && user?.role !== "manager") {
-      setLocation("/dashboard");
+    if (
+      !isLoading &&
+      isAuthenticated &&
+      isManagerOrAdmin &&
+      user?.role !== 'admin' &&
+      user?.role !== 'manager'
+    ) {
+      setLocation('/dashboard');
       return;
     }
   }, [isAuthenticated, isLoading, user, adminOnly, isManagerOrAdmin, setLocation]);
@@ -59,7 +70,7 @@ function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAd
   }
 
   // Don't render during redirects
-  if (!isAuthenticated || (adminOnly && user?.role !== "admin")) {
+  if (!isAuthenticated || (adminOnly && user?.role !== 'admin')) {
     return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
   }
 
@@ -70,24 +81,24 @@ function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAd
 function DefaultRoute() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  
+
   // Use effect hook to handle navigation after render
   useEffect(() => {
     // If user is authenticated, redirect based on role
     if (isAuthenticated && user) {
-      if (user.role === "cashier") {
-        setLocation("/pos");
+      if (user.role === 'cashier') {
+        setLocation('/pos');
       } else {
-        setLocation("/dashboard");
+        setLocation('/dashboard');
       }
     }
   }, [user, isAuthenticated, setLocation]);
-  
+
   // If not authenticated, show the landing page
   if (!isAuthenticated) {
     return <LandingPage />;
   }
-  
+
   // Return a loading indicator while redirecting
   return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
 }
@@ -123,7 +134,9 @@ function PosRoute() {
 function AffiliatesRoute() {
   const AffiliatePage = React.lazy(() => import('./pages/affiliates'));
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <AffiliatePage />
     </Suspense>
   );
@@ -132,7 +145,9 @@ function AffiliatesRoute() {
 function SignupRoute() {
   const SignupPage = React.lazy(() => import('./pages/signup'));
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <SignupPage />
     </Suspense>
   );
@@ -145,7 +160,9 @@ function PaymentTestingRoute() {
 function ReturnsRoute() {
   const ReturnsPage = React.lazy(() => import('./pages/returns'));
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <ProtectedRoute component={ReturnsPage} />
     </Suspense>
   );
@@ -153,7 +170,9 @@ function ReturnsRoute() {
 
 function LoyaltyRoute() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <ProtectedRoute component={LoyaltyPage} />
     </Suspense>
   );
@@ -161,7 +180,9 @@ function LoyaltyRoute() {
 
 function ImportRoute() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <ProtectedRoute component={ImportPage} isManagerOrAdmin={true} />
     </Suspense>
   );
@@ -169,7 +190,9 @@ function ImportRoute() {
 
 function ProductImportRoute() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <ProtectedRoute component={ProductImportPage} isManagerOrAdmin={true} />
     </Suspense>
   );
@@ -177,7 +200,9 @@ function ProductImportRoute() {
 
 function AddProductRoute() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <ProtectedRoute component={AddProductPage} isManagerOrAdmin={true} />
     </Suspense>
   );
@@ -185,7 +210,9 @@ function AddProductRoute() {
 
 function AssistantRoute() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <ProtectedRoute component={AssistantPage} />
     </Suspense>
   );
@@ -193,7 +220,9 @@ function AssistantRoute() {
 
 function ProfileRoute() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+    <Suspense
+      fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}
+    >
       <ProtectedRoute component={ProfilePage} />
     </Suspense>
   );

@@ -1,6 +1,6 @@
 /**
  * Migrations Index
- * 
+ *
  * This file registers all migrations in the correct order.
  * New migrations should be added to this file.
  */
@@ -13,5 +13,5 @@ import * as addIndexes from './003_add_indexes';
 export const migrations: Record<string, any> = {
   '001_initial_schema': initialSchema,
   '002_add_loyalty_programs': addLoyaltyPrograms,
-  '003_add_indexes': addIndexes
+  '003_add_indexes': addIndexes,
 };

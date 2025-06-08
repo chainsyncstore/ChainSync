@@ -68,21 +68,21 @@ export const AnalyticsServiceErrors = {
     undefined, // statusCode
     true, // retryable
     10000 // retryAfter
-  )
+  ),
 };
 
 export const defaultAnalyticsConfig: AnalyticsConfig = {
   cache: {
     enabled: true,
     ttl: 300, // 5 minutes
-    maxEntries: 1000
+    maxEntries: 1000,
   },
   aggregation: {
     window: 60, // 1 minute
-    batchSize: 1000
+    batchSize: 1000,
   },
   storage: {
     type: 'redis',
-    connection: process.env.REDIS_URL || 'redis://localhost:6379'
-  }
+    connection: process.env.REDIS_URL || 'redis://localhost:6379',
+  },
 };

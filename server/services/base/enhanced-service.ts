@@ -1,15 +1,10 @@
 /**
  * Enhanced Base Service
- * 
+ *
  * An extended base service class that provides consistent patterns for
  * database operations, error handling, and result formatting across services.
  */
-import { BaseService } from './service';
 import { db } from '@server/database'; // Changed to named import
-import { DrizzleClient, Transaction } from '../../db/types'; // Added DrizzleClient and Transaction
-import { ServiceConfig } from './service-factory'; // Added import
-import { sql } from 'drizzle-orm';
-import { ZodSchema } from 'zod';
 import { ErrorCode } from '@shared/types/errors';
 import { ServiceErrorHandler } from '@shared/utils/service-helpers';
 import {
@@ -17,28 +12,34 @@ import {
   buildUpdateQuery,
   buildRawInsertQuery,
   buildRawUpdateQuery,
-  prepareSqlValues
+  prepareSqlValues,
 } from '@shared/utils/sql-helpers';
+import { sql } from 'drizzle-orm';
+import { ZodSchema } from 'zod';
 
+import { BaseService } from './service';
+import { ServiceConfig } from './service-factory'; // Added import
+import { DrizzleClient, Transaction } from '../../db/types'; // Added DrizzleClient and Transaction
 
 export abstract class EnhancedBaseService extends BaseService {
   protected readonly db: DrizzleClient; // Add db client
 
-  constructor(config: ServiceConfig) { // Add constructor to accept ServiceConfig
+  constructor(config: ServiceConfig) {
+    // Add constructor to accept ServiceConfig
     super(config); // Pass the full config object to BaseService constructor
     this.db = config.db; // Initialize db client
   }
 
   /**
    * Execute a SQL query and format the first result
-   * 
+   *
    * @param query The SQL query string
    * @param params Query parameters
    * @param formatter Function to format the result
    * @returns Formatted result or null
    */
   protected async executeSqlWithFormatting<T>(
-    query: string, 
+    query: string,
     params: unknown[] = [],
     formatter: (row: Record<string, any>) => T
   ): Promise<T | null> {
@@ -54,10 +55,10 @@ export abstract class EnhancedBaseService extends BaseService {
       throw ServiceErrorHandler.handleError(error, 'executing SQL query');
     }
   }
-  
+
   /**
    * Execute a SQL query and format multiple results
-   * 
+   *
    * @param query The SQL query string
    * @param params Query parameters
    * @param formatter Function to format each result
@@ -80,10 +81,10 @@ export abstract class EnhancedBaseService extends BaseService {
       throw ServiceErrorHandler.handleError(error, 'executing SQL query with multiple results');
     }
   }
-  
+
   /**
    * Execute a SQL INSERT query with proper error handling
-   * 
+   *
    * @param tableName The table to insert into
    * @param data The data to insert
    * @param formatter Function to format the result
@@ -101,10 +102,10 @@ export abstract class EnhancedBaseService extends BaseService {
       throw ServiceErrorHandler.handleError(error, `inserting into ${tableName}`);
     }
   }
-  
+
   /**
    * Execute a SQL UPDATE query with proper error handling
-   * 
+   *
    * @param tableName The table to update
    * @param data The data for the update
    * @param whereCondition The WHERE clause condition
@@ -124,10 +125,10 @@ export abstract class EnhancedBaseService extends BaseService {
       throw ServiceErrorHandler.handleError(error, `updating ${tableName}`);
     }
   }
-  
+
   /**
    * Execute a raw SQL INSERT query (without parameters) for TypeScript compatibility
-   * 
+   *
    * @param tableName The table to insert into
    * @param data The data to insert
    * @param formatter Function to format the result
@@ -146,10 +147,10 @@ export abstract class EnhancedBaseService extends BaseService {
       throw ServiceErrorHandler.handleError(error, `inserting into ${tableName}`);
     }
   }
-  
+
   /**
    * Execute a raw SQL UPDATE query (without parameters) for TypeScript compatibility
-   * 
+   *
    * @param tableName The table to update
    * @param data The data for the update
    * @param whereCondition The WHERE clause condition
@@ -170,17 +171,17 @@ export abstract class EnhancedBaseService extends BaseService {
       throw ServiceErrorHandler.handleError(error, `updating ${tableName}`);
     }
   }
-  
+
   /**
    * Validate data with a Zod schema and prepare it for database operations
-   * 
+   *
    * @param data The data to validate and prepare
    * @param validator The Zod validation schema
    * @param preparer Function to prepare the validated data
    * @returns Prepared data
    */
   protected validateAndPrepare<T, U>(
-    data: T, 
+    data: T,
     validator: ZodSchema<U>,
     preparer: (data: U) => Record<string, any>
   ): Record<string, any> {
@@ -191,10 +192,10 @@ export abstract class EnhancedBaseService extends BaseService {
       throw ServiceErrorHandler.handleError(error, 'validating data', ErrorCode.VALIDATION_ERROR);
     }
   }
-  
+
   /**
    * Standard error handler for service methods
-   * 
+   *
    * @param error The caught error
    * @param operation Description of the operation that failed
    * @returns Always throws, return type is for TypeScript compatibility
@@ -202,10 +203,10 @@ export abstract class EnhancedBaseService extends BaseService {
   protected handleError(error: unknown, operation: string): never {
     throw ServiceErrorHandler.handleError(error, operation);
   }
-  
+
   /**
    * Check if a result exists, throw a NOT_FOUND error if not
-   * 
+   *
    * @param result The result to check
    * @param entityName Name of the entity being checked
    * @returns The result if it exists

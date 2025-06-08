@@ -1,6 +1,7 @@
 import * as xlsx from 'xlsx';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { getLogger } from '../../src/logging';
+
+import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors.js';
+import { getLogger } from '../../src/logging/index.js';
 
 /**
  * Secure wrapper for xlsx library to mitigate known vulnerabilities
@@ -25,11 +26,7 @@ export class SecureXlsx {
    */
   private maxRows: number;
 
-  constructor(options?: {
-    maxFileSize?: number;
-    maxSheets?: number;
-    maxRows?: number;
-  }) {
+  constructor(options?: { maxFileSize?: number; maxSheets?: number; maxRows?: number }) {
     this.maxFileSize = options?.maxFileSize || 5 * 1024 * 1024; // 5MB default
     this.maxSheets = options?.maxSheets || 10;
     this.maxRows = options?.maxRows || 10000;
@@ -50,11 +47,11 @@ export class SecureXlsx {
       }
 
       // Parse workbook with defensive options
-      const workbook = xlsx.read(fileBuffer, { 
+      const workbook = xlsx.read(fileBuffer, {
         type: 'buffer',
         cellFormula: false, // Disable formulas for security
-        cellNF: false,      // Disable number formats
-        cellHTML: false     // Disable HTML
+        cellNF: false, // Disable number formats
+        cellHTML: false, // Disable HTML
       });
 
       // Validate workbook structure
@@ -77,10 +74,10 @@ export class SecureXlsx {
 
       // Process each sheet with row limits
       const result: Record<string, any[]> = {};
-      
+
       for (const sheetName of workbook.SheetNames) {
         const worksheet = workbook.Sheets[sheetName];
-        
+
         // Validate worksheet
         if (!worksheet || typeof worksheet !== 'object' || !worksheet['!ref']) {
           this.logger.warn(`Invalid or empty worksheet: ${sheetName}`);
@@ -90,7 +87,7 @@ export class SecureXlsx {
 
         // Get sheet range
         const range = xlsx.utils.decode_range(worksheet['!ref']);
-        
+
         // Check row count
         if (range.e.r > this.maxRows) {
           throw new AppError(
@@ -102,14 +99,14 @@ export class SecureXlsx {
 
         // Convert to JSON with safe options
         const data = xlsx.utils.sheet_to_json(worksheet, {
-          defval: null,      // Default to null for empty cells
-          raw: false,        // Convert values to strings
-          header: 1          // Use first row as headers
+          defval: null, // Default to null for empty cells
+          raw: false, // Convert values to strings
+          header: 1, // Use first row as headers
         });
 
         // Deep sanitize the data
         const sanitizedData = this.sanitizeData(data);
-        
+
         result[sheetName] = sanitizedData;
       }
 
@@ -119,12 +116,15 @@ export class SecureXlsx {
         // If it's already an AppError, rethrow it
         throw error;
       }
-      
+
       // Log the original error for debugging
-      this.logger.error('Error processing Excel file', { 
-        originalError: error instanceof Error ? { message: error.message, stack: error.stack, name: error.name } : error 
+      this.logger.error('Error processing Excel file', {
+        originalError:
+          error instanceof Error
+            ? { message: error.message, stack: error.stack, name: error.name }
+            : error,
       });
-      
+
       // Throw a new AppError for consistent error handling
       throw new AppError(
         'Unable to process Excel file',
@@ -136,7 +136,7 @@ export class SecureXlsx {
 
   /**
    * Sanitize data from xlsx to prevent prototype pollution and other injection attacks
-   * 
+   *
    * This function creates new objects without prototype inheritance to prevent
    * prototype pollution attacks that could be triggered by specially crafted Excel files.
    * It also converts object values to strings to prevent nested pollution.
@@ -153,7 +153,7 @@ export class SecureXlsx {
 
       // Create a new object without prototype
       const sanitizedRow: Record<string, any> = Object.create(null);
-      
+
       // Copy only valid properties
       const indexableRow = row as Record<string, any>;
       Object.keys(indexableRow).forEach(key => {
@@ -161,18 +161,18 @@ export class SecureXlsx {
         if (key === '__proto__' || key === 'constructor') {
           return;
         }
-        
+
         // Sanitize values
         let value = indexableRow[key];
-        
+
         // Convert objects to strings to prevent nested pollution
         if (value !== null && typeof value === 'object') {
           value = JSON.stringify(value);
         }
-        
+
         sanitizedRow[key] = value;
       });
-      
+
       return sanitizedRow;
     });
   }
@@ -183,11 +183,11 @@ export class SecureXlsx {
   public extractHeaders(fileBuffer: Buffer, sheetIndex = 0): string[] {
     const sheets = this.readFile(fileBuffer);
     const sheetName = Object.keys(sheets)[sheetIndex];
-    
+
     if (!sheetName || !sheets[sheetName] || !Array.isArray(sheets[sheetName])) {
       return [];
     }
-    
+
     const firstRow = sheets[sheetName][0];
     return Array.isArray(firstRow) ? firstRow.map(String) : [];
   }

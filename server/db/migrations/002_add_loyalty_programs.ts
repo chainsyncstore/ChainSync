@@ -1,12 +1,13 @@
 /**
  * Add Loyalty Programs Migration
- * 
+ *
  * Creates tables for the loyalty program feature.
  */
 
 import { sql } from 'drizzle-orm';
-import { db } from '../../../db';
+
 import { Migration } from './runner';
+import { db } from '../../../db';
 
 export const up: Migration['up'] = async () => {
   // Create loyalty_programs table

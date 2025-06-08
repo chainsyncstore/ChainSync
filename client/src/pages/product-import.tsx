@@ -1,11 +1,12 @@
 import React from 'react';
+
 import ProductImport from '@/components/import/product-import';
 import { useAuth } from '@/providers/auth-provider';
 
 export default function ProductImportPage() {
   const { user } = useAuth();
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager';
-  
+
   if (!isManagerOrAdmin) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -17,7 +18,7 @@ export default function ProductImportPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
       <ProductImport />

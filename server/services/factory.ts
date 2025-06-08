@@ -1,15 +1,16 @@
 /**
  * Service Factory
- * 
+ *
  * This factory manages service instantiation with proper dependency injection
  * and ensures consistent configuration across all services.
  */
 
-import Redis from 'ioredis';
+import { DbConnection } from '@db/types.js';
 import { Logger } from '@src/logging';
-import { DbConnection } from '@db/types';
-import { CacheService } from './cache';
+import Redis from 'ioredis';
+
 import { ServiceConfig } from './base/standard-service';
+import { CacheService } from './cache';
 
 /**
  * Service factory for creating properly configured services
@@ -17,7 +18,7 @@ import { ServiceConfig } from './base/standard-service';
 export class ServiceFactory {
   private static instance: ServiceFactory;
   private readonly serviceInstances: Map<string, any> = new Map();
-  
+
   private constructor(
     private readonly config: {
       logger: Logger;
@@ -26,7 +27,7 @@ export class ServiceFactory {
       redis?: Redis;
     }
   ) {}
-  
+
   /**
    * Get the singleton instance of the service factory
    */
@@ -41,16 +42,16 @@ export class ServiceFactory {
     } else if (!ServiceFactory.instance) {
       throw new Error('ServiceFactory must be initialized with config');
     }
-    
+
     return ServiceFactory.instance;
   }
-  
+
   /**
    * Get a service instance, creating it if it doesn't exist
    */
   public getService<T>(serviceClass: new (config: ServiceConfig) => T): T {
     const serviceName = serviceClass.name;
-    
+
     if (!this.serviceInstances.has(serviceName)) {
       this.serviceInstances.set(
         serviceName,
@@ -62,10 +63,10 @@ export class ServiceFactory {
         })
       );
     }
-    
+
     return this.serviceInstances.get(serviceName) as T;
   }
-  
+
   /**
    * Get a service instance with custom configuration
    */
@@ -74,7 +75,7 @@ export class ServiceFactory {
     additionalConfig: Record<string, any>
   ): T {
     const serviceName = `${serviceClass.name}:${JSON.stringify(additionalConfig)}`;
-    
+
     if (!this.serviceInstances.has(serviceName)) {
       this.serviceInstances.set(
         serviceName,
@@ -87,10 +88,10 @@ export class ServiceFactory {
         })
       );
     }
-    
+
     return this.serviceInstances.get(serviceName) as T;
   }
-  
+
   /**
    * Create a new service instance without caching it
    * Useful for services that need to be configured differently each time
@@ -107,14 +108,14 @@ export class ServiceFactory {
       ...additionalConfig,
     });
   }
-  
+
   /**
    * Clear all service instances (useful for testing)
    */
   public clearInstances(): void {
     this.serviceInstances.clear();
   }
-  
+
   /**
    * Remove a specific service instance
    */

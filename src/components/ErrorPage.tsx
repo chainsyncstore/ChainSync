@@ -1,7 +1,7 @@
 // src/components/ErrorPage.tsx
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as Sentry from '@sentry/react';
 
 interface ErrorPageProps {
   statusCode?: number;
@@ -27,7 +27,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
   showReportButton = true,
   showHomeButton = true,
   showRetryButton = true,
-  onRetry
+  onRetry,
 }) => {
   const navigate = useNavigate();
 
@@ -46,7 +46,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
       labelClose: 'Close',
       labelSubmit: 'Submit',
       successMessage: 'Thank you for your feedback!',
-      errorFormEntry: 'Some fields were invalid. Please correct and try again.'
+      errorFormEntry: 'Some fields were invalid. Please correct and try again.',
     });
   };
 
@@ -75,7 +75,9 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
           <details className="error-details">
             <summary>Technical Details</summary>
             <div className="error-stack">
-              <p className="error-name">{error.name}: {error.message}</p>
+              <p className="error-name">
+                {error.name}: {error.message}
+              </p>
               <pre>{error.stack}</pre>
             </div>
           </details>
@@ -83,28 +85,19 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
 
         <div className="error-actions">
           {showRetryButton && (
-            <button
-              className="error-retry-button"
-              onClick={handleRetry}
-            >
+            <button className="error-retry-button" onClick={handleRetry}>
               Try Again
             </button>
           )}
-          
+
           {showHomeButton && (
-            <button
-              className="error-home-button"
-              onClick={goToHome}
-            >
+            <button className="error-home-button" onClick={goToHome}>
               Go to Home
             </button>
           )}
-          
+
           {showReportButton && error && (
-            <button
-              className="error-report-button"
-              onClick={handleReportError}
-            >
+            <button className="error-report-button" onClick={handleReportError}>
               Report Issue
             </button>
           )}

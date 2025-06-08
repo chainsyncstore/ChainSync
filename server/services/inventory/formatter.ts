@@ -1,16 +1,12 @@
 /**
  * Inventory Formatter
- * 
+ *
  * A formatter class for the Inventory module that standardizes
  * conversion between database rows and domain objects.
  */
 import { ResultFormatter } from '@shared/utils/service-helpers';
-import { 
-  Inventory, 
-  InventoryItem, 
-  InventoryTransaction,
-  InventoryTransactionType
-} from './types';
+
+import { Inventory, InventoryItem, InventoryTransaction, InventoryTransactionType } from './types';
 
 /**
  * Formatter for inventory data from database to domain objects
@@ -18,7 +14,7 @@ import {
 export class InventoryFormatter extends ResultFormatter<Inventory> {
   /**
    * Format a single database result row into an Inventory domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted Inventory object
    */
@@ -26,19 +22,16 @@ export class InventoryFormatter extends ResultFormatter<Inventory> {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
-    const withDates = this.formatDates(
-      base, 
-      ['createdAt', 'updatedAt', 'lastAuditDate']
-    );
-    
+    const withDates = this.formatDates(base, ['createdAt', 'updatedAt', 'lastAuditDate']);
+
     // Format the inventory with specific type handling
     return {
       ...withDates,
@@ -50,7 +43,7 @@ export class InventoryFormatter extends ResultFormatter<Inventory> {
       capacity: Number(withDates.capacity || 0),
       currentUtilization: Number(withDates.currentUtilization || 0),
       isActive: Boolean(withDates.isActive),
-      metadata: metadata
+      metadata: metadata,
     };
   }
 }
@@ -61,7 +54,7 @@ export class InventoryFormatter extends ResultFormatter<Inventory> {
 export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
   /**
    * Format a single database result row into an InventoryItem domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted InventoryItem object
    */
@@ -69,19 +62,22 @@ export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory item result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
-    const withDates = this.formatDates(
-      base, 
-      ['createdAt', 'updatedAt', 'expiryDate', 'manufactureDate', 'receivedDate']
-    );
-    
+    const withDates = this.formatDates(base, [
+      'createdAt',
+      'updatedAt',
+      'expiryDate',
+      'manufactureDate',
+      'receivedDate',
+    ]);
+
     // Format the inventory item with specific type handling
     return {
       ...withDates,
@@ -101,7 +97,7 @@ export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
       serialNumber: withDates.serialNumber || '',
       supplier: withDates.supplier || '',
       isActive: Boolean(withDates.isActive),
-      metadata: metadata
+      metadata: metadata,
     };
   }
 }
@@ -112,7 +108,7 @@ export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
 export class InventoryTransactionFormatter extends ResultFormatter<InventoryTransaction> {
   /**
    * Format a single database result row into an InventoryTransaction domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted InventoryTransaction object
    */
@@ -120,19 +116,16 @@ export class InventoryTransactionFormatter extends ResultFormatter<InventoryTran
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory transaction result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
-    const withDates = this.formatDates(
-      base, 
-      ['createdAt', 'updatedAt', 'transactionDate']
-    );
-    
+    const withDates = this.formatDates(base, ['createdAt', 'updatedAt', 'transactionDate']);
+
     // Format the inventory transaction with specific type handling
     return {
       ...withDates,
@@ -148,7 +141,7 @@ export class InventoryTransactionFormatter extends ResultFormatter<InventoryTran
       referenceId: withDates.referenceId || null,
       notes: withDates.notes || '',
       performedBy: Number(withDates.performedBy || 0),
-      metadata: metadata
+      metadata: metadata,
     };
   }
 }

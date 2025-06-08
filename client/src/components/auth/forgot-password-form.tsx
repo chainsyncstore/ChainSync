@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -12,14 +13,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 // Form schema for password reset request
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email('Please enter a valid email address'),
 });
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
@@ -32,29 +33,28 @@ export function ForgotPasswordForm() {
   const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
-      email: "",
+      email: '',
     },
   });
 
   // Define mutation for password reset request
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: ForgotPasswordFormValues) => {
-      const response = await apiRequest("POST", "/api/auth/forgot-password", data);
+      const response = await apiRequest('POST', '/api/auth/forgot-password', data);
       return response.json();
     },
     onSuccess: () => {
       setSubmitted(true);
       toast({
-        title: "Password reset request sent",
-        description:
-          "If an account with that email exists, a password reset link has been sent.",
+        title: 'Password reset request sent',
+        description: 'If an account with that email exists, a password reset link has been sent.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to send password reset request. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to send password reset request. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -75,11 +75,7 @@ export function ForgotPasswordForm() {
         <p className="text-muted-foreground">
           Please check your inbox and spam folder. The link will expire in 1 hour.
         </p>
-        <Button
-          variant="outline"
-          onClick={() => setSubmitted(false)}
-          className="mt-4"
-        >
+        <Button variant="outline" onClick={() => setSubmitted(false)} className="mt-4">
           Send Another Email
         </Button>
       </div>
@@ -104,11 +100,7 @@ export function ForgotPasswordForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email address"
-                    {...field}
-                  />
+                  <Input type="email" placeholder="Enter your email address" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -116,24 +108,17 @@ export function ForgotPasswordForm() {
           />
 
           <div className="flex justify-between items-center mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.history.back()}
-            >
+            <Button type="button" variant="outline" onClick={() => window.history.back()}>
               Back to Login
             </Button>
-            <Button
-              type="submit"
-              disabled={forgotPasswordMutation.isPending}
-            >
+            <Button type="submit" disabled={forgotPasswordMutation.isPending}>
               {forgotPasswordMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Sending...
                 </>
               ) : (
-                "Send Reset Link"
+                'Send Reset Link'
               )}
             </Button>
           </div>

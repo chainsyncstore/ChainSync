@@ -1,7 +1,19 @@
-import { pgTable, serial, integer, text, boolean, timestamp, jsonb, unique, primaryKey, foreignKey, index } from "drizzle-orm/pg-core";
-import { z } from "zod";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { relations as drizzleRelations } from "drizzle-orm";
+import { relations as drizzleRelations } from 'drizzle-orm';
+import {
+  pgTable,
+  serial,
+  integer,
+  text,
+  boolean,
+  timestamp,
+  jsonb,
+  unique,
+  primaryKey,
+  foreignKey,
+  index,
+} from 'drizzle-orm/pg-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { z } from 'zod';
 
 // Base types
 export type Timestamps = {
@@ -15,10 +27,10 @@ export type SoftDelete = {
 
 // Base table configuration
 export const baseTable = {
-  id: serial("id").primaryKey(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at"),
+  id: serial('id').primaryKey(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
 };
 
 // Timestamps schema
@@ -47,14 +59,14 @@ export const defineRelations = (table: unknown) => {
 
 // Common validation helpers
 export const commonValidators = {
-  name: (schema: typeof z) => schema.string().min(1, "Name is required"),
+  name: (schema: typeof z) => schema.string().min(1, 'Name is required'),
   description: (schema: typeof z) => schema.string().optional(),
-  status: (schema: typeof z) => schema.enum(["active", "inactive", "deleted"]),
-  price: (schema: typeof z) => schema.number().min(0, "Price must be positive"),
-  quantity: (schema: typeof z) => schema.number().min(0, "Quantity must be positive"),
-  amount: (schema: typeof z) => schema.number().min(0, "Amount must be positive"),
-  email: (schema: typeof z) => schema.string().email("Invalid email"),
-  phone: (schema: typeof z) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+  status: (schema: typeof z) => schema.enum(['active', 'inactive', 'deleted']),
+  price: (schema: typeof z) => schema.number().min(0, 'Price must be positive'),
+  quantity: (schema: typeof z) => schema.number().min(0, 'Quantity must be positive'),
+  amount: (schema: typeof z) => schema.number().min(0, 'Amount must be positive'),
+  email: (schema: typeof z) => schema.string().email('Invalid email'),
+  phone: (schema: typeof z) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number'),
 };
 
 // Type guards

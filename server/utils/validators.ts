@@ -1,5 +1,17 @@
 export const validateFileExtension = (filename: string): boolean => {
-  const allowedExtensions = ['.csv', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx', '.xlsx', '.json'];
+  const allowedExtensions = [
+    '.csv',
+    '.txt',
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.pdf',
+    '.doc',
+    '.docx',
+    '.xlsx',
+    '.json',
+  ];
   return allowedExtensions.some(ext => filename.toLowerCase().endsWith(ext));
 };
 

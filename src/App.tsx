@@ -1,7 +1,8 @@
 // src/App.tsx
+import * as Sentry from '@sentry/react';
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import * as Sentry from '@sentry/react';
+
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './components/ErrorPage';
 import NotFound from './components/NotFound';
@@ -23,10 +24,10 @@ if (process.env.NODE_ENV === 'production') {
  * Custom fallback component for route-level errors
  */
 const RouteErrorFallback = ({ error, resetError }: { error: Error; resetError: () => void }) => (
-  <ErrorPage 
-    error={error} 
-    onRetry={resetError} 
-    title="Page Error" 
+  <ErrorPage
+    error={error}
+    onRetry={resetError}
+    title="Page Error"
     message="We've encountered an error with this page and our team has been notified."
   />
 );
@@ -34,15 +35,12 @@ const RouteErrorFallback = ({ error, resetError }: { error: Error; resetError: (
 /**
  * SentryRoutes wraps Routes with error boundary and monitoring
  */
-const SentryRoutes = Sentry.withErrorBoundary(
-  Routes,
-  {
-    fallback: ({ error, resetError }) => {
-      const errorInstance = error instanceof Error ? error : new Error(String(error));
-      return <RouteErrorFallback error={errorInstance} resetError={resetError} />;
-    },
-  }
-);
+const SentryRoutes = Sentry.withErrorBoundary(Routes, {
+  fallback: ({ error, resetError }) => {
+    const errorInstance = error instanceof Error ? error : new Error(String(error));
+    return <RouteErrorFallback error={errorInstance} resetError={resetError} />;
+  },
+});
 
 /**
  * Main application component
@@ -52,29 +50,29 @@ function App() {
     // Set user context for Sentry when user logs in
     const setUserContext = () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      
+
       if (user.id) {
         Sentry.setUser({
           id: user.id,
           username: user.username,
-          role: user.role
+          role: user.role,
         });
       } else {
         Sentry.setUser(null);
       }
     };
-    
+
     // Set initial user context
     setUserContext();
-    
+
     // Listen for login/logout events
     window.addEventListener('auth-change', setUserContext);
-    
+
     return () => {
       window.removeEventListener('auth-change', setUserContext);
     };
   }, []);
-  
+
   return (
     <ErrorBoundary
       fallback={
@@ -83,7 +81,8 @@ function App() {
           <div className="error-message">
             <h2>Application Error</h2>
             <p>
-              We're sorry, but something went wrong. Our team has been notified and we're working to fix the issue.
+              We're sorry, but something went wrong. Our team has been notified and we're working to
+              fix the issue.
             </p>
             <button onClick={() => window.location.reload()}>Refresh Application</button>
           </div>

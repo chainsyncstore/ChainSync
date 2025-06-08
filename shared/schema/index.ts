@@ -1,0 +1,2 @@
+// Minimal schema stub
+export {};

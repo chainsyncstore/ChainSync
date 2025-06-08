@@ -1,15 +1,16 @@
-import React, { useRef, useState } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, X, ArrowRight } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Link } from 'wouter';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/providers/auth-provider';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Input } from '@/components/ui/input';
-import { formatDistanceToNow } from 'date-fns';
-import { Link } from 'wouter';
+import { useAuth } from '@/providers/auth-provider';
 
 // Interface for message data
 interface Message {
@@ -29,14 +30,14 @@ export function MessagePopover() {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  
+
   // Fetch conversation history
   const { data: conversationData = { messages: [] }, isLoading } = useQuery<ConversationData>({
     queryKey: ['/api/ai/conversation'],
     // Only fetch when the popover is open to save resources
     enabled: open,
   });
-  
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -60,26 +61,31 @@ export function MessagePopover() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    
+
     sendMessageMutation.mutate(message);
     setMessage('');
   };
-  
+
   // Check if we have unread messages
-  const hasUnreadMessages = conversationData.messages.length > 0 && 
+  const hasUnreadMessages =
+    conversationData.messages.length > 0 &&
     conversationData.messages[conversationData.messages.length - 1].role === 'assistant';
-  
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative mr-4 text-neutral-500 hover:text-primary">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative mr-4 text-neutral-500 hover:text-primary"
+        >
           {hasUnreadMessages && (
             <span className="absolute top-0 right-0 w-2 h-2 bg-accent rounded-full"></span>
           )}
           <MessageSquare className="h-6 w-6" />
         </Button>
       </PopoverTrigger>
-      
+
       <PopoverContent align="end" className="p-0 w-[350px] md:w-[400px]">
         <Card className="border-0 shadow-none">
           <div className="flex items-center justify-between border-b p-3">
@@ -95,7 +101,7 @@ export function MessagePopover() {
               </Button>
             </div>
           </div>
-          
+
           <ScrollArea className="h-[300px] p-3">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
@@ -104,21 +110,22 @@ export function MessagePopover() {
             ) : (
               <>
                 {conversationData.messages.map((msg, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className={`mb-3 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}
                   >
-                    <div 
+                    <div
                       className={`inline-block p-2 rounded-lg max-w-[85%] text-sm ${
-                        msg.role === 'user' 
-                          ? 'bg-primary text-white'
-                          : 'bg-muted'
+                        msg.role === 'user' ? 'bg-primary text-white' : 'bg-muted'
                       }`}
                     >
                       {msg.content}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(Date.now() - (conversationData.messages.length - index) * 60000), { addSuffix: true })}
+                      {formatDistanceToNow(
+                        new Date(Date.now() - (conversationData.messages.length - index) * 60000),
+                        { addSuffix: true }
+                      )}
                     </div>
                   </div>
                 ))}
@@ -126,18 +133,18 @@ export function MessagePopover() {
               </>
             )}
           </ScrollArea>
-          
+
           <form onSubmit={handleSendMessage} className="border-t p-3">
             <div className="flex">
               <Input
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={e => setMessage(e.target.value)}
                 placeholder="Type your message..."
                 className="flex-1 mr-2"
                 disabled={sendMessageMutation.isPending}
               />
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 size="sm"
                 disabled={!message.trim() || sendMessageMutation.isPending}
               >

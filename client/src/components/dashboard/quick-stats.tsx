@@ -1,18 +1,19 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import {
+  DollarSign,
+  ShoppingCart,
+  Package,
+  Store,
+  TrendingUp,
+  TrendingDown,
+  Building,
+} from 'lucide-react';
+import React from 'react';
+
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { useAuth } from '@/providers/auth-provider';
-import { 
-  DollarSign, 
-  ShoppingCart, 
-  Package, 
-  Store, 
-  TrendingUp, 
-  TrendingDown, 
-  Building
-} from 'lucide-react';
 
 interface QuickStatsProps {
   storeId?: number;
@@ -40,13 +41,13 @@ interface StoreData {
 export function QuickStats({ storeId }: QuickStatsProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  
+
   // For store-specific query to get store details
   const { data: storeData } = useQuery<StoreData>({
     queryKey: ['/api/stores', user?.storeId],
     enabled: !isAdmin && !!user?.storeId,
   });
-  
+
   const { data, isLoading } = useQuery<QuickStatsData>({
     queryKey: ['/api/dashboard/quick-stats', storeId],
     refetchInterval: 300000, // Refetch every 5 minutes
@@ -84,9 +85,9 @@ export function QuickStats({ storeId }: QuickStatsProps) {
     lowStockCount: 0,
     lowStockChange: 0,
     activeStoresCount: 0,
-    totalStoresCount: 0
+    totalStoresCount: 0,
   };
-  
+
   return (
     <React.Fragment>
       {!isAdmin && storeData && (
@@ -106,7 +107,7 @@ export function QuickStats({ storeId }: QuickStatsProps) {
           </div>
         </Card>
       )}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         {/* Total Sales */}
         <Card className="bg-white rounded-lg shadow-sm border border-neutral-200">
@@ -143,7 +144,9 @@ export function QuickStats({ storeId }: QuickStatsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-neutral-500">Transactions (Today)</p>
-                <p className="text-2xl font-bold mt-1">{formatNumber(statsData.transactionsCount)}</p>
+                <p className="text-2xl font-bold mt-1">
+                  {formatNumber(statsData.transactionsCount)}
+                </p>
               </div>
               <div className="p-3 bg-secondary-50 rounded-full">
                 <ShoppingCart className="w-6 h-6 text-secondary" />
@@ -181,8 +184,7 @@ export function QuickStats({ storeId }: QuickStatsProps) {
             <div className="mt-4 flex items-center">
               {statsData.lowStockChange > 0 ? (
                 <span className="text-red-500 text-sm font-medium flex items-center">
-                  <TrendingUp className="w-4 h-4 mr-1" />
-                  +{statsData.lowStockChange}
+                  <TrendingUp className="w-4 h-4 mr-1" />+{statsData.lowStockChange}
                 </span>
               ) : statsData.lowStockChange < 0 ? (
                 <span className="text-green-500 text-sm font-medium flex items-center">
@@ -205,7 +207,9 @@ export function QuickStats({ storeId }: QuickStatsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-neutral-500">Active Stores</p>
-                <p className="text-2xl font-bold mt-1">{statsData.activeStoresCount}/{statsData.totalStoresCount}</p>
+                <p className="text-2xl font-bold mt-1">
+                  {statsData.activeStoresCount}/{statsData.totalStoresCount}
+                </p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
                 <Store className="w-6 h-6 text-green-500" />
@@ -214,15 +218,35 @@ export function QuickStats({ storeId }: QuickStatsProps) {
             <div className="mt-4 flex items-center">
               {statsData.activeStoresCount === statsData.totalStoresCount ? (
                 <span className="text-green-500 text-sm font-medium flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M5 13l4 4L19 7"
+                    ></path>
                   </svg>
                   All stores online
                 </span>
               ) : (
                 <span className="text-amber-500 text-sm font-medium flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    ></path>
                   </svg>
                   {statsData.totalStoresCount - statsData.activeStoresCount} stores offline
                 </span>

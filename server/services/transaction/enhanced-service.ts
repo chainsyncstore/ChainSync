@@ -1,12 +1,20 @@
 /**
  * Enhanced Transaction Service
- * 
+ *
  * Refactored to use the enhanced base service, schema validation,
  * and formatter patterns for consistency and type safety.
  */
+import { db } from '@server/db';
 import { EnhancedBaseService } from '@server/services/base/enhanced-service';
-import { TransactionFormatter, TransactionItemFormatter, TransactionPaymentFormatter } from './formatter';
 import { transactionValidation } from '@shared/schema-validation';
+import { sql } from 'drizzle-orm';
+
+import { TransactionServiceErrors } from './errors';
+import {
+  TransactionFormatter,
+  TransactionItemFormatter,
+  TransactionPaymentFormatter,
+} from './formatter';
 import { ITransactionService } from './interface';
 import {
   CreateTransactionParams,
@@ -17,11 +25,8 @@ import {
   CreateTransactionItemParams,
   UpdateTransactionItemParams,
   CreateTransactionPaymentParams,
-  UpdateTransactionPaymentParams
+  UpdateTransactionPaymentParams,
 } from './types';
-import { TransactionServiceErrors } from './errors';
-import { db } from '@server/db';
-import { sql } from 'drizzle-orm';
 
 export class EnhancedTransactionService extends EnhancedBaseService implements ITransactionService {
   private formatter = new TransactionFormatter();
@@ -60,7 +65,11 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
   async getTransactionById(id: number): Promise<Transaction | null> {
     try {
       const query = `SELECT * FROM transactions WHERE id = ${id}`;
-      return await this.executeSqlWithFormatting(query, [], this.formatter.formatResult.bind(this.formatter));
+      return await this.executeSqlWithFormatting(
+        query,
+        [],
+        this.formatter.formatResult.bind(this.formatter)
+      );
     } catch (error: unknown) {
       return this.handleError(error, 'getting transaction by id');
     }
@@ -80,7 +89,10 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
     }
   }
 
-  async updateTransactionItem(id: number, params: UpdateTransactionItemParams): Promise<TransactionItem> {
+  async updateTransactionItem(
+    id: number,
+    params: UpdateTransactionItemParams
+  ): Promise<TransactionItem> {
     try {
       const validated = transactionValidation.itemUpdate(params);
       const item = await this.rawUpdateWithFormatting(
@@ -95,7 +107,9 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
     }
   }
 
-  async createTransactionPayment(params: CreateTransactionPaymentParams): Promise<TransactionPayment> {
+  async createTransactionPayment(
+    params: CreateTransactionPaymentParams
+  ): Promise<TransactionPayment> {
     try {
       const validated = transactionValidation.paymentInsert(params);
       const payment = await this.rawInsertWithFormatting(
@@ -109,7 +123,10 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
     }
   }
 
-  async updateTransactionPayment(id: number, params: UpdateTransactionPaymentParams): Promise<TransactionPayment> {
+  async updateTransactionPayment(
+    id: number,
+    params: UpdateTransactionPaymentParams
+  ): Promise<TransactionPayment> {
     try {
       const validated = transactionValidation.paymentUpdate(params);
       const payment = await this.rawUpdateWithFormatting(

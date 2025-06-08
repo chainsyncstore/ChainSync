@@ -1,13 +1,15 @@
 /**
  * Inventory Service Types
- * 
+ *
  * This file defines the interfaces and types for the inventory service.
  */
 
 import * as schema from '@shared/schema';
 
-export type Inventory = schema.Inventory & { batchTracking?: boolean; metadata?: Record<string, unknown> };
-
+export type Inventory = schema.Inventory & {
+  batchTracking?: boolean;
+  metadata?: Record<string, unknown>;
+};
 
 export interface InventoryItem {
   id: number;
@@ -68,7 +70,6 @@ export interface UpdateInventoryItemParams {
   metadata?: Record<string, unknown>;
 }
 
-
 export enum InventoryAdjustmentType {
   PURCHASE = 'purchase',
   SALE = 'sale',
@@ -77,7 +78,7 @@ export enum InventoryAdjustmentType {
   LOSS = 'loss',
   TRANSFER = 'transfer',
   ADJUSTMENT = 'adjustment',
-  COUNT = 'count'
+  COUNT = 'count',
 }
 
 export interface CreateInventoryParams {
@@ -146,13 +147,13 @@ export interface InventoryServiceErrors {
 }
 
 export const InventoryServiceErrors: InventoryServiceErrors = {
-  INVENTORY_NOT_FOUND: new Error("Inventory record not found"),
-  PRODUCT_NOT_FOUND: new Error("Product not found"),
-  STORE_NOT_FOUND: new Error("Store not found"),
-  BATCH_NOT_FOUND: new Error("Inventory batch not found"),
-  INSUFFICIENT_STOCK: new Error("Insufficient stock available"),
-  INVALID_ADJUSTMENT: new Error("Invalid inventory adjustment"),
-  INVALID_BATCH_OPERATION: new Error("Invalid batch operation")
+  INVENTORY_NOT_FOUND: new Error('Inventory record not found'),
+  PRODUCT_NOT_FOUND: new Error('Product not found'),
+  STORE_NOT_FOUND: new Error('Store not found'),
+  BATCH_NOT_FOUND: new Error('Inventory batch not found'),
+  INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
+  INVALID_ADJUSTMENT: new Error('Invalid inventory adjustment'),
+  INVALID_BATCH_OPERATION: new Error('Invalid batch operation'),
 };
 
 // Renaming InventoryAdjustmentType to InventoryTransactionType for clarity if used broadly
@@ -182,7 +183,11 @@ export interface IInventoryService {
   createInventory(params: CreateInventoryParams): Promise<schema.Inventory>;
   updateInventory(inventoryId: number, params: UpdateInventoryParams): Promise<schema.Inventory>;
   getInventoryByProduct(productId: number): Promise<schema.Inventory | null>;
-  getInventoryByStore(storeId: number, page?: number, limit?: number): Promise<{
+  getInventoryByStore(
+    storeId: number,
+    page?: number,
+    limit?: number
+  ): Promise<{
     inventory: schema.Inventory[];
     total: number;
     page: number;
@@ -208,6 +213,6 @@ export interface IInventoryService {
       categoryName: string;
       value: string;
       itemCount: number;
-    }>
+    }>;
   }>;
 }

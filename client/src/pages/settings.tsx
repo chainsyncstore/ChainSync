@@ -1,7 +1,11 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import React from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import CategoryManagement from '@/components/inventory/category-management';
 import { AppShell } from '@/components/layout/app-shell';
-import { useAuth } from '@/providers/auth-provider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -20,8 +24,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -30,42 +32,53 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import CategoryManagement from '@/components/inventory/category-management';
+import { useAuth } from '@/providers/auth-provider';
 
 // Profile settings form schema
-const profileFormSchema = z.object({
-  fullName: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  currentPassword: z.string().optional(),
-  newPassword: z.string().min(6, {
-    message: "New password must be at least 6 characters.",
-  }).optional(),
-  confirmPassword: z.string().optional(),
-}).refine((data) => {
-  if (data.newPassword && !data.currentPassword) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Current password is required to set a new password.",
-  path: ["currentPassword"],
-}).refine((data) => {
-  if (data.newPassword && data.newPassword !== data.confirmPassword) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Passwords don't match.",
-  path: ["confirmPassword"],
-});
+const profileFormSchema = z
+  .object({
+    fullName: z.string().min(2, {
+      message: 'Name must be at least 2 characters.',
+    }),
+    email: z.string().email({
+      message: 'Please enter a valid email address.',
+    }),
+    currentPassword: z.string().optional(),
+    newPassword: z
+      .string()
+      .min(6, {
+        message: 'New password must be at least 6 characters.',
+      })
+      .optional(),
+    confirmPassword: z.string().optional(),
+  })
+  .refine(
+    data => {
+      if (data.newPassword && !data.currentPassword) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Current password is required to set a new password.',
+      path: ['currentPassword'],
+    }
+  )
+  .refine(
+    data => {
+      if (data.newPassword && data.newPassword !== data.confirmPassword) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Passwords don't match.",
+      path: ['confirmPassword'],
+    }
+  );
 
 // System settings form schema
 const systemFormSchema = z.object({
@@ -88,34 +101,34 @@ export default function SettingsPage() {
   const [salesMilestones, setSalesMilestones] = React.useState(true);
   const [inventoryAlerts, setInventoryAlerts] = React.useState(true);
   const [userActivity, setUserActivity] = React.useState(false);
-  
+
   // Profile form
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      fullName: user?.fullName || "",
-      email: user?.email || "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
+      fullName: user?.fullName || '',
+      email: user?.email || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
     },
   });
-  
+
   // System settings form
   const systemForm = useForm<z.infer<typeof systemFormSchema>>({
     resolver: zodResolver(systemFormSchema),
     defaultValues: {
-      taxRate: "8.25",
-      currency: "USD",
-      receiptHeader: "ChainSync Market",
-      receiptFooter: "Thank you for shopping with us!",
-      lowStockThreshold: "10",
+      taxRate: '8.25',
+      currency: 'USD',
+      receiptHeader: 'ChainSync Market',
+      receiptFooter: 'Thank you for shopping with us!',
+      lowStockThreshold: '10',
       enableOfflineMode: true,
       autoBackupEnabled: true,
-      backupFrequency: "daily",
+      backupFrequency: 'daily',
     },
   });
-  
+
   // Handle profile form submission with temporary real password functionality
   const onProfileSubmit = async (data: z.infer<typeof profileFormSchema>) => {
     try {
@@ -123,64 +136,71 @@ export default function SettingsPage() {
       if (data.newPassword) {
         // In a real app, we'd make an API call to update the password
         localStorage.setItem('tempTestPassword', data.newPassword);
-        
+
         // Reset password fields after successful submission
         profileForm.setValue('currentPassword', '');
         profileForm.setValue('newPassword', '');
         profileForm.setValue('confirmPassword', '');
       }
-      
+
       // Update user profile info in localStorage for testing
-      localStorage.setItem('userProfile', JSON.stringify({
-        fullName: data.fullName,
-        email: data.email,
-        updatedAt: new Date().toISOString()
-      }));
-      
+      localStorage.setItem(
+        'userProfile',
+        JSON.stringify({
+          fullName: data.fullName,
+          email: data.email,
+          updatedAt: new Date().toISOString(),
+        })
+      );
+
       toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully. Password is now stored for testing.",
+        title: 'Profile updated',
+        description:
+          'Your profile has been updated successfully. Password is now stored for testing.',
         duration: 5000,
       });
-      
-      console.log("Updated profile data:", data);
+
+      console.log('Updated profile data:', data);
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error('Error updating profile:', error);
       toast({
-        title: "Update failed",
-        description: "There was a problem updating your profile.",
-        variant: "destructive",
+        title: 'Update failed',
+        description: 'There was a problem updating your profile.',
+        variant: 'destructive',
       });
     }
   };
-  
+
   // Handle system settings form submission with enhanced functionality for testing
   const onSystemSubmit = async (data: z.infer<typeof systemFormSchema>) => {
     try {
       // In a real app, we'd send these settings to an API
       // Store system settings in localStorage for testing purposes
-      localStorage.setItem('systemSettings', JSON.stringify({
-        ...data,
-        updatedAt: new Date().toISOString()
-      }));
-      
+      localStorage.setItem(
+        'systemSettings',
+        JSON.stringify({
+          ...data,
+          updatedAt: new Date().toISOString(),
+        })
+      );
+
       toast({
-        title: "Settings updated",
-        description: "System settings have been saved and are ready for testing.",
+        title: 'Settings updated',
+        description: 'System settings have been saved and are ready for testing.',
         duration: 5000,
       });
-      
-      console.log("Updated system settings:", data);
+
+      console.log('Updated system settings:', data);
     } catch (error) {
-      console.error("Error updating system settings:", error);
+      console.error('Error updating system settings:', error);
       toast({
-        title: "Update failed",
-        description: "There was a problem updating system settings.",
-        variant: "destructive",
+        title: 'Update failed',
+        description: 'There was a problem updating system settings.',
+        variant: 'destructive',
       });
     }
   };
-  
+
   // Handle notification preferences saving
   const saveNotificationPreferences = () => {
     try {
@@ -189,42 +209,42 @@ export default function SettingsPage() {
         emailNotifications: {
           lowStockAlerts,
           salesSummary,
-          securityAlerts
+          securityAlerts,
         },
         inAppNotifications: {
           salesMilestones,
           inventoryAlerts,
-          userActivity
+          userActivity,
         },
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
-      
+
       localStorage.setItem('notificationPreferences', JSON.stringify(notificationSettings));
-      
+
       toast({
-        title: "Notification preferences updated",
-        description: "Your notification preferences have been saved and are ready for testing.",
+        title: 'Notification preferences updated',
+        description: 'Your notification preferences have been saved and are ready for testing.',
         duration: 5000,
       });
-      
-      console.log("Updated notification preferences:", notificationSettings);
+
+      console.log('Updated notification preferences:', notificationSettings);
     } catch (error) {
-      console.error("Error updating notification preferences:", error);
+      console.error('Error updating notification preferences:', error);
       toast({
-        title: "Update failed",
-        description: "There was a problem updating your notification preferences.",
-        variant: "destructive",
+        title: 'Update failed',
+        description: 'There was a problem updating your notification preferences.',
+        variant: 'destructive',
       });
     }
   };
-  
+
   return (
     <AppShell>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-neutral-800">Settings</h1>
         <p className="text-neutral-500 mt-1">Manage your account and system preferences</p>
       </div>
-      
+
       <Tabs defaultValue="profile" className="space-y-4">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -232,7 +252,7 @@ export default function SettingsPage() {
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
         </TabsList>
-        
+
         {/* Profile Settings */}
         <TabsContent value="profile">
           <Card>
@@ -248,7 +268,7 @@ export default function SettingsPage() {
                   {/* Personal Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Personal Information</h3>
-                    
+
                     <FormField
                       control={profileForm.control}
                       name="fullName"
@@ -262,7 +282,7 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={profileForm.control}
                       name="email"
@@ -276,24 +296,25 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormItem>
                       <FormLabel>Role</FormLabel>
                       <FormControl>
-                        <Input value={user?.role || ""} disabled />
+                        <Input value={user?.role || ''} disabled />
                       </FormControl>
                       <FormDescription>
-                        Your role cannot be changed. Contact an administrator if you need a role change.
+                        Your role cannot be changed. Contact an administrator if you need a role
+                        change.
                       </FormDescription>
                     </FormItem>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Change Password */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Change Password</h3>
-                    
+
                     <FormField
                       control={profileForm.control}
                       name="currentPassword"
@@ -307,7 +328,7 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={profileForm.control}
                       name="newPassword"
@@ -321,7 +342,7 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={profileForm.control}
                       name="confirmPassword"
@@ -336,22 +357,20 @@ export default function SettingsPage() {
                       )}
                     />
                   </div>
-                  
+
                   <Button type="submit">Update Profile</Button>
                 </form>
               </Form>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* System Settings */}
         <TabsContent value="system">
           <Card>
             <CardHeader>
               <CardTitle>System Settings</CardTitle>
-              <CardDescription>
-                Configure system-wide settings for your store
-              </CardDescription>
+              <CardDescription>Configure system-wide settings for your store</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <Form {...systemForm}>
@@ -359,7 +378,7 @@ export default function SettingsPage() {
                   {/* Basic Settings */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Basic Settings</h3>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={systemForm.control}
@@ -370,24 +389,19 @@ export default function SettingsPage() {
                             <FormControl>
                               <Input {...field} />
                             </FormControl>
-                            <FormDescription>
-                              The tax rate applied to transactions
-                            </FormDescription>
+                            <FormDescription>The tax rate applied to transactions</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={systemForm.control}
                         name="currency"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Currency</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select currency" />
@@ -402,15 +416,13 @@ export default function SettingsPage() {
                                 <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
                               </SelectContent>
                             </Select>
-                            <FormDescription>
-                              Currency used throughout the system
-                            </FormDescription>
+                            <FormDescription>Currency used throughout the system</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-                    
+
                     <FormField
                       control={systemForm.control}
                       name="lowStockThreshold"
@@ -428,13 +440,13 @@ export default function SettingsPage() {
                       )}
                     />
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Receipt Settings */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Receipt Settings</h3>
-                    
+
                     <FormField
                       control={systemForm.control}
                       name="receiptHeader"
@@ -451,7 +463,7 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={systemForm.control}
                       name="receiptFooter"
@@ -469,13 +481,13 @@ export default function SettingsPage() {
                       )}
                     />
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Advanced Settings */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Advanced Settings</h3>
-                    
+
                     <FormField
                       control={systemForm.control}
                       name="enableOfflineMode"
@@ -488,15 +500,12 @@ export default function SettingsPage() {
                             </FormDescription>
                           </div>
                           <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={systemForm.control}
                       name="autoBackupEnabled"
@@ -509,26 +518,20 @@ export default function SettingsPage() {
                             </FormDescription>
                           </div>
                           <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                         </FormItem>
                       )}
                     />
-                    
-                    {systemForm.watch("autoBackupEnabled") && (
+
+                    {systemForm.watch('autoBackupEnabled') && (
                       <FormField
                         control={systemForm.control}
                         name="backupFrequency"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Backup Frequency</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select frequency" />
@@ -541,36 +544,32 @@ export default function SettingsPage() {
                                 <SelectItem value="monthly">Monthly</SelectItem>
                               </SelectContent>
                             </Select>
-                            <FormDescription>
-                              How often backups are created
-                            </FormDescription>
+                            <FormDescription>How often backups are created</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     )}
                   </div>
-                  
+
                   <Button type="submit">Save Settings</Button>
                 </form>
               </Form>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Notifications Settings */}
         <TabsContent value="notifications">
           <Card>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
-                Configure how and when you receive notifications
-              </CardDescription>
+              <CardDescription>Configure how and when you receive notifications</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Email Notifications</h3>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
@@ -579,12 +578,9 @@ export default function SettingsPage() {
                         Receive emails when inventory items reach their minimum stock level
                       </p>
                     </div>
-                    <Switch 
-                      checked={lowStockAlerts}
-                      onCheckedChange={setLowStockAlerts}
-                    />
+                    <Switch checked={lowStockAlerts} onCheckedChange={setLowStockAlerts} />
                   </div>
-                  
+
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <h4 className="text-base font-medium">Daily Sales Summary</h4>
@@ -592,12 +588,9 @@ export default function SettingsPage() {
                         Receive a daily summary of sales across all stores
                       </p>
                     </div>
-                    <Switch 
-                      checked={salesSummary}
-                      onCheckedChange={setSalesSummary}
-                    />
+                    <Switch checked={salesSummary} onCheckedChange={setSalesSummary} />
                   </div>
-                  
+
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <h4 className="text-base font-medium">Security Alerts</h4>
@@ -605,19 +598,16 @@ export default function SettingsPage() {
                         Receive notifications about security events like login attempts
                       </p>
                     </div>
-                    <Switch 
-                      checked={securityAlerts}
-                      onCheckedChange={setSecurityAlerts}
-                    />
+                    <Switch checked={securityAlerts} onCheckedChange={setSecurityAlerts} />
                   </div>
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">In-App Notifications</h3>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
@@ -626,12 +616,9 @@ export default function SettingsPage() {
                         Receive notifications when sales targets are reached
                       </p>
                     </div>
-                    <Switch 
-                      checked={salesMilestones}
-                      onCheckedChange={setSalesMilestones}
-                    />
+                    <Switch checked={salesMilestones} onCheckedChange={setSalesMilestones} />
                   </div>
-                  
+
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <h4 className="text-base font-medium">Inventory Alerts</h4>
@@ -639,12 +626,9 @@ export default function SettingsPage() {
                         Notifications for low stock, expiring items, and other inventory events
                       </p>
                     </div>
-                    <Switch 
-                      checked={inventoryAlerts}
-                      onCheckedChange={setInventoryAlerts}
-                    />
+                    <Switch checked={inventoryAlerts} onCheckedChange={setInventoryAlerts} />
                   </div>
-                  
+
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <h4 className="text-base font-medium">User Activity</h4>
@@ -652,26 +636,22 @@ export default function SettingsPage() {
                         Notifications about user logins and important account activities
                       </p>
                     </div>
-                    <Switch 
-                      checked={userActivity}
-                      onCheckedChange={setUserActivity}
-                    />
+                    <Switch checked={userActivity} onCheckedChange={setUserActivity} />
                   </div>
                 </div>
               </div>
-              
+
               <div className="pt-4">
                 <Button onClick={saveNotificationPreferences}>Save Preferences</Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Categories Management */}
         <TabsContent value="categories">
           <CategoryManagement />
         </TabsContent>
-
       </Tabs>
     </AppShell>
   );

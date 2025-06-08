@@ -4,9 +4,11 @@ import { File } from 'multer';
 // Extend Express types with our custom types
 declare namespace Express {
   export interface Request extends express.Request {
-    files?: {
-      [fieldname: string]: File | File[];
-    } | File[];
+    files?:
+      | {
+          [fieldname: string]: File | File[];
+        }
+      | File[];
     file?: File;
     user?: {
       id: string;
@@ -37,4 +39,9 @@ export type Middleware = RequestHandler;
 export type RouteHandler = RequestHandler;
 
 // Type for error handler
-export type ErrorHandler = (err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => void;
+export type ErrorHandler = (
+  err: Error,
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => void;

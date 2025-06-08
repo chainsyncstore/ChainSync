@@ -1,16 +1,17 @@
-import { Pool } from 'pg';
+import { AppError } from '@shared/types/errors.js';
 import { eq, and, desc, sum, count, gte, lte } from 'drizzle-orm';
 import { NodePgDatabase, drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+
 import * as schema from '../../shared/schema.js';
-import { getLogger } from '../../src/logging/index.js';
-import { AppError } from '@shared/types/errors';
-import { 
-  loyaltyMemberToDatabaseFields, 
+import {
+  loyaltyMemberToDatabaseFields,
   loyaltyMemberFromDatabaseFields,
   loyaltyProgramFromDatabaseFields,
   loyaltyTransactionToDatabaseFields,
-  loyaltyTransactionFromDatabaseFields
+  loyaltyTransactionFromDatabaseFields,
 } from '../../shared/utils/loyalty-mapping.js';
+import { getLogger } from '../../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'loyalty-service' });
 
@@ -86,21 +87,25 @@ export class LoyaltyService {
 
   public async getLoyaltyProgram(storeId: number): Promise<any> {
     await this.ensureInitialized();
-    
+
     try {
       const program = await this.db!.query.loyaltyPrograms.findFirst({
         where: eq(schema.loyaltyPrograms.storeId, storeId),
         with: {
           tiers: {
-            orderBy: [schema.loyaltyTiers.pointThreshold]
-          }
-        }
+            orderBy: [schema.loyaltyTiers.pointThreshold],
+          },
+        },
       });
 
       return program;
     } catch (error: unknown) {
       logger.error('Error getting loyalty program', { error, storeId });
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   }
 
@@ -123,38 +128,41 @@ export class LoyaltyService {
         throw new Error('No loyalty program found for store');
       }
 
-      const loyaltyId = await this.generateLoyaltyId(); 
+      const loyaltyId = await this.generateLoyaltyId();
       const defaultTier = program.tiers[0];
 
       // Create member object with camelCase fields
-      const memberDataForDb = { // Renamed to avoid conflict with LoyaltyMember interface if imported
+      const memberDataForDb = {
+        // Renamed to avoid conflict with LoyaltyMember interface if imported
         loyaltyId,
         customerId: data.customerId,
         tierId: defaultTier.id,
         points: 0, // Changed from pointsBalance and type to number
         joinDate: new Date(),
-        status: 'active' as const
+        status: 'active' as const,
         // totalPointsEarned and totalPointsRedeemed are not direct DB fields for loyaltyMembers
       };
-      
+
       // Create member object with camelCase fields, matching Drizzle's expected input for schema.loyaltyMembers
       const memberDataForDbInsert = {
         programId: program.id, // Added programId
         loyaltyId,
         customerId: data.customerId,
         tierId: defaultTier.id,
-        points: 0, 
+        points: 0,
         joinDate: new Date(),
-        status: 'active' // Changed from 'active' as const
+        status: 'active', // Changed from 'active' as const
       };
-      
+
       // Drizzle expects camelCase keys that match the schema definition
-      const [insertedRecord] = await this.db!.insert(schema.loyaltyMembers).values(memberDataForDbInsert).returning();
+      const [insertedRecord] = await this.db!.insert(schema.loyaltyMembers)
+        .values(memberDataForDbInsert)
+        .returning();
 
       // insertedRecord is snake_case from the DB. Convert to camelCase using the mapping utility.
       // The LoyaltyMember type from loyalty-mapping.ts is used here.
       const newMemberFromMapping = loyaltyMemberFromDatabaseFields(insertedRecord);
-      
+
       // Construct the final LoyaltyMember object as defined by this service's interface
       const serviceLoyaltyMember: LoyaltyMember = {
         id: newMemberFromMapping.id!, // id is definitely present after insert
@@ -164,22 +172,23 @@ export class LoyaltyService {
         pointsBalance: (newMemberFromMapping.points ?? 0).toString(),
         totalPointsEarned: '0', // Placeholder - not in DB table
         totalPointsRedeemed: '0', // Placeholder - not in DB table
-        joinDate: newMemberFromMapping.joinDate!, 
+        joinDate: newMemberFromMapping.joinDate!,
         lastActivity: null, // Placeholder - not set during creation
         status: newMemberFromMapping.status!,
-        program: { 
+        program: {
           id: program.id,
           name: program.name,
           storeId: program.storeId,
-          pointsPerAmount: program.pointsPerAmount, 
-          tiers: program.tiers.map((t: LoyaltyTier) => ({ // Use LoyaltyTier interface for 't'
+          pointsPerAmount: program.pointsPerAmount,
+          tiers: program.tiers.map((t: LoyaltyTier) => ({
+            // Use LoyaltyTier interface for 't'
             id: t.id,
             name: t.name,
             pointsRequired: t.pointsRequired,
             benefits: t.benefits,
             multiplier: t.multiplier,
           })),
-        }
+        },
       };
       return serviceLoyaltyMember;
     } catch (error) {

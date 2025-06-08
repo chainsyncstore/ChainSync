@@ -1,5 +1,6 @@
-import rateLimit from 'express-rate-limit';
 import express, { Express } from 'express';
+import rateLimit from 'express-rate-limit';
+
 import { env } from '../config/env';
 
 // API rate limiter
@@ -13,9 +14,9 @@ export const apiLimiter = rateLimit({
     success: false,
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests from this IP, please try again later.'
-    }
-  }
+      message: 'Too many requests from this IP, please try again later.',
+    },
+  },
 });
 
 // Payment API rate limiter (more strict)
@@ -29,9 +30,9 @@ export const paymentLimiter = rateLimit({
     success: false,
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many payment requests from this IP, please try again later.'
-    }
-  }
+      message: 'Too many payment requests from this IP, please try again later.',
+    },
+  },
 });
 
 // Auth rate limiter (even more strict)
@@ -45,19 +46,19 @@ export const authLimiter = rateLimit({
     success: false,
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many authentication attempts. Please wait a few minutes before trying again.'
-    }
-  }
+      message: 'Too many authentication attempts. Please wait a few minutes before trying again.',
+    },
+  },
 });
 
 // Helper function to apply rate limiting to specific routes
 export function applyRateLimiters(app: Express) {
   // Apply general rate limiting to all routes
   app.use(apiLimiter);
-  
+
   // Apply more strict rate limiting to payment routes
   app.use('/api/payments/*', paymentLimiter);
-  
+
   // Apply most strict rate limiting to auth routes
   app.use('/api/auth/*', authLimiter);
 }

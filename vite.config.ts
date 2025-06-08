@@ -1,8 +1,9 @@
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
+import react from '@vitejs/plugin-react';
+import { defineConfig, loadEnv } from 'vite';
 
 // Get the directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -55,7 +56,7 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
+          manualChunks: id => {
             if (id.includes('node_modules')) {
               return 'vendor';
             }

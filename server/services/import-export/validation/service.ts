@@ -1,11 +1,10 @@
-import { z } from 'zod';
-import { schemas, validationErrors } from './schema';
 import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
 import { ImportExportErrorCodes } from '@shared/types/import-export-errors';
-import { ImportExportService } from '../service';
+import { z } from 'zod';
 
-import { ValidationService as ValidationServiceInterface } from './types';
-import { ValidationOptions } from './types';
+import { schemas, validationErrors } from './schema';
+import { ImportExportService } from '../service';
+import { ValidationService as ValidationServiceInterface, ValidationOptions } from './types';
 
 export class ValidationService implements ValidationServiceInterface {
   private cache: Map<string, any>;
@@ -52,11 +51,11 @@ export class ValidationService implements ValidationServiceInterface {
     const result = schema.safeParse(data);
     this.cache.set(cacheKey, {
       timestamp: Date.now(),
-      result
+      result,
     });
 
     if (!result.success) {
-      const errorMessages = result.error.errors.map((error) => {
+      const errorMessages = result.error.errors.map(error => {
         const path = error.path.join('.');
         return `${path}: ${error.message || 'Invalid value'}`;
       });
@@ -73,7 +72,10 @@ export class ValidationService implements ValidationServiceInterface {
     return result.data;
   }
 
-  async validateBatch(data: unknown[], type: 'products' | 'users' | 'transactions'): Promise<{
+  async validateBatch(
+    data: unknown[],
+    type: 'products' | 'users' | 'transactions'
+  ): Promise<{
     valid: unknown[];
     invalid: { index: number; errors: string[] }[];
   }> {
@@ -84,7 +86,7 @@ export class ValidationService implements ValidationServiceInterface {
 
     const results = {
       valid: [] as any[],
-      invalid: [] as { index: number; errors: string[] }[]
+      invalid: [] as { index: number; errors: string[] }[],
     };
 
     for (let i = 0; i < data.length; i++) {
@@ -94,7 +96,7 @@ export class ValidationService implements ValidationServiceInterface {
       } catch (error: unknown) {
         results.invalid.push({
           index: i,
-          errors: this.extractErrors(error)
+          errors: this.extractErrors(error),
         });
         if (this.strictMode) {
           throw new AppError(
@@ -113,7 +115,7 @@ export class ValidationService implements ValidationServiceInterface {
 
   private extractErrors(error: unknown): string[] {
     if (error instanceof z.ZodError) {
-      return error.errors.map((err) => {
+      return error.errors.map(err => {
         const path = err.path.join('.');
         return `${path}: ${err.message}`;
       });

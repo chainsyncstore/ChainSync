@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Settings, AlertCircle, ArrowUpRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link } from 'wouter';
+
+import { MinimumLevelDialog } from './minimum-level-dialog';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -8,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -16,13 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/providers/auth-provider';
-import { Settings, AlertCircle, ArrowUpRight } from 'lucide-react';
-import { MinimumLevelDialog } from './minimum-level-dialog';
-import { Link } from 'wouter';
 
 interface Product {
   id: number;
@@ -55,16 +57,18 @@ export function LowStockAlerts() {
     currentQuantity: number;
     minimumLevel: number;
   } | null>(null);
-  
+
   // Get query parameter for store ID (admin can view specific store)
-  const storeIdParam = user?.role === 'admin' 
-    ? undefined 
-    : user?.storeId;
-  
-  const { data: lowStockItems, isLoading, refetch } = useQuery<InventoryItem[]>({
+  const storeIdParam = user?.role === 'admin' ? undefined : user?.storeId;
+
+  const {
+    data: lowStockItems,
+    isLoading,
+    refetch,
+  } = useQuery<InventoryItem[]>({
     queryKey: ['/api/inventory/low-stock', { storeId: storeIdParam }],
   });
-  
+
   if (isLoading) {
     return (
       <Card className="shadow-sm">
@@ -90,9 +94,9 @@ export function LowStockAlerts() {
       </Card>
     );
   }
-  
+
   const itemCount = lowStockItems?.length || 0;
-  
+
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-2">
@@ -100,22 +104,17 @@ export function LowStockAlerts() {
           <div>
             <CardTitle>Low Stock Alerts</CardTitle>
             <CardDescription>
-              {itemCount === 0 
-                ? 'All inventory items are above minimum stock levels' 
+              {itemCount === 0
+                ? 'All inventory items are above minimum stock levels'
                 : `${itemCount} ${itemCount === 1 ? 'item' : 'items'} need attention`}
             </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            className="h-8 px-2"
-          >
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="h-8 px-2">
             Refresh
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         {itemCount === 0 ? (
           <div className="py-8 text-center">
@@ -129,7 +128,7 @@ export function LowStockAlerts() {
           </div>
         ) : (
           <div className="divide-y">
-            {lowStockItems?.map((item) => (
+            {lowStockItems?.map(item => (
               <div key={item.id} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex justify-between items-center">
                   <div>
@@ -160,7 +159,7 @@ export function LowStockAlerts() {
                           productId: item.product.id,
                           productName: item.product.name,
                           currentQuantity: item.quantity,
-                          minimumLevel: item.minimumLevel
+                          minimumLevel: item.minimumLevel,
                         });
                         setMinLevelDialogOpen(true);
                       }}
@@ -175,19 +174,22 @@ export function LowStockAlerts() {
           </div>
         )}
       </CardContent>
-      
+
       {itemCount > 0 && (
         <CardFooter className="pt-1">
-          <Link href="/inventory" className="hover:underline text-sm text-primary flex items-center">
+          <Link
+            href="/inventory"
+            className="hover:underline text-sm text-primary flex items-center"
+          >
             View all inventory
             <ArrowUpRight className="ml-1 h-3 w-3" />
           </Link>
         </CardFooter>
       )}
-      
+
       {/* Minimum level dialog */}
-      <MinimumLevelDialog 
-        open={minLevelDialogOpen} 
+      <MinimumLevelDialog
+        open={minLevelDialogOpen}
         onOpenChange={setMinLevelDialogOpen}
         inventoryItem={selectedInventoryItem}
       />

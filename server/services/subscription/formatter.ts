@@ -1,10 +1,11 @@
 /**
  * Subscription Formatter
- * 
+ *
  * A formatter class for the Subscription module that standardizes
  * conversion between database rows and domain objects.
  */
 import { ResultFormatter } from '@shared/utils/service-helpers';
+
 import { Subscription, SubscriptionStatus } from './types';
 
 /**
@@ -13,7 +14,7 @@ import { Subscription, SubscriptionStatus } from './types';
 export class SubscriptionFormatter extends ResultFormatter<Subscription> {
   /**
    * Format a single database result row into a Subscription domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted Subscription object
    */
@@ -22,19 +23,16 @@ export class SubscriptionFormatter extends ResultFormatter<Subscription> {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined subscription result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
-    const withDates = this.formatDates(
-      base, 
-      ['createdAt', 'updatedAt', 'startDate', 'endDate']
-    );
-    
+    const withDates = this.formatDates(base, ['createdAt', 'updatedAt', 'startDate', 'endDate']);
+
     // Format the subscription with specific type handling
     return {
       ...withDates,
@@ -48,14 +46,19 @@ export class SubscriptionFormatter extends ResultFormatter<Subscription> {
       amount: String(withDates.amount),
       currency: String(withDates.currency || 'NGN'),
       referralCode: typeof withDates.referralCode === 'string' ? withDates.referralCode : '',
-      discountApplied: typeof withDates.discountApplied === 'boolean' ? withDates.discountApplied : false,
-      discountAmount: typeof withDates.discountAmount === 'string' ? withDates.discountAmount : '0.00',
-      startDate: withDates.startDate instanceof Date ? withDates.startDate : new Date(withDates.startDate),
+      discountApplied:
+        typeof withDates.discountApplied === 'boolean' ? withDates.discountApplied : false,
+      discountAmount:
+        typeof withDates.discountAmount === 'string' ? withDates.discountAmount : '0.00',
+      startDate:
+        withDates.startDate instanceof Date ? withDates.startDate : new Date(withDates.startDate),
       endDate: withDates.endDate instanceof Date ? withDates.endDate : new Date(withDates.endDate),
       autoRenew: typeof withDates.autoRenew === 'boolean' ? withDates.autoRenew : false,
-      paymentProvider: typeof withDates.paymentProvider === 'string' ? withDates.paymentProvider : '',
-      paymentReference: typeof withDates.paymentReference === 'string' ? withDates.paymentReference : '',
-      metadata: metadata ?? {}
+      paymentProvider:
+        typeof withDates.paymentProvider === 'string' ? withDates.paymentProvider : '',
+      paymentReference:
+        typeof withDates.paymentReference === 'string' ? withDates.paymentReference : '',
+      metadata: metadata ?? {},
     };
   }
 }

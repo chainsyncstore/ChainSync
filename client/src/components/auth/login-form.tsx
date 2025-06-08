@@ -1,17 +1,31 @@
-import React from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuth, LoginCredentials } from '@/providers/auth-provider';
-import { Link } from 'wouter';
-
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { Link } from 'wouter';
+import { z } from 'zod';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useAuth, LoginCredentials } from '@/providers/auth-provider';
 
 // Form schema
 const formSchema = z.object({
@@ -39,7 +53,7 @@ export function LoginForm() {
   // Handle form submission
   async function onSubmit(values: LoginFormValues) {
     setFormError(null);
-    
+
     try {
       // Extract credentials from form values
       const credentials: LoginCredentials = {
@@ -47,7 +61,7 @@ export function LoginForm() {
         password: values.password,
         rememberMe: values.rememberMe,
       };
-      
+
       // Call login function from auth provider
       await login(credentials);
     } catch (err) {
@@ -64,19 +78,21 @@ export function LoginForm() {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-bold">Login to ChainSync</CardTitle>
-        <CardDescription>
-          Enter your credentials to access your account.
-        </CardDescription>
+        <CardDescription>Enter your credentials to access your account.</CardDescription>
       </CardHeader>
       <CardContent>
         {(error || formError) && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription>
-              {formError?.includes('401:') ? 'Invalid Username or Password' : 
-              (formError || (error instanceof Error ? 
-                (error.message.includes('401:') ? 'Invalid Username or Password' : error.message) 
-                : 'Authentication error'))}
+              {formError?.includes('401:')
+                ? 'Invalid Username or Password'
+                : formError ||
+                  (error instanceof Error
+                    ? error.message.includes('401:')
+                      ? 'Invalid Username or Password'
+                      : error.message
+                    : 'Authentication error')}
             </AlertDescription>
           </Alert>
         )}
@@ -90,11 +106,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter your username" 
-                      autoComplete="username"
-                      {...field} 
-                    />
+                    <Input placeholder="Enter your username" autoComplete="username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,11 +127,11 @@ export function LoginForm() {
                     </Link>
                   </div>
                   <FormControl>
-                    <Input 
-                      type="password" 
+                    <Input
+                      type="password"
                       placeholder="Enter your password"
-                      autoComplete="current-password" 
-                      {...field} 
+                      autoComplete="current-password"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -133,10 +145,7 @@ export function LoginForm() {
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md">
                   <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>Remember me</FormLabel>
@@ -162,9 +171,7 @@ export function LoginForm() {
         <p className="text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link href="/signup">
-            <span className="text-primary hover:underline cursor-pointer">
-              Sign up
-            </span>
+            <span className="text-primary hover:underline cursor-pointer">Sign up</span>
           </Link>
         </p>
       </CardFooter>

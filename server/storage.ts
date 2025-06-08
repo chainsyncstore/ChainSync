@@ -1,6 +1,8 @@
-import { db } from "../db";
-import { schema } from "../shared/db/index"; // Direct import from shared/db/index
-import { AppError, ErrorCategory, ErrorCode } from "@shared/types/errors";
+import crypto from 'crypto';
+
+import { db } from '@db/index.js';
+import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors.js';
+import * as bcrypt from 'bcrypt';
 import {
   eq,
   and,
@@ -18,9 +20,9 @@ import {
   asc,
   gt,
   lt,
-} from "drizzle-orm";
-import * as bcrypt from "bcrypt";
-import crypto from "crypto";
+} from 'drizzle-orm';
+
+import { schema } from '../shared/db/index.js'; // Direct import from shared/db/index
 
 /**
  * Type definitions for database entities and return values
@@ -68,10 +70,7 @@ interface ReturnAnalytics {
 export const storage = {
   // --------- Cashier Sessions ---------
   async createCashierSession(data: typeof schema.cashierSessions.$inferInsert) {
-    const [session] = await db
-      .insert(schema.cashierSessions)
-      .values(data)
-      .returning();
+    const [session] = await db.insert(schema.cashierSessions).values(data).returning();
     return session;
   },
 
@@ -89,7 +88,7 @@ export const storage = {
     return await db.query.cashierSessions.findFirst({
       where: and(
         eq(schema.cashierSessions.userId, userId),
-        eq(schema.cashierSessions.status, "active"),
+        eq(schema.cashierSessions.status, 'active')
       ),
       with: {
         user: true,
@@ -100,7 +99,7 @@ export const storage = {
 
   async updateCashierSession(
     sessionId: number,
-    data: Partial<typeof schema.cashierSessions.$inferInsert>,
+    data: Partial<typeof schema.cashierSessions.$inferInsert>
   ) {
     const [updated] = await db
       .update(schema.cashierSessions)
@@ -120,7 +119,11 @@ export const storage = {
    * @param limit - The number of items per page (default: 10)
    * @returns Paginated list of cashier sessions
    */
-  async getCashierSessionHistory(userId: number, page = 1, limit = 10): Promise<CashierSessionResult> {
+  async getCashierSessionHistory(
+    userId: number,
+    page = 1,
+    limit = 10
+  ): Promise<CashierSessionResult> {
     const offset = (page - 1) * limit;
 
     const sessions = await db.query.cashierSessions.findMany({
@@ -164,13 +167,15 @@ export const storage = {
   // --------- Notifications ---------
   async createNotification(data: typeof schema.notifications.$inferInsert) {
     try {
-      const [notification] = await db.insert(schema.notifications)
-        .values(data)
-        .returning();
+      const [notification] = await db.insert(schema.notifications).values(data).returning();
       return notification;
     } catch (error: unknown) {
-      console.error("Error creating notification:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error creating notification:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
@@ -182,79 +187,103 @@ export const storage = {
         limit: limit,
         offset: offset,
         with: {
-          store: true
-        }
+          store: true,
+        },
       });
 
       let notifications = await queryBuilder;
 
       if (!includeRead) {
-        notifications = notifications.filter((notification: typeof schema.notifications.$inferSelect) => !notification.isRead);
+        notifications = notifications.filter(
+          (notification: typeof schema.notifications.$inferSelect) => !notification.isRead
+        );
       }
       // Ensure total count is also fetched for pagination if needed, or adjust return type
-      return notifications; 
+      return notifications;
     } catch (error: unknown) {
-      console.error("Error fetching user notifications:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error fetching user notifications:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async getUnreadNotificationCount(userId: number) {
     try {
-      const result = await db.select({ count: count() })
+      const result = await db
+        .select({ count: count() })
         .from(schema.notifications)
-        .where(and(
-          eq(schema.notifications.userId, userId),
-          eq(schema.notifications.isRead, false)
-        ));
+        .where(
+          and(eq(schema.notifications.userId, userId), eq(schema.notifications.isRead, false))
+        );
       return result[0].count;
     } catch (error: unknown) {
-      console.error("Error getting unread notification count:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error getting unread notification count:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async markNotificationAsRead(notificationId: number) {
     try {
-      const [updated] = await db.update(schema.notifications)
+      const [updated] = await db
+        .update(schema.notifications)
         .set({
           isRead: true,
-          readAt: new Date()
+          readAt: new Date(),
         })
         .where(eq(schema.notifications.id, notificationId))
         .returning();
       return updated;
     } catch (error: unknown) {
-      console.error("Error marking notification as read:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error marking notification as read:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async markAllNotificationsAsRead(userId: number) {
     try {
-      const updated = await db.update(schema.notifications)
+      const updated = await db
+        .update(schema.notifications)
         .set({
           isRead: true,
-          readAt: new Date()
+          readAt: new Date(),
         })
         .where(eq(schema.notifications.userId, userId))
         .returning();
       return updated;
     } catch (error: unknown) {
-      console.error("Error marking all notifications as read:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error marking all notifications as read:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
-  async createSystemNotifications(title: string, message: string, type: (typeof schema.notifications.$inferInsert)['type'], storeId?: number) {
+  async createSystemNotifications(
+    title: string,
+    message: string,
+    type: (typeof schema.notifications.$inferInsert)['type'],
+    storeId?: number
+  ) {
     try {
       let conditions: SQL | undefined;
       if (storeId) {
-        conditions = 
-          or(
-            eq(schema.users.storeId, storeId),
-            isNull(schema.users.storeId) // To include users not assigned to any specific store (e.g., global admins)
-          );
+        conditions = or(
+          eq(schema.users.storeId, storeId),
+          isNull(schema.users.storeId) // To include users not assigned to any specific store (e.g., global admins)
+        );
       }
       // If no storeId is provided, conditions will be undefined, fetching all users.
       // If you want to ensure only 'active' users are notified, you'd need an 'isActive' field or similar logic.
@@ -274,14 +303,18 @@ export const storage = {
         title,
         message,
         type,
-        isRead: false
+        isRead: false,
       }));
 
       await db.insert(schema.notifications).values(newNotifications);
       return true;
     } catch (error: unknown) {
-      console.error("Error creating system notifications:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error creating system notifications:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
@@ -289,55 +322,67 @@ export const storage = {
   async getStoreSalesComparison(days: number = 7) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    
+
     const storesWithTransactions = await db.query.stores.findMany({
       with: {
         transactions: {
           where: gte(schema.transactions.createdAt, startDate),
           columns: {
             total: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
-    
-    return storesWithTransactions.map((store: (typeof schema.stores.$inferSelect & { transactions: (typeof schema.transactions.$inferSelect)[] })) => ({
-      storeId: store.id,
-      storeName: store.name,
-      totalSales: store.transactions.reduce((sum: number, t: typeof schema.transactions.$inferSelect) => sum + parseFloat(t.total), 0),
-      transactionCount: store.transactions.length,
-    }));
+
+    return storesWithTransactions.map(
+      (
+        store: typeof schema.stores.$inferSelect & {
+          transactions: (typeof schema.transactions.$inferSelect)[];
+        }
+      ) => ({
+        storeId: store.id,
+        storeName: store.name,
+        totalSales: store.transactions.reduce(
+          (sum: number, t: typeof schema.transactions.$inferSelect) => sum + parseFloat(t.total),
+          0
+        ),
+        transactionCount: store.transactions.length,
+      })
+    );
   },
-  
+
   async getDailySalesData(storeIdInput?: number, days: number = 7) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    
+
     const conditions: (SQL | undefined)[] = [gte(schema.transactions.createdAt, startDate)];
     if (storeIdInput !== undefined) {
       conditions.push(eq(schema.transactions.storeId, storeIdInput));
     }
 
     const transactions = await db.query.transactions.findMany({
-      where: and(...conditions.filter(c => c !== undefined) as SQL[]),
+      where: and(...conditions.filter(c => c !== undefined)),
       orderBy: [asc(schema.transactions.createdAt)],
       columns: {
         createdAt: true,
         total: true,
         storeId: true, // Include storeId for potential grouping if storeIdInput is undefined
-      }
+      },
     });
-    
-    const dailyData: Record<string, {date: string, transactionCount: number, totalSales: number}> = {};
+
+    const dailyData: Record<
+      string,
+      { date: string; transactionCount: number; totalSales: number }
+    > = {};
     transactions.forEach((t: typeof schema.transactions.$inferSelect) => {
       const dateStr = t.createdAt.toISOString().split('T')[0];
       if (!dailyData[dateStr]) {
-        dailyData[dateStr] = {date: dateStr, transactionCount: 0, totalSales: 0};
+        dailyData[dateStr] = { date: dateStr, transactionCount: 0, totalSales: 0 };
       }
       dailyData[dateStr].transactionCount++;
       dailyData[dateStr].totalSales += parseFloat(t.total);
     });
-    
+
     return Object.values(dailyData);
   },
 
@@ -373,16 +418,13 @@ export const storage = {
   },
 
   async createLoyaltyMember(data: typeof schema.loyaltyMembers.$inferInsert) {
-    const [member] = await db
-      .insert(schema.loyaltyMembers)
-      .values(data)
-      .returning();
+    const [member] = await db.insert(schema.loyaltyMembers).values(data).returning();
     return member;
   },
 
   async updateLoyaltyMember(
     memberId: number,
-    data: Partial<typeof schema.loyaltyMembers.$inferInsert>,
+    data: Partial<typeof schema.loyaltyMembers.$inferInsert>
   ) {
     const [updated] = await db
       .update(schema.loyaltyMembers)
@@ -399,7 +441,7 @@ export const storage = {
     return await db.query.loyaltyPrograms.findFirst({
       where: and(
         eq(schema.loyaltyPrograms.storeId, storeId),
-        eq(schema.loyaltyPrograms.active, true),
+        eq(schema.loyaltyPrograms.active, true)
       ),
       with: {
         tiers: true,
@@ -409,16 +451,13 @@ export const storage = {
   },
 
   async createLoyaltyProgram(data: typeof schema.loyaltyPrograms.$inferInsert) {
-    const [program] = await db
-      .insert(schema.loyaltyPrograms)
-      .values(data)
-      .returning();
+    const [program] = await db.insert(schema.loyaltyPrograms).values(data).returning();
     return program;
   },
 
   async updateLoyaltyProgram(
     programId: number,
-    data: Partial<typeof schema.loyaltyPrograms.$inferInsert>,
+    data: Partial<typeof schema.loyaltyPrograms.$inferInsert>
   ) {
     const [updated] = await db
       .update(schema.loyaltyPrograms)
@@ -439,17 +478,11 @@ export const storage = {
   },
 
   async createLoyaltyTier(data: typeof schema.loyaltyTiers.$inferInsert) {
-    const [tier] = await db
-      .insert(schema.loyaltyTiers)
-      .values(data)
-      .returning();
+    const [tier] = await db.insert(schema.loyaltyTiers).values(data).returning();
     return tier;
   },
 
-  async updateLoyaltyTier(
-    tierId: number,
-    data: Partial<typeof schema.loyaltyTiers.$inferInsert>,
-  ) {
+  async updateLoyaltyTier(tierId: number, data: Partial<typeof schema.loyaltyTiers.$inferInsert>) {
     const [updated] = await db
       .update(schema.loyaltyTiers)
       .set({
@@ -465,7 +498,7 @@ export const storage = {
     return await db.query.loyaltyRewards.findMany({
       where: and(
         eq(schema.loyaltyRewards.programId, programId),
-        eq(schema.loyaltyRewards.active, true),
+        eq(schema.loyaltyRewards.active, true)
       ),
       with: {
         product: true,
@@ -474,16 +507,13 @@ export const storage = {
   },
 
   async createLoyaltyReward(data: typeof schema.loyaltyRewards.$inferInsert) {
-    const [reward] = await db
-      .insert(schema.loyaltyRewards)
-      .values(data)
-      .returning();
+    const [reward] = await db.insert(schema.loyaltyRewards).values(data).returning();
     return reward;
   },
 
   async updateLoyaltyReward(
     rewardId: number,
-    data: Partial<typeof schema.loyaltyRewards.$inferInsert>,
+    data: Partial<typeof schema.loyaltyRewards.$inferInsert>
   ) {
     const [updated] = await db
       .update(schema.loyaltyRewards)
@@ -510,10 +540,7 @@ export const storage = {
   },
 
   async createLoyaltyTransaction(data: typeof schema.loyaltyTransactions.$inferInsert) {
-    const [transaction] = await db
-      .insert(schema.loyaltyTransactions)
-      .values(data)
-      .returning();
+    const [transaction] = await db.insert(schema.loyaltyTransactions).values(data).returning();
     return transaction;
   },
 
@@ -528,8 +555,12 @@ export const storage = {
 
       return affiliate || null;
     } catch (error: unknown) {
-      console.error("Error getting affiliate by user ID:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error getting affiliate by user ID:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
@@ -543,29 +574,31 @@ export const storage = {
 
       return affiliate || null;
     } catch (error: unknown) {
-      console.error("Error getting affiliate by code:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error getting affiliate by code:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async createAffiliate(data: typeof schema.affiliates.$inferInsert) {
     try {
-      const [affiliate] = await db
-        .insert(schema.affiliates)
-        .values(data)
-        .returning();
+      const [affiliate] = await db.insert(schema.affiliates).values(data).returning();
 
       return affiliate;
     } catch (error: unknown) {
-      console.error("Error creating affiliate:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error creating affiliate:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
-  async updateAffiliate(
-    affiliateId: number,
-    data: Partial<typeof schema.affiliates.$inferInsert>,
-  ) {
+  async updateAffiliate(affiliateId: number, data: Partial<typeof schema.affiliates.$inferInsert>) {
     try {
       const [updatedAffiliate] = await db
         .update(schema.affiliates)
@@ -575,8 +608,12 @@ export const storage = {
 
       return updatedAffiliate;
     } catch (error: unknown) {
-      console.error("Error updating affiliate:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error updating affiliate:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
@@ -593,50 +630,53 @@ export const storage = {
           fullName: schema.users.fullName,
         })
         .from(schema.referrals)
-        .leftJoin(
-          schema.users,
-          eq(schema.referrals.referredUserId, schema.users.id),
-        )
+        .leftJoin(schema.users, eq(schema.referrals.referredUserId, schema.users.id))
         .where(eq(schema.referrals.affiliateId, affiliateId))
         .orderBy(desc(schema.referrals.signupDate));
 
       return referrals;
     } catch (error: unknown) {
-      console.error("Error getting referrals by affiliate ID:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error getting referrals by affiliate ID:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async createReferral(data: typeof schema.referrals.$inferInsert) {
     try {
-      const [referral] = await db
-        .insert(schema.referrals)
-        .values(data)
-        .returning();
+      const [referral] = await db.insert(schema.referrals).values(data).returning();
 
       return referral;
     } catch (error: unknown) {
-      console.error("Error creating referral:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error creating referral:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
-  async updateReferral(
-    referralId: number,
-    data: Partial<typeof schema.referrals.$inferInsert>,
-  ) {
+  async updateReferral(referralId: number, data: Partial<typeof schema.referrals.$inferInsert>) {
     try {
       // Assuming 'updatedAt' is managed by the database or not part of this specific update type
       const [updatedReferral] = await db
         .update(schema.referrals)
-        .set(data) 
+        .set(data)
         .where(eq(schema.referrals.id, referralId))
         .returning();
 
       return updatedReferral;
     } catch (error: unknown) {
-      console.error("Error updating referral:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error updating referral:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
@@ -651,28 +691,33 @@ export const storage = {
 
       return subscription || null;
     } catch (error: unknown) {
-      console.error("Error getting subscription by user ID:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error getting subscription by user ID:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async createSubscription(data: typeof schema.subscriptions.$inferInsert) {
     try {
-      const [subscription] = await db
-        .insert(schema.subscriptions)
-        .values(data)
-        .returning();
+      const [subscription] = await db.insert(schema.subscriptions).values(data).returning();
 
       return subscription;
     } catch (error: unknown) {
-      console.error("Error creating subscription:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error creating subscription:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async updateSubscription(
     subscriptionId: number,
-    data: Partial<typeof schema.subscriptions.$inferInsert>,
+    data: Partial<typeof schema.subscriptions.$inferInsert>
   ) {
     try {
       const [updatedSubscription] = await db
@@ -683,8 +728,12 @@ export const storage = {
 
       return updatedSubscription;
     } catch (error: unknown) {
-      console.error("Error updating subscription:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error updating subscription:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
@@ -698,28 +747,33 @@ export const storage = {
 
       return payments;
     } catch (error: unknown) {
-      console.error("Error getting referral payments by affiliate ID:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error getting referral payments by affiliate ID:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async createReferralPayment(data: typeof schema.referralPayments.$inferInsert) {
     try {
-      const [payment] = await db
-        .insert(schema.referralPayments)
-        .values(data)
-        .returning();
+      const [payment] = await db.insert(schema.referralPayments).values(data).returning();
 
       return payment;
     } catch (error: unknown) {
-      console.error("Error creating referral payment:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error creating referral payment:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
   async updateReferralPayment(
     paymentId: number,
-    data: Partial<typeof schema.referralPayments.$inferInsert>,
+    data: Partial<typeof schema.referralPayments.$inferInsert>
   ) {
     try {
       // Assuming 'updatedAt' is managed by the database or not part of this specific update type
@@ -731,8 +785,12 @@ export const storage = {
 
       return updatedPayment;
     } catch (error: unknown) {
-      console.error("Error updating referral payment:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error updating referral payment:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
@@ -766,10 +824,7 @@ export const storage = {
   },
 
   async updateUserLastLogin(userId: number) {
-    await db
-      .update(schema.users)
-      .set({ lastLogin: new Date() })
-      .where(eq(schema.users.id, userId));
+    await db.update(schema.users).set({ lastLogin: new Date() }).where(eq(schema.users.id, userId));
   },
 
   async getAllUsers() {
@@ -823,10 +878,10 @@ export const storage = {
   // Password reset functionality
   async createPasswordResetToken(
     userId: number,
-    expiresInHours = 1,
+    expiresInHours = 1
   ): Promise<typeof schema.passwordResetTokens.$inferSelect> {
     // Generate a random token
-    const token = crypto.randomBytes(32).toString("hex");
+    const token = crypto.randomBytes(32).toString('hex');
 
     // Calculate expiration date (default 1 hour from now)
     const expiresAt = new Date();
@@ -847,7 +902,7 @@ export const storage = {
   },
 
   async getPasswordResetToken(
-    token: string,
+    token: string
   ): Promise<typeof schema.passwordResetTokens.$inferSelect | null> {
     const resetToken = await db.query.passwordResetTokens.findFirst({
       where: eq(schema.passwordResetTokens.token, token),
@@ -898,10 +953,7 @@ export const storage = {
   },
 
   async createStore(storeData: typeof schema.stores.$inferInsert) {
-    const [store] = await db
-      .insert(schema.stores)
-      .values(storeData)
-      .returning();
+    const [store] = await db.insert(schema.stores).values(storeData).returning();
 
     return store;
   },
@@ -953,7 +1005,7 @@ export const storage = {
         like(schema.products.name, `%${searchTerm}%`),
         like(schema.products.barcode, `%${searchTerm}%`),
         like(schema.products.sku, `%${searchTerm}%`),
-        like(schema.products.description, `%${searchTerm}%`),
+        like(schema.products.description, `%${searchTerm}%`)
       ),
       with: {
         category: true,
@@ -963,17 +1015,14 @@ export const storage = {
   },
 
   async createProduct(productData: typeof schema.products.$inferInsert) {
-    const [product] = await db
-      .insert(schema.products)
-      .values(productData)
-      .returning();
+    const [product] = await db.insert(schema.products).values(productData).returning();
 
     return product;
   },
 
   async updateProduct(
     productId: number,
-    productData: Partial<typeof schema.products.$inferInsert>,
+    productData: Partial<typeof schema.products.$inferInsert>
   ) {
     const [updatedProduct] = await db
       .update(schema.products)
@@ -1009,10 +1058,7 @@ export const storage = {
 
   async getLowStockItems(storeId?: number) {
     let query = db.query.inventory.findMany({
-      where: lte(
-        schema.inventory.totalQuantity,
-        sql`${schema.inventory.minimumLevel}`,
-      ),
+      where: lte(schema.inventory.totalQuantity, sql`${schema.inventory.minimumLevel}`),
       with: {
         product: {
           with: {
@@ -1027,10 +1073,7 @@ export const storage = {
       query = db.query.inventory.findMany({
         where: and(
           eq(schema.inventory.storeId, storeId),
-          lte(
-            schema.inventory.totalQuantity,
-            sql`${schema.inventory.minimumLevel}`,
-          ),
+          lte(schema.inventory.totalQuantity, sql`${schema.inventory.minimumLevel}`)
         ),
         with: {
           product: {
@@ -1055,7 +1098,7 @@ export const storage = {
         not(isNull(schema.inventoryBatches.expiryDate)),
         gt(schema.inventoryBatches.quantity, 0),
         lte(schema.inventoryBatches.expiryDate, futureDate),
-        gt(schema.inventoryBatches.expiryDate, new Date()),
+        gt(schema.inventoryBatches.expiryDate, new Date())
       ),
       with: {
         inventory: {
@@ -1074,7 +1117,7 @@ export const storage = {
           gt(schema.inventoryBatches.quantity, 0),
           lte(schema.inventoryBatches.expiryDate, futureDate),
           gt(schema.inventoryBatches.expiryDate, new Date()),
-          eq(schema.inventory.storeId, storeId),
+          eq(schema.inventory.storeId, storeId)
         ),
         with: {
           inventory: {
@@ -1095,7 +1138,7 @@ export const storage = {
       where: and(
         not(isNull(schema.inventoryBatches.expiryDate)),
         gt(schema.inventoryBatches.quantity, 0),
-        lte(schema.inventoryBatches.expiryDate, new Date()),
+        lte(schema.inventoryBatches.expiryDate, new Date())
       ),
       with: {
         inventory: {
@@ -1113,7 +1156,7 @@ export const storage = {
           not(isNull(schema.inventoryBatches.expiryDate)),
           gt(schema.inventoryBatches.quantity, 0),
           lte(schema.inventoryBatches.expiryDate, new Date()),
-          eq(schema.inventory.storeId, storeId),
+          eq(schema.inventory.storeId, storeId)
         ),
         with: {
           inventory: {
@@ -1136,10 +1179,7 @@ export const storage = {
 
   async getStoreProductInventory(storeId: number, productId: number) {
     return await db.query.inventory.findFirst({
-      where: and(
-        eq(schema.inventory.storeId, storeId),
-        eq(schema.inventory.productId, productId),
-      ),
+      where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, productId)),
       with: {
         product: true,
         store: true,
@@ -1148,10 +1188,7 @@ export const storage = {
   },
 
   async createInventory(data: typeof schema.inventory.$inferInsert) {
-    const [inventory] = await db
-      .insert(schema.inventory)
-      .values(data)
-      .returning();
+    const [inventory] = await db.insert(schema.inventory).values(data).returning();
     return inventory;
   },
 
@@ -1165,10 +1202,7 @@ export const storage = {
     });
   },
 
-  async updateInventory(
-    inventoryId: number,
-    data: Partial<typeof schema.inventory.$inferInsert>,
-  ) {
+  async updateInventory(inventoryId: number, data: Partial<typeof schema.inventory.$inferInsert>) {
     const [updated] = await db
       .update(schema.inventory)
       .set({
@@ -1184,10 +1218,7 @@ export const storage = {
   async getInventoryBatches(inventoryId: number) {
     return await db.query.inventoryBatches.findMany({
       where: eq(schema.inventoryBatches.inventoryId, inventoryId),
-      orderBy: [
-        asc(schema.inventoryBatches.expiryDate),
-        desc(schema.inventoryBatches.createdAt),
-      ],
+      orderBy: [asc(schema.inventoryBatches.expiryDate), desc(schema.inventoryBatches.createdAt)],
     });
   },
 
@@ -1205,10 +1236,7 @@ export const storage = {
   },
 
   async createInventoryBatch(data: typeof schema.inventoryBatches.$inferInsert) {
-    const [batch] = await db
-      .insert(schema.inventoryBatches)
-      .values(data)
-      .returning();
+    const [batch] = await db.insert(schema.inventoryBatches).values(data).returning();
 
     // Update the inventory total quantity
     await this.updateInventoryTotalQuantity(data.inventoryId);
@@ -1218,12 +1246,12 @@ export const storage = {
 
   async updateInventoryBatch(
     batchId: number,
-    data: Partial<typeof schema.inventoryBatches.$inferInsert>,
+    data: Partial<typeof schema.inventoryBatches.$inferInsert>
   ) {
     // Get the batch to retrieve its inventory ID before updating
     const batch = await this.getInventoryBatchById(batchId);
     if (!batch) {
-      throw new Error("Batch not found");
+      throw new Error('Batch not found');
     }
 
     const [updated] = await db
@@ -1245,7 +1273,7 @@ export const storage = {
     // First get the batch to retrieve its inventory ID before deleting
     const batch = await this.getInventoryBatchById(batchId);
     if (!batch) {
-      throw new Error("Batch not found");
+      throw new Error('Batch not found');
     }
 
     const inventoryId = batch.inventoryId;
@@ -1257,7 +1285,7 @@ export const storage = {
       .returning();
 
     if (deleted.length === 0) {
-      throw new Error("Failed to delete batch");
+      throw new Error('Failed to delete batch');
     }
 
     // Update the total quantity in the inventory record
@@ -1273,7 +1301,7 @@ export const storage = {
     // Calculate the total quantity
     const totalQuantity = batches.reduce(
       (sum: number, batch: typeof schema.inventoryBatches.$inferSelect) => sum + batch.quantity,
-      0,
+      0
     );
 
     // Update the main inventory record
@@ -1303,7 +1331,7 @@ export const storage = {
 
       return logEntry;
     } catch (error: unknown) {
-      console.error("Error creating batch audit log:", error);
+      console.error('Error creating batch audit log:', error);
       // Don't throw the error to prevent disrupting main operations
       return null;
     }
@@ -1325,11 +1353,7 @@ export const storage = {
     });
   },
 
-  async getInventoryBatchesByProduct(
-    storeId: number,
-    productId: number,
-    includeExpired = false,
-  ) {
+  async getInventoryBatchesByProduct(storeId: number, productId: number, includeExpired = false) {
     // First get the inventory record
     const inventory = await this.getStoreProductInventory(storeId, productId);
 
@@ -1342,10 +1366,7 @@ export const storage = {
     if (includeExpired) {
       batches = await db.query.inventoryBatches.findMany({
         where: eq(schema.inventoryBatches.inventoryId, inventory.id),
-        orderBy: [
-          asc(schema.inventoryBatches.expiryDate),
-          desc(schema.inventoryBatches.createdAt),
-        ],
+        orderBy: [asc(schema.inventoryBatches.expiryDate), desc(schema.inventoryBatches.createdAt)],
       });
     } else {
       const now = new Date();
@@ -1354,13 +1375,10 @@ export const storage = {
           eq(schema.inventoryBatches.inventoryId, inventory.id),
           or(
             isNull(schema.inventoryBatches.expiryDate),
-            gt(schema.inventoryBatches.expiryDate, now),
-          ),
+            gt(schema.inventoryBatches.expiryDate, now)
+          )
         ),
-        orderBy: [
-          asc(schema.inventoryBatches.expiryDate),
-          desc(schema.inventoryBatches.createdAt),
-        ],
+        orderBy: [asc(schema.inventoryBatches.expiryDate), desc(schema.inventoryBatches.createdAt)],
       });
     }
 
@@ -1377,13 +1395,11 @@ export const storage = {
    */
   async createTransaction(
     transactionData: typeof schema.transactions.$inferInsert,
-    items: (typeof schema.transactionItems.$inferInsert)[],
+    items: (typeof schema.transactionItems.$inferInsert)[]
   ): Promise<TransactionResult> {
     try {
       // Import the batch inventory service
-      const { sellProductFromBatches } = await import(
-        "./services/batch-inventory"
-      );
+      const { sellProductFromBatches } = await import('./services/batch-inventory.js');
 
       // Start a transaction
       const [transaction] = await db
@@ -1398,14 +1414,18 @@ export const storage = {
         try {
           // Ensure storeId and cashierId are present and valid before calling sellProductFromBatches
           if (transaction.storeId === null || transaction.storeId === undefined) {
-            console.error(`Transaction ${transaction.id} is missing storeId. Skipping item ${item.productId}.`);
-            continue; 
+            console.error(
+              `Transaction ${transaction.id} is missing storeId. Skipping item ${item.productId}.`
+            );
+            continue;
           }
           // Assuming cashierId is non-nullable based on typical transaction requirements.
           // If schema allows null, this check needs to be robust or schema adjusted.
-          if (transaction.cashierId === null || transaction.cashierId === undefined) { 
-             console.error(`Transaction ${transaction.id} is missing cashierId. Skipping item ${item.productId}.`);
-             continue;
+          if (transaction.cashierId === null || transaction.cashierId === undefined) {
+            console.error(
+              `Transaction ${transaction.id} is missing cashierId. Skipping item ${item.productId}.`
+            );
+            continue;
           }
           // Ensure productId is present for the item
           if (item.productId === null || item.productId === undefined) {
@@ -1415,10 +1435,10 @@ export const storage = {
 
           // First attempt to update inventory by selling from batches
           const saleResult = await sellProductFromBatches(
-            transaction.storeId, 
+            transaction.storeId,
             item.productId, // Now known to be non-null
             item.quantity,
-            transaction.cashierId 
+            transaction.cashierId
           );
 
           // Insert the transaction item
@@ -1435,11 +1455,11 @@ export const storage = {
               productId: schema.transactionItems.productId,
               quantity: schema.transactionItems.quantity,
               unitPrice: schema.transactionItems.unitPrice,
-              notes: schema.transactionItems.notes, 
+              notes: schema.transactionItems.notes,
               discount: schema.transactionItems.discount,
               tax: schema.transactionItems.tax,
-              createdAt: schema.transactionItems.createdAt, 
-              updatedAt: schema.transactionItems.updatedAt, 
+              createdAt: schema.transactionItems.createdAt,
+              updatedAt: schema.transactionItems.updatedAt,
               deletedAt: schema.transactionItems.deletedAt, // Added deletedAt
               // Assuming transactionItemId is the 'id' itself, which is already included.
               // Assuming inventoryBatchId is not directly on transactionItems or handled differently.
@@ -1454,8 +1474,12 @@ export const storage = {
 
       return { transaction, items: createdItems };
     } catch (error: unknown) {
-      console.error("Error creating transaction:", error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error creating transaction:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   },
 
@@ -1464,7 +1488,7 @@ export const storage = {
     startDate?: Date,
     endDate?: Date,
     page = 1,
-    limit = 20,
+    limit = 20
   ) {
     const offset = (page - 1) * limit;
 
@@ -1511,11 +1535,7 @@ export const storage = {
     };
   },
 
-  async getTransactionCount(
-    storeId?: number,
-    startDate?: Date,
-    endDate?: Date,
-  ) {
+  async getTransactionCount(storeId?: number, startDate?: Date, endDate?: Date) {
     const conditions: (SQL | undefined)[] = [];
 
     if (storeId) {
@@ -1532,10 +1552,7 @@ export const storage = {
     // .where() clause handles undefined by selecting all. If conditions is empty, and() might return undefined or an SQL object that means 'true'.
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const result = await db
-      .select({ count: count() })
-      .from(schema.transactions)
-      .where(whereClause);
+    const result = await db.select({ count: count() }).from(schema.transactions).where(whereClause);
 
     return result[0].count;
   },
@@ -1546,7 +1563,7 @@ export const storage = {
     startDate?: Date,
     endDate?: Date,
     page: number = 1,
-    limit: number = 20,
+    limit: number = 20
   ) {
     const offset = (page - 1) * limit;
 
@@ -1578,10 +1595,7 @@ export const storage = {
       },
     });
 
-    const totalCount = await db
-      .select({ count: count() })
-      .from(schema.returns)
-      .where(whereClause);
+    const totalCount = await db.select({ count: count() }).from(schema.returns).where(whereClause);
 
     return {
       refunds,
@@ -1601,7 +1615,11 @@ export const storage = {
    * @param endDate - Optional end date to filter by
    * @returns Comprehensive analytics for returns and refunds
    */
-  async getReturnAnalytics(storeId?: number, startDate?: Date, endDate?: Date): Promise<ReturnAnalytics> {
+  async getReturnAnalytics(
+    storeId?: number,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<ReturnAnalytics> {
     try {
       const whereConditions: SQL[] = [];
       if (storeId) {
@@ -1636,7 +1654,7 @@ export const storage = {
       const reasonsDataRaw = await db
         .select({
           reasonId: schema.returnItems.returnReasonId,
-          count: count(schema.returnItems.id).as("count"),
+          count: count(schema.returnItems.id).as('count'),
         })
         .from(schema.returnItems)
         .leftJoin(schema.returns, eq(schema.returnItems.refundId, schema.returns.id))
@@ -1647,19 +1665,16 @@ export const storage = {
         .select({ id: schema.returnReasons.id, name: schema.returnReasons.name })
         .from(schema.returnReasons);
 
-      const reasonsMap = allReturnReasons.reduce(
-        (acc: Record<number, string>, reason) => {
-          acc[reason.id] = reason.name;
-          return acc;
-        },
-        {},
-      );
+      const reasonsMap = allReturnReasons.reduce((acc: Record<number, string>, reason) => {
+        acc[reason.id] = reason.name;
+        return acc;
+      }, {});
 
       const reasonsBreakdown: ReturnReason[] = reasonsDataRaw
         .filter(item => item.reasonId !== null)
-        .map((item) => ({
+        .map(item => ({
           reasonId: item.reasonId!,
-          reason: reasonsMap[item.reasonId!] || "Unknown",
+          reason: reasonsMap[item.reasonId!] || 'Unknown',
           count: Number(item.count),
         }));
 
@@ -1667,7 +1682,7 @@ export const storage = {
       const restockedDataRaw = await db
         .select({
           isRestocked: schema.returnItems.isRestocked,
-          count: count(schema.returnItems.id).as("count"),
+          count: count(schema.returnItems.id).as('count'),
         })
         .from(schema.returnItems)
         .leftJoin(schema.returns, eq(schema.returnItems.refundId, schema.returns.id))
@@ -1675,7 +1690,7 @@ export const storage = {
         .groupBy(schema.returnItems.isRestocked);
 
       const restockedBreakdown: RestockedBreakdown = { restocked: 0, lost: 0 };
-      restockedDataRaw.forEach((item) => {
+      restockedDataRaw.forEach(item => {
         if (item.isRestocked) {
           restockedBreakdown.restocked = Number(item.count);
         } else {
@@ -1690,8 +1705,15 @@ export const storage = {
         restockedBreakdown,
       };
     } catch (error: unknown) {
-      console.error("Error generating return analytics:", error);
-      throw error instanceof AppError ? error : new AppError('Error generating analytics', ErrorCategory.SYSTEM, ErrorCode.DATABASE_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+      console.error('Error generating return analytics:', error);
+      throw error instanceof AppError
+        ? error
+        : new AppError(
+            'Error generating analytics',
+            ErrorCategory.SYSTEM,
+            ErrorCode.DATABASE_ERROR,
+            { error: error instanceof Error ? error.message : 'Unknown error' }
+          );
     }
-  }
+  },
 };

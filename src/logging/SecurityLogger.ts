@@ -1,29 +1,29 @@
 // src/logging/SecurityLogger.ts
 
-import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger, ConsoleLogger } from './Logger';
+import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger, ConsoleLogger } from './Logger.js';
 
 /**
  * Security event types for categorizing security logs
  */
 export enum SecurityEventType {
-  AUTHENTICATION = 'AUTHENTICATION',           // Login attempts, password resets
-  AUTHORIZATION = 'AUTHORIZATION',             // Permission checks, access control
-  DATA_ACCESS = 'DATA_ACCESS',                 // Access to sensitive data
-  DATA_MODIFICATION = 'DATA_MODIFICATION',     // Changes to important data
-  CONFIGURATION = 'CONFIGURATION',             // System configuration changes
-  SYSTEM = 'SYSTEM',                           // System-level security events
-  THREAT = 'THREAT'                            // Detected security threats
+  AUTHENTICATION = 'AUTHENTICATION', // Login attempts, password resets
+  AUTHORIZATION = 'AUTHORIZATION', // Permission checks, access control
+  DATA_ACCESS = 'DATA_ACCESS', // Access to sensitive data
+  DATA_MODIFICATION = 'DATA_MODIFICATION', // Changes to important data
+  CONFIGURATION = 'CONFIGURATION', // System configuration changes
+  SYSTEM = 'SYSTEM', // System-level security events
+  THREAT = 'THREAT', // Detected security threats
 }
 
 /**
  * Security event severity levels
  */
 export enum SecuritySeverity {
-  INFORMATIONAL = 'INFORMATIONAL',  // Normal operations, successful auth
-  LOW = 'LOW',                      // Minor policy violations
-  MEDIUM = 'MEDIUM',                // Suspicious activities
-  HIGH = 'HIGH',                    // Significant security concerns
-  CRITICAL = 'CRITICAL'             // Immediate attention required
+  INFORMATIONAL = 'INFORMATIONAL', // Normal operations, successful auth
+  LOW = 'LOW', // Minor policy violations
+  MEDIUM = 'MEDIUM', // Suspicious activities
+  HIGH = 'HIGH', // Significant security concerns
+  CRITICAL = 'CRITICAL', // Immediate attention required
 }
 
 /**
@@ -32,14 +32,14 @@ export enum SecuritySeverity {
 export interface SecurityLogMeta extends LogMeta {
   eventType: SecurityEventType;
   severity: SecuritySeverity;
-  userId?: string | number;         // User who performed the action
-  targetId?: string | number;       // Target of the action (resource ID)
-  resourceType?: string;            // Type of resource affected
-  outcome: 'SUCCESS' | 'FAILURE';   // Result of the action
-  ip?: string;                      // Source IP address
-  userAgent?: string;               // User agent
-  sessionId?: string;               // Session identifier
-  details?: Record<string, any>;    // Additional security event details
+  userId?: string | number; // User who performed the action
+  targetId?: string | number; // Target of the action (resource ID)
+  resourceType?: string; // Type of resource affected
+  outcome: 'SUCCESS' | 'FAILURE'; // Result of the action
+  ip?: string; // Source IP address
+  userAgent?: string; // User agent
+  sessionId?: string; // Session identifier
+  details?: Record<string, any>; // Additional security event details
 }
 
 /**
@@ -51,20 +51,20 @@ export class SecurityLogger implements Logger {
   constructor(baseLogger: Logger) {
     this.baseLogger = baseLogger;
   }
-  
+
   // Implement required Logger interface methods
   setLevel(level: LogLevel): void {
     this.baseLogger.setLevel(level);
   }
-  
+
   getLevel(): LogLevel {
     return this.baseLogger.getLevel();
   }
-  
+
   addContext(context: LogMeta): void {
     this.baseLogger.addContext(context);
   }
-  
+
   child(context: LogMeta): Logger {
     const childLogger = this.baseLogger.child(context);
     return new SecurityLogger(childLogger);
@@ -73,10 +73,7 @@ export class SecurityLogger implements Logger {
   /**
    * Log a security event with consistent formatting
    */
-  logSecurityEvent(
-    message: string,
-    meta: SecurityLogMeta
-  ): void {
+  logSecurityEvent(message: string, meta: SecurityLogMeta): void {
     // Add standardized prefix to make security events easily searchable
     const securityMessage = `[SECURITY:${meta.eventType}] ${message}`;
     const securityMetadata = { securityEvent: true, ...meta };
@@ -116,7 +113,7 @@ export class SecurityLogger implements Logger {
       eventType: SecurityEventType.AUTHENTICATION,
       severity,
       outcome,
-      ...meta
+      ...meta,
     });
   }
 
@@ -133,7 +130,7 @@ export class SecurityLogger implements Logger {
       eventType: SecurityEventType.AUTHORIZATION,
       severity,
       outcome,
-      ...meta
+      ...meta,
     });
   }
 
@@ -150,7 +147,7 @@ export class SecurityLogger implements Logger {
       eventType: SecurityEventType.DATA_ACCESS,
       severity,
       outcome,
-      ...meta
+      ...meta,
     });
   }
 
@@ -167,7 +164,7 @@ export class SecurityLogger implements Logger {
       eventType: SecurityEventType.DATA_MODIFICATION,
       severity,
       outcome,
-      ...meta
+      ...meta,
     });
   }
 
@@ -184,7 +181,7 @@ export class SecurityLogger implements Logger {
       eventType: SecurityEventType.CONFIGURATION,
       severity,
       outcome,
-      ...meta
+      ...meta,
     });
   }
 
@@ -201,7 +198,7 @@ export class SecurityLogger implements Logger {
       eventType: SecurityEventType.SYSTEM,
       severity,
       outcome,
-      ...meta
+      ...meta,
     });
   }
 
@@ -217,7 +214,7 @@ export class SecurityLogger implements Logger {
       eventType: SecurityEventType.THREAT,
       severity,
       outcome: 'FAILURE', // Threats are always treated as failures
-      ...meta
+      ...meta,
     });
   }
 

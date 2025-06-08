@@ -1,44 +1,54 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 export default function PaymentTesting() {
-  const [amount, setAmount] = useState("20000"); // Default amount (₦20,000)
-  const [planId, setPlanId] = useState("basic");
+  const [amount, setAmount] = useState('20000'); // Default amount (₦20,000)
+  const [planId, setPlanId] = useState('basic');
   const { toast } = useToast();
-  
+
   const generateReference = () => {
     return 'CHAINSYNC_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
   };
-  
+
   const [reference, setReference] = useState(generateReference());
-  
+
   const refreshReference = () => {
     setReference(generateReference());
   };
-  
+
   const openSimulation = () => {
     if (!amount || isNaN(parseFloat(amount))) {
       toast({
-        title: "Invalid amount",
-        description: "Please enter a valid amount",
-        variant: "destructive",
+        title: 'Invalid amount',
+        description: 'Please enter a valid amount',
+        variant: 'destructive',
       });
       return;
     }
-    
+
     // Open the payment simulation in a new window
-    window.open(`/payment-simulation?reference=${reference}&amount=${amount}&plan=${planId}`, "_blank");
+    window.open(
+      `/payment-simulation?reference=${reference}&amount=${amount}&plan=${planId}`,
+      '_blank'
+    );
   };
-  
+
   return (
     <div className="container py-10 max-w-4xl">
       <h1 className="text-2xl font-bold mb-6">Payment Testing</h1>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Payment Simulation</CardTitle>
@@ -52,10 +62,10 @@ export default function PaymentTesting() {
               <div>
                 <Label htmlFor="reference">Reference</Label>
                 <div className="flex items-center gap-2">
-                  <Input 
-                    id="reference" 
-                    value={reference} 
-                    onChange={(e) => setReference(e.target.value)}
+                  <Input
+                    id="reference"
+                    value={reference}
+                    onChange={e => setReference(e.target.value)}
                     className="flex-1"
                   />
                   <Button variant="outline" onClick={refreshReference} type="button">
@@ -63,18 +73,18 @@ export default function PaymentTesting() {
                   </Button>
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="amount">Amount</Label>
-                <Input 
-                  id="amount" 
-                  value={amount} 
-                  onChange={(e) => setAmount(e.target.value)}
+                <Input
+                  id="amount"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
                   placeholder="Enter amount"
                 />
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="plan">Subscription Plan</Label>
               <Select value={planId} onValueChange={setPlanId}>
@@ -88,7 +98,7 @@ export default function PaymentTesting() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <Button className="mt-4" onClick={openSimulation}>
               Simulate Payment
             </Button>

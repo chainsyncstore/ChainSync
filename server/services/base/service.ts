@@ -1,5 +1,5 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { ServiceConfig, ServiceResult } from '@shared/types/common';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
 
 export interface IServiceError extends Error {
   code: ErrorCode;
@@ -54,8 +54,8 @@ export abstract class BaseService {
         error: {
           code: errorCode,
           message: errorMessage,
-          details: error instanceof Error ? error : { message: errorMessage }
-        }
+          details: error instanceof Error ? error : { message: errorMessage },
+        },
       };
     }
   }
@@ -92,10 +92,7 @@ export abstract class BaseService {
     );
   }
 
-  protected async withTransaction<T>(
-    operation: () => Promise<T>,
-    context: string
-  ): Promise<T> {
+  protected async withTransaction<T>(operation: () => Promise<T>, context: string): Promise<T> {
     try {
       return await operation();
     } catch (error: unknown) {
@@ -116,7 +113,7 @@ export abstract class BaseService {
         return await operation();
       } catch (error: unknown) {
         const serviceError = this.convertToServiceError(error);
-        
+
         if (!serviceError.retryable || attempt === maxRetries - 1) {
           throw serviceError;
         }

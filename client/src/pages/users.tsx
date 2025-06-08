@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { AppShell } from '@/components/layout/app-shell';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/providers/auth-provider';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Search, RefreshCw, PlusIcon, Edit, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
+import { AppShell } from '@/components/layout/app-shell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -24,6 +24,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { formatDate } from '@/lib/utils';
+import { useAuth } from '@/providers/auth-provider';
+
+
 import {
   Dialog,
   DialogContent,
@@ -50,20 +56,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Search, RefreshCw, PlusIcon, Edit, Trash2 } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
 
 // Form schema for user creation/editing
 const userFormSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  role: z.enum(["admin", "manager", "cashier"], {
-    required_error: "Please select a role",
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  role: z.enum(['admin', 'manager', 'cashier'], {
+    required_error: 'Please select a role',
   }),
   storeId: z.string().optional(),
 });
@@ -76,30 +78,34 @@ export default function UsersPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Form for user creation
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      username: "",
-      password: "",
-      fullName: "",
-      email: "",
-      role: "cashier",
-      storeId: "",
+      username: '',
+      password: '',
+      fullName: '',
+      email: '',
+      role: 'cashier',
+      storeId: '',
     },
   });
-  
+
   // Fetch users
-  const { data: users, isLoading: isLoadingUsers, refetch } = useQuery({
+  const {
+    data: users,
+    isLoading: isLoadingUsers,
+    refetch,
+  } = useQuery({
     queryKey: ['/api/users'],
   });
-  
+
   // Fetch stores for assigning users
   const { data: stores, isLoading: isLoadingStores } = useQuery({
     queryKey: ['/api/stores'],
   });
-  
+
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: UserFormValues) => {
@@ -108,34 +114,34 @@ export default function UsersPage() {
         ...userData,
         storeId: userData.storeId ? parseInt(userData.storeId) : undefined,
       };
-      
+
       const response = await apiRequest('POST', '/api/users', payload);
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "User created",
-        description: "The user has been created successfully.",
+        title: 'User created',
+        description: 'The user has been created successfully.',
       });
       setIsOpen(false);
       form.reset();
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
     },
-    onError: (error) => {
+    onError: error => {
       toast({
-        title: "Error creating user",
-        description: "There was an error creating the user. Please try again.",
-        variant: "destructive",
+        title: 'Error creating user',
+        description: 'There was an error creating the user. Please try again.',
+        variant: 'destructive',
       });
       console.error('Error creating user:', error);
     },
   });
-  
+
   // Handle form submission
   const onSubmit = (data: UserFormValues) => {
     createUserMutation.mutate(data);
   };
-  
+
   // Define user and store type interfaces for better TypeScript support
   interface UserType {
     id: number;
@@ -146,19 +152,22 @@ export default function UsersPage() {
     store?: { name: string };
     lastLogin?: string;
   }
-  
+
   interface StoreType {
     id: number;
     name: string;
   }
-  
+
   // Filter users based on search term
-  const filteredUsers = users ? (users as UserType[]).filter((user) => 
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
-  
+  const filteredUsers = users
+    ? (users as UserType[]).filter(
+        user =>
+          user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
+
   return (
     <AppShell>
       <div className="mb-6 flex items-center justify-between">
@@ -170,7 +179,7 @@ export default function UsersPage() {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          
+
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -185,7 +194,7 @@ export default function UsersPage() {
                   Add a new user to the system. Fill in all required fields.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
@@ -201,7 +210,7 @@ export default function UsersPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="password"
@@ -215,7 +224,7 @@ export default function UsersPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="fullName"
@@ -229,7 +238,7 @@ export default function UsersPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="email"
@@ -243,17 +252,14 @@ export default function UsersPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="role"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Role</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a role" />
@@ -272,7 +278,7 @@ export default function UsersPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   {form.watch('role') !== 'admin' && (
                     <FormField
                       control={form.control}
@@ -280,38 +286,37 @@ export default function UsersPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Assigned Store</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a store" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {stores ? (stores as StoreType[]).map((store) => (
-                                <SelectItem key={store.id} value={store.id.toString()}>
-                                  {store.name}
-                                </SelectItem>
-                              )) : null}
+                              {stores
+                                ? (stores as StoreType[]).map(store => (
+                                    <SelectItem key={store.id} value={store.id.toString()}>
+                                      {store.name}
+                                    </SelectItem>
+                                  ))
+                                : null}
                             </SelectContent>
                           </Select>
                           <FormDescription>
-                            {form.watch('role') === 'manager' 
-                              ? "Managers are responsible for a specific store." 
-                              : "Cashiers must be assigned to a specific store."}
+                            {form.watch('role') === 'manager'
+                              ? 'Managers are responsible for a specific store.'
+                              : 'Cashiers must be assigned to a specific store.'}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
-                  
+
                   <DialogFooter className="flex justify-between">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => {
                         setIsOpen(false);
                         form.reset();
@@ -319,11 +324,8 @@ export default function UsersPage() {
                     >
                       Cancel
                     </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={createUserMutation.isPending}
-                    >
-                      {createUserMutation.isPending ? "Creating..." : "Create User"}
+                    <Button type="submit" disabled={createUserMutation.isPending}>
+                      {createUserMutation.isPending ? 'Creating...' : 'Create User'}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -332,7 +334,7 @@ export default function UsersPage() {
           </Dialog>
         </div>
       </div>
-      
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -344,7 +346,7 @@ export default function UsersPage() {
                 placeholder="Search users..."
                 className="pl-8"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
@@ -389,21 +391,35 @@ export default function UsersPage() {
                       <TableCell>{user.username}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <Badge variant={user.role === 'admin' ? 'default' : user.role === 'manager' ? 'secondary' : 'outline'}>
+                        <Badge
+                          variant={
+                            user.role === 'admin'
+                              ? 'default'
+                              : user.role === 'manager'
+                                ? 'secondary'
+                                : 'outline'
+                          }
+                        >
                           {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {user.store?.name || (user.role === 'admin' ? "All Stores" : "Unassigned")}
+                        {user.store?.name || (user.role === 'admin' ? 'All Stores' : 'Unassigned')}
                       </TableCell>
-                      <TableCell>
-                        {user.lastLogin ? formatDate(user.lastLogin) : "Never"}
-                      </TableCell>
+                      <TableCell>{user.lastLogin ? formatDate(user.lastLogin) : 'Never'}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground"
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -416,7 +432,8 @@ export default function UsersPage() {
         </CardContent>
         <CardFooter className="flex justify-between items-center border-t p-4">
           <div className="text-sm text-muted-foreground">
-            Showing {filteredUsers.length || 0} of {(users as UserType[] | undefined)?.length || 0} users
+            Showing {filteredUsers.length || 0} of {(users as UserType[] | undefined)?.length || 0}{' '}
+            users
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" size="sm" disabled>

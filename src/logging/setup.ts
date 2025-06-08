@@ -1,7 +1,9 @@
 // src/logging/setup.ts
-import { configureLogging, LogLevel, requestLogger, errorLogger, SentryLogger } from './index';
-import express from 'express';
 import os from 'os';
+
+import express from 'express';
+
+import { configureLogging, LogLevel, requestLogger, errorLogger, SentryLogger } from './index';
 import { version } from '../../package.json';
 
 /**
@@ -13,7 +15,7 @@ export function setupLogging(app: express.Application): void {
   const nodeEnv = process.env.NODE_ENV || 'development';
   const useSentry = nodeEnv === 'production' || process.env.USE_SENTRY === 'true';
   const sentryDsn = process.env.SENTRY_DSN;
-  
+
   // Configure global logger with application context
   const logger = configureLogging({
     useSentry,
@@ -25,19 +27,19 @@ export function setupLogging(app: express.Application): void {
       app: 'ChainSync',
       version,
       hostname: os.hostname(),
-      environment: nodeEnv
-    }
+      environment: nodeEnv,
+    },
   });
-  
+
   logger.info('Logging system initialized', {
     environment: nodeEnv,
     useSentry: useSentry,
-    level: LogLevel[logger.getLevel()]
+    level: LogLevel[logger.getLevel()],
   });
-  
+
   // Add request logging middleware
   app.use(requestLogger(logger));
-  
+
   // Add error logging middleware (should be added before other error handlers)
   app.use(errorLogger(logger));
 }
@@ -47,7 +49,7 @@ export function setupLogging(app: express.Application): void {
  */
 function getLogLevelFromEnv(): LogLevel {
   const level = process.env.LOG_LEVEL?.toLowerCase();
-  
+
   switch (level) {
     case 'trace':
       return LogLevel.TRACE;
@@ -74,9 +76,9 @@ function getLogLevelFromEnv(): LogLevel {
  */
 export function setupGlobalErrorHandlers(): void {
   // Handle uncaught exceptions
-  process.on('uncaughtException', (error) => {
+  process.on('uncaughtException', error => {
     console.error('FATAL: Uncaught exception', error);
-    
+
     // Attempt to log to Sentry if configured
     try {
       const { getLogger } = require('./index');
@@ -86,20 +88,23 @@ export function setupGlobalErrorHandlers(): void {
       // Last resort fallback if logger fails
       console.error('Failed to log fatal error', e);
     }
-    
+
     // Exit process with error
     process.exit(1);
   });
-  
+
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled promise rejection', reason);
-    
+
     // Attempt to log to structured logger
     try {
       const { getLogger } = require('./index');
       const logger = getLogger();
-      logger.error('Unhandled promise rejection', reason instanceof Error ? reason : new Error(String(reason)));
+      logger.error(
+        'Unhandled promise rejection',
+        reason instanceof Error ? reason : new Error(String(reason))
+      );
     } catch (e: unknown) {
       // Last resort fallback if logger fails
       console.error('Failed to log unhandled rejection', e);

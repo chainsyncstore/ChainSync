@@ -1,10 +1,16 @@
-import { RequestHandler, ErrorRequestHandler, Request, Response, NextFunction } from 'express';
-import { File } from 'express';
+import {
+  RequestHandler,
+  ErrorRequestHandler,
+  Request,
+  Response,
+  NextFunction,
+  File,
+} from 'express';
 
 // Define our custom user type
 interface CustomUser {
   id: string;
-  email: string;
+  email?: string; // Make email optional to match Express augmentation
   role: string;
   [key: string]: unknown;
 }
@@ -16,26 +22,31 @@ declare module 'express' {
     files?: {
       [fieldname: string]: File[] | File;
     };
-    user?: Partial<CustomUser>;
+    user?: CustomUser; // Changed from Partial<CustomUser> to CustomUser
   }
 }
 
 // Helper function to create request handler
-export function createRequestHandler(handler: (req: Request, res: Response, next: NextFunction) => void): RequestHandler {
+export function createRequestHandler(
+  handler: (req: Request, res: Response, next: NextFunction) => void
+): RequestHandler {
   return (req: Request, res: Response, next: NextFunction): void => {
     handler(req, res, next);
   };
 }
 
 // Helper function to create error handler
-export function createErrorHandler(handler: (err: Error | any, req: Request, res: Response, next: NextFunction) => void): ErrorRequestHandler {
+export function createErrorHandler(
+  handler: (err: Error | any, req: Request, res: Response, next: NextFunction) => void
+): ErrorRequestHandler {
   return (err: Error | any, req: Request, res: Response, next: NextFunction): void => {
     handler(err, req, res, next);
   };
 }
 
 // Type guard for middleware
-export function isMiddlewareFunction(middleware: unknown): middleware is RequestHandler | ErrorRequestHandler {
-  return typeof middleware === 'function' && 
-    (middleware.length === 3 || middleware.length === 4);
+export function isMiddlewareFunction(
+  middleware: unknown
+): middleware is RequestHandler | ErrorRequestHandler {
+  return typeof middleware === 'function' && (middleware.length === 3 || middleware.length === 4);
 }

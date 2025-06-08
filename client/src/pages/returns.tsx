@@ -1,35 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
-import { useCurrency } from "@/providers/currency-provider";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useQuery } from '@tanstack/react-query';
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -50,14 +20,34 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CalendarIcon, ClipboardCheck, Search, ArrowUpDown, RefreshCw, CheckCircle2, Ban, AlertCircle } from "lucide-react";
-import { AppShell } from "@/components/layout/app-shell";
-import { Skeleton } from "@/components/ui/skeleton";
-
+import { useState, useEffect } from "react";
+import { AppShell } from '@/components/layout/app-shell';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { formatCurrency } from '@/lib/utils';
+import { useCurrency } from '@/providers/currency-provider';
 
 // Types for returns
 interface ReturnReason {
@@ -99,7 +89,7 @@ interface ReturnData {
   customerId: number | null;
   returnDate: string;
   totalRefundAmount: string;
-  status: "processing" | "completed" | "cancelled";
+  status: 'processing' | 'completed' | 'cancelled';
   notes: string | null;
   createdAt: string;
   updatedAt: string | null;
@@ -159,54 +149,59 @@ interface Customer {
 function ReturnProcessForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<number | null>(null);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState('');
 
   // Mock fetch reasons - this will be replaced with real API call
   const { data: reasons, isLoading: isLoadingReasons } = useQuery({
-    queryKey: ["/api/returns/reasons"],
+    queryKey: ['/api/returns/reasons'],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/returns/reasons");
+      const response = await apiRequest('GET', '/api/returns/reasons');
       const data = await response.json();
       return data as ReturnReason[];
-    }
+    },
   });
 
   // Product search query - will be replaced with real inventory API
   const { data: searchResults, isLoading: isSearching } = useQuery({
-    queryKey: ["/api/inventory/search", searchQuery],
+    queryKey: ['/api/inventory/search', searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 3) return [];
-      
-      const response = await apiRequest("GET", `/api/inventory/search?q=${searchQuery}`);
+
+      const response = await apiRequest('GET', `/api/inventory/search?q=${searchQuery}`);
       const data = await response.json();
       return data;
     },
-    enabled: searchQuery.length >= 3
+    enabled: searchQuery.length >= 3,
   });
 
   // Customer search query
   const { data: customerResults, isLoading: isSearchingCustomer } = useQuery({
-    queryKey: ["/api/customers/lookup", customerSearchQuery],
+    queryKey: ['/api/customers/lookup', customerSearchQuery],
     queryFn: async () => {
       if (!customerSearchQuery || customerSearchQuery.length < 3) return null;
-      
-      const response = await apiRequest("GET", `/api/customers/lookup?${
-        customerSearchQuery.includes("@") ? `email=${customerSearchQuery}` : `phone=${customerSearchQuery}`
-      }`);
-      
+
+      const response = await apiRequest(
+        'GET',
+        `/api/customers/lookup?${
+          customerSearchQuery.includes('@')
+            ? `email=${customerSearchQuery}`
+            : `phone=${customerSearchQuery}`
+        }`
+      );
+
       if (response.status === 404) {
         return null;
       }
-      
+
       const data = await response.json();
       return data as Customer;
     },
-    enabled: customerSearchQuery.length >= 3
+    enabled: customerSearchQuery.length >= 3,
   });
 
   // Watch for customer search results
@@ -221,17 +216,14 @@ function ReturnProcessForm() {
     // Check if product already exists
     if (selectedProducts.some(p => p.id === product.id)) {
       // Update quantity if it exists
-      setSelectedProducts(prev => 
-        prev.map(p => p.id === product.id 
-          ? { ...p, quantity: p.quantity + 1 } 
-          : p
-        )
+      setSelectedProducts(prev =>
+        prev.map(p => (p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p))
       );
     } else {
       // Add new product with quantity 1
       setSelectedProducts(prev => [...prev, { ...product, quantity: 1 }]);
     }
-    setSearchQuery("");
+    setSearchQuery('');
   };
 
   // Remove a product from the return
@@ -245,15 +237,13 @@ function ReturnProcessForm() {
       removeProduct(productId);
       return;
     }
-    
-    setSelectedProducts(prev => 
-      prev.map(p => p.id === productId ? { ...p, quantity } : p)
-    );
+
+    setSelectedProducts(prev => prev.map(p => (p.id === productId ? { ...p, quantity } : p)));
   };
 
   // Calculate total refund amount
   const totalRefundAmount = selectedProducts.reduce(
-    (total, product) => total + (parseFloat(product.price) * product.quantity),
+    (total, product) => total + parseFloat(product.price) * product.quantity,
     0
   );
 
@@ -261,21 +251,21 @@ function ReturnProcessForm() {
   const handleSubmit = async () => {
     if (selectedProducts.length === 0) {
       toast({
-        title: "Error",
-        description: "Please select at least one product to return",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Please select at least one product to return',
+        variant: 'destructive',
       });
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // Prepare return items with reasons
       const items = selectedProducts.map(product => {
         const itemElement = document.getElementById(`reason-${product.id}`) as HTMLSelectElement;
         const reasonId = itemElement ? parseInt(itemElement.value) : null;
-        
+
         return {
           productId: product.id,
           quantity: product.quantity,
@@ -283,10 +273,10 @@ function ReturnProcessForm() {
           refundAmount: (parseFloat(product.price) * product.quantity).toFixed(2),
           isPerishable: product.isPerishable,
           returnReasonId: reasonId,
-          notes: ""
+          notes: '',
         };
       });
-      
+
       // Create return payload
       const payload = {
         originalTransactionId: selectedTransaction || 0,
@@ -294,34 +284,34 @@ function ReturnProcessForm() {
         customerId: customer?.id,
         totalRefundAmount: totalRefundAmount.toFixed(2),
         items,
-        notes
+        notes,
       };
-      
+
       // Submit to API
-      const response = await apiRequest("POST", "/api/returns", payload);
-      
+      const response = await apiRequest('POST', '/api/returns', payload);
+
       if (response.ok) {
         const data = await response.json();
         toast({
-          title: "Return Processed",
+          title: 'Return Processed',
           description: `Return #${data.returnId} successfully processed`,
         });
-        
+
         // Reset form
         setSelectedProducts([]);
         setCustomer(null);
-        setCustomerSearchQuery("");
+        setCustomerSearchQuery('');
         setSelectedTransaction(null);
-        setNotes("");
+        setNotes('');
       } else {
         const error = await response.json();
-        throw new Error(error.error || "Failed to process return");
+        throw new Error(error.error || 'Failed to process return');
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to process return",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to process return',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -346,7 +336,7 @@ function ReturnProcessForm() {
                 id="customer"
                 placeholder="Search by email or phone"
                 value={customerSearchQuery}
-                onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                onChange={e => setCustomerSearchQuery(e.target.value)}
                 className="flex-1"
               />
               {customer && (
@@ -354,21 +344,21 @@ function ReturnProcessForm() {
                   variant="outline"
                   onClick={() => {
                     setCustomer(null);
-                    setCustomerSearchQuery("");
+                    setCustomerSearchQuery('');
                   }}
                 >
                   Clear
                 </Button>
               )}
             </div>
-            
+
             {isSearchingCustomer && (
               <div className="flex items-center space-x-2">
                 <Skeleton className="h-4 w-4 rounded-full" />
                 <Skeleton className="h-4 w-24" />
               </div>
             )}
-            
+
             {customer && (
               <div className="p-2 border rounded-md">
                 <div className="flex justify-between">
@@ -381,7 +371,7 @@ function ReturnProcessForm() {
               </div>
             )}
           </div>
-          
+
           {/* Transaction Info (optional) */}
           <div className="space-y-2">
             <Label htmlFor="transaction">Transaction ID (Optional)</Label>
@@ -389,11 +379,13 @@ function ReturnProcessForm() {
               id="transaction"
               placeholder="Original transaction ID"
               type="number"
-              value={selectedTransaction || ""}
-              onChange={(e) => setSelectedTransaction(e.target.value ? parseInt(e.target.value) : null)}
+              value={selectedTransaction || ''}
+              onChange={e =>
+                setSelectedTransaction(e.target.value ? parseInt(e.target.value) : null)
+              }
             />
           </div>
-          
+
           {/* Product Search */}
           <div className="space-y-2">
             <Label htmlFor="product-search">Search Products</Label>
@@ -405,11 +397,11 @@ function ReturnProcessForm() {
                   placeholder="Search by name or barcode"
                   className="pl-8"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                 />
               </div>
             </div>
-            
+
             {/* Search Results */}
             {isSearching && searchQuery.length >= 3 && (
               <div className="border rounded-md p-2">
@@ -423,7 +415,7 @@ function ReturnProcessForm() {
                 </div>
               </div>
             )}
-            
+
             {searchResults && searchResults.length > 0 && searchQuery.length >= 3 && (
               <div className="border rounded-md max-h-40 overflow-y-auto">
                 <ul className="divide-y">
@@ -439,8 +431,8 @@ function ReturnProcessForm() {
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{formatCurrency(parseFloat(product.price))}</p>
-                        <Badge variant={product.isPerishable ? "destructive" : "outline"}>
-                          {product.isPerishable ? "Perishable" : "Non-Perishable"}
+                        <Badge variant={product.isPerishable ? 'destructive' : 'outline'}>
+                          {product.isPerishable ? 'Perishable' : 'Non-Perishable'}
                         </Badge>
                       </div>
                     </li>
@@ -448,18 +440,16 @@ function ReturnProcessForm() {
                 </ul>
               </div>
             )}
-            
+
             {searchQuery.length >= 3 && searchResults && searchResults.length === 0 && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>No products found</AlertTitle>
-                <AlertDescription>
-                  No products match your search criteria
-                </AlertDescription>
+                <AlertDescription>No products match your search criteria</AlertDescription>
               </Alert>
             )}
           </div>
-          
+
           {/* Selected Products */}
           {selectedProducts.length > 0 && (
             <div className="space-y-2">
@@ -477,7 +467,7 @@ function ReturnProcessForm() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedProducts.map((product) => (
+                    {selectedProducts.map(product => (
                       <TableRow key={product.id}>
                         <TableCell>
                           <div>
@@ -486,21 +476,26 @@ function ReturnProcessForm() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={product.isPerishable ? "destructive" : "outline"}>
-                            {product.isPerishable ? "Perishable" : "Non-Perishable"}
+                          <Badge variant={product.isPerishable ? 'destructive' : 'outline'}>
+                            {product.isPerishable ? 'Perishable' : 'Non-Perishable'}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <Select defaultValue="">
-                            <SelectTrigger className="w-[180px]" id={`reason-trigger-${product.id}`}>
+                            <SelectTrigger
+                              className="w-[180px]"
+                              id={`reason-trigger-${product.id}`}
+                            >
                               <SelectValue placeholder="Select reason" />
                             </SelectTrigger>
                             <SelectContent>
-                              {!isLoadingReasons && reasons && reasons.map((reason) => (
-                                <SelectItem key={reason.id} value={reason.id.toString()}>
-                                  {reason.name}
-                                </SelectItem>
-                              ))}
+                              {!isLoadingReasons &&
+                                reasons &&
+                                reasons.map(reason => (
+                                  <SelectItem key={reason.id} value={reason.id.toString()}>
+                                    {reason.name}
+                                  </SelectItem>
+                                ))}
                               {isLoadingReasons && (
                                 <SelectItem value="loading">Loading reasons...</SelectItem>
                               )}
@@ -513,7 +508,9 @@ function ReturnProcessForm() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => updateProductQuantity(product.id, product.quantity - 1)}
+                              onClick={() =>
+                                updateProductQuantity(product.id, product.quantity - 1)
+                              }
                             >
                               -
                             </Button>
@@ -522,7 +519,9 @@ function ReturnProcessForm() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => updateProductQuantity(product.id, product.quantity + 1)}
+                              onClick={() =>
+                                updateProductQuantity(product.id, product.quantity + 1)
+                              }
                             >
                               +
                             </Button>
@@ -556,7 +555,7 @@ function ReturnProcessForm() {
               </div>
             </div>
           )}
-          
+
           {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
@@ -564,12 +563,12 @@ function ReturnProcessForm() {
               id="notes"
               placeholder="Additional notes about this return"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value)}
             />
           </div>
-          
+
           {/* Submit Button */}
-          <Button 
+          <Button
             disabled={selectedProducts.length === 0 || isSubmitting}
             onClick={handleSubmit}
             className="w-full"
@@ -596,12 +595,12 @@ function ReturnsHistory() {
 
   // Fetch recent returns
   const { data: recentReturns, isLoading } = useQuery({
-    queryKey: ["/api/returns/recent"],
+    queryKey: ['/api/returns/recent'],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/returns/recent?limit=20");
+      const response = await apiRequest('GET', '/api/returns/recent?limit=20');
       const data = await response.json();
       return data;
-    }
+    },
   });
 
   return (
@@ -610,11 +609,9 @@ function ReturnsHistory() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Returns History</CardTitle>
-            <CardDescription>
-              View and manage return records
-            </CardDescription>
+            <CardDescription>View and manage return records</CardDescription>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             {/* Date Range Picker */}
             <Popover>
@@ -624,10 +621,10 @@ function ReturnsHistory() {
                   {dateRange?.from ? (
                     dateRange.to ? (
                       <>
-                        {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                        {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
                       </>
                     ) : (
-                      format(dateRange.from, "LLL dd, y")
+                      format(dateRange.from, 'LLL dd, y')
                     )
                   ) : (
                     <span>Pick a date range</span>
@@ -637,11 +634,11 @@ function ReturnsHistory() {
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="range"
-                  selected={{ 
-                    from: dateRange.from, 
-                    to: dateRange.to 
+                  selected={{
+                    from: dateRange.from,
+                    to: dateRange.to,
                   }}
-                  onSelect={(range) => {
+                  onSelect={range => {
                     if (range) {
                       setDateRange({ from: range.from, to: range.to });
                     }
@@ -650,9 +647,9 @@ function ReturnsHistory() {
                 />
               </PopoverContent>
             </Popover>
-            
+
             {/* Status Filter */}
-            <Select value={statusFilter || ""} onValueChange={setStatusFilter}>
+            <Select value={statusFilter || ''} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
@@ -663,24 +660,26 @@ function ReturnsHistory() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-            
+
             {/* Apply Filters Button */}
             <Button variant="outline">Apply Filters</Button>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           {isLoading ? (
             <div className="space-y-2">
-              {Array(5).fill(0).map((_, i) => (
-                <div key={i} className="flex items-center space-x-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-[250px]" />
-                    <Skeleton className="h-4 w-[200px]" />
+              {Array(5)
+                .fill(0)
+                .map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-[250px]" />
+                      <Skeleton className="h-4 w-[200px]" />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           ) : (
             <Table>
@@ -695,7 +694,7 @@ function ReturnsHistory() {
                   <TableHead>Processor</TableHead>
                 </TableRow>
               </TableHeader>
-              
+
               <TableBody>
                 {recentReturns && recentReturns.length > 0 ? (
                   recentReturns.map((returnItem: ReturnData) => (
@@ -709,46 +708,56 @@ function ReturnsHistory() {
                             <DialogHeader>
                               <DialogTitle>Return Details - {returnItem.returnId}</DialogTitle>
                               <DialogDescription>
-                                Processed on {format(new Date(returnItem.returnDate), "PPP p")}
+                                Processed on {format(new Date(returnItem.returnDate), 'PPP p')}
                               </DialogDescription>
                             </DialogHeader>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <h4 className="text-sm font-medium mb-1">Customer</h4>
                                 <p className="text-sm">
-                                  {returnItem.customer?.fullName || "No customer information"}
+                                  {returnItem.customer?.fullName || 'No customer information'}
                                 </p>
                                 {returnItem.customer?.email && (
-                                  <p className="text-sm text-muted-foreground">{returnItem.customer.email}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {returnItem.customer.email}
+                                  </p>
                                 )}
                                 {returnItem.customer?.phone && (
-                                  <p className="text-sm text-muted-foreground">{returnItem.customer.phone}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {returnItem.customer.phone}
+                                  </p>
                                 )}
                               </div>
-                              
+
                               <div>
                                 <h4 className="text-sm font-medium mb-1">Status</h4>
                                 <Badge
                                   variant={
-                                    returnItem.status === "completed" ? "default" :
-                                    returnItem.status === "processing" ? "outline" : "destructive"
+                                    returnItem.status === 'completed'
+                                      ? 'default'
+                                      : returnItem.status === 'processing'
+                                        ? 'outline'
+                                        : 'destructive'
                                   }
                                 >
-                                  {returnItem.status.charAt(0).toUpperCase() + returnItem.status.slice(1)}
+                                  {returnItem.status.charAt(0).toUpperCase() +
+                                    returnItem.status.slice(1)}
                                 </Badge>
                               </div>
-                              
+
                               <div>
                                 <h4 className="text-sm font-medium mb-1">Store</h4>
-                                <p className="text-sm">{returnItem.store?.name || "Unknown"}</p>
+                                <p className="text-sm">{returnItem.store?.name || 'Unknown'}</p>
                               </div>
-                              
+
                               <div>
                                 <h4 className="text-sm font-medium mb-1">Processed By</h4>
-                                <p className="text-sm">{returnItem.processor?.fullName || "Unknown"}</p>
+                                <p className="text-sm">
+                                  {returnItem.processor?.fullName || 'Unknown'}
+                                </p>
                               </div>
-                              
+
                               {returnItem.notes && (
                                 <div className="col-span-2">
                                   <h4 className="text-sm font-medium mb-1">Notes</h4>
@@ -756,9 +765,9 @@ function ReturnsHistory() {
                                 </div>
                               )}
                             </div>
-                            
+
                             <Separator className="my-4" />
-                            
+
                             <h4 className="text-sm font-medium mb-2">Returned Items</h4>
                             <Table>
                               <TableHeader>
@@ -771,21 +780,25 @@ function ReturnsHistory() {
                                   <TableHead className="text-right">Refund Amount</TableHead>
                                 </TableRow>
                               </TableHeader>
-                              
+
                               <TableBody>
-                                {returnItem.items.map((item) => (
+                                {returnItem.items.map(item => (
                                   <TableRow key={item.id}>
                                     <TableCell>{item.product.name}</TableCell>
                                     <TableCell>
-                                      <Badge variant={item.isPerishable ? "destructive" : "outline"}>
-                                        {item.isPerishable ? "Perishable" : "Non-Perishable"}
+                                      <Badge
+                                        variant={item.isPerishable ? 'destructive' : 'outline'}
+                                      >
+                                        {item.isPerishable ? 'Perishable' : 'Non-Perishable'}
                                       </Badge>
                                     </TableCell>
                                     <TableCell>
-                                      {item.returnReason?.name || "Not specified"}
+                                      {item.returnReason?.name || 'Not specified'}
                                     </TableCell>
                                     <TableCell>{item.quantity}</TableCell>
-                                    <TableCell>{formatCurrency(parseFloat(item.unitPrice))}</TableCell>
+                                    <TableCell>
+                                      {formatCurrency(parseFloat(item.unitPrice))}
+                                    </TableCell>
                                     <TableCell className="text-right">
                                       {formatCurrency(parseFloat(item.refundAmount))}
                                     </TableCell>
@@ -804,9 +817,9 @@ function ReturnsHistory() {
                           </DialogContent>
                         </Dialog>
                       </TableCell>
-                      
-                      <TableCell>{format(new Date(returnItem.returnDate), "PP")}</TableCell>
-                      
+
+                      <TableCell>{format(new Date(returnItem.returnDate), 'PP')}</TableCell>
+
                       <TableCell>
                         {returnItem.customer ? (
                           <div className="flex items-center">
@@ -818,7 +831,9 @@ function ReturnsHistory() {
                             <div>
                               <p className="text-sm font-medium">{returnItem.customer.fullName}</p>
                               <p className="text-xs text-gray-500">
-                                {returnItem.customer.email || returnItem.customer.phone || "No contact info"}
+                                {returnItem.customer.email ||
+                                  returnItem.customer.phone ||
+                                  'No contact info'}
                               </p>
                             </div>
                           </div>
@@ -826,34 +841,35 @@ function ReturnsHistory() {
                           <span className="text-muted-foreground">No customer</span>
                         )}
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center">
                           <span className="font-medium mr-1">{returnItem.items.length}</span>
                           <span className="text-muted-foreground">
-                            {returnItem.items.length === 1 ? "item" : "items"}
+                            {returnItem.items.length === 1 ? 'item' : 'items'}
                           </span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <Badge
                           variant={
-                            returnItem.status === "completed" ? "default" :
-                            returnItem.status === "processing" ? "outline" : "destructive"
+                            returnItem.status === 'completed'
+                              ? 'default'
+                              : returnItem.status === 'processing'
+                                ? 'outline'
+                                : 'destructive'
                           }
                         >
                           {returnItem.status.charAt(0).toUpperCase() + returnItem.status.slice(1)}
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell className="text-right">
                         {formatCurrency(parseFloat(returnItem.totalRefundAmount))}
                       </TableCell>
-                      
-                      <TableCell>
-                        {returnItem.processor?.fullName || "Unknown"}
-                      </TableCell>
+
+                      <TableCell>{returnItem.processor?.fullName || 'Unknown'}</TableCell>
                     </TableRow>
                   ))
                 ) : (
@@ -875,12 +891,12 @@ function ReturnsHistory() {
 function ReturnAnalytics() {
   // Fetch analytics data
   const { data: analytics, isLoading } = useQuery({
-    queryKey: ["/api/returns/analytics"],
+    queryKey: ['/api/returns/analytics'],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/returns/analytics");
+      const response = await apiRequest('GET', '/api/returns/analytics');
       const data = await response.json();
       return data as ReturnAnalytics;
-    }
+    },
   });
 
   return (
@@ -900,7 +916,7 @@ function ReturnAnalytics() {
             )}
           </CardContent>
         </Card>
-        
+
         {/* Total Refund Amount Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -928,7 +944,7 @@ function ReturnAnalytics() {
             )}
           </CardContent>
         </Card>
-        
+
         {/* Perishable vs Non-Perishable Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -948,7 +964,7 @@ function ReturnAnalytics() {
             )}
           </CardContent>
         </Card>
-        
+
         {/* Restocked Items Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -964,25 +980,25 @@ function ReturnAnalytics() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Breakdown by Store */}
         <Card className="h-[400px]">
           <CardHeader>
             <CardTitle>Returns by Store</CardTitle>
-            <CardDescription>
-              Number of returns and refund amounts by store
-            </CardDescription>
+            <CardDescription>Number of returns and refund amounts by store</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="space-y-2">
-                {Array(4).fill(0).map((_, i) => (
-                  <div key={i} className="w-full">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4 mt-1" />
-                  </div>
-                ))}
+                {Array(4)
+                  .fill(0)
+                  .map((_, i) => (
+                    <div key={i} className="w-full">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4 mt-1" />
+                    </div>
+                  ))}
               </div>
             ) : analytics?.storeBreakdown && analytics.storeBreakdown.length > 0 ? (
               <ScrollArea className="h-[300px]">
@@ -999,7 +1015,9 @@ function ReturnAnalytics() {
                       <TableRow key={index}>
                         <TableCell>{store.storeName}</TableCell>
                         <TableCell>{store.returnCount}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(store.refundAmount)}</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(store.refundAmount)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1012,24 +1030,24 @@ function ReturnAnalytics() {
             )}
           </CardContent>
         </Card>
-        
+
         {/* Breakdown by Reason */}
         <Card className="h-[400px]">
           <CardHeader>
             <CardTitle>Return Reasons</CardTitle>
-            <CardDescription>
-              Breakdown of returns by reason
-            </CardDescription>
+            <CardDescription>Breakdown of returns by reason</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="space-y-2">
-                {Array(4).fill(0).map((_, i) => (
-                  <div key={i} className="w-full">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-2/3 mt-1" />
-                  </div>
-                ))}
+                {Array(4)
+                  .fill(0)
+                  .map((_, i) => (
+                    <div key={i} className="w-full">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3 mt-1" />
+                    </div>
+                  ))}
               </div>
             ) : analytics?.reasonBreakdown && analytics.reasonBreakdown.length > 0 ? (
               <ScrollArea className="h-[300px]">
@@ -1077,15 +1095,15 @@ export default function ReturnsPage() {
             <TabsTrigger value="history">Returns History</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="process">
             <ReturnProcessForm />
           </TabsContent>
-          
+
           <TabsContent value="history">
             <ReturnsHistory />
           </TabsContent>
-          
+
           <TabsContent value="analytics">
             <ReturnAnalytics />
           </TabsContent>

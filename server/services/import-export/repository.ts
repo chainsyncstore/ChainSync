@@ -1,5 +1,6 @@
+import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors.js';
+
 import { ImportExportResult } from './types';
-import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
 
 export class ImportExportRepository {
   async createImport(userId: number, entityType: string, options?: unknown): Promise<string> {
@@ -8,7 +9,11 @@ export class ImportExportRepository {
       // This is a placeholder and should be implemented based on your database
       return crypto.randomUUID();
     } catch (error: unknown) {
-      throw new AppError('Failed to create import record', ErrorCategory.IMPORT_EXPORT, ErrorCode.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        'Failed to create import record',
+        ErrorCategory.IMPORT_EXPORT,
+        ErrorCode.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
@@ -18,7 +23,11 @@ export class ImportExportRepository {
       // This is a placeholder and should be implemented based on your database
       return [];
     } catch (error: unknown) {
-      throw new AppError('Failed to get export data', ErrorCategory.IMPORT_EXPORT, ErrorCode.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        'Failed to get export data',
+        ErrorCategory.IMPORT_EXPORT,
+        ErrorCode.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
@@ -28,7 +37,11 @@ export class ImportExportRepository {
       // This is a placeholder and should be implemented based on your database
       return { errors: [] };
     } catch (error: unknown) {
-      throw new AppError('Failed to process batch', ErrorCategory.IMPORT_EXPORT, ErrorCode.INTERNAL_SERVER_ERROR);
+      throw new AppError(
+        'Failed to process batch',
+        ErrorCategory.IMPORT_EXPORT,
+        ErrorCode.INTERNAL_SERVER_ERROR
+      );
     }
   }
 }

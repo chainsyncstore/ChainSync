@@ -1,5 +1,8 @@
-import { z } from 'zod';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { eq, and, sql } from 'drizzle-orm';
+import { z } from 'zod';
+
+import { LoyaltyMember, MemberWithDetails } from './types';
 import {
   loyaltyMembers,
   loyaltyPrograms,
@@ -10,8 +13,6 @@ import {
   customers,
 } from '../../../shared/db';
 import { BaseService, ServiceConfig } from '../base/standard-service';
-import { LoyaltyMember, MemberWithDetails } from './types';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 // --- Schemas ---
 export const memberCreateSchema = z.object({
@@ -49,7 +50,7 @@ export class LoyaltyService extends BaseService<
     TRANSACTION: 1800, // 30 minutes
     LIST: 300, // 5 minutes
   };
-  
+
   /**
    * Helper method to safely convert any value to a string for SQL
    * Uses the proper Drizzle pattern to avoid TypeScript errors
@@ -92,13 +93,10 @@ export class LoyaltyService extends BaseService<
         WHERE m.id = ${this.safeToString(id)}
         LIMIT 1
       `;
-      
-      const result = await this.executeQuery(
-        async (db) => {
-          return db.execute(query);
-        },
-        'loyalty.getMemberWithDetails'
-      );
+
+      const result = await this.executeQuery(async db => {
+        return db.execute(query);
+      }, 'loyalty.getMemberWithDetails');
 
       // Type-safe check for empty results
       const rows = result.rows || [];
@@ -107,7 +105,7 @@ export class LoyaltyService extends BaseService<
       }
 
       const row = rows[0] as Record<string, any>;
-      
+
       // Create properly structured MemberWithDetails object
       const memberWithDetails: MemberWithDetails = {
         id: Number(row.id),
@@ -117,9 +115,13 @@ export class LoyaltyService extends BaseService<
         tierId: row.tier_id ? Number(row.tier_id) : null,
         points: Number(row.points),
         lifetimePoints: row.lifetime_points ? Number(row.lifetime_points) : Number(row.points), // Default to points if not present
-        status: row.status ? String(row.status) as LoyaltyMember['status'] : 'active',
-        enrollmentDate: row.enrollment_date ? new Date(row.enrollment_date) : new Date(row.created_at),
-        lastActivityDate: row.last_activity_date ? new Date(row.last_activity_date) : new Date(row.updated_at),
+        status: row.status ? (String(row.status) as LoyaltyMember['status']) : 'active',
+        enrollmentDate: row.enrollment_date
+          ? new Date(row.enrollment_date)
+          : new Date(row.created_at),
+        lastActivityDate: row.last_activity_date
+          ? new Date(row.last_activity_date)
+          : new Date(row.updated_at),
         metadata: row.metadata ? JSON.parse(String(row.metadata)) : undefined,
         createdAt: new Date(row.created_at),
         updatedAt: new Date(row.updated_at),
@@ -133,10 +135,13 @@ export class LoyaltyService extends BaseService<
           id: Number(row.p_program_id), // Use aliased p_program_id
           name: String(row.program_name),
         },
-        tier: row.t_tier_id ? { // Use aliased t_tier_id
-          id: Number(row.t_tier_id),
-          name: String(row.tier_name),
-        } : { id: 0, name: 'Default Tier' }, // Consider if default tier should be null or fetched
+        tier: row.t_tier_id
+          ? {
+              // Use aliased t_tier_id
+              id: Number(row.t_tier_id),
+              name: String(row.tier_name),
+            }
+          : { id: 0, name: 'Default Tier' }, // Consider if default tier should be null or fetched
       };
 
       if (this.cache) {
@@ -146,7 +151,12 @@ export class LoyaltyService extends BaseService<
       return memberWithDetails;
     } catch (error) {
       this.logger.error(`Error fetching loyalty member with details for ID: ${id}`, { error });
-      throw new AppError(`Error fetching loyalty member with details`, ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error, id });
+      throw new AppError(
+        `Error fetching loyalty member with details`,
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error, id }
+      );
     }
   }
 
@@ -185,12 +195,9 @@ export class LoyaltyService extends BaseService<
         `;
       }
 
-      const result = await this.executeQuery(
-        async (db) => {
-          return db.execute(query);
-        },
-        'loyalty.getMemberByCustomerId'
-      );
+      const result = await this.executeQuery(async db => {
+        return db.execute(query);
+      }, 'loyalty.getMemberByCustomerId');
 
       // Ensure we have a properly structured LoyaltyMember
       let member: LoyaltyMember | null = null;
@@ -205,14 +212,18 @@ export class LoyaltyService extends BaseService<
           tierId: row.tier_id !== null ? Number(row.tier_id) : null,
           points: Number(row.points),
           lifetimePoints: row.lifetime_points ? Number(row.lifetime_points) : Number(row.points),
-          status: row.status ? String(row.status) as LoyaltyMember['status'] : 'active',
-          enrollmentDate: row.enrollment_date ? new Date(row.enrollment_date) : new Date(row.created_at),
-          lastActivityDate: row.last_activity_date ? new Date(row.last_activity_date) : new Date(row.updated_at),
+          status: row.status ? (String(row.status) as LoyaltyMember['status']) : 'active',
+          enrollmentDate: row.enrollment_date
+            ? new Date(row.enrollment_date)
+            : new Date(row.created_at),
+          lastActivityDate: row.last_activity_date
+            ? new Date(row.last_activity_date)
+            : new Date(row.updated_at),
           metadata: row.metadata ? JSON.parse(String(row.metadata)) : undefined,
           createdAt: new Date(row.created_at),
-          updatedAt: new Date(row.updated_at)
+          updatedAt: new Date(row.updated_at),
         };
-        
+
         if (this.cache) {
           await this.cache.set(cacheKey, member, this.CACHE_TTL.MEMBER);
         }
@@ -221,7 +232,12 @@ export class LoyaltyService extends BaseService<
       return member;
     } catch (error) {
       this.logger.error(`Error fetching loyalty member by customer ID: ${customerId}`, { error });
-      throw new AppError(`Error fetching loyalty member by customer ID`, ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error, customerId });
+      throw new AppError(
+        `Error fetching loyalty member by customer ID`,
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error, customerId }
+      );
     }
   }
 
@@ -248,12 +264,9 @@ export class LoyaltyService extends BaseService<
         LIMIT 1
       `;
 
-      const result = await this.executeQuery(
-        async (db) => {
-          return db.execute(query);
-        },
-        'loyalty.getMemberByLoyaltyId'
-      );
+      const result = await this.executeQuery(async db => {
+        return db.execute(query);
+      }, 'loyalty.getMemberByLoyaltyId');
 
       // Ensure we have a properly structured LoyaltyMember
       let member: LoyaltyMember | null = null;
@@ -268,14 +281,18 @@ export class LoyaltyService extends BaseService<
           tierId: row.tier_id !== null ? Number(row.tier_id) : null,
           points: Number(row.points),
           lifetimePoints: row.lifetime_points ? Number(row.lifetime_points) : Number(row.points),
-          status: row.status ? String(row.status) as LoyaltyMember['status'] : 'active',
-          enrollmentDate: row.enrollment_date ? new Date(row.enrollment_date) : new Date(row.created_at),
-          lastActivityDate: row.last_activity_date ? new Date(row.last_activity_date) : new Date(row.updated_at),
+          status: row.status ? (String(row.status) as LoyaltyMember['status']) : 'active',
+          enrollmentDate: row.enrollment_date
+            ? new Date(row.enrollment_date)
+            : new Date(row.created_at),
+          lastActivityDate: row.last_activity_date
+            ? new Date(row.last_activity_date)
+            : new Date(row.updated_at),
           metadata: row.metadata ? JSON.parse(String(row.metadata)) : undefined,
           createdAt: new Date(row.created_at),
-          updatedAt: new Date(row.updated_at)
+          updatedAt: new Date(row.updated_at),
         };
-        
+
         if (this.cache) {
           await this.cache.set(cacheKey, member, this.CACHE_TTL.MEMBER);
         }
@@ -284,8 +301,12 @@ export class LoyaltyService extends BaseService<
       return member;
     } catch (error) {
       this.logger.error(`Error fetching loyalty member by loyalty ID: ${loyaltyId}`, { error });
-      throw new AppError(`Error fetching loyalty member by loyalty ID`, ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error, loyaltyId });
+      throw new AppError(
+        `Error fetching loyalty member by loyalty ID`,
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error, loyaltyId }
+      );
     }
   }
-
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { ImportExportErrorCode } from '../../../shared/types/import-export-errors';
 
 // Base schema for all import/export data
@@ -25,10 +26,12 @@ export const productSchema = baseSchema.extend({
 // Order-specific validation schema
 export const orderSchema = baseSchema.extend({
   userId: z.number(),
-  items: z.array(z.object({
-    productId: z.number(),
-    quantity: z.number().min(1),
-  })),
+  items: z.array(
+    z.object({
+      productId: z.number(),
+      quantity: z.number().min(1),
+    })
+  ),
   status: z.enum(['PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
   shippingAddress: z.object({
     street: z.string().min(1),

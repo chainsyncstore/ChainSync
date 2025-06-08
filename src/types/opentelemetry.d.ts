@@ -3,13 +3,13 @@
 
 declare module '@opentelemetry/sdk-node' {
   import { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
-  
+
   export class NodeSDK {
     constructor(config?: NodeSDKConfiguration);
     start(): Promise<void>;
     shutdown(): Promise<void>;
   }
-  
+
   export interface NodeSDKConfiguration {
     resource?: unknown;
     spanProcessor?: unknown;
@@ -25,10 +25,7 @@ declare module '@opentelemetry/auto-instrumentations-node' {
 
 declare module '@opentelemetry/exporter-trace-otlp-http' {
   export class OTLPTraceExporter {
-    constructor(config?: {
-      url?: string;
-      headers?: Record<string, string>;
-    });
+    constructor(config?: { url?: string; headers?: Record<string, string> });
   }
 }
 
@@ -73,13 +70,19 @@ declare module '@opentelemetry/instrumentation-redis' {
 }
 
 declare module '@opentelemetry/api' {
-  import { Tracer as ActualTracer, Span as ActualSpan, Context as ActualContext, TraceAPI, ContextAPI } from '@opentelemetry/api';
+  import {
+    Tracer as ActualTracer,
+    Span as ActualSpan,
+    Context as ActualContext,
+    TraceAPI,
+    ContextAPI,
+  } from '@opentelemetry/api';
 
   export const trace: TraceAPI & {
     getTracer(name: string, version?: string): ActualTracer;
     getSpan(context: ActualContext): ActualSpan | undefined;
   };
-  
+
   export const context: ContextAPI & {
     active(): ActualContext;
   };

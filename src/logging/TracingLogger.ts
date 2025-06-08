@@ -1,6 +1,6 @@
 // src/logging/TracingLogger.ts
-import { Logger, LogLevel, LogMeta, BaseLogger, ConsoleLogger } from './Logger';
-import { getCurrentTraceContext } from '../monitoring/tracing';
+import { Logger, LogLevel, LogMeta, BaseLogger, ConsoleLogger } from './Logger.js';
+import { getCurrentTraceContext } from '../monitoring/tracing.js';
 
 /**
  * Logger that automatically includes OpenTelemetry trace context in logs
@@ -40,7 +40,7 @@ export class TracingLogger implements Logger {
     return {
       ...meta,
       traceId: traceContext.traceId,
-      spanId: traceContext.spanId
+      spanId: traceContext.spanId,
     };
   }
 
@@ -98,10 +98,10 @@ export function createTracingLogger(
   } else if (level !== undefined) {
     baseLogger.setLevel(level);
   }
-  
+
   if (context) {
     baseLogger.addContext(context);
   }
-  
+
   return new TracingLogger(baseLogger);
 }

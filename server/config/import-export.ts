@@ -34,11 +34,11 @@ export const defaultImportExportConfig: ImportExportConfig = {
     maxAttempts: 3,
     initialDelay: 1000, // 1 second
     maxDelay: 30000, // 30 seconds
-    backoffFactor: 2
+    backoffFactor: 2,
   },
   storage: {
     type: 'local',
-    path: './imports'
+    path: './imports',
   },
   errorHandling: {
     cleanupTimeout: 300000, // 5 minutes
@@ -46,8 +46,8 @@ export const defaultImportExportConfig: ImportExportConfig = {
     maxRetryAttempts: 3,
     initialRetryDelay: 1000, // 1 second
     maxRetryDelay: 30000, // 30 seconds
-    backoffFactor: 2
-  }
+    backoffFactor: 2,
+  },
 };
 
 export interface ImportExportError extends AppError {
@@ -98,7 +98,11 @@ export const ImportExportServiceErrors = {
     'Failed to update progress',
     ErrorCategory.SYSTEM,
     ErrorCode.INTERNAL_SERVER_ERROR,
-    { retryable: true, retryDelay: 5000, userMessage: 'Failed to update progress. Please try again' },
+    {
+      retryable: true,
+      retryDelay: 5000,
+      userMessage: 'Failed to update progress. Please try again',
+    },
     500
-  )
+  ),
 };

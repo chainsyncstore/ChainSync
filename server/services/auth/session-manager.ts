@@ -1,6 +1,7 @@
-import * as uuid from 'uuid';
 import { Request, Response, NextFunction } from 'express';
 import { createClient, RedisClientType } from 'redis';
+import * as uuid from 'uuid';
+
 import { getLogger } from '../../../src/logging';
 
 const logger = getLogger().child({ component: 'session-manager' });
@@ -69,7 +70,7 @@ export class SessionManager {
     this.options = {
       timeout: options.timeout || 3600, // 1 hour
       cookieName: options.cookieName || 'chain-sync-sid',
-      secure: options.secure ?? (process.env.NODE_ENV === 'production'),
+      secure: options.secure ?? process.env.NODE_ENV === 'production',
       domain: options.domain || '',
       path: options.path || '/',
       httpOnly: options.httpOnly ?? true,
@@ -88,7 +89,7 @@ export class SessionManager {
   private async initRedis() {
     try {
       this.redisClient = createClient({ url: this.options.redisUrl });
-      
+
       this.redisClient.on('error', (err: Error) => {
         logger.error('Redis session store error', { error: err.message });
       });
@@ -110,7 +111,7 @@ export class SessionManager {
   async createSession(userId: string, role: string, req: Request): Promise<Session> {
     const sessionId = uuid.v4();
     const now = Date.now();
-    
+
     const session: Session = {
       id: sessionId,
       userId,
@@ -119,8 +120,8 @@ export class SessionManager {
       userAgent: req.headers['user-agent'] || '',
       lastActive: now,
       created: now,
-      expires: now + (this.options.timeout * 1000),
-      data: {}
+      expires: now + this.options.timeout * 1000,
+      data: {},
     };
 
     // Store session in Redis
@@ -128,7 +129,7 @@ export class SessionManager {
       const key = `session:${sessionId}`;
       await this.redisClient.set(key, JSON.stringify(session));
       await this.redisClient.expireAt(key, Math.floor(session.expires / 1000));
-      
+
       // Add to user's sessions set
       await this.redisClient.sAdd(`user:${userId}:sessions`, sessionId);
     } else {
@@ -149,20 +150,20 @@ export class SessionManager {
 
     const key = `session:${sessionId}`;
     const data = await this.redisClient.get(key);
-    
+
     if (!data) {
       return null;
     }
 
     try {
       const session = JSON.parse(data) as Session;
-      
+
       // Check if session is expired
       if (session.expires < Date.now()) {
         await this.deleteSession(sessionId);
         return null;
       }
-      
+
       return session;
     } catch (err: unknown) {
       logger.error('Failed to parse session data', { error: (err as Error).message, sessionId });
@@ -186,7 +187,7 @@ export class SessionManager {
 
     // Update last active and expiry time
     session.lastActive = Date.now();
-    session.expires = Date.now() + (this.options.timeout * 1000);
+    session.expires = Date.now() + this.options.timeout * 1000;
 
     // Save updated session
     const key = `session:${sessionId}`;
@@ -206,37 +207,39 @@ export class SessionManager {
       try {
         // Check if cookie-parser middleware is installed
         if (!(req as any).cookies) {
-          logger.warn('cookie-parser middleware is not installed, session management will not work');
+          logger.warn(
+            'cookie-parser middleware is not installed, session management will not work'
+          );
           return next();
         }
-        
+
         // Extract session ID from cookie
         const sessionId = (req as any).cookies[this.options.cookieName];
-        
+
         if (!sessionId) {
           // No session cookie, continue without session
           return next();
         }
-        
+
         // Get session from store
         const session = await this.getSession(sessionId);
-        
+
         if (!session) {
           // Invalid or expired session, clear cookie
           this.clearSessionCookie(res);
           return next();
         }
-        
+
         // Attach session to request object
         (req as any).session = session;
         (req as any).user = { id: session.userId, role: session.role };
-        
+
         // Refresh session if rolling is enabled
         if (this.options.rolling) {
           await this.refreshSession(sessionId);
           this.setSessionCookie(res, sessionId);
         }
-        
+
         next();
       } catch (err) {
         logger.error('Session middleware error', { error: (err as Error).message });
@@ -244,7 +247,7 @@ export class SessionManager {
       }
     };
   }
-  
+
   /**
    * Delete a session
    */
@@ -257,16 +260,16 @@ export class SessionManager {
     try {
       // Get session first to get the user ID
       const session = await this.getSession(sessionId);
-      
+
       // Delete session key
       const key = `session:${sessionId}`;
       await this.redisClient.del(key);
-      
+
       // Remove from user's sessions set if session exists
       if (session) {
         await this.redisClient.sRem(`user:${session.userId}:sessions`, sessionId);
       }
-      
+
       return true;
     } catch (err: unknown) {
       logger.error('Failed to delete session', { error: (err as Error).message, sessionId });
@@ -286,20 +289,20 @@ export class SessionManager {
     try {
       // Get all session IDs for the user
       const sessionIds = await this.redisClient.sMembers(`user:${userId}:sessions`);
-      
+
       if (!sessionIds || sessionIds.length === 0) {
         return 0;
       }
-      
+
       // Delete each session
       for (const sessionId of sessionIds) {
         const key = `session:${sessionId}`;
         await this.redisClient.del(key);
       }
-      
+
       // Delete the user's sessions set
       await this.redisClient.del(`user:${userId}:sessions`);
-      
+
       return sessionIds.length;
     } catch (err: unknown) {
       logger.error('Failed to delete user sessions', { error: (err as Error).message, userId });
@@ -319,11 +322,11 @@ export class SessionManager {
     try {
       // Get all session IDs for the user
       const sessionIds = await this.redisClient.sMembers(`user:${userId}:sessions`);
-      
+
       if (!sessionIds || sessionIds.length === 0) {
         return [];
       }
-      
+
       // Get each session
       const sessions: Session[] = [];
       for (const sessionId of sessionIds) {
@@ -332,7 +335,7 @@ export class SessionManager {
           sessions.push(session);
         }
       }
-      
+
       return sessions;
     } catch (err: unknown) {
       logger.error('Failed to get user sessions', { error: (err as Error).message, userId });
@@ -350,7 +353,7 @@ export class SessionManager {
       secure: this.options.secure,
       httpOnly: this.options.httpOnly,
       sameSite: this.options.sameSite,
-      maxAge: this.options.timeout * 1000
+      maxAge: this.options.timeout * 1000,
     });
   }
 
@@ -360,7 +363,7 @@ export class SessionManager {
   clearSessionCookie(res: Response): void {
     res.clearCookie(this.options.cookieName, {
       path: this.options.path,
-      domain: this.options.domain
+      domain: this.options.domain,
     });
   }
 
@@ -389,7 +392,7 @@ export class SessionManager {
 
     return true;
   }
-  
+
   /**
    * Gracefully shutdown the session manager
    */

@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build" # Executes 'npm run build:client && npm run build:server'
+  publish = "dist"        # Assumes Vite outputs client assets to the root of 'dist'
+                          # and the server build is in 'dist/server'.
+                          # The deployment platform needs to correctly serve static assets
+                          # from 'dist' and run the Node.js server from 'dist/server/index.js'
+                          # (likely using the "start" script in package.json).
+
+[build.environment]
+  NODE_VERSION = "18" # As specified in package.json

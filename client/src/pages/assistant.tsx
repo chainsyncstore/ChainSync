@@ -1,21 +1,16 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
+import { LightbulbIcon, ArrowRightIcon, SendIcon, AlertTriangleIcon, BotIcon } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
+
 import { AppShell } from '@/components/layout/app-shell';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/providers/auth-provider';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 import { apiRequest } from '@/lib/queryClient';
 import { getInitials } from '@/lib/utils';
-import { 
-  LightbulbIcon, 
-  ArrowRightIcon, 
-  SendIcon, 
-  AlertTriangleIcon,
-  BotIcon
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/providers/auth-provider';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -33,12 +28,13 @@ export default function AssistantPage() {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  
+
   // Fetch conversation history with default value
-  const { data: conversationData = { messages: [] }, isLoading: isLoadingConversation } = useQuery<ConversationData>({
-    queryKey: ['/api/ai/conversation'],
-  });
-  
+  const { data: conversationData = { messages: [] }, isLoading: isLoadingConversation } =
+    useQuery<ConversationData>({
+      queryKey: ['/api/ai/conversation'],
+    });
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -58,7 +54,7 @@ export default function AssistantPage() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    
+
     sendMessageMutation.mutate(message);
     setMessage('');
   };
@@ -68,7 +64,9 @@ export default function AssistantPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-neutral-800">AI Assistant</h1>
-          <p className="text-neutral-500 mt-1">Get instant help and insights with our AI-powered assistant</p>
+          <p className="text-neutral-500 mt-1">
+            Get instant help and insights with our AI-powered assistant
+          </p>
         </div>
       </div>
 
@@ -79,10 +77,12 @@ export default function AssistantPage() {
               <CardTitle className="font-semibold text-lg flex items-center">
                 <BotIcon className="h-5 w-5 mr-2 text-primary" />
                 Dialogflow Assistant
-                <span className="ml-2 bg-accent text-white text-xs py-0.5 px-2 rounded">Powered by Google Dialogflow</span>
+                <span className="ml-2 bg-accent text-white text-xs py-0.5 px-2 rounded">
+                  Powered by Google Dialogflow
+                </span>
               </CardTitle>
             </CardHeader>
-            
+
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
               {isLoadingConversation ? (
                 <div className="space-y-4 py-4">
@@ -98,13 +98,19 @@ export default function AssistantPage() {
                   </div>
                   <h3 className="text-lg font-medium mb-2">How can I help you today?</h3>
                   <p className="text-muted-foreground max-w-md mb-6">
-                    Ask me about inventory levels, sales performance, or any analytics data you're looking for.
+                    Ask me about inventory levels, sales performance, or any analytics data you're
+                    looking for.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
-                    {["Show me low stock items", "What are today's sales?", "Compare store performance", "Check expiring inventory"].map((suggestion) => (
-                      <Button 
+                    {[
+                      'Show me low stock items',
+                      "What are today's sales?",
+                      'Compare store performance',
+                      'Check expiring inventory',
+                    ].map(suggestion => (
+                      <Button
                         key={suggestion}
-                        variant="outline" 
+                        variant="outline"
                         className="justify-start"
                         onClick={() => {
                           sendMessageMutation.mutate(suggestion);
@@ -119,8 +125,8 @@ export default function AssistantPage() {
               ) : (
                 <div className="py-4">
                   {conversationData.messages.map((msg, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className={`mb-4 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       {msg.role === 'assistant' && (
@@ -130,10 +136,10 @@ export default function AssistantPage() {
                           </div>
                         </div>
                       )}
-                      
-                      <div 
+
+                      <div
                         className={`max-w-[75%] p-3 rounded-lg ${
-                          msg.role === 'user' 
+                          msg.role === 'user'
                             ? 'bg-primary text-white rounded-tr-none ml-auto'
                             : 'bg-secondary/10 rounded-tl-none'
                         }`}
@@ -149,12 +155,17 @@ export default function AssistantPage() {
                           <div>
                             <p className="whitespace-pre-line text-sm">{msg.content}</p>
                             <p className="text-xs opacity-70 mt-1">
-                              {formatDistanceToNow(new Date(Date.now() - (conversationData.messages.length - index) * 60000), { addSuffix: true })}
+                              {formatDistanceToNow(
+                                new Date(
+                                  Date.now() - (conversationData.messages.length - index) * 60000
+                                ),
+                                { addSuffix: true }
+                              )}
                             </p>
                           </div>
                         )}
                       </div>
-                      
+
                       {msg.role === 'user' && (
                         <div className="flex-shrink-0 ml-3">
                           <div className="w-8 h-8 rounded-full bg-neutral-300 flex items-center justify-center text-neutral-700">
@@ -170,20 +181,17 @@ export default function AssistantPage() {
                 </div>
               )}
             </CardContent>
-            
+
             <form onSubmit={handleSendMessage} className="p-4 border-t mt-auto">
               <div className="flex">
                 <Input
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={e => setMessage(e.target.value)}
                   placeholder="Type your message..."
                   className="flex-1 mr-2"
                   disabled={sendMessageMutation.isPending}
                 />
-                <Button 
-                  type="submit" 
-                  disabled={!message.trim() || sendMessageMutation.isPending}
-                >
+                <Button type="submit" disabled={!message.trim() || sendMessageMutation.isPending}>
                   {sendMessageMutation.isPending ? (
                     <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
                   ) : (
@@ -197,7 +205,7 @@ export default function AssistantPage() {
             </form>
           </Card>
         </div>
-        
+
         <div className="lg:col-span-3 col-span-1">
           <Card className="border shadow-sm h-fit">
             <CardHeader className="border-b py-3 px-4">
@@ -211,7 +219,9 @@ export default function AssistantPage() {
                   </div>
                   <div>
                     <h4 className="font-medium text-sm">Inventory Insights</h4>
-                    <p className="text-xs text-muted-foreground">Check stock levels, expiring items, and reorder suggestions</p>
+                    <p className="text-xs text-muted-foreground">
+                      Check stock levels, expiring items, and reorder suggestions
+                    </p>
                   </div>
                 </li>
                 <li className="flex items-start">
@@ -220,7 +230,9 @@ export default function AssistantPage() {
                   </div>
                   <div>
                     <h4 className="font-medium text-sm">Sales Analytics</h4>
-                    <p className="text-xs text-muted-foreground">Get real-time sales data and performance metrics</p>
+                    <p className="text-xs text-muted-foreground">
+                      Get real-time sales data and performance metrics
+                    </p>
                   </div>
                 </li>
                 <li className="flex items-start">
@@ -229,7 +241,9 @@ export default function AssistantPage() {
                   </div>
                   <div>
                     <h4 className="font-medium text-sm">Store Comparisons</h4>
-                    <p className="text-xs text-muted-foreground">Compare performance across multiple store locations</p>
+                    <p className="text-xs text-muted-foreground">
+                      Compare performance across multiple store locations
+                    </p>
                   </div>
                 </li>
                 <li className="flex items-start">
@@ -238,7 +252,9 @@ export default function AssistantPage() {
                   </div>
                   <div>
                     <h4 className="font-medium text-sm">Actionable Alerts</h4>
-                    <p className="text-xs text-muted-foreground">Receive proactive alerts about critical business issues</p>
+                    <p className="text-xs text-muted-foreground">
+                      Receive proactive alerts about critical business issues
+                    </p>
                   </div>
                 </li>
               </ul>

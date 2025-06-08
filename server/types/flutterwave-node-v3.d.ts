@@ -1,7 +1,7 @@
 declare module 'flutterwave-node-v3' {
   class Flutterwave {
     constructor(publicKey: string, secretKey: string);
-    
+
     Transfer: {
       initiate(params: {
         account_bank: string;
@@ -23,10 +23,10 @@ declare module 'flutterwave-node-v3' {
           reference: string;
           status: string;
           debit_currency: string;
-        }
+        };
       }>;
     };
-    
+
     Subscription: {
       list(): Promise<{
         status: string;
@@ -43,7 +43,7 @@ declare module 'flutterwave-node-v3' {
           status: string;
         }>;
       }>;
-      
+
       activate(params: { id: number }): Promise<{
         status: string;
         message: string;
@@ -52,7 +52,7 @@ declare module 'flutterwave-node-v3' {
           status: string;
         };
       }>;
-      
+
       cancel(params: { id: number }): Promise<{
         status: string;
         message: string;
@@ -62,7 +62,7 @@ declare module 'flutterwave-node-v3' {
         };
       }>;
     };
-    
+
     Charge: {
       card(params: {
         card_number: string;
@@ -87,6 +87,6 @@ declare module 'flutterwave-node-v3' {
       }>;
     };
   }
-  
+
   export = Flutterwave;
 }

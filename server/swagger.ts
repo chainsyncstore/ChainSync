@@ -1,8 +1,9 @@
 // server/swagger.ts
+import { Express } from 'express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
-import { Express } from 'express';
-import { getLogger } from '../src/logging';
+
+import { getLogger } from '../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'swagger' });
 
@@ -37,13 +38,13 @@ const swaggerOptions = {
         cookieAuth: {
           type: 'apiKey',
           in: 'cookie',
-          name: 'connect.sid'
+          name: 'connect.sid',
         },
         csrfToken: {
           type: 'apiKey',
           in: 'header',
-          name: 'X-CSRF-Token'
-        }
+          name: 'X-CSRF-Token',
+        },
       },
       schemas: {
         Error: {
@@ -51,18 +52,18 @@ const swaggerOptions = {
           properties: {
             error: {
               type: 'string',
-              description: 'Error message'
+              description: 'Error message',
             },
             code: {
               type: 'string',
-              description: 'Error code'
+              description: 'Error code',
             },
             stack: {
               type: 'string',
-              description: 'Error stack trace (only in development)'
-            }
+              description: 'Error stack trace (only in development)',
+            },
           },
-          required: ['error', 'code']
+          required: ['error', 'code'],
         },
         Customer: {
           type: 'object',
@@ -70,37 +71,37 @@ const swaggerOptions = {
             id: {
               type: 'string',
               format: 'uuid',
-              description: 'Customer unique identifier'
+              description: 'Customer unique identifier',
             },
             name: {
               type: 'string',
-              description: 'Customer name'
+              description: 'Customer name',
             },
             email: {
               type: 'string',
               format: 'email',
-              description: 'Customer email address'
+              description: 'Customer email address',
             },
             phone: {
               type: 'string',
-              description: 'Customer phone number'
+              description: 'Customer phone number',
             },
             loyaltyPoints: {
               type: 'integer',
-              description: 'Current loyalty points balance'
+              description: 'Current loyalty points balance',
             },
             createdAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Customer creation timestamp'
+              description: 'Customer creation timestamp',
             },
             updatedAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Customer last update timestamp'
-            }
+              description: 'Customer last update timestamp',
+            },
           },
-          required: ['id', 'name', 'email', 'loyaltyPoints', 'createdAt', 'updatedAt']
+          required: ['id', 'name', 'email', 'loyaltyPoints', 'createdAt', 'updatedAt'],
         },
         Transaction: {
           type: 'object',
@@ -108,49 +109,58 @@ const swaggerOptions = {
             id: {
               type: 'string',
               format: 'uuid',
-              description: 'Transaction unique identifier'
+              description: 'Transaction unique identifier',
             },
             customerId: {
               type: 'string',
               format: 'uuid',
-              description: 'Customer unique identifier'
+              description: 'Customer unique identifier',
             },
             storeId: {
               type: 'string',
               format: 'uuid',
-              description: 'Store unique identifier'
+              description: 'Store unique identifier',
             },
             amount: {
               type: 'number',
               format: 'float',
-              description: 'Transaction amount'
+              description: 'Transaction amount',
             },
             type: {
               type: 'string',
               enum: ['purchase', 'refund', 'adjustment'],
-              description: 'Transaction type'
+              description: 'Transaction type',
             },
             status: {
               type: 'string',
               enum: ['pending', 'completed', 'failed', 'canceled'],
-              description: 'Transaction status'
+              description: 'Transaction status',
             },
             loyaltyPointsEarned: {
               type: 'integer',
-              description: 'Loyalty points earned in this transaction'
+              description: 'Loyalty points earned in this transaction',
             },
             createdAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Transaction creation timestamp'
+              description: 'Transaction creation timestamp',
             },
             updatedAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Transaction last update timestamp'
-            }
+              description: 'Transaction last update timestamp',
+            },
           },
-          required: ['id', 'customerId', 'storeId', 'amount', 'type', 'status', 'createdAt', 'updatedAt']
+          required: [
+            'id',
+            'customerId',
+            'storeId',
+            'amount',
+            'type',
+            'status',
+            'createdAt',
+            'updatedAt',
+          ],
         },
         Store: {
           type: 'object',
@@ -158,32 +168,32 @@ const swaggerOptions = {
             id: {
               type: 'string',
               format: 'uuid',
-              description: 'Store unique identifier'
+              description: 'Store unique identifier',
             },
             name: {
               type: 'string',
-              description: 'Store name'
+              description: 'Store name',
             },
             address: {
               type: 'string',
-              description: 'Store address'
+              description: 'Store address',
             },
             manager: {
               type: 'string',
-              description: 'Store manager name'
+              description: 'Store manager name',
             },
             createdAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Store creation timestamp'
+              description: 'Store creation timestamp',
             },
             updatedAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Store last update timestamp'
-            }
+              description: 'Store last update timestamp',
+            },
           },
-          required: ['id', 'name', 'address', 'createdAt', 'updatedAt']
+          required: ['id', 'name', 'address', 'createdAt', 'updatedAt'],
         },
         Subscription: {
           type: 'object',
@@ -191,71 +201,82 @@ const swaggerOptions = {
             id: {
               type: 'string',
               format: 'uuid',
-              description: 'Subscription unique identifier'
+              description: 'Subscription unique identifier',
             },
             userId: {
               type: 'string',
               format: 'uuid',
-              description: 'User unique identifier'
+              description: 'User unique identifier',
             },
             planId: {
               type: 'string',
-              description: 'Subscription plan identifier'
+              description: 'Subscription plan identifier',
             },
             status: {
               type: 'string',
               enum: ['active', 'canceled', 'expired', 'pending', 'failed'],
-              description: 'Current subscription status'
+              description: 'Current subscription status',
             },
             startDate: {
               type: 'string',
               format: 'date-time',
-              description: 'Subscription start date'
+              description: 'Subscription start date',
             },
             endDate: {
               type: 'string',
               format: 'date-time',
-              description: 'Subscription end date'
+              description: 'Subscription end date',
             },
             renewalDate: {
               type: 'string',
               format: 'date-time',
-              description: 'Next renewal date'
+              description: 'Next renewal date',
             },
             paymentMethod: {
               type: 'string',
               enum: ['card', 'bank', 'paystack', 'flutterwave'],
-              description: 'Payment method used for the subscription'
+              description: 'Payment method used for the subscription',
             },
             amount: {
               type: 'number',
               format: 'float',
-              description: 'Subscription amount'
+              description: 'Subscription amount',
             },
             currency: {
               type: 'string',
-              description: 'Currency code (e.g., USD, NGN)'
+              description: 'Currency code (e.g., USD, NGN)',
             },
             paymentReference: {
               type: 'string',
-              description: 'Reference from payment provider'
+              description: 'Reference from payment provider',
             },
             metadata: {
               type: 'object',
-              description: 'Additional subscription metadata'
+              description: 'Additional subscription metadata',
             },
             createdAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Subscription creation timestamp'
+              description: 'Subscription creation timestamp',
             },
             updatedAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Subscription last update timestamp'
-            }
+              description: 'Subscription last update timestamp',
+            },
           },
-          required: ['id', 'userId', 'planId', 'status', 'startDate', 'endDate', 'amount', 'currency', 'createdAt', 'updatedAt']
+          required: [
+            'id',
+            'userId',
+            'planId',
+            'status',
+            'startDate',
+            'endDate',
+            'amount',
+            'currency',
+            'createdAt',
+            'updatedAt',
+          ],
         },
         LoyaltyUpdate: {
           type: 'object',
@@ -263,38 +284,38 @@ const swaggerOptions = {
             id: {
               type: 'string',
               format: 'uuid',
-              description: 'Loyalty update unique identifier'
+              description: 'Loyalty update unique identifier',
             },
             customerId: {
               type: 'string',
               format: 'uuid',
-              description: 'Customer unique identifier'
+              description: 'Customer unique identifier',
             },
             transactionId: {
               type: 'string',
               format: 'uuid',
-              description: 'Associated transaction ID (if applicable)'
+              description: 'Associated transaction ID (if applicable)',
             },
             points: {
               type: 'integer',
-              description: 'Points added or subtracted'
+              description: 'Points added or subtracted',
             },
             type: {
               type: 'string',
               enum: ['earn', 'redeem', 'adjust', 'expire'],
-              description: 'Type of loyalty update'
+              description: 'Type of loyalty update',
             },
             reason: {
               type: 'string',
-              description: 'Reason for update'
+              description: 'Reason for update',
             },
             createdAt: {
               type: 'string',
               format: 'date-time',
-              description: 'Update timestamp'
-            }
+              description: 'Update timestamp',
+            },
           },
-          required: ['id', 'customerId', 'points', 'type', 'createdAt']
+          required: ['id', 'customerId', 'points', 'type', 'createdAt'],
         },
         User: {
           type: 'object',
@@ -302,48 +323,44 @@ const swaggerOptions = {
             id: {
               type: 'string',
               format: 'uuid',
-              description: 'User unique identifier'
+              description: 'User unique identifier',
             },
             username: {
               type: 'string',
-              description: 'Username'
+              description: 'Username',
             },
             email: {
               type: 'string',
               format: 'email',
-              description: 'User email address'
+              description: 'User email address',
             },
             role: {
               type: 'string',
               enum: ['admin', 'manager', 'cashier', 'customer'],
-              description: 'User role'
+              description: 'User role',
             },
             storeId: {
               type: 'string',
               format: 'uuid',
-              description: 'Associated store ID (for store staff)'
+              description: 'Associated store ID (for store staff)',
             },
             createdAt: {
               type: 'string',
               format: 'date-time',
-              description: 'User creation timestamp'
+              description: 'User creation timestamp',
             },
             updatedAt: {
               type: 'string',
               format: 'date-time',
-              description: 'User last update timestamp'
-            }
+              description: 'User last update timestamp',
+            },
           },
-          required: ['id', 'username', 'email', 'role', 'createdAt', 'updatedAt']
-        }
-      }
-    }
+          required: ['id', 'username', 'email', 'role', 'createdAt', 'updatedAt'],
+        },
+      },
+    },
   },
-  apis: [
-    './server/routes/*.ts',
-    './server/routes/**/*.ts',
-    './server/app.ts'
-  ],
+  apis: ['./server/routes/*.ts', './server/routes/**/*.ts', './server/app.ts'],
 };
 
 // Initialize swagger-jsdoc
@@ -359,13 +376,17 @@ export function setupSwagger(app: Express): void {
   }
 
   // Serve swagger docs
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'ChainSync API Documentation',
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  }));
+  app.use(
+    '/api/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'ChainSync API Documentation',
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    })
+  );
 
   // Serve swagger spec as JSON
   app.get('/api/docs.json', (req, res) => {

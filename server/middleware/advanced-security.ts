@@ -1,9 +1,11 @@
-import { Request, Response, NextFunction, Application, CookieOptions } from 'express'; // Added CookieOptions
-import { getLogger } from '../../src/logging';
-import parseContentSecurityPolicy from 'content-security-policy-parser'; // Changed import style
-import { UAParser } from 'ua-parser-js';
-import ipRangeCheck from 'ip-range-check';
 import { randomBytes } from 'crypto';
+
+import parseContentSecurityPolicy from 'content-security-policy-parser'; // Changed import style
+import { Request, Response, NextFunction, Application, CookieOptions } from 'express'; // Added CookieOptions
+import ipRangeCheck from 'ip-range-check';
+import { UAParser } from 'ua-parser-js';
+
+import { getLogger } from '../../src/logging';
 
 const logger = getLogger().child({ component: 'advanced-security' });
 
@@ -13,55 +15,55 @@ const logger = getLogger().child({ component: 'advanced-security' });
 export interface CSPOptions {
   /** Enable report-only mode (doesn't block, only reports violations) */
   reportOnly?: boolean;
-  
+
   /** URL to send CSP violation reports to */
   reportUri?: string;
-  
+
   /** Default source directives */
   defaultSrc?: string[];
-  
+
   /** Script source directives */
   scriptSrc?: string[];
-  
+
   /** Style source directives */
   styleSrc?: string[];
-  
+
   /** Image source directives */
   imgSrc?: string[];
-  
+
   /** Font source directives */
   fontSrc?: string[];
-  
+
   /** Connect source directives */
   connectSrc?: string[];
-  
+
   /** Frame source directives */
   frameSrc?: string[];
-  
+
   /** Object source directives */
   objectSrc?: string[];
-  
+
   /** Media source directives */
   mediaSrc?: string[];
-  
+
   /** Worker source directives */
   workerSrc?: string[];
-  
+
   /** Manifest source directives */
   manifestSrc?: string[];
-  
+
   /** Base URI directives */
   baseUri?: string[];
-  
+
   /** Form action directives */
   formAction?: string[];
-  
+
   /** Frame ancestors directives */
   frameAncestors?: string[];
-  
+
   /** Block all mixed content */
   blockAllMixedContent?: boolean;
-  
+
   /** Upgrade insecure requests */
   upgradeInsecureRequests?: boolean;
 }
@@ -72,9 +74,9 @@ export interface CSPOptions {
 const DEFAULT_CSP_CONFIG: CSPOptions = {
   defaultSrc: ["'self'"],
   scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-  styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-  imgSrc: ["'self'", "data:", "https://secure.gravatar.com"],
-  fontSrc: ["'self'", "https://fonts.gstatic.com"],
+  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  imgSrc: ["'self'", 'data:', 'https://secure.gravatar.com'],
+  fontSrc: ["'self'", 'https://fonts.gstatic.com'],
   connectSrc: ["'self'"],
   frameSrc: ["'none'"],
   objectSrc: ["'none'"],
@@ -82,7 +84,7 @@ const DEFAULT_CSP_CONFIG: CSPOptions = {
   formAction: ["'self'"],
   frameAncestors: ["'none'"],
   blockAllMixedContent: true,
-  upgradeInsecureRequests: true
+  upgradeInsecureRequests: true,
 };
 
 /**
@@ -90,92 +92,92 @@ const DEFAULT_CSP_CONFIG: CSPOptions = {
  */
 function buildCSPHeader(options: CSPOptions): string {
   const directives: string[] = [];
-  
+
   // Add default-src
   if (options.defaultSrc) {
     directives.push(`default-src ${options.defaultSrc.join(' ')}`);
   }
-  
+
   // Add script-src
   if (options.scriptSrc) {
     directives.push(`script-src ${options.scriptSrc.join(' ')}`);
   }
-  
+
   // Add style-src
   if (options.styleSrc) {
     directives.push(`style-src ${options.styleSrc.join(' ')}`);
   }
-  
+
   // Add img-src
   if (options.imgSrc) {
     directives.push(`img-src ${options.imgSrc.join(' ')}`);
   }
-  
+
   // Add font-src
   if (options.fontSrc) {
     directives.push(`font-src ${options.fontSrc.join(' ')}`);
   }
-  
+
   // Add connect-src
   if (options.connectSrc) {
     directives.push(`connect-src ${options.connectSrc.join(' ')}`);
   }
-  
+
   // Add frame-src
   if (options.frameSrc) {
     directives.push(`frame-src ${options.frameSrc.join(' ')}`);
   }
-  
+
   // Add object-src
   if (options.objectSrc) {
     directives.push(`object-src ${options.objectSrc.join(' ')}`);
   }
-  
+
   // Add media-src
   if (options.mediaSrc) {
     directives.push(`media-src ${options.mediaSrc.join(' ')}`);
   }
-  
+
   // Add worker-src
   if (options.workerSrc) {
     directives.push(`worker-src ${options.workerSrc.join(' ')}`);
   }
-  
+
   // Add manifest-src
   if (options.manifestSrc) {
     directives.push(`manifest-src ${options.manifestSrc.join(' ')}`);
   }
-  
+
   // Add base-uri
   if (options.baseUri) {
     directives.push(`base-uri ${options.baseUri.join(' ')}`);
   }
-  
+
   // Add form-action
   if (options.formAction) {
     directives.push(`form-action ${options.formAction.join(' ')}`);
   }
-  
+
   // Add frame-ancestors
   if (options.frameAncestors) {
     directives.push(`frame-ancestors ${options.frameAncestors.join(' ')}`);
   }
-  
+
   // Add block-all-mixed-content
   if (options.blockAllMixedContent) {
     directives.push('block-all-mixed-content');
   }
-  
+
   // Add upgrade-insecure-requests
   if (options.upgradeInsecureRequests) {
     directives.push('upgrade-insecure-requests');
   }
-  
+
   // Add report-uri
   if (options.reportUri) {
     directives.push(`report-uri ${options.reportUri}`);
   }
-  
+
   return directives.join('; ');
 }
 
@@ -185,11 +187,13 @@ function buildCSPHeader(options: CSPOptions): string {
 export function contentSecurityPolicy(options: CSPOptions = DEFAULT_CSP_CONFIG) {
   // Merge options with defaults
   const config = { ...DEFAULT_CSP_CONFIG, ...options };
-  
+
   // Build CSP header
   const headerValue = buildCSPHeader(config);
-  const headerName = config.reportOnly ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
-  
+  const headerName = config.reportOnly
+    ? 'Content-Security-Policy-Report-Only'
+    : 'Content-Security-Policy';
+
   return (req: Request, res: Response, next: NextFunction) => {
     // Set CSP header
     res.setHeader(headerName, headerValue);
@@ -213,9 +217,9 @@ export function permissionsPolicy() {
     'midi=self',
     'payment=self',
     'picture-in-picture=self',
-    'usb=self'
+    'usb=self',
   ].join(', ');
-  
+
   return (req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Permissions-Policy', policy);
     next();
@@ -238,60 +242,57 @@ export function trustTokens() {
  * IP filtering middleware for restricted endpoints
  */
 export function ipFilter(
-  allowedIPs: string[] = [], 
+  allowedIPs: string[] = [],
   blockedIPs: string[] = [],
-  options: { 
-    allowLocalhost?: boolean,
-    allowPrivateNetworks?: boolean,
-    statusCode?: number, 
-    message?: string 
+  options: {
+    allowLocalhost?: boolean;
+    allowPrivateNetworks?: boolean;
+    statusCode?: number;
+    message?: string;
   } = {}
 ) {
   const defaultOptions = {
     allowLocalhost: true,
     allowPrivateNetworks: true,
     statusCode: 403,
-    message: 'Access denied by IP filter'
+    message: 'Access denied by IP filter',
   };
-  
+
   const config = { ...defaultOptions, ...options };
-  
+
   return (req: Request, res: Response, next: NextFunction) => {
-    const ipAddress = (
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || 
-      req.socket.remoteAddress || 
-      ''
-    );
-    
+    const ipAddress =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
+      req.socket.remoteAddress ||
+      '';
+
     // Always allow localhost if configured
     if (config.allowLocalhost && (ipAddress === '127.0.0.1' || ipAddress === '::1')) {
       return next();
     }
-    
+
     // Allow private networks if configured
-    const privateNetworks = [
-      '10.0.0.0/8',
-      '172.16.0.0/12',
-      '192.168.0.0/16',
-      'fc00::/7'
-    ];
-    
-    if (config.allowPrivateNetworks && privateNetworks.some(range => ipRangeCheck(ipAddress, range))) {
+    const privateNetworks = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'fc00::/7'];
+
+    if (
+      config.allowPrivateNetworks &&
+      privateNetworks.some(range => ipRangeCheck(ipAddress, range))
+    ) {
       return next();
     }
-    
+
     // Check blocked IPs first
     if (blockedIPs.length > 0 && blockedIPs.some(ip => ipRangeCheck(ipAddress, ip))) {
       logger.warn('IP address blocked by filter', { ipAddress });
       return res.status(config.statusCode).json({ error: config.message });
     }
-    
+
     // If allowed IPs are specified, check if the IP is allowed
     if (allowedIPs.length > 0 && !allowedIPs.some(ip => ipRangeCheck(ipAddress, ip))) {
       logger.warn('IP address not in allowed list', { ipAddress });
       return res.status(config.statusCode).json({ error: config.message });
     }
-    
+
     next();
   };
 }
@@ -306,7 +307,7 @@ export function deviceFingerprinting() {
       const userAgent = req.headers['user-agent'] || '';
       const parser = new UAParser(userAgent);
       const result = parser.getResult();
-      
+
       // Generate fingerprint from available data
       const fingerprintData = {
         userAgent,
@@ -318,12 +319,12 @@ export function deviceFingerprinting() {
         ip: req.ip,
         acceptLanguage: req.headers['accept-language'],
         acceptEncoding: req.headers['accept-encoding'],
-        acceptCharset: req.headers['accept-charset']
+        acceptCharset: req.headers['accept-charset'],
       };
-      
+
       // Attach fingerprint to request for fraud detection
       (req as any).deviceFingerprint = fingerprintData;
-      
+
       next();
     } catch (error: unknown) {
       logger.error('Error in device fingerprinting middleware', { error });
@@ -335,26 +336,25 @@ export function deviceFingerprinting() {
 /**
  * Trusted Types middleware for preventing DOM XSS
  */
-export function trustedTypes(options: {
-  reportOnly?: boolean;
-  reportUri?: string;
-} = {}) {
-  const policy = [
-    "default 'none'",
-    "script 'self'"
-  ].join('; ');
-  
-  const headerName = options.reportOnly 
-    ? 'Content-Security-Policy-Report-Only' 
+export function trustedTypes(
+  options: {
+    reportOnly?: boolean;
+    reportUri?: string;
+  } = {}
+) {
+  const policy = ["default 'none'", "script 'self'"].join('; ');
+
+  const headerName = options.reportOnly
+    ? 'Content-Security-Policy-Report-Only'
     : 'Content-Security-Policy';
-  
+
   return (req: Request, res: Response, next: NextFunction) => {
     let headerValue = `trusted-types ${policy}`;
-    
+
     if (options.reportUri) {
       headerValue += `; report-uri ${options.reportUri}`;
     }
-    
+
     res.setHeader(headerName, headerValue);
     next();
   };
@@ -382,28 +382,28 @@ export function enhancedSecurityHeaders() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Set X-XSS-Protection header
     res.setHeader('X-XSS-Protection', '1; mode=block');
-    
+
     // Set X-Content-Type-Options header
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    
+
     // Set X-Frame-Options header
     res.setHeader('X-Frame-Options', 'DENY');
-    
+
     // Set Referrer-Policy header
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    
+
     // Set Cache-Control for security-sensitive pages
     if (req.path.includes('/api/auth/') || req.path.includes('/api/admin/')) {
       res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
     }
-    
+
     // Set Clear-Site-Data header for logout endpoints
     if (req.path === '/api/auth/logout') {
       res.setHeader('Clear-Site-Data', '"cache", "cookies", "storage"');
     }
-    
+
     next();
   };
 }
@@ -415,21 +415,23 @@ export function enhancedSecurityHeaders() {
 export function secureCookies() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Override res.cookie method to add secure attributes
-    const originalCookie: (name: string, value: any, options?: CookieOptions) => Response = res.cookie;
-    res.cookie = function(this: Response, name: string, value: any, options: CookieOptions = {}) { // Typed options and this
+    const originalCookie: (name: string, value: any, options?: CookieOptions) => Response =
+      res.cookie;
+    res.cookie = function (this: Response, name: string, value: any, options: CookieOptions = {}) {
+      // Typed options and this
       const secureOptions: CookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        ...options
+        ...options,
       };
-      
+
       // originalCookie.call expects (this, name, value, options)
       // but originalCookie itself is (name, value, options)
       // The `this` for originalCookie.call should be `res`
       return (originalCookie as any).call(res, name, value, secureOptions);
     };
-    
+
     next();
   };
 }
@@ -442,35 +444,36 @@ export function securityNonce() {
   return (req: Request, res: Response, next: NextFunction) => {
     // Generate a random nonce
     const nonce = randomBytes(16).toString('base64');
-    
+
     // Attach to request
     (req as any).cspNonce = nonce;
-    
+
     // Modify CSP header to include nonce if present
     const cspHeader = res.getHeader('Content-Security-Policy');
-    if (typeof cspHeader === 'string') { // Ensure cspHeader is a string
+    if (typeof cspHeader === 'string') {
+      // Ensure cspHeader is a string
       const cspMap = parseContentSecurityPolicy(cspHeader); // Returns Map<string, string[]> according to error
-      
+
       // Add nonce to script-src
       const scriptSrc = cspMap.get('script-src') || [];
       scriptSrc.push(`'nonce-${nonce}'`);
       cspMap.set('script-src', scriptSrc);
-      
+
       // Add nonce to style-src
       const styleSrc = cspMap.get('style-src') || [];
       styleSrc.push(`'nonce-${nonce}'`);
       cspMap.set('style-src', styleSrc);
-      
+
       // Rebuild CSP header
       const directives: string[] = [];
       cspMap.forEach((values, key) => {
         directives.push(`${key} ${values.join(' ')}`);
       });
       const updatedCsp = directives.join('; ');
-      
+
       res.setHeader('Content-Security-Policy', updatedCsp);
     }
-    
+
     next();
   };
 }
@@ -481,27 +484,27 @@ export function securityNonce() {
 export function applyAdvancedSecurity(app: Application) {
   // Apply security headers first
   app.use(enhancedSecurityHeaders() as any);
-  
+
   // Apply Content Security Policy
   app.use(contentSecurityPolicy() as any);
-  
+
   // Apply Permissions Policy
   app.use(permissionsPolicy() as any);
-  
+
   // Apply security nonce
   app.use(securityNonce() as any);
-  
+
   // Apply secure cookies
   app.use(secureCookies() as any);
-  
+
   // Apply CORS preflight cache
   app.use(corsPreflightCache() as any);
-  
+
   // Apply device fingerprinting for fraud detection
   app.use(deviceFingerprinting() as any);
-  
+
   // Apply Trusted Types (for modern browsers)
   app.use(trustedTypes() as any);
-  
+
   logger.info('Advanced security middleware applied');
 }

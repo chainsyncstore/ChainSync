@@ -1,10 +1,11 @@
 /**
  * Cache Service
- * 
+ *
  * A standardized service for caching data using Redis
  */
 
 import { RedisClientType } from 'redis';
+
 import { Logger } from '../../../src/logging'; // Use logger from src
 
 interface CacheServiceConfig {
@@ -19,13 +20,13 @@ export class CacheService {
   private readonly redis: RedisClientType;
   private readonly logger: Logger;
   private readonly defaultTtl: number = 3600; // 1 hour in seconds
-  
+
   constructor(config: CacheServiceConfig) {
     this.redis = config.redis;
     this.logger = config.logger;
     this.logger.info('Cache service initialized');
   }
-  
+
   /**
    * Get cached value by key
    */
@@ -33,14 +34,14 @@ export class CacheService {
     try {
       const value = await this.redis.get(key);
       if (!value) return null;
-      
-      return JSON.parse(value as string) as T;
+
+      return JSON.parse(value) as T;
     } catch (error) {
       this.logger.error('Error getting cached value', { key, error });
       return null;
     }
   }
-  
+
   /**
    * Set cache value with optional TTL
    */
@@ -54,7 +55,7 @@ export class CacheService {
       return false;
     }
   }
-  
+
   /**
    * Delete a cached value
    */
@@ -67,7 +68,7 @@ export class CacheService {
       return false;
     }
   }
-  
+
   /**
    * Invalidate all keys matching a pattern
    */
@@ -84,11 +85,15 @@ export class CacheService {
       return false;
     }
   }
-  
+
   /**
    * Set cache with hash fields
    */
-  async hset(key: string, fields: Record<string, string>, ttlSeconds: number = this.defaultTtl): Promise<boolean> {
+  async hset(
+    key: string,
+    fields: Record<string, string>,
+    ttlSeconds: number = this.defaultTtl
+  ): Promise<boolean> {
     try {
       await this.redis.hSet(key, fields);
       await this.redis.expire(key, ttlSeconds);
@@ -98,20 +103,20 @@ export class CacheService {
       return false;
     }
   }
-  
+
   /**
    * Get field from hash cache
    */
   async hget(key: string, field: string): Promise<string | null> {
     try {
       const result = await this.redis.hGet(key, field);
-      return result === null ? null : result as string;
+      return result === null ? null : result;
     } catch (error) {
       this.logger.error('Error getting hash field', { key, field, error });
       return null;
     }
   }
-  
+
   /**
    * Get all fields from hash cache
    */

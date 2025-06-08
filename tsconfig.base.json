@@ -37,6 +37,7 @@
       "@/pages/*": ["./client/src/pages/*"],
       "@db/*": ["./db/*"],
       "@shared/*": ["./shared/*"],
+      "@shared/schema": ["./shared/schema.ts"],
       "@server/*": ["./server/*"],
       "@assets/*": ["./attached_assets/*"]
     }

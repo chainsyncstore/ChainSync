@@ -1,6 +1,7 @@
-import { Pool } from 'pg';
 import { performance } from 'perf_hooks';
-import { AppError } from '@shared/types/errors';
+
+import { AppError } from '@shared/types/errors.js';
+import { Pool } from 'pg';
 
 /**
  * Database Optimization Utilities
@@ -39,59 +40,59 @@ class QueryPerformanceMonitor {
   /**
    * Wrap a database query with performance monitoring
    */
-  async monitorQuery<T>(
-    queryFn: () => Promise<T>,
-    query: string,
-    params?: unknown[]
-  ): Promise<T> {
+  async monitorQuery<T>(queryFn: () => Promise<T>, query: string, params?: unknown[]): Promise<T> {
     const startTime = performance.now();
     const timestamp = new Date();
-    
+
     try {
       const result = await queryFn();
       const duration = performance.now() - startTime;
-      
+
       const metric: QueryMetrics = {
         query: this.sanitizeQuery(query),
         duration,
         timestamp,
         params: this.sanitizeParams(params),
-        rowCount: this.extractRowCount(result)
+        rowCount: this.extractRowCount(result),
       };
-      
+
       this.addMetric(metric);
-      
+
       // Log slow queries
       if (duration > this.slowQueryThreshold) {
         console.warn(`Slow query detected (${duration.toFixed(2)}ms):`, {
           query: metric.query,
           duration,
-          params: metric.params
+          params: metric.params,
         });
       }
-      
+
       return result;
     } catch (error: unknown) {
       const duration = performance.now() - startTime;
-      
+
       const metric: QueryMetrics = {
         query: this.sanitizeQuery(query),
         duration,
         timestamp,
         params: this.sanitizeParams(params),
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
-      
+
       this.addMetric(metric);
-      
+
       console.error('Query error:', {
         query: metric.query,
         duration,
         error: metric.error,
-        params: metric.params
+        params: metric.params,
       });
-      
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   }
 
@@ -108,16 +109,15 @@ class QueryPerformanceMonitor {
     const totalQueries = this.metrics.length;
     const slowQueries = this.metrics.filter(m => m.duration > this.slowQueryThreshold).length;
     const errorQueries = this.metrics.filter(m => m.error).length;
-    const averageDuration = totalQueries > 0 
-      ? this.metrics.reduce((sum, m) => sum + m.duration, 0) / totalQueries 
-      : 0;
-    
+    const averageDuration =
+      totalQueries > 0 ? this.metrics.reduce((sum, m) => sum + m.duration, 0) / totalQueries : 0;
+
     return {
       totalQueries,
       averageDuration,
       slowQueries,
       errorRate: totalQueries > 0 ? errorQueries / totalQueries : 0,
-      recentMetrics: this.metrics.slice(-10)
+      recentMetrics: this.metrics.slice(-10),
     };
   }
 
@@ -133,7 +133,7 @@ class QueryPerformanceMonitor {
 
   private addMetric(metric: QueryMetrics): void {
     this.metrics.push(metric);
-    
+
     // Keep only recent metrics to prevent memory leaks
     if (this.metrics.length > this.maxMetricsHistory) {
       this.metrics = this.metrics.slice(-this.maxMetricsHistory);
@@ -142,15 +142,12 @@ class QueryPerformanceMonitor {
 
   private sanitizeQuery(query: string): string {
     // Remove sensitive data and normalize whitespace
-    return query
-      .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 500); // Limit length
+    return query.replace(/\s+/g, ' ').trim().substring(0, 500); // Limit length
   }
 
   private sanitizeParams(params?: unknown[]): unknown[] | undefined {
     if (!params) return undefined;
-    
+
     // Sanitize sensitive parameters
     return params.map(param => {
       if (typeof param === 'string' && param.length > 100) {
@@ -190,12 +187,12 @@ class ConnectionPoolOptimizer {
     this.monitoringInterval = setInterval(() => {
       const metrics = this.getCurrentMetrics();
       this.metrics.push(metrics);
-      
+
       // Keep only last 100 metrics
       if (this.metrics.length > 100) {
         this.metrics = this.metrics.slice(-100);
       }
-      
+
       // Check for potential issues
       this.checkPoolHealth(metrics);
     }, 30000); // Every 30 seconds
@@ -218,7 +215,7 @@ class ConnectionPoolOptimizer {
       totalConnections: this.pool.totalCount,
       idleConnections: this.pool.idleCount,
       waitingClients: this.pool.waitingCount,
-      maxConnections: (this.pool as any).options?.max || 10
+      maxConnections: (this.pool as any).options?.max || 10,
     };
   }
 
@@ -229,28 +226,35 @@ class ConnectionPoolOptimizer {
     const recommendations: string[] = [];
     const current = this.getCurrentMetrics();
     const recent = this.metrics.slice(-10);
-    
+
     if (recent.length === 0) return recommendations;
-    
+
     // Check for high waiting clients
     const avgWaiting = recent.reduce((sum, m) => sum + m.waitingClients, 0) / recent.length;
     if (avgWaiting > 2) {
-      recommendations.push('Consider increasing max pool size - high number of waiting clients detected');
+      recommendations.push(
+        'Consider increasing max pool size - high number of waiting clients detected'
+      );
     }
-    
+
     // Check for low utilization
-    const avgUtilization = recent.reduce((sum, m) => 
-      sum + (m.totalConnections - m.idleConnections) / m.maxConnections, 0) / recent.length;
+    const avgUtilization =
+      recent.reduce(
+        (sum, m) => sum + (m.totalConnections - m.idleConnections) / m.maxConnections,
+        0
+      ) / recent.length;
     if (avgUtilization < 0.3) {
       recommendations.push('Consider decreasing max pool size - low utilization detected');
     }
-    
+
     // Check for connection churn
     const connectionVariance = this.calculateVariance(recent.map(m => m.totalConnections));
     if (connectionVariance > 5) {
-      recommendations.push('High connection churn detected - consider connection pooling optimization');
+      recommendations.push(
+        'High connection churn detected - consider connection pooling optimization'
+      );
     }
-    
+
     return recommendations;
   }
 
@@ -259,10 +263,13 @@ class ConnectionPoolOptimizer {
     if (metrics.waitingClients > 5) {
       console.warn('Database pool health warning: High number of waiting clients', metrics);
     }
-    
+
     // Alert on pool exhaustion
     if (metrics.totalConnections >= metrics.maxConnections && metrics.waitingClients > 0) {
-      console.error('Database pool exhausted: All connections in use with waiting clients', metrics);
+      console.error(
+        'Database pool exhausted: All connections in use with waiting clients',
+        metrics
+      );
     }
   }
 
@@ -301,62 +308,67 @@ class DatabaseIndexAnalyzer {
     try {
       // Get table statistics
       const tableStats = await this.getTableStatistics();
-      
+
       // Get index usage statistics
       const indexStats = await this.getIndexStatistics();
-      
+
       // Analyze for missing indexes on foreign keys
       const foreignKeys = await this.getForeignKeys();
       for (const fk of foreignKeys) {
-        const hasIndex = indexStats.some((idx: unknown) => 
-          idx.table_name === fk.table_name && 
-          idx.column_names.includes(fk.column_name)
+        const hasIndex = indexStats.some(
+          (idx: unknown) =>
+            idx.table_name === fk.table_name && idx.column_names.includes(fk.column_name)
         );
-        
+
         if (!hasIndex) {
-          missingIndexes.push(`CREATE INDEX idx_${fk.table_name}_${fk.column_name} ON ${fk.table_name}(${fk.column_name});`);
+          missingIndexes.push(
+            `CREATE INDEX idx_${fk.table_name}_${fk.column_name} ON ${fk.table_name}(${fk.column_name});`
+          );
         }
       }
-      
+
       // Find unused indexes
       for (const idx of indexStats) {
-        if ((idx as any).idx_scan === 0 && !(idx as any).indisprimary && !(idx as any).indisunique) {
-          unusedIndexes.push(`DROP INDEX ${(idx as any).index_name}; -- Unused index on ${(idx as any).table_name}`);
+        if (idx.idx_scan === 0 && !idx.indisprimary && !idx.indisunique) {
+          unusedIndexes.push(`DROP INDEX ${idx.index_name}; -- Unused index on ${idx.table_name}`);
         }
       }
-      
+
       // Find duplicate indexes
       const indexGroups = new Map<string, any[]>();
       for (const idx of indexStats) {
-        const key = `${(idx as any).table_name}:${(idx as any).column_names.join(',')}`;
+        const key = `${idx.table_name}:${idx.column_names.join(',')}`;
         if (!indexGroups.has(key)) {
           indexGroups.set(key, []);
         }
         indexGroups.get(key)!.push(idx);
       }
-      
+
       for (const [key, indexes] of indexGroups) {
         if (indexes.length > 1) {
           const duplicates = indexes.slice(1);
           for (const dup of duplicates) {
-            duplicateIndexes.push(`DROP INDEX ${dup.index_name}; -- Duplicate of ${indexes[0].index_name}`);
+            duplicateIndexes.push(
+              `DROP INDEX ${dup.index_name}; -- Duplicate of ${indexes[0].index_name}`
+            );
           }
         }
       }
-      
+
       // Generate recommendations
       if (missingIndexes.length > 0) {
         recommendations.push(`Found ${missingIndexes.length} missing indexes on foreign keys`);
       }
-      
+
       if (unusedIndexes.length > 0) {
         recommendations.push(`Found ${unusedIndexes.length} unused indexes that can be dropped`);
       }
-      
-      if (duplicateIndexes.length > 0) {
-        recommendations.push(`Found ${duplicateIndexes.length} duplicate indexes that can be removed`);
-      }
 
+      if (duplicateIndexes.length > 0) {
+        recommendations.push(
+          `Found ${duplicateIndexes.length} duplicate indexes that can be removed`
+        );
+      }
     } catch (error: unknown) {
       console.error('Error analyzing indexes:', error);
       recommendations.push('Error occurred during index analysis');
@@ -366,7 +378,7 @@ class DatabaseIndexAnalyzer {
       missingIndexes,
       unusedIndexes,
       duplicateIndexes,
-      recommendations
+      recommendations,
     };
   }
 
@@ -387,7 +399,7 @@ class DatabaseIndexAnalyzer {
       FROM pg_stat_user_tables
       ORDER BY seq_scan DESC;
     `;
-    
+
     const result = await this.pool.query(query);
     return result.rows;
   }
@@ -417,7 +429,7 @@ class DatabaseIndexAnalyzer {
                pg_index.indisprimary, pg_index.indisunique
       ORDER BY s.idx_scan ASC;
     `;
-    
+
     const result = await this.pool.query(query);
     return result.rows;
   }
@@ -439,7 +451,7 @@ class DatabaseIndexAnalyzer {
       WHERE tc.constraint_type = 'FOREIGN KEY'
         AND tc.table_schema = 'public';
     `;
-    
+
     const result = await this.pool.query(query);
     return result.rows;
   }
@@ -457,27 +469,27 @@ export function createOptimizedPool(config: unknown): Pool {
     idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000'),
     connectionTimeoutMillis: 5000,
     acquireTimeoutMillis: 10000,
-    
+
     // Enable keep-alive
     keepAlive: true,
     keepAliveInitialDelayMillis: 10000,
-    
+
     // Statement timeout
     statement_timeout: 30000,
     query_timeout: 30000,
   };
 
   const pool = new Pool(optimizedConfig);
-  
+
   // Add error handling
-  pool.on('error', (err) => {
+  pool.on('error', err => {
     console.error('Database pool error:', err);
   });
-  
+
   pool.on('connect', () => {
     console.log('New database connection established');
   });
-  
+
   pool.on('remove', () => {
     console.log('Database connection removed from pool');
   });

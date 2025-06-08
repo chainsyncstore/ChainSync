@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { useLocation } from 'wouter';
+import { z } from 'zod';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -13,24 +15,23 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 // Form schema for password reset
 const resetPasswordSchema = z
   .object({
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(100, "Password is too long"),
+      .min(8, 'Password must be at least 8 characters')
+      .max(100, 'Password is too long'),
     confirmPassword: z.string(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
+  .refine(data => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
   });
 
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
@@ -46,12 +47,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
   // Query to validate the token
   const { data: tokenValidationData, isLoading: isValidatingToken } = useQuery({
-    queryKey: ["/api/auth/validate-reset-token", token],
+    queryKey: ['/api/auth/validate-reset-token', token],
     queryFn: async () => {
-      const response = await apiRequest(
-        "GET",
-        `/api/auth/validate-reset-token/${token}`
-      );
+      const response = await apiRequest('GET', `/api/auth/validate-reset-token/${token}`);
       return response.json();
     },
     enabled: !!token,
@@ -61,34 +59,34 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      password: "",
-      confirmPassword: "",
+      password: '',
+      confirmPassword: '',
     },
   });
 
   // Define mutation for password reset
   const resetPasswordMutation = useMutation({
     mutationFn: async (data: { token: string; password: string }) => {
-      const response = await apiRequest("POST", "/api/auth/reset-password", data);
+      const response = await apiRequest('POST', '/api/auth/reset-password', data);
       return response.json();
     },
     onSuccess: () => {
       setResetComplete(true);
       toast({
-        title: "Password reset successfully",
-        description: "You can now login with your new password.",
+        title: 'Password reset successfully',
+        description: 'You can now login with your new password.',
       });
-      
+
       // Redirect to login page after 3 seconds
       setTimeout(() => {
-        setLocation("/login");
+        setLocation('/login');
       }, 3000);
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to reset password. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to reset password. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -108,11 +106,12 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Invalid or Expired Token</AlertTitle>
         <AlertDescription>
-          The password reset link is invalid or has expired. Please request a new password reset link.
+          The password reset link is invalid or has expired. Please request a new password reset
+          link.
         </AlertDescription>
         <Button
           variant="outline"
-          onClick={() => setLocation("/forgot-password")}
+          onClick={() => setLocation('/forgot-password')}
           className="mt-4 w-full"
         >
           Request New Reset Link
@@ -138,13 +137,10 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <CheckCircle className="h-4 w-4 text-green-500" />
         <AlertTitle>Password Reset Successful</AlertTitle>
         <AlertDescription>
-          Your password has been reset successfully. You will be redirected to the login page in a moment.
+          Your password has been reset successfully. You will be redirected to the login page in a
+          moment.
         </AlertDescription>
-        <Button
-          variant="outline"
-          onClick={() => setLocation("/login")}
-          className="mt-4 w-full"
-        >
+        <Button variant="outline" onClick={() => setLocation('/login')} className="mt-4 w-full">
           Go to Login
         </Button>
       </Alert>
@@ -155,9 +151,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     <div>
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Reset Your Password</h2>
-        <p className="text-muted-foreground mt-2">
-          Enter your new password below.
-        </p>
+        <p className="text-muted-foreground mt-2">Enter your new password below.</p>
       </div>
 
       <Form {...form}>
@@ -169,11 +163,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               <FormItem>
                 <FormLabel>New Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Enter your new password"
-                    {...field}
-                  />
+                  <Input type="password" placeholder="Enter your new password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -187,29 +177,21 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Confirm your new password"
-                    {...field}
-                  />
+                  <Input type="password" placeholder="Confirm your new password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <Button
-            type="submit"
-            className="w-full mt-6"
-            disabled={resetPasswordMutation.isPending}
-          >
+          <Button type="submit" className="w-full mt-6" disabled={resetPasswordMutation.isPending}>
             {resetPasswordMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Resetting Password...
               </>
             ) : (
-              "Reset Password"
+              'Reset Password'
             )}
           </Button>
         </form>

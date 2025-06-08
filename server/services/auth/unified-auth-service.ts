@@ -1,10 +1,17 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { Pool } from 'pg';
-import Redis from 'ioredis';
-import { getLogger, SecurityLogger, SecurityEventType, SecuritySeverity } from '../../../src/logging/index';
+
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+import bcrypt from 'bcrypt';
+import Redis from 'ioredis';
+import jwt from 'jsonwebtoken';
+import { Pool } from 'pg';
+
+import {
+  getLogger,
+  SecurityLogger,
+  SecurityEventType,
+  SecuritySeverity,
+} from '../../../src/logging/index';
 
 const logger = getLogger().child({ component: 'unified-auth-service' });
 // Create a security logger instance for auth-specific security events
@@ -32,7 +39,7 @@ export interface JWTPayload {
   role: string;
   permissions: string[];
   sessionId: string;
-  storeId?: number;  // Added storeId to match the User interface
+  storeId?: number; // Added storeId to match the User interface
   iat: number;
   exp: number;
 }
@@ -53,7 +60,7 @@ export interface SessionData {
 
 /**
  * Unified Authentication Service
- * 
+ *
  * This service consolidates authentication logic and fixes SQL injection vulnerabilities.
  * It also adds proper token storage in Redis for persistence across restarts and scaling.
  */
@@ -61,12 +68,12 @@ export class UnifiedAuthService {
   private readonly ACCESS_TOKEN_EXPIRY = '15m';
   private readonly REFRESH_TOKEN_EXPIRY = '7d';
   private readonly SALT_ROUNDS = 12;
-  
+
   // Redis key prefixes for token storage
-  private readonly TOKEN_PREFIX = 'token:';  // Redis key prefix for tokens
-  private readonly SESSION_PREFIX = 'session:';  // Redis key prefix for sessions
-  private readonly RESET_TOKEN_PREFIX = 'reset:';  // Redis key prefix for password reset tokens
-  
+  private readonly TOKEN_PREFIX = 'token:'; // Redis key prefix for tokens
+  private readonly SESSION_PREFIX = 'session:'; // Redis key prefix for sessions
+  private readonly RESET_TOKEN_PREFIX = 'reset:'; // Redis key prefix for password reset tokens
+
   constructor(
     private db: unknown, // Use any to accommodate both Pool and Drizzle database types
     private redis: Redis,
@@ -99,7 +106,7 @@ export class UnifiedAuthService {
    * Generates a new pair of access and refresh tokens for a user
    */
   async generateTokenPair(
-    user: User, 
+    user: User,
     metadata: { ipAddress?: string; userAgent?: string } = {}
   ): Promise<AuthTokens> {
     // Validate user is active
@@ -111,44 +118,40 @@ export class UnifiedAuthService {
         { reason: 'User account is inactive' }
       );
     }
-    
+
     const sessionId = crypto.randomUUID();
-    
+
     // Create access token payload
     const accessTokenPayload: Omit<JWTPayload, 'iat' | 'exp'> = {
       userId: user.id,
       email: user.email,
       role: user.role,
       permissions: user.permissions || [],
-      sessionId
+      sessionId,
     };
 
     // Sign access token
-    const accessToken = jwt.sign(
-      accessTokenPayload,
-      this.jwtSecret!,
-      { expiresIn: this.ACCESS_TOKEN_EXPIRY }
-    );
+    const accessToken = jwt.sign(accessTokenPayload, this.jwtSecret!, {
+      expiresIn: this.ACCESS_TOKEN_EXPIRY,
+    });
 
     // Sign refresh token
-    const refreshToken = jwt.sign(
-      { userId: user.id, sessionId },
-      this.refreshSecret!,
-      { expiresIn: this.REFRESH_TOKEN_EXPIRY }
-    );
+    const refreshToken = jwt.sign({ userId: user.id, sessionId }, this.refreshSecret!, {
+      expiresIn: this.REFRESH_TOKEN_EXPIRY,
+    });
 
     // Calculate expiration dates
     const refreshExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    
+
     // Store session in Redis
     const sessionData: SessionData = {
       userId: user.id,
       lastActivity: new Date(),
       expiresAt: refreshExpiresAt,
       ipAddress: metadata.ipAddress,
-      userAgent: metadata.userAgent
+      userAgent: metadata.userAgent,
     };
-    
+
     // Store both the refresh token and session data in Redis
     try {
       // Store refresh token with expiration
@@ -158,7 +161,7 @@ export class UnifiedAuthService {
         'EX',
         7 * 24 * 60 * 60 // 7 days in seconds
       );
-      
+
       // Store session data with expiration
       await this.redis.set(
         `${this.SESSION_PREFIX}${sessionId}`,
@@ -180,25 +183,24 @@ export class UnifiedAuthService {
     return {
       accessToken,
       refreshToken,
-      expiresIn: 15 * 60 // 15 minutes in seconds
+      expiresIn: 15 * 60, // 15 minutes in seconds
     };
   }
 
   /**
    * Validates an access token and returns the decoded payload
    */
-  async validateAccessToken(token: string, metadata?: { ipAddress?: string; userAgent?: string }): Promise<JWTPayload | null> {
+  async validateAccessToken(
+    token: string,
+    metadata?: { ipAddress?: string; userAgent?: string }
+  ): Promise<JWTPayload | null> {
     try {
       const payload = jwt.verify(token, this.jwtSecret!) as JWTPayload;
-      
+
       // Update session activity timestamp
       const sessionKey = `${this.SESSION_PREFIX}${payload.sessionId}`;
       try {
-        await this.redis.hset(
-          sessionKey,
-          'lastActivity', 
-          Date.now().toString()
-        );
+        await this.redis.hset(sessionKey, 'lastActivity', Date.now().toString());
       } catch (error: unknown) {
         // Non-blocking error - we still want to validate the token
         logger.error('Failed to update session activity', { error, sessionId: payload.sessionId });
@@ -213,23 +215,18 @@ export class UnifiedAuthService {
           userId: payload.userId,
           sessionId: payload.sessionId,
           ip: metadata?.ipAddress,
-          userAgent: metadata?.userAgent
+          userAgent: metadata?.userAgent,
         }
       );
 
       return payload;
     } catch (error: unknown) {
       // Log failed token validation
-      securityLogger.logAuthentication(
-        'Invalid access token',
-        'FAILURE',
-        SecuritySeverity.MEDIUM,
-        {
-          ip: metadata?.ipAddress,
-          userAgent: metadata?.userAgent,
-          reason: (error as Error).message || 'token_validation_failed'
-        }
-      );
+      securityLogger.logAuthentication('Invalid access token', 'FAILURE', SecuritySeverity.MEDIUM, {
+        ip: metadata?.ipAddress,
+        userAgent: metadata?.userAgent,
+        reason: (error as Error).message || 'token_validation_failed',
+      });
       return null;
     }
   }
@@ -237,17 +234,23 @@ export class UnifiedAuthService {
   /**
    * Refreshes an access token using a refresh token
    */
-  async refreshAccessToken(refreshToken: string, metadata?: { ipAddress?: string; userAgent?: string }): Promise<AuthTokens | null> {
+  async refreshAccessToken(
+    refreshToken: string,
+    metadata?: { ipAddress?: string; userAgent?: string }
+  ): Promise<AuthTokens | null> {
     try {
-      const payload = jwt.verify(refreshToken, this.refreshSecret!) as { userId: string; sessionId: string };
-      
+      const payload = jwt.verify(refreshToken, this.refreshSecret!) as {
+        userId: string;
+        sessionId: string;
+      };
+
       // Check if refresh token is valid in Redis
       const sessionKey = `${this.SESSION_PREFIX}${payload.sessionId}`;
       const storedToken = await this.redis.get(`${this.TOKEN_PREFIX}${payload.sessionId}`);
-      
+
       // Verify the token matches and session exists
-      const sessionExists = (storedToken === refreshToken);
-      
+      const sessionExists = storedToken === refreshToken;
+
       if (!sessionExists) {
         // Log invalid refresh token attempt
         securityLogger.logAuthentication(
@@ -259,7 +262,7 @@ export class UnifiedAuthService {
             sessionId: payload.sessionId,
             ip: metadata?.ipAddress,
             userAgent: metadata?.userAgent,
-            reason: 'session_not_found'
+            reason: 'session_not_found',
           }
         );
         return null;
@@ -279,7 +282,7 @@ export class UnifiedAuthService {
       return null;
     }
   }
-  
+
   /**
    * Checks if a user is active
    */
@@ -288,14 +291,17 @@ export class UnifiedAuthService {
       // Use parameterized query to prevent SQL injection
       const query = 'SELECT is_active FROM users WHERE id = $1';
       const result = await (this.db as any).execute(query, [userId]);
-      
+
       if (result.rows.length === 0) {
         return false;
       }
-      
+
       return result.rows[0].is_active === true;
     } catch (error) {
-      logger.error('Error checking user active status', { error: (error as Error).message, userId });
+      logger.error('Error checking user active status', {
+        error: (error as Error).message,
+        userId,
+      });
       return false;
     }
   }
@@ -315,9 +321,9 @@ export class UnifiedAuthService {
         FROM users 
         WHERE email = $1
       `;
-      
+
       const result = await (this.db as any).execute(query, [email]);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
@@ -325,7 +331,7 @@ export class UnifiedAuthService {
       const row = result.rows[0];
       // Get permissions based on role
       const permissions = this.getPermissionsByRole(row.role);
-      
+
       return {
         id: row.id,
         email: row.email,
@@ -338,7 +344,7 @@ export class UnifiedAuthService {
         lastLogin: row.lastLogin,
         failedLoginAttempts: row.failedLoginAttempts || 0,
         lockedUntil: row.lockedUntil,
-        storeId: row.storeId
+        storeId: row.storeId,
       };
     } catch (error) {
       logger.error('Error getting user by email', { error: (error as Error).message, email });
@@ -361,9 +367,9 @@ export class UnifiedAuthService {
         FROM users 
         WHERE id = $1
       `;
-      
+
       const result = await (this.db as any).execute(query, [userId]);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
@@ -371,7 +377,7 @@ export class UnifiedAuthService {
       const row = result.rows[0];
       // Get permissions based on role
       const permissions = this.getPermissionsByRole(row.role);
-      
+
       return {
         id: row.id,
         email: row.email,
@@ -384,7 +390,7 @@ export class UnifiedAuthService {
         lastLogin: row.lastLogin,
         failedLoginAttempts: row.failedLoginAttempts || 0,
         lockedUntil: row.lockedUntil,
-        storeId: row.storeId
+        storeId: row.storeId,
       };
     } catch (error) {
       logger.error('Error getting user by ID', { error: (error as Error).message, userId });
@@ -399,35 +405,42 @@ export class UnifiedAuthService {
     switch (role) {
       case 'admin':
         return [
-          'user:read', 'user:write', 'user:delete',
-          'store:read', 'store:write', 'store:delete',
-          'product:read', 'product:write', 'product:delete',
-          'inventory:read', 'inventory:write', 'inventory:delete',
-          'transaction:read', 'transaction:write', 'transaction:void',
-          'report:read', 'settings:read', 'settings:write'
+          'user:read',
+          'user:write',
+          'user:delete',
+          'store:read',
+          'store:write',
+          'store:delete',
+          'product:read',
+          'product:write',
+          'product:delete',
+          'inventory:read',
+          'inventory:write',
+          'inventory:delete',
+          'transaction:read',
+          'transaction:write',
+          'transaction:void',
+          'report:read',
+          'settings:read',
+          'settings:write',
         ];
       case 'manager':
         return [
           'user:read',
           'store:read',
-          'product:read', 'product:write',
-          'inventory:read', 'inventory:write',
-          'transaction:read', 'transaction:write', 'transaction:void',
-          'report:read'
+          'product:read',
+          'product:write',
+          'inventory:read',
+          'inventory:write',
+          'transaction:read',
+          'transaction:write',
+          'transaction:void',
+          'report:read',
         ];
       case 'cashier':
-        return [
-          'product:read',
-          'inventory:read',
-          'transaction:read', 'transaction:write'
-        ];
+        return ['product:read', 'inventory:read', 'transaction:read', 'transaction:write'];
       case 'viewer':
-        return [
-          'product:read',
-          'inventory:read',
-          'transaction:read',
-          'report:read'
-        ];
+        return ['product:read', 'inventory:read', 'transaction:read', 'report:read'];
       default:
         return [];
     }
@@ -437,8 +450,8 @@ export class UnifiedAuthService {
    * Logs a user in with email and password
    */
   async login(
-    email: string, 
-    password: string, 
+    email: string,
+    password: string,
     metadata: { ipAddress?: string; userAgent?: string } = {}
   ): Promise<{ user: User; tokens: AuthTokens } | null> {
     // Log the login attempt with security logger
@@ -450,12 +463,12 @@ export class UnifiedAuthService {
         userId: 'unknown', // Will be updated if user is found
         email,
         ip: metadata?.ipAddress,
-        userAgent: metadata?.userAgent
+        userAgent: metadata?.userAgent,
       }
     );
-    
+
     const user = await this.getUserByEmail(email);
-    
+
     if (!user) {
       // Log failed login due to unknown user
       securityLogger.logAuthentication(
@@ -466,7 +479,7 @@ export class UnifiedAuthService {
           email,
           ip: metadata.ipAddress,
           userAgent: metadata.userAgent,
-          reason: 'user_not_found'
+          reason: 'user_not_found',
         }
       );
       return null;
@@ -485,21 +498,19 @@ export class UnifiedAuthService {
           ip: metadata.ipAddress,
           userAgent: metadata.userAgent,
           reason: 'account_locked',
-          lockedUntil: user.lockedUntil
+          lockedUntil: user.lockedUntil,
         }
       );
-      
-      throw new AppError(
-        'Invalid refresh token',
-        ErrorCategory.AUTHENTICATION,
-        ErrorCode.LOCKED,
-        { lockedUntil: user.lockedUntil, reason: 'Account is temporarily locked' }
-      );
+
+      throw new AppError('Invalid refresh token', ErrorCategory.AUTHENTICATION, ErrorCode.LOCKED, {
+        lockedUntil: user.lockedUntil,
+        reason: 'Account is temporarily locked',
+      });
     }
 
     // Verify password
     const isValidPassword = await this.verifyPassword(password, user.password);
-    
+
     if (!isValidPassword) {
       // Log failed login due to invalid password
       securityLogger.logAuthentication(
@@ -512,10 +523,10 @@ export class UnifiedAuthService {
           ip: metadata.ipAddress,
           userAgent: metadata.userAgent,
           reason: 'invalid_password',
-          failedAttempts: (user.failedLoginAttempts || 0) + 1
+          failedAttempts: (user.failedLoginAttempts || 0) + 1,
         }
       );
-      
+
       await this.handleFailedLogin(user.id);
       return null;
     }
@@ -532,10 +543,10 @@ export class UnifiedAuthService {
           email: user.email,
           ip: metadata.ipAddress,
           userAgent: metadata.userAgent,
-          reason: 'account_inactive'
+          reason: 'account_inactive',
         }
       );
-      
+
       throw new AppError(
         'User not found or token mismatch',
         ErrorCategory.AUTHENTICATION,
@@ -546,13 +557,13 @@ export class UnifiedAuthService {
 
     // Reset failed login attempts on successful login
     await this.resetFailedLoginAttempts(user.id);
-    
+
     // Update last login
     await this.updateLastLogin(user.id, metadata.ipAddress);
 
     // Generate token pair
     const tokens = await this.generateTokenPair(user, metadata);
-    
+
     // Log successful login
     securityLogger.logAuthentication(
       'Login successful',
@@ -563,10 +574,10 @@ export class UnifiedAuthService {
         email: user.email,
         ip: metadata.ipAddress,
         userAgent: metadata.userAgent,
-        role: user.role
+        role: user.role,
       }
     );
-    
+
     return { user, tokens };
   }
 
@@ -591,25 +602,28 @@ export class UnifiedAuthService {
     try {
       // Get all sessions from Redis
       const sessionKeys = await this.redis.keys(`${this.SESSION_PREFIX}*`);
-      
+
       // Check each session to see if it belongs to the user
       for (const key of sessionKeys) {
         try {
           const sessionData = await this.redis.get(key);
           if (sessionData) {
             const session = JSON.parse(sessionData) as SessionData;
-            
+
             if (session.userId === userId) {
               // Extract sessionId from key
               const sessionId = key.substring(this.SESSION_PREFIX.length);
-              
+
               // Delete token and session
               await this.redis.del(`${this.TOKEN_PREFIX}${sessionId}`);
               await this.redis.del(key);
             }
           }
         } catch (error) {
-          logger.error('Error processing session during logout all', { error: (error as Error).message, key });
+          logger.error('Error processing session during logout all', {
+            error: (error as Error).message,
+            key,
+          });
           // Continue with other sessions
         }
       }
@@ -627,7 +641,10 @@ export class UnifiedAuthService {
   /**
    * Handles a failed login attempt
    */
-  private async handleFailedLogin(userId: string, metadata?: { ipAddress?: string; userAgent?: string }): Promise<void> {
+  private async handleFailedLogin(
+    userId: string,
+    metadata?: { ipAddress?: string; userAgent?: string }
+  ): Promise<void> {
     try {
       // Get current failed attempts to determine if account will be locked
       const userQuery = `
@@ -635,11 +652,11 @@ export class UnifiedAuthService {
         FROM users 
         WHERE id = $1
       `;
-      
+
       const userResult = await (this.db as any).execute(userQuery, [userId]);
       const currentFailedAttempts = userResult.rows[0]?.failed_login_attempts || 0;
       const willLockAccount = currentFailedAttempts + 1 >= 5;
-      
+
       // Use parameterized query to prevent SQL injection
       const updateQuery = `
         UPDATE users 
@@ -651,11 +668,11 @@ export class UnifiedAuthService {
         WHERE id = $1
         RETURNING failed_login_attempts, locked_until
       `;
-      
+
       const result = await (this.db as any).execute(updateQuery, [userId]);
       const newFailedAttempts = result.rows[0]?.failed_login_attempts;
       const lockedUntil = result.rows[0]?.locked_until;
-      
+
       // Log account lockout if threshold reached
       if (willLockAccount) {
         securityLogger.logAuthentication(
@@ -668,7 +685,7 @@ export class UnifiedAuthService {
             userAgent: metadata?.userAgent,
             failedAttempts: newFailedAttempts,
             lockedUntil: lockedUntil,
-            reason: 'max_failed_attempts'
+            reason: 'max_failed_attempts',
           }
         );
       }
@@ -681,7 +698,10 @@ export class UnifiedAuthService {
   /**
    * Resets failed login attempts for a user
    */
-  private async resetFailedLoginAttempts(userId: string, metadata?: { ipAddress?: string; userAgent?: string }): Promise<void> {
+  private async resetFailedLoginAttempts(
+    userId: string,
+    metadata?: { ipAddress?: string; userAgent?: string }
+  ): Promise<void> {
     try {
       // First check if user was locked
       const userQuery = `
@@ -689,11 +709,12 @@ export class UnifiedAuthService {
         FROM users 
         WHERE id = $1
       `;
-      
+
       const userResult = await (this.db as any).execute(userQuery, [userId]);
-      const wasLocked = userResult.rows[0]?.locked_until && new Date(userResult.rows[0].locked_until) > new Date();
+      const wasLocked =
+        userResult.rows[0]?.locked_until && new Date(userResult.rows[0].locked_until) > new Date();
       const previousFailedAttempts = userResult.rows[0]?.failed_login_attempts || 0;
-      
+
       // Use parameterized query to prevent SQL injection
       const query = `
         UPDATE users 
@@ -701,9 +722,9 @@ export class UnifiedAuthService {
             locked_until = NULL
         WHERE id = $1
       `;
-      
+
       await (this.db as any).execute(query, [userId]);
-      
+
       // Log account unlock if it was previously locked
       if (wasLocked) {
         securityLogger.logAuthentication(
@@ -714,12 +735,15 @@ export class UnifiedAuthService {
             userId,
             ip: metadata?.ipAddress,
             userAgent: metadata?.userAgent,
-            previousFailedAttempts
+            previousFailedAttempts,
           }
         );
       }
     } catch (error) {
-      logger.error('Error resetting failed login attempts', { error: (error as Error).message, userId });
+      logger.error('Error resetting failed login attempts', {
+        error: (error as Error).message,
+        userId,
+      });
       // Non-blocking - user can still log in
     }
   }
@@ -735,7 +759,7 @@ export class UnifiedAuthService {
         SET last_login = NOW(), last_login_ip = $2
         WHERE id = $1
       `;
-      
+
       await (this.db as any).execute(query, [userId, ipAddress || null]);
     } catch (error) {
       logger.error('Error updating last login', { error: (error as Error).message, userId });
@@ -748,37 +772,37 @@ export class UnifiedAuthService {
    */
   /**
    * Check if a user has a specific permission
-   * 
+   *
    * @param user The user or user role to check
    * @param permission The permission to check for
    * @returns True if the user has the permission
    */
-  hasPermission(user: JWTPayload | { role: string; permissions?: string[] } | User, permission: string): boolean {
+  hasPermission(
+    user: JWTPayload | { role: string; permissions?: string[] } | User,
+    permission: string
+  ): boolean {
     // If user is admin, they have all permissions
     if (user.role === 'admin') {
       return true;
     }
-    
+
     // Check if the user has the specific permission
-    const permissions = 'permissions' in user && Array.isArray(user.permissions) 
-      ? user.permissions 
-      : [];
-    
+    const permissions =
+      'permissions' in user && Array.isArray(user.permissions) ? user.permissions : [];
+
     return permissions.includes(permission);
   }
 
   /**
    * Check if a user has one of the specified roles
-   * 
+   *
    * @param userOrRole The user object or just the role string
    * @param roles The roles to check against
    * @returns True if the user has one of the specified roles
    */
   hasRole(userOrRole: JWTPayload | { role: string } | string, roles: string[]): boolean {
-    const role = typeof userOrRole === 'string' 
-      ? userOrRole 
-      : userOrRole.role;
-    
+    const role = typeof userOrRole === 'string' ? userOrRole : userOrRole.role;
+
     return roles.includes(role);
   }
 
@@ -789,7 +813,7 @@ export class UnifiedAuthService {
 
   /**
    * Generate a secure password reset token
-   * 
+   *
    * @param userId User ID to generate token for
    * @returns The generated reset token
    */
@@ -798,10 +822,10 @@ export class UnifiedAuthService {
       // Generate a secure random token
       const resetToken = crypto.randomBytes(32).toString('hex');
       const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-      
+
       // Set expiration time (1 hour from now)
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-      
+
       // Store the token in Redis with expiration
       await this.redis.set(
         `${this.RESET_TOKEN_PREFIX}${hashedToken}`,
@@ -809,10 +833,10 @@ export class UnifiedAuthService {
         'EX',
         3600 // 1 hour in seconds
       );
-      
+
       // Log token generation (without the actual token)
       logger.info('Generated password reset token', { userId });
-      
+
       return resetToken;
     } catch (error) {
       logger.error('Error generating reset token', { error: (error as Error).message, userId });
@@ -824,10 +848,10 @@ export class UnifiedAuthService {
       );
     }
   }
-  
+
   /**
    * Validate a password reset token
-   * 
+   *
    * @param token The token to validate
    * @returns The user ID if valid, null otherwise
    */
@@ -835,18 +859,18 @@ export class UnifiedAuthService {
     try {
       // Hash the token for comparison
       const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-      
+
       // Get the token from Redis
       const userId = await this.redis.get(`${this.RESET_TOKEN_PREFIX}${hashedToken}`);
-      
+
       if (!userId) {
         logger.warn('Invalid or expired reset token used');
         return null;
       }
-      
+
       // Delete the token so it can't be used again (one-time use)
       await this.redis.del(`${this.RESET_TOKEN_PREFIX}${hashedToken}`);
-      
+
       return userId;
     } catch (error) {
       logger.error('Error validating reset token', { error: (error as Error).message });

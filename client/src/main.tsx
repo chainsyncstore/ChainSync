@@ -1,10 +1,11 @@
-import { createRoot } from 'react-dom/client';
 import { StrictMode, Suspense } from 'react';
+import { createRoot } from 'react-dom/client';
+
 import App from './App';
 import './index.css';
-import { initializeApp } from './utils/initializeApp';
 import ErrorBoundary from './components/ErrorBoundary';
 import InitializationError from './components/InitializationError';
+import { initializeApp } from './utils/initializeApp';
 
 // Loading component
 const LoadingFallback = () => (
@@ -34,7 +35,7 @@ const initApp = async () => {
     // Render the app inside error boundary
     root.render(
       <StrictMode>
-        <ErrorBoundary 
+        <ErrorBoundary
           fallback={
             <div className="p-4">
               <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
@@ -50,13 +51,11 @@ const initApp = async () => {
     );
   } catch (error) {
     console.error('Fatal error during app initialization:', error);
-    
+
     // Show error UI
     root.render(
       <StrictMode>
-        <InitializationError 
-          error={error instanceof Error ? error : new Error(String(error))} 
-        />
+        <InitializationError error={error instanceof Error ? error : new Error(String(error))} />
       </StrictMode>
     );
   }
@@ -65,7 +64,7 @@ const initApp = async () => {
 // Start the application
 initApp().catch(error => {
   console.error('Fatal error in initialization:', error);
-  
+
   // Final fallback in case something goes wrong during initialization
   const root = createRoot(document.getElementById('root')!);
   root.render(

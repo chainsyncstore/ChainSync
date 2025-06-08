@@ -1,7 +1,7 @@
 import { Pool, QueryResult, PoolClient, QueryResultRow } from 'pg';
-import { getLogger } from '../../src/logging';
-import { AppError } from '../middleware/utils/app-error';
-import { ErrorCategory, ErrorCode } from '../middleware/types/error';
+
+import { AppError, ErrorCategory, ErrorCode } from '../../shared/types/errors.js';
+import { getLogger } from '../../src/logging/index.js';
 
 // Type definitions to improve type safety
 type PostgresError = {
@@ -32,7 +32,7 @@ const logger = getLogger().child({ component: 'secure-db' });
 
 /**
  * SecureDB - A wrapper around the PostgreSQL client that enforces secure database practices
- * 
+ *
  * Features:
  * 1. Always uses parameterized queries to prevent SQL injection
  * 2. Validates inputs before executing queries
@@ -48,32 +48,35 @@ export class SecureDB {
 
   /**
    * Execute a parameterized query safely
-   * 
+   *
    * @param text SQL query with placeholders
    * @param params Parameters to bind to the query
    * @returns Query result
    */
-  async query<T = any>(text: string, params: unknown[] = []): Promise<QueryResult<T>> {
+  async query<T extends QueryResultRow = any>(
+    text: string,
+    params: unknown[] = []
+  ): Promise<QueryResult<T>> {
     try {
       // Validate query before execution
       this.validateQuery(text);
-      
+
       // Log query for debugging (sanitized)
       this.logQuery(text, params);
-      
+
       // Execute the query with parameters
       const result = await this.pool.query<T>(text, params);
-      
+
       return result;
     } catch (error: unknown) {
       // Enhanced error handling with proper context
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Database query error', { 
+      logger.error('Database query error', {
         error: errorMessage,
         query: this.sanitizeQuery(text),
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
-      
+
       // Translate database errors to application errors
       throw this.handleDatabaseError(error, text);
     }
@@ -81,19 +84,22 @@ export class SecureDB {
 
   /**
    * Execute a single-row query, returning the first row or null if no rows found
-   * 
+   *
    * @param text SQL query with placeholders
    * @param params Parameters to bind to the query
    * @returns First row or null
    */
-  async queryOne<T extends QueryResultRow = Record<string, unknown>>(text: string, params: unknown[] = []): Promise<T | null> {
+  async queryOne<T extends QueryResultRow = Record<string, unknown>>(
+    text: string,
+    params: unknown[] = []
+  ): Promise<T | null> {
     const result = await this.query<T>(text, params);
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
   /**
    * Validate the query for security concerns
-   * 
+   *
    * @param query SQL query to validate
    */
   private validateQuery(query: string): void {
@@ -104,16 +110,16 @@ export class SecureDB {
       /;\s*UPDATE\s+.*\s*SET/i,
       /EXECUTE\s+IMMEDIATE/i,
       /EXEC\s+\(/i,
-      /xp_cmdshell/i
+      /xp_cmdshell/i,
     ];
-    
+
     for (const pattern of dangerousPatterns) {
       if (pattern.test(query)) {
-        logger.warn('Potentially dangerous SQL pattern detected', { 
+        logger.warn('Potentially dangerous SQL pattern detected', {
           pattern: pattern.toString(),
-          query: this.sanitizeQuery(query)
+          query: this.sanitizeQuery(query),
         });
-        
+
         throw new AppError(
           ErrorCategory.VALIDATION,
           ErrorCode.BAD_REQUEST,
@@ -122,14 +128,14 @@ export class SecureDB {
         );
       }
     }
-    
-    // Ensure queries don't contain concatenated parameters 
+
+    // Ensure queries don't contain concatenated parameters
     // (which could indicate a failure to use parameterized queries)
     if (/'\s*\+\s*|"\s*\+\s*/.test(query)) {
-      logger.warn('String concatenation in SQL query detected', { 
-        query: this.sanitizeQuery(query)
+      logger.warn('String concatenation in SQL query detected', {
+        query: this.sanitizeQuery(query),
       });
-      
+
       throw new AppError(
         ErrorCategory.VALIDATION,
         ErrorCode.BAD_REQUEST,
@@ -141,7 +147,7 @@ export class SecureDB {
 
   /**
    * Handle database errors and translate them to application errors
-   * 
+   *
    * @param error Original database error
    * @param query The SQL query that caused the error
    * @returns Application error
@@ -149,9 +155,14 @@ export class SecureDB {
   private handleDatabaseError(error: unknown, query: string): AppError {
     // Type guard for PostgreSQL errors
     const isPostgresError = (err: unknown): err is PostgresError => {
-      return err !== null && typeof err === 'object' && 'code' in err;
+      return (
+        err !== null &&
+        typeof err === 'object' &&
+        typeof (err as PostgresError).code === 'string' &&
+        typeof (err as PostgresError).message === 'string'
+      );
     };
-    
+
     // Apply the type guard to the error
     if (!isPostgresError(error)) {
       return new AppError(
@@ -170,7 +181,7 @@ export class SecureDB {
         { detail: error.detail }
       );
     }
-    
+
     // Foreign key constraint violation
     if (error.code === '23503') {
       return new AppError(
@@ -180,7 +191,7 @@ export class SecureDB {
         { detail: error.detail }
       );
     }
-    
+
     // Not null constraint violation
     if (error.code === '23502') {
       return new AppError(
@@ -190,29 +201,26 @@ export class SecureDB {
         { detail: error.detail }
       );
     }
-    
+
     // Connection errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
       return new AppError(
         ErrorCategory.SYSTEM,
-        ErrorCode.INTERNAL_ERROR,
+        ErrorCode.SERVICE_UNAVAILABLE,
         'Database connection error',
         { reason: 'Could not connect to database' }
       );
     }
-    
+
     // Generic database error
-    return new AppError(
-      ErrorCategory.SYSTEM,
-      ErrorCode.INTERNAL_ERROR,
-      'Database error occurred',
-      { message: error.message }
-    );
+    return new AppError(ErrorCategory.SYSTEM, ErrorCode.DATABASE_ERROR, 'Database error occurred', {
+      message: error.message,
+    });
   }
 
   /**
    * Log the query for debugging (with sanitization)
-   * 
+   *
    * @param query SQL query
    * @param params Query parameters
    */
@@ -221,14 +229,14 @@ export class SecureDB {
     if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_SQL === 'true') {
       logger.debug('Executing SQL query', {
         query: this.sanitizeQuery(query),
-        paramCount: params.length
+        paramCount: params.length,
       });
     }
   }
 
   /**
    * Sanitize a query for logging (remove sensitive data)
-   * 
+   *
    * @param query SQL query
    * @returns Sanitized query
    */
@@ -241,7 +249,7 @@ export class SecureDB {
 
   /**
    * Begin a database transaction
-   * 
+   *
    * @returns Transaction client
    */
   async beginTransaction(): Promise<SecureTransaction> {
@@ -265,27 +273,34 @@ export class SecureTransaction {
 
   /**
    * Execute a parameterized query within the transaction
-   * 
+   *
    * @param text SQL query with placeholders
    * @param params Parameters to bind to the query
    * @returns Query result
    */
-  async query<T = any>(text: string, params: unknown[] = []): Promise<QueryResult<T>> {
+  async query<T extends QueryResultRow = any>(
+    text: string,
+    params: unknown[] = []
+  ): Promise<QueryResult<T>> {
     if (this.committed || this.rolledBack) {
       throw new AppError(
         ErrorCategory.SYSTEM,
-        ErrorCode.INTERNAL_ERROR,
+        ErrorCode.INVALID_OPERATION,
         'Transaction already completed',
         { committed: this.committed, rolledBack: this.rolledBack }
       );
     }
-    
+
     try {
-      return await this.client.query(text, params);
+      return await this.client.query<T>(text, params);
     } catch (error: unknown) {
       // Auto rollback on error
       await this.rollback();
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   }
 
@@ -296,15 +311,21 @@ export class SecureTransaction {
     if (this.committed || this.rolledBack) {
       throw new AppError(
         ErrorCategory.SYSTEM,
-        ErrorCode.INTERNAL_ERROR,
+        ErrorCode.INVALID_OPERATION,
         'Transaction already completed',
         { committed: this.committed, rolledBack: this.rolledBack }
       );
     }
-    
+
     try {
       await this.client.query('COMMIT');
       this.committed = true;
+    } catch (err: unknown) {
+      logger.error('Transaction commit failed', {
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+      throw err; // Re-throw after logging
     } finally {
       // Use type guard to check if client has release method
       if ('release' in this.client && typeof this.client.release === 'function') {
@@ -320,10 +341,16 @@ export class SecureTransaction {
     if (this.committed || this.rolledBack) {
       return;
     }
-    
+
     try {
       await this.client.query('ROLLBACK');
       this.rolledBack = true;
+    } catch (err: unknown) {
+      logger.error('Transaction rollback failed', {
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+      // Decide if rollback errors should be re-thrown. Often logged and absorbed.
     } finally {
       // Use type guard to check if client has release method
       if ('release' in this.client && typeof this.client.release === 'function') {
@@ -338,7 +365,7 @@ let secureDbInstance: SecureDB | null = null;
 
 /**
  * Get the SecureDB instance
- * 
+ *
  * @param pool Optional database pool to use
  * @returns SecureDB instance
  */
@@ -350,6 +377,6 @@ export function getSecureDb(pool?: Pool): SecureDB {
     const { pool: defaultPool } = require('../../db');
     secureDbInstance = new SecureDB(defaultPool);
   }
-  
+
   return secureDbInstance;
 }

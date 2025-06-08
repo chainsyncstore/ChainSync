@@ -2,7 +2,7 @@ import { log } from '../vite';
 
 /**
  * Guidelines for setting up ngrok for local webhook testing
- * 
+ *
  * This doesn't automatically run ngrok but provides instructions
  * and a structure for configuring webhook URLs when using ngrok.
  */
@@ -21,15 +21,15 @@ export function getWebhookUrls(ngrokUrl?: string): NgrokConfig | null {
   if (!ngrokUrl) {
     return null;
   }
-  
+
   // Normalize the URL - remove trailing slashes
   const url = ngrokUrl.replace(/\/+$/, '');
-  
+
   // Generate URLs for payment processors
   return {
     publicUrl: url,
     paystackWebhookUrl: `${url}/api/webhooks/paystack`,
-    flutterwaveWebhookUrl: `${url}/api/webhooks/flutterwave`
+    flutterwaveWebhookUrl: `${url}/api/webhooks/flutterwave`,
   };
 }
 

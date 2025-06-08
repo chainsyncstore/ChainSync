@@ -1,8 +1,9 @@
-import { db } from '../connection-manager.js';
 import { sql } from 'drizzle-orm';
-import { getLogger } from '../../shared/logging.js';
 
-const logger = getLogger().child({ component: 'db-migrations' });
+import { getLogger } from '../../shared/logging.js';
+import { db } from '../connection-manager.js';
+
+const logger = getLogger('db-migrations').child({ component: 'db-migrations' });
 
 /**
  * Adds strategic indexes to improve query performance
@@ -10,7 +11,7 @@ const logger = getLogger().child({ component: 'db-migrations' });
  */
 export async function addPerformanceIndexes() {
   logger.info('Starting database index migration');
-  
+
   try {
     // Transaction table indexes
     logger.info('Creating indexes for transactions');
@@ -88,9 +89,9 @@ export async function addPerformanceIndexes() {
     return { success: true };
   } catch (error) {
     logger.error('Failed to add performance indexes', { error });
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : String(error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }

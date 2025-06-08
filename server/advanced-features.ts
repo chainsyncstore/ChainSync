@@ -1,11 +1,12 @@
 import { Express } from 'express';
-import { getLogger } from '../src/logging';
-import { applyAdvancedSecurity } from './middleware/advanced-security';
-import { applyRateLimiters, shutdownRateLimiter } from './middleware/rate-limiter';
-import sessionManager from './services/auth/session-manager';
-import { metricsCollector } from './monitoring/metrics-collector';
-import { alertManager, AlertSeverity } from './monitoring/alert-manager';
-import { appHealthManager } from './utils/app-health';
+
+import { applyAdvancedSecurity } from './middleware/advanced-security.js';
+import { applyRateLimiters, shutdownRateLimiter } from './middleware/rate-limiter.js';
+import { alertManager, AlertSeverity } from './monitoring/alert-manager.js';
+import { metricsCollector } from './monitoring/metrics-collector.js';
+import sessionManager from './services/auth/session-manager.js';
+import { appHealthManager } from './utils/app-health.js';
+import { getLogger } from '../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'advanced-features' });
 
@@ -66,7 +67,7 @@ function registerSystemAlerts(): void {
       message: 'Disk space usage is above 90%, action required',
       severity: AlertSeverity.ERROR,
       source: 'system-monitor',
-      tags: { component: 'disk', type: 'resource' }
+      tags: { component: 'disk', type: 'resource' },
     }
   );
 
@@ -82,7 +83,7 @@ function registerSystemAlerts(): void {
       message: 'Memory usage is above 85%, potential memory leak',
       severity: AlertSeverity.WARNING,
       source: 'system-monitor',
-      tags: { component: 'memory', type: 'resource' }
+      tags: { component: 'memory', type: 'resource' },
     }
   );
 
@@ -98,7 +99,7 @@ function registerSystemAlerts(): void {
       message: 'CPU usage is above 80%, system may become unresponsive',
       severity: AlertSeverity.WARNING,
       source: 'system-monitor',
-      tags: { component: 'cpu', type: 'resource' }
+      tags: { component: 'cpu', type: 'resource' },
     }
   );
 
@@ -108,7 +109,7 @@ function registerSystemAlerts(): void {
     () => {
       const health = appHealthManager.getHealthHistory();
       if (health.length === 0) return false;
-      
+
       const latest = health[health.length - 1];
       const dbComponent = latest.components.find(c => c.name === 'database');
       return dbComponent?.status === 'unhealthy';
@@ -118,7 +119,7 @@ function registerSystemAlerts(): void {
       message: 'Database health check failed, service may be degraded',
       severity: AlertSeverity.ERROR,
       source: 'health-monitor',
-      tags: { component: 'database', type: 'connectivity' }
+      tags: { component: 'database', type: 'connectivity' },
     }
   );
 
@@ -131,36 +132,36 @@ function registerSystemAlerts(): void {
 function registerGracefulShutdown(): void {
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}, shutting down gracefully...`);
-    
+
     // Send alert
     alertManager.alert({
       title: 'System shutdown initiated',
       message: `Graceful shutdown initiated by ${signal}`,
       severity: AlertSeverity.INFO,
       source: 'system',
-      tags: { signal, type: 'lifecycle' }
+      tags: { signal, type: 'lifecycle' },
     });
-    
+
     // Stop health checks
     appHealthManager.shutdown();
     logger.info('Health checks stopped');
-    
+
     // Stop metrics collection
     metricsCollector.shutdown();
     logger.info('Metrics collection stopped');
-    
+
     // Shutdown rate limiter
     await shutdownRateLimiter();
     logger.info('Rate limiter shut down');
-    
+
     // Shutdown session manager
     await sessionManager.shutdown();
     logger.info('Session manager shut down');
-    
+
     // Shutdown alert manager
     alertManager.shutdown();
     logger.info('Alert manager shut down');
-    
+
     // Exit process
     setTimeout(() => {
       logger.info('Exiting process');
@@ -172,7 +173,7 @@ function registerGracefulShutdown(): void {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGHUP', () => shutdown('SIGHUP'));
-  
+
   logger.info('Graceful shutdown handlers registered');
 }
 

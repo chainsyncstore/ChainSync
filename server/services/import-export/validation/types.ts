@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { ImportExportErrorCode } from '../../../shared/types/import-export-errors';
 
 export interface ValidationCache {
@@ -31,7 +32,10 @@ export interface ValidationOptions {
 
 export interface ValidationService {
   validate(data: unknown, type: 'products' | 'users' | 'transactions'): Promise<any>;
-  validateBatch(data: unknown[], type: 'products' | 'users' | 'transactions'): Promise<{
+  validateBatch(
+    data: unknown[],
+    type: 'products' | 'users' | 'transactions'
+  ): Promise<{
     valid: unknown[];
     invalid: { index: number; errors: string[] }[];
   }>;
@@ -55,5 +59,5 @@ export const validationErrors: Record<z.ZodErrorCodes, string> = {
   invalid_lazy: 'Invalid lazy',
   invalid_promise: 'Invalid promise',
   invalid_custom: 'Invalid custom',
-  invalid_async_custom: 'Invalid async custom'
+  invalid_async_custom: 'Invalid async custom',
 };

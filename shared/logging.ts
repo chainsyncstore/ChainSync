@@ -1,6 +1,6 @@
 /**
  * Shared Logging Utility
- * 
+ *
  * Provides a consistent logging interface across the application
  * with structured logging and context tracking.
  */
@@ -8,12 +8,15 @@
 import pino from 'pino';
 
 // Default log level based on environment
-const defaultLogLevel = process.env.NODE_ENV === 'production' 
-  ? 'info' 
-  : (process.env.NODE_ENV === 'test' ? 'warn' : 'debug');
+const defaultLogLevel =
+  process.env.NODE_ENV === 'production'
+    ? 'info'
+    : process.env.NODE_ENV === 'test'
+      ? 'warn'
+      : 'debug';
 
 // Base logger configuration
-const baseLogger = pino({
+const baseLoggerInstance = pino({
   level: process.env.LOG_LEVEL || defaultLogLevel,
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
@@ -51,17 +54,21 @@ const baseLogger = pino({
       },
     },
   }),
+  serializers: pino.stdSerializers,
 });
 
 /**
  * Get a logger instance
  * Optionally provide context that will be included with all log entries
  */
-export function getLogger(context?: Record<string, unknown>) {
-  if (context) {
-    return baseLogger.child(context);
-  }
-  return baseLogger;
+export function getLogger(
+  moduleName: string,
+  bindings: Record<string, any> = {} // Changed 'options' to 'bindings' for clarity
+): Logger {
+  return baseLogger.child({
+    module: moduleName, // Add moduleName as a specific binding
+    ...bindings, // Spread other bindings
+  });
 }
 
 /**
@@ -97,9 +104,9 @@ export function logPerformance(
     component: 'performance',
     ...metadata,
   });
-  
+
   performanceLogger.info({ operation, durationMs }, `Completed ${operation} in ${durationMs}ms`);
-  
+
   // Log warning for slow operations
   if (durationMs > 1000) {
     performanceLogger.warn(
@@ -141,4 +148,6 @@ export async function measureAndLog<T>(
   }
 }
 
+export type Logger = typeof baseLoggerInstance;
+const baseLogger: Logger = baseLoggerInstance;
 export default baseLogger;

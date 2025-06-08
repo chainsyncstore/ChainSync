@@ -1,11 +1,13 @@
-import { BaseService } from '../base/service';
-import { IAffiliateService, IAffiliateServiceErrors, AffiliateServiceErrors } from './types';
-import { storage } from '../../storage';
-import * as schema from '@shared/schema';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
-import { db } from '../../../db';
+
+import * as schema from '@shared/schema.js';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import Flutterwave from 'flutterwave-node-v3';
+
+import { IAffiliateService, IAffiliateServiceErrors, AffiliateServiceErrors } from './types';
+import { db } from '../../../db';
+import { storage } from '../../storage';
+import { BaseService } from '../base/service';
 
 // Initialize Flutterwave client if credentials are available
 let flwClient: Flutterwave | null = null;
@@ -29,7 +31,10 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         throw AffiliateServiceErrors.USER_NOT_FOUND;
       }
 
-      const baseCode = user.username.replace(/[^a-zA-Z0-9]/g, '').substring(0, 5).toUpperCase();
+      const baseCode = user.username
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .substring(0, 5)
+        .toUpperCase();
       const randomString = randomBytes(3).toString('hex').toUpperCase();
       const referralCode = `${baseCode}${randomString}`;
 
@@ -47,12 +52,15 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }
 
       const referralCode = await this.generateReferralCode(userId);
-      const affiliate = await db.insert(schema.affiliates).values({
-        userId,
-        referralCode,
-        status: 'active',
-        commissionRate: AffiliateService.REFERRAL_COMMISSION_PERCENTAGE / 100
-      }).returning();
+      const affiliate = await db
+        .insert(schema.affiliates)
+        .values({
+          userId,
+          referralCode,
+          status: 'active',
+          commissionRate: AffiliateService.REFERRAL_COMMISSION_PERCENTAGE / 100,
+        })
+        .returning();
 
       return affiliate[0];
     } catch (error: unknown) {
@@ -63,7 +71,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
   async getAffiliateByUserId(userId: number): Promise<schema.Affiliate | null> {
     try {
       return await db.query.affiliates.findFirst({
-        where: eq(schema.affiliates.userId, userId)
+        where: eq(schema.affiliates.userId, userId),
       });
     } catch (error: unknown) {
       this.handleError(error, 'Getting affiliate by user ID');
@@ -73,7 +81,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
   async getAffiliateByCode(code: string): Promise<schema.Affiliate | null> {
     try {
       return await db.query.affiliates.findFirst({
-        where: eq(schema.affiliates.referralCode, code)
+        where: eq(schema.affiliates.referralCode, code),
       });
     } catch (error: unknown) {
       this.handleError(error, 'Getting affiliate by code');
@@ -88,19 +96,22 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }
 
       const existingReferral = await db.query.referrals.findFirst({
-        where: eq(schema.referrals.referringUserId, affiliate.userId)
+        where: eq(schema.referrals.referringUserId, affiliate.userId),
       });
 
       if (existingReferral) {
         throw AffiliateServiceErrors.REFERRAL_ALREADY_EXISTS;
       }
 
-      const referral = await db.insert(schema.referrals).values({
-        referringUserId: affiliate.userId,
-        referredUserId: newUserId,
-        status: 'active',
-        createdAt: new Date()
-      }).returning();
+      const referral = await db
+        .insert(schema.referrals)
+        .values({
+          referringUserId: affiliate.userId,
+          referredUserId: newUserId,
+          status: 'active',
+          createdAt: new Date(),
+        })
+        .returning();
 
       return referral[0];
     } catch (error: unknown) {
@@ -120,12 +131,13 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         throw AffiliateServiceErrors.INVALID_REFERRAL_CODE;
       }
 
-      const discountAmount = (subscriptionAmount * AffiliateService.REFERRAL_DISCOUNT_PERCENTAGE) / 100;
+      const discountAmount =
+        (subscriptionAmount * AffiliateService.REFERRAL_DISCOUNT_PERCENTAGE) / 100;
       const discountedAmount = subscriptionAmount - discountAmount;
 
       return {
         discountedAmount,
-        discountAmount
+        discountAmount,
       };
     } catch (error: unknown) {
       this.handleError(error, 'Applying referral discount');
@@ -144,13 +156,16 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }
 
       const commissionAmount = paymentAmount * affiliate.commissionRate;
-      const commission = await db.insert(schema.affiliateCommissions).values({
-        affiliateId: affiliate.id,
-        amount: commissionAmount,
-        currency,
-        status: 'pending',
-        createdAt: new Date()
-      }).returning();
+      const commission = await db
+        .insert(schema.affiliateCommissions)
+        .values({
+          affiliateId: affiliate.id,
+          amount: commissionAmount,
+          currency,
+          status: 'pending',
+          createdAt: new Date(),
+        })
+        .returning();
 
       return commission[0] !== undefined;
     } catch (error: unknown) {
@@ -181,20 +196,22 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         try {
           // Simulate payout
           const payment = await this.withRetry(
-            () => flwClient.Payout.createPayout(
-              commission.amount,
-              commission.currency,
-              affiliate.bankDetails
-            ),
+            () =>
+              flwClient.Payout.createPayout(
+                commission.amount,
+                commission.currency,
+                affiliate.bankDetails
+              ),
             'Processing payout'
           );
 
           if (payment.status === 'success') {
-            await db.update(schema.affiliateCommissions)
+            await db
+              .update(schema.affiliateCommissions)
               .set({
                 status: 'paid',
                 paidAt: new Date(),
-                paymentId: payment.data.id
+                paymentId: payment.data.id,
               })
               .where(eq(schema.affiliateCommissions.id, commission.id))
               .returning();
@@ -241,7 +258,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .select({
           total: sql<number>`count(*)`,
           active: sql<number>`count(*) filter (where ${schema.referrals.status} = 'active')`,
-          pending: sql<number>`count(*) filter (where ${schema.referrals.status} = 'pending')`
+          pending: sql<number>`count(*) filter (where ${schema.referrals.status} = 'pending')`,
         })
         .from(schema.referrals)
         .where(eq(schema.referrals.referringUserId, affiliate.userId));
@@ -249,7 +266,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       const earnings = await db
         .select({
           total: sql<number>`sum(${schema.affiliateCommissions.amount})`,
-          pending: sql<number>`sum(${schema.affiliateCommissions.amount}) filter (where ${schema.affiliateCommissions.status} = 'pending')`
+          pending: sql<number>`sum(${schema.affiliateCommissions.amount}) filter (where ${schema.affiliateCommissions.status} = 'pending')`,
         })
         .from(schema.affiliateCommissions)
         .where(eq(schema.affiliateCommissions.affiliateId, affiliate.id));
@@ -257,7 +274,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       const lastPayment = await db
         .select({
           amount: schema.affiliateCommissions.amount,
-          date: schema.affiliateCommissions.paidAt
+          date: schema.affiliateCommissions.paidAt,
         })
         .from(schema.affiliateCommissions)
         .where(
@@ -274,15 +291,15 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         referrals: {
           total: referrals[0].total,
           active: referrals[0].active,
-          pending: referrals[0].pending
+          pending: referrals[0].pending,
         },
         earnings: {
           total: earnings[0].total?.toString() || '0',
           pending: earnings[0].pending?.toString() || '0',
-          lastPayment: lastPayment[0]
+          lastPayment: lastPayment[0],
         },
         clicks: 0, // This would require additional tracking
-        conversions: referrals[0].total
+        conversions: referrals[0].total,
       };
     } catch (error: unknown) {
       this.handleError(error, 'Getting affiliate dashboard stats');
@@ -351,8 +368,8 @@ export class AffiliateService extends BaseService implements IAffiliateService {
             accountNumber: bankDetails.accountNumber,
             accountName: bankDetails.accountName,
             bankCode: bankDetails.bankCode,
-            paymentMethod: bankDetails.paymentMethod
-          }
+            paymentMethod: bankDetails.paymentMethod,
+          },
         })
         .where(eq(schema.affiliates.userId, userId))
         .returning();

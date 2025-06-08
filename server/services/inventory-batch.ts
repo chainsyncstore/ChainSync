@@ -1,7 +1,8 @@
-import { storage } from '../storage';
-import * as schema from '@shared/schema';
 import { db } from '@db';
+import * as schema from '@shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
+
+import { storage } from '../storage';
 
 export interface BatchInsertData {
   inventoryId: number;
@@ -36,10 +37,7 @@ export interface BatchData {
 export async function addBatch(batchData: BatchData) {
   try {
     // Check if inventory exists
-    let inventory = await storage.getStoreProductInventory(
-      batchData.storeId,
-      batchData.productId
-    );
+    let inventory = await storage.getStoreProductInventory(batchData.storeId, batchData.productId);
 
     // Create inventory if it doesn't exist
     if (!inventory) {
@@ -47,7 +45,7 @@ export async function addBatch(batchData: BatchData) {
         storeId: batchData.storeId,
         productId: batchData.productId,
         totalQuantity: 0,
-        minimumLevel: 5
+        minimumLevel: 5,
       });
     }
 
@@ -59,12 +57,12 @@ export async function addBatch(batchData: BatchData) {
       expiryDate: batchData.expiryDate || null,
       receivedDate: new Date().toISOString(),
       manufacturingDate: batchData.manufacturingDate || null,
-      costPerUnit: batchData.costPerUnit?.toString() || null
+      costPerUnit: batchData.costPerUnit?.toString() || null,
     });
 
     // Update inventory total quantity
     await storage.updateInventoryTotalQuantity(inventory.id);
-    
+
     return batch;
   } catch (error: unknown) {
     console.error('Error adding batch:', error);
@@ -133,15 +131,15 @@ export async function adjustBatchStock(adjustment: BatchStockAdjustment) {
 
     // Calculate new quantity
     const newQuantity = currentBatch.quantity + adjustment.quantity;
-    
+
     // Ensure quantity doesn't go below zero
     if (newQuantity < 0) {
       throw new Error('Adjustment would result in negative stock');
     }
 
     // Update batch quantity
-    await storage.updateInventoryBatch(adjustment.batchId, { 
-      quantity: newQuantity 
+    await storage.updateInventoryBatch(adjustment.batchId, {
+      quantity: newQuantity,
     });
 
     // Update inventory total quantity
@@ -165,7 +163,7 @@ export async function sellFromBatch(batchId: number, quantity: number) {
     return await adjustBatchStock({
       batchId,
       quantity: -Math.abs(quantity), // Ensure quantity is negative for selling
-      reason: 'Sale'
+      reason: 'Sale',
     });
   } catch (error: unknown) {
     console.error('Error selling from batch:', error);
@@ -181,7 +179,7 @@ export async function returnToBatch(batchId: number, quantity: number) {
     return await adjustBatchStock({
       batchId,
       quantity: Math.abs(quantity), // Ensure quantity is positive for returns
-      reason: 'Return'
+      reason: 'Return',
     });
   } catch (error: unknown) {
     console.error('Error returning to batch:', error);
@@ -197,7 +195,7 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
   try {
     // Get all non-expired batches for this product, ordered by expiry date (ascending)
     const batches = await storage.getInventoryBatchesByProduct(storeId, productId, false);
-    
+
     // Sort batches by expiry date (closest expiry first)
     // Batches without expiry dates will go last
     const sortedBatches = batches.sort((a, b) => {
@@ -215,7 +213,7 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
       if (remainingQty <= 0) break;
 
       const qtyToSell = Math.min(batch.quantity, remainingQty);
-      
+
       if (qtyToSell > 0) {
         // Sell from this batch
         const updatedBatch = await sellFromBatch(batch.id, qtyToSell);
@@ -225,7 +223,9 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
     }
 
     if (remainingQty > 0) {
-      throw new Error(`Insufficient stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`);
+      throw new Error(
+        `Insufficient stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`
+      );
     }
 
     return updatedBatches;

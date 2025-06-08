@@ -13,7 +13,7 @@ export const ErrorCategory = {
   THROTTLING: 'THROTTLING',
   CONFLICT: 'CONFLICT',
   GATEWAY_TIMEOUT: 'GATEWAY_TIMEOUT',
-  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE'
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
 } as const;
 
-export type ErrorCategory = typeof ErrorCategory[keyof typeof ErrorCategory];
+export type ErrorCategory = (typeof ErrorCategory)[keyof typeof ErrorCategory];

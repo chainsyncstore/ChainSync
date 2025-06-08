@@ -2,18 +2,17 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@src/*": ["server/*"],
+      "@src/*": ["src/*"],
       "@shared/schema": ["shared/schema.ts"],
       "@shared/db/index": ["shared/db/index.ts"],
       "@shared/*": ["shared/*"],
-      "@db/*": ["server/db/*"],
-      "@services/*": ["server/services/*"],
-      "@utils/*": ["server/utils/*"],
-      "@src/": ["server/"],
+
+      "@services/*": ["src/services/*"],
+      "@utils/*": ["src/utils/*"],
+      "@src/": ["src/"],
       "@shared/": ["shared/"],
-      "@db/": ["server/db/"],
-      "@services/": ["server/services/"],
-      "@utils/": ["server/utils/"]
+      "@services/": ["src/services/"],
+      "@utils/": ["src/utils/"]
     }
   }
 }

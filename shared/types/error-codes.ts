@@ -46,7 +46,7 @@ export const ErrorCode = {
   RATE_LIMIT_ERROR: 'RATE_LIMIT_ERROR',
   THROTTLING_ERROR: 'THROTTLING_ERROR',
   GATEWAY_TIMEOUT_ERROR: 'GATEWAY_TIMEOUT_ERROR',
-  SERVICE_UNAVAILABLE_ERROR: 'SERVICE_UNAVAILABLE_ERROR'
+  SERVICE_UNAVAILABLE_ERROR: 'SERVICE_UNAVAILABLE_ERROR',
 } as const;
 
-export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode];
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

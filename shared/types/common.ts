@@ -1,7 +1,7 @@
-import type { NeonDatabase } from 'drizzle-orm/neon-serverless'; // Changed from neon-http to neon-serverless
 import * as schema from '@shared/schema'; // Changed to use @shared/schema for consistency
+import type { NeonDatabase } from 'drizzle-orm/neon-serverless'; // Changed from neon-http to neon-serverless
 
-import { Logger } from '../../src/logging'; // Import the main Logger type
+import type { Logger } from '../logging.js'; // Import the main Logger type
 
 export type DatabaseConnection = NeonDatabase<typeof schema>;
 

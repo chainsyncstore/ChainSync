@@ -1,18 +1,19 @@
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/providers/auth-provider";
-import { AppShell } from "@/components/layout/app-shell";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { Link } from "wouter";
-import SalesTrends from "@/components/analytics/sales-trends";
-import StoreComparison from "@/components/analytics/store-comparison";
+import { ArrowLeft } from 'lucide-react';
+import React from 'react';
+import { Link } from 'wouter';
+
+import SalesTrends from '@/components/analytics/sales-trends';
+import StoreComparison from '@/components/analytics/store-comparison';
+import { AppShell } from '@/components/layout/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
-  
+  const isAdmin = user?.role === 'admin';
+
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-6">
@@ -27,7 +28,7 @@ export default function AnalyticsPage() {
           </Link>
         </Button>
       </div>
-      
+
       <Tabs defaultValue="sales" className="mb-6">
         <TabsList>
           <TabsTrigger value="sales">Sales Trends</TabsTrigger>
@@ -35,17 +36,17 @@ export default function AnalyticsPage() {
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="sales" className="space-y-4">
           <SalesTrends />
         </TabsContent>
-        
+
         {isAdmin && (
           <TabsContent value="stores" className="space-y-4">
             <StoreComparison />
           </TabsContent>
         )}
-        
+
         <TabsContent value="inventory" className="space-y-4">
           <Card>
             <CardHeader>
@@ -59,7 +60,7 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="customers" className="space-y-4">
           <Card>
             <CardHeader>

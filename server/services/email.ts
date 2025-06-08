@@ -19,7 +19,9 @@ try {
     transporter = nodemailer.createTransport(emailConfig);
     console.log('Email transporter created successfully');
   } else {
-    console.warn('EMAIL_USER and/or EMAIL_PASSWORD are not set. Email functionality will not work.');
+    console.warn(
+      'EMAIL_USER and/or EMAIL_PASSWORD are not set. Email functionality will not work.'
+    );
   }
 } catch (error: unknown) {
   console.error('Failed to create email transporter:', error);
@@ -44,17 +46,17 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       console.error('Cannot send email: Email transporter not initialized');
       return false;
     }
-    
+
     const mailOptions = {
       from: options.from || `"ChainSync" <${process.env.EMAIL_USER}>`,
       to: options.to,
       subject: options.subject,
       text: options.text || '',
-      html: options.html || ''
+      html: options.html || '',
     };
-    
+
     const info = await transporter.sendMail(mailOptions);
-    
+
     console.log(`Email sent successfully to ${options.to}. Message ID: ${info.messageId}`);
     return true;
   } catch (error: unknown) {
@@ -76,7 +78,7 @@ export async function sendPasswordResetEmail(
   username: string
 ): Promise<boolean> {
   const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-  
+
   const emailOptions: EmailOptions = {
     to: email,
     subject: 'ChainSync Password Reset',
@@ -100,9 +102,9 @@ export async function sendPasswordResetEmail(
           <p style="font-size: 12px; color: #6b7280; text-align: center;">If the button doesn't work, copy and paste this URL into your browser: ${resetUrl}</p>
         </div>
       </div>
-    `
+    `,
   };
-  
+
   return await sendEmail(emailOptions);
 }
 
@@ -115,7 +117,7 @@ export async function verifyEmailConnection(): Promise<boolean> {
       console.error('Cannot verify email connection: Email transporter not initialized');
       return false;
     }
-    
+
     await transporter.verify();
     console.log('Email connection verified successfully');
     return true;

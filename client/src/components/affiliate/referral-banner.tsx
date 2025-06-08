@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircleIcon, InfoIcon } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { CheckCircleIcon, InfoIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
 interface ReferralInfo {
@@ -16,14 +17,14 @@ interface ReferralInfo {
 export function ReferralBanner() {
   const { toast } = useToast();
   const [referralCode, setReferralCode] = useState<string | null>(null);
-  
+
   // Get referral code from URL query parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('ref');
     if (code) {
       setReferralCode(code);
-      
+
       // Track the click if we have a valid code
       const trackClick = async () => {
         try {
@@ -33,11 +34,11 @@ export function ReferralBanner() {
           console.error('Error tracking referral click:', error);
         }
       };
-      
+
       trackClick();
     }
   }, []);
-  
+
   // Verify referral code
   const { data: referralInfo, isLoading } = useQuery<ReferralInfo>({
     queryKey: ['/api/affiliates/verify', referralCode],
@@ -50,12 +51,12 @@ export function ReferralBanner() {
     refetchOnWindowFocus: false,
     retry: false,
   });
-  
+
   // If no referral code or invalid code, don't show the banner
   if (!referralCode || (referralInfo && !referralInfo.isValid)) {
     return null;
   }
-  
+
   // Show loading state
   if (isLoading) {
     return (
@@ -66,7 +67,7 @@ export function ReferralBanner() {
       </Card>
     );
   }
-  
+
   // Show referral banner with discount information
   return (
     <Card className="border-2 border-dashed border-primary/30 bg-primary/5 mb-6">
@@ -75,15 +76,17 @@ export function ReferralBanner() {
           <CheckCircleIcon className="h-5 w-5 text-primary mr-2" />
           <div>
             <div className="flex items-center">
-              <p className="font-medium">
-                10% Discount Applied!
-              </p>
-              <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20">
+              <p className="font-medium">10% Discount Applied!</p>
+              <Badge
+                variant="outline"
+                className="ml-2 bg-primary/10 text-primary border-primary/20"
+              >
                 REFERRAL
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              You were referred by {referralInfo?.affiliateName || "a partner"} and will receive 10% off for 12 months
+              You were referred by {referralInfo?.affiliateName || 'a partner'} and will receive 10%
+              off for 12 months
             </p>
           </div>
         </div>

@@ -6,12 +6,16 @@ export interface FileUploadConfig {
   allowedMimeTypes: string[];
   maxFiles: number;
   destination: string;
-  filename: (req: unknown, file: unknown, cb: (error: Error | null, filename: string) => void) => void;
+  filename: (
+    req: unknown,
+    file: unknown,
+    cb: (error: Error | null, filename: string) => void
+  ) => void;
   allowedFileExtensions: string[];
   cleanupInterval: number;
   cacheTTL: number;
   maxUploadAttempts: number;
-  rateLimit: { windowMs: number; max: number; };
+  rateLimit: { windowMs: number; max: number };
 }
 
 export interface FileUploadError extends AppError {
@@ -63,7 +67,7 @@ export const FileUploadErrors = {
     'Invalid file name',
     ErrorCategory.VALIDATION,
     ErrorCode.BAD_REQUEST // Corrected ErrorCode
-  )
+  ),
 };
 
 export const defaultFileUploadConfig: FileUploadConfig = {
@@ -73,12 +77,12 @@ export const defaultFileUploadConfig: FileUploadConfig = {
   maxFiles: 10,
   destination: './uploads',
   filename: (req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, file.fieldname + '-' + uniqueSuffix);
   },
   allowedFileExtensions: ['.jpg', '.jpeg', '.png', '.pdf'],
   cleanupInterval: 3600000, // 1 hour
   cacheTTL: 86400000, // 24 hours
   maxUploadAttempts: 5,
-  rateLimit: { windowMs: 60 * 1000, max: 100 } // Default: 100 uploads per minute
+  rateLimit: { windowMs: 60 * 1000, max: 100 }, // Default: 100 uploads per minute
 };

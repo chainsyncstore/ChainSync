@@ -8,7 +8,7 @@ export interface LoyaltyMember {
   totalPointsRedeemed: string;
   enrollmentDate: Date;
   lastActivity: Date;
-  status: "active" | "inactive";
+  status: 'active' | 'inactive';
   tierId?: number;
 }
 
@@ -16,7 +16,7 @@ export interface LoyaltyTransaction {
   id: number;
   memberId: number;
   transactionId?: number;
-  type: "earn" | "redeem" | "expire" | "adjust";
+  type: 'earn' | 'redeem' | 'expire' | 'adjust';
   points: string;
   rewardId?: number;
   note?: string;

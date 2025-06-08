@@ -5,10 +5,7 @@ interface InitializationErrorProps {
   children?: React.ReactNode;
 }
 
-const InitializationError: React.FC<InitializationErrorProps> = ({ 
-  error, 
-  children 
-}) => {
+const InitializationError: React.FC<InitializationErrorProps> = ({ error, children }) => {
   const handleReload = (): void => {
     window.location.reload();
   };
@@ -38,18 +35,14 @@ const InitializationError: React.FC<InitializationErrorProps> = ({
           <p className="mt-2 text-gray-600">
             We're sorry, but the application failed to initialize.
           </p>
-          
+
           {children || (
             <>
               {error && (
                 <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-400 rounded">
                   <div className="flex">
                     <div className="flex-shrink-0">
-                      <svg
-                        className="h-5 w-5 text-red-400"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
+                      <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
                         <path
                           fillRule="evenodd"
                           d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -63,7 +56,7 @@ const InitializationError: React.FC<InitializationErrorProps> = ({
                       </p>
                     </div>
                   </div>
-                  
+
                   {process.env.NODE_ENV === 'development' && error.stack && (
                     <details className="mt-3">
                       <summary className="text-sm font-medium text-red-600 cursor-pointer">
@@ -76,7 +69,7 @@ const InitializationError: React.FC<InitializationErrorProps> = ({
                   )}
                 </div>
               )}
-              
+
               <div className="mt-8">
                 <button
                   type="button"

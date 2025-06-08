@@ -1,8 +1,8 @@
 // test/types.d.ts
 // Globally available types for tests
 import type { Product, Transaction, Customer, Store, Inventory } from '@prisma/client';
-import type { DeepMockProxy } from 'jest-mock-extended';
 import type { PrismaClient } from '@prisma/client';
+import type { DeepMockProxy } from 'jest-mock-extended';
 
 // Type aliases for common mock types
 export type MockProduct = Product;

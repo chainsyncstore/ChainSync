@@ -1,4 +1,5 @@
 import { createLogger, format, transports } from 'winston';
+
 import { FileUploadProgress } from '../types/index';
 // Removed unused and broken import: import { ErrorCategory, ErrorCode } from '../types/error';
 
@@ -10,14 +11,8 @@ const customFormat = printf(({ level, message, timestamp, ...meta }) => {
 
 export const logger = createLogger({
   level: 'info',
-  format: combine(
-    timestamp(),
-    customFormat
-  ),
-  transports: [
-    new transports.Console(),
-    new transports.File({ filename: 'uploads.log' })
-  ]
+  format: combine(timestamp(), customFormat),
+  transports: [new transports.Console(), new transports.File({ filename: 'uploads.log' })],
 });
 
 export interface UploadMetrics {
@@ -45,7 +40,7 @@ export class UploadMetricsTracker {
       currentMemoryUsage: 0,
       maxMemoryUsage: 0,
       cacheHits: 0,
-      cacheMisses: 0
+      cacheMisses: 0,
     };
     this.startTime = Date.now();
   }
@@ -92,9 +87,8 @@ export class UploadMetricsTracker {
     logger.info('Upload Metrics Report', {
       uptime,
       ...metrics,
-      successRate: metrics.totalRequests > 0 
-        ? (metrics.successfulUploads / metrics.totalRequests) * 100
-        : 0
+      successRate:
+        metrics.totalRequests > 0 ? (metrics.successfulUploads / metrics.totalRequests) * 100 : 0,
     });
   }
 }

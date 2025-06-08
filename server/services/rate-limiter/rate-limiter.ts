@@ -1,5 +1,6 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { performance } from 'perf_hooks';
+
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
 import { Redis } from 'ioredis';
 
 export interface RateLimitConfig {
@@ -16,7 +17,7 @@ export class RateLimiter {
     this.config = {
       window: config.window ?? 60, // 1 minute
       maxRequests: config.maxRequests ?? 60,
-      redisUrl: config.redisUrl ?? process.env.REDIS_URL || '',
+      redisUrl: config.redisUrl ?? (process.env.REDIS_URL || ''),
     };
 
     if (this.config.redisUrl) {
@@ -56,10 +57,7 @@ export class RateLimiter {
 
       if (this.redis) {
         const [count, expiry] = await this.withRedis(() =>
-          this.redis.multi()
-            .get(key)
-            .ttl(key)
-            .exec()
+          this.redis.multi().get(key).ttl(key).exec()
         );
 
         if (expiry[1] === -1) {
@@ -94,10 +92,7 @@ export class RateLimiter {
 
       if (this.redis) {
         await this.withRedis(() =>
-          this.redis.multi()
-            .incr(key)
-            .expire(key, this.config.window)
-            .exec()
+          this.redis.multi().incr(key).expire(key, this.config.window).exec()
         );
       }
     } catch (error: unknown) {
@@ -116,11 +111,7 @@ export class RateLimiter {
       const key = this.generateKey(userId);
 
       if (this.redis) {
-        const [count] = await this.withRedis(() =>
-          this.redis.multi()
-            .get(key)
-            .exec()
-        );
+        const [count] = await this.withRedis(() => this.redis.multi().get(key).exec());
 
         const remaining = this.config.maxRequests - (parseInt(count[1]) || 0);
         return Math.max(0, remaining);

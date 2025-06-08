@@ -25,22 +25,16 @@ const NotFound: React.FC = () => {
         <h1 className="not-found-code">404</h1>
         <h2 className="not-found-title">Page Not Found</h2>
         <p className="not-found-message">
-          We couldn't find the page you were looking for. 
-          It might have been moved, deleted, or never existed.
+          We couldn't find the page you were looking for. It might have been moved, deleted, or
+          never existed.
         </p>
-        
+
         <div className="not-found-actions">
-          <button
-            className="not-found-back-button"
-            onClick={goBack}
-          >
+          <button className="not-found-back-button" onClick={goBack}>
             Go Back
           </button>
-          
-          <button
-            className="not-found-home-button"
-            onClick={goToHome}
-          >
+
+          <button className="not-found-home-button" onClick={goToHome}>
             Go to Home
           </button>
         </div>

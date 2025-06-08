@@ -11,7 +11,7 @@ export type {
   LoyaltyReward as LoyaltyRewardType,
   LoyaltyMemberData as LoyaltyMemberDataType,
   UserAuthInfo,
-  AuthResponse
+  AuthResponse,
 } from './types.js';
 
 // If you still need the old interface types for legacy or typing purposes, move them to shared/types/schema-legacy.ts or similar and import as needed.

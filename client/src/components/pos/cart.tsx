@@ -1,11 +1,10 @@
+import { Trash2, CreditCard, AlertOctagon } from 'lucide-react';
 import React from 'react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -14,11 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/utils';
-import { Trash2, CreditCard, AlertOctagon } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 
 interface CartProps {
   items: Array<{
@@ -57,14 +52,24 @@ export function Cart({
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-medium">Current Transaction</CardTitle>
       </CardHeader>
-      
+
       <CardContent className="p-0">
         <div className="border-y">
           <div className="max-h-[300px] overflow-y-auto">
             {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <svg className="w-12 h-12 mb-3 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                <svg
+                  className="w-12 h-12 mb-3 text-muted-foreground/50"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.5"
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                  ></path>
                 </svg>
                 <p>No items in cart</p>
                 <p className="text-sm">Scan or search products to add them to the cart</p>
@@ -94,7 +99,7 @@ export function Cart({
                           type="number"
                           value={item.quantity}
                           min={1}
-                          onChange={(e) => {
+                          onChange={e => {
                             const newValue = parseInt(e.target.value);
                             if (!isNaN(newValue) && newValue > 0) {
                               onQuantityChange(index, newValue);
@@ -128,7 +133,7 @@ export function Cart({
             )}
           </div>
         </div>
-        
+
         <div className="p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span>Subtotal:</span>
@@ -145,7 +150,7 @@ export function Cart({
           </div>
         </div>
       </CardContent>
-      
+
       <CardFooter className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:space-y-0 sm:space-x-2 p-4 pt-0">
         <Button
           variant="destructive"
@@ -156,7 +161,7 @@ export function Cart({
           <AlertOctagon className="mr-2 h-4 w-4" />
           Void Transaction
         </Button>
-        
+
         <Button
           onClick={onProcessPayment}
           disabled={items.length === 0 || isLoading}

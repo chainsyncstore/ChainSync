@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -34,35 +34,38 @@ export const setCurrentCurrency = (currency: CurrencyCode): void => {
 };
 
 export const formatCurrency = (
-  value: number | string | null | undefined, 
+  value: number | string | null | undefined,
   currencyCode?: CurrencyCode
 ) => {
-  // Fallback to current currency, making sure it's valid 
-  const validCurrencyCode = 
-    (currencyCode && Object.keys(currencies).includes(currencyCode)) ? currencyCode : 
-    Object.keys(currencies).includes(currentCurrency) ? currentCurrency : 'USD';
-  
+  // Fallback to current currency, making sure it's valid
+  const validCurrencyCode =
+    currencyCode && Object.keys(currencies).includes(currencyCode)
+      ? currencyCode
+      : Object.keys(currencies).includes(currentCurrency)
+        ? currentCurrency
+        : 'USD';
+
   // Get a valid currency object with fallback
   const defaultCurrency = currencies[validCurrencyCode] || currencies.USD;
-  
+
   if (value === null || value === undefined) {
     return `${defaultCurrency.symbol}0.00`;
   }
-  
-  const numberValue = typeof value === "string" ? parseFloat(value) : value;
-  
+
+  const numberValue = typeof value === 'string' ? parseFloat(value) : value;
+
   if (isNaN(numberValue)) {
     return `${defaultCurrency.symbol}0.00`;
   }
-  
+
   // Use requested currency if available, otherwise use default
-  const currency = 
-    (currencyCode && currencies[currencyCode]) ? currencies[currencyCode] : defaultCurrency;
-  
+  const currency =
+    currencyCode && currencies[currencyCode] ? currencies[currencyCode] : defaultCurrency;
+
   // Use a try-catch as Intl.NumberFormat can throw with invalid locales
   try {
     return new Intl.NumberFormat(currency.locale, {
-      style: "currency",
+      style: 'currency',
       currency: currency.code,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -74,57 +77,60 @@ export const formatCurrency = (
 };
 
 export const formatNumber = (value: number | string | null | undefined, decimals = 0) => {
-  if (value === null || value === undefined) return "0";
-  
-  const numberValue = typeof value === "string" ? parseFloat(value) : value;
-  
-  if (isNaN(numberValue)) return "0";
-  
-  return new Intl.NumberFormat("en-US", {
+  if (value === null || value === undefined) return '0';
+
+  const numberValue = typeof value === 'string' ? parseFloat(value) : value;
+
+  if (isNaN(numberValue)) return '0';
+
+  return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(numberValue);
 };
 
-export const formatDate = (date: Date | string | null | undefined, options?: Intl.DateTimeFormatOptions) => {
-  if (!date) return "";
-  
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  
+export const formatDate = (
+  date: Date | string | null | undefined,
+  options?: Intl.DateTimeFormatOptions
+) => {
+  if (!date) return '';
+
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+
   if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
-    return "";
+    return '';
   }
-  
+
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   };
-  
-  return new Intl.DateTimeFormat("en-US", options || defaultOptions).format(dateObj);
+
+  return new Intl.DateTimeFormat('en-US', options || defaultOptions).format(dateObj);
 };
 
 export const formatTime = (date: Date | string | null | undefined) => {
-  if (!date) return "";
-  
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  
+  if (!date) return '';
+
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+
   if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
-    return "";
+    return '';
   }
-  
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
+
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
     hour12: true,
   }).format(dateObj);
 };
 
 export const generateTransactionId = () => {
-  const prefix = "TRX-";
+  const prefix = 'TRX-';
   const randomNum = Math.floor(Math.random() * 100000);
-  return `${prefix}${randomNum.toString().padStart(5, "0")}`;
+  return `${prefix}${randomNum.toString().padStart(5, '0')}`;
 };
 
 export const calculateSubtotal = (items: { quantity: number; unitPrice: number }[]) => {
@@ -141,12 +147,12 @@ export const calculateTotal = (subtotal: number, tax: number) => {
 
 export function debounce<F extends (...args: any[]) => any>(func: F, wait: number) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
-  
+
   return function executedFunction(...args: Parameters<F>) {
     if (timeout) {
       clearTimeout(timeout);
     }
-    
+
     timeout = setTimeout(() => {
       func(...args);
       timeout = null;
@@ -155,42 +161,42 @@ export function debounce<F extends (...args: any[]) => any>(func: F, wait: numbe
 }
 
 export function getInitials(name: string) {
-  if (!name) return "";
-  
-  const parts = name.split(" ");
-  
+  if (!name) return '';
+
+  const parts = name.split(' ');
+
   if (parts.length === 1) {
     return parts[0].charAt(0).toUpperCase();
   }
-  
+
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
 export function truncate(str: string, length: number) {
-  if (!str) return "";
-  
+  if (!str) return '';
+
   if (str.length <= length) {
     return str;
   }
-  
+
   return `${str.substring(0, length)}...`;
 }
 
 export function formatDateTime(date: Date | string | null | undefined) {
-  if (!date) return "";
-  
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  
+  if (!date) return '';
+
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+
   if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
-    return "";
+    return '';
   }
-  
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
     hour12: true,
   }).format(dateObj);
 }
@@ -199,7 +205,7 @@ export function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes % 60}m`;
   } else if (minutes > 0) {

@@ -6,15 +6,18 @@ export interface FileUploadProgress {
   uploaded: number;
   startTime: number;
   lastUpdate: number;
-  files: Record<string, {
-    name: string;
-    size: number;
-    status: 'pending' | 'in_progress' | 'completed' | 'failed';
-    progress: number;
-    uploaded: number;
-    error?: string;
-    path?: string;
-  }>;
+  files: Record<
+    string,
+    {
+      name: string;
+      size: number;
+      status: 'pending' | 'in_progress' | 'completed' | 'failed';
+      progress: number;
+      uploaded: number;
+      error?: string;
+      path?: string;
+    }
+  >;
 }
 
 export interface ProgressSubscription {

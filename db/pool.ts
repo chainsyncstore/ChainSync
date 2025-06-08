@@ -1,5 +1,6 @@
 // db/pool.ts
 import { Pool } from 'pg';
+
 import { getLogger } from '../shared/logging.js';
 
 const logger = getLogger().child({ component: 'db-pool' });
@@ -20,7 +21,7 @@ export function initializePool(): Pool {
 
   // Get database configuration from environment
   const connectionString = process.env.DATABASE_URL;
-  
+
   if (!connectionString) {
     const error = new Error('DATABASE_URL environment variable not set');
     logger.error('Database configuration error', { error });
@@ -41,27 +42,27 @@ export function initializePool(): Pool {
     logger.debug('New client connected to database pool');
   });
 
-  pool.on('error', (err) => {
+  pool.on('error', err => {
     logger.error('Unexpected error on idle database client', { error: err });
   });
 
   // Add custom properties for monitoring
   Object.defineProperties(pool, {
     totalCount: {
-      get: function() {
+      get: function () {
         return (this as Pool).totalCount;
-      }
+      },
     },
     idleCount: {
-      get: function() {
+      get: function () {
         return (this as Pool).idleCount;
-      }
+      },
     },
     waitingCount: {
-      get: function() {
+      get: function () {
         return (this as Pool).waitingCount;
-      }
-    }
+      },
+    },
   });
 
   logger.info('Database connection pool initialized successfully');
@@ -100,16 +101,16 @@ export async function getClient() {
   if (!pool) {
     initializePool();
   }
-  
+
   const client = await pool!.connect();
-  
+
   // Monkey-patch the release method to add logging
   const originalRelease = client.release;
   client.release = () => {
     logger.debug('Client returned to pool');
     return originalRelease.call(client);
   };
-  
+
   return client;
 }
 

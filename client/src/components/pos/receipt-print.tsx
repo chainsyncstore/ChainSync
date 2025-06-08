@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
+import React, { useRef } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { formatCurrency, formatDateTime } from '@/lib/utils';
 
 // Type definitions for receipt data
 interface ReceiptItem {
@@ -31,22 +32,22 @@ interface ReceiptData {
 }
 
 // Component that renders a printable receipt
-export const ReceiptPrint: React.FC<{ 
+export const ReceiptPrint: React.FC<{
   data: ReceiptData;
   onClose?: () => void;
 }> = ({ data, onClose }) => {
   const receiptRef = useRef<HTMLDivElement>(null);
-  
+
   const handlePrint = () => {
     const content = receiptRef.current;
     if (!content) return;
-    
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Please allow popups to print receipts');
       return;
     }
-    
+
     // Write the receipt content to the new window
     printWindow.document.write(`
       <html>
@@ -61,14 +62,14 @@ export const ReceiptPrint: React.FC<{
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
-    
+
     // Wait for content to load before printing
-    printWindow.onload = function() {
+    printWindow.onload = function () {
       printWindow.focus();
       printWindow.print();
-      printWindow.onafterprint = function() {
+      printWindow.onafterprint = function () {
         printWindow.close();
       };
     };
@@ -81,10 +82,24 @@ export const ReceiptPrint: React.FC<{
           {/* Header */}
           <div className="receipt-header">
             <div className="receipt-logo">
-              <svg className="logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="currentColor"/>
-                <path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="currentColor"/>
-                <path d="M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z" fill="currentColor"/>
+              <svg
+                className="logo-svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z"
+                  fill="currentColor"
+                />
               </svg>
             </div>
             <div className="receipt-store-name">{data.storeName}</div>
@@ -99,7 +114,7 @@ export const ReceiptPrint: React.FC<{
             </div>
             <div className="receipt-divider">================================</div>
           </div>
-          
+
           {/* Items */}
           <div className="receipt-items">
             <div className="receipt-item receipt-item-header">
@@ -108,9 +123,9 @@ export const ReceiptPrint: React.FC<{
               <div className="item-price">Price</div>
               <div className="item-total">Total</div>
             </div>
-            
+
             <div className="receipt-divider">--------------------------------</div>
-            
+
             {data.items.map((item, index) => (
               <div className="receipt-item" key={index}>
                 <div className="item-name">{item.name}</div>
@@ -120,7 +135,7 @@ export const ReceiptPrint: React.FC<{
               </div>
             ))}
           </div>
-          
+
           {/* Totals */}
           <div className="receipt-divider">--------------------------------</div>
           <div className="receipt-totals">
@@ -137,11 +152,9 @@ export const ReceiptPrint: React.FC<{
               <div className="total-value">{formatCurrency(data.total)}</div>
             </div>
             <div className="receipt-divider">--------------------------------</div>
-            <div className="payment-method">
-              Payment Method: {data.paymentMethod}
-            </div>
+            <div className="payment-method">Payment Method: {data.paymentMethod}</div>
           </div>
-          
+
           {/* Loyalty Points */}
           {data.loyaltyPoints && (
             <>
@@ -152,7 +165,7 @@ export const ReceiptPrint: React.FC<{
               </div>
             </>
           )}
-          
+
           {/* Footer */}
           <div className="receipt-divider">================================</div>
           <div className="receipt-footer">
@@ -161,7 +174,7 @@ export const ReceiptPrint: React.FC<{
           </div>
         </div>
       </div>
-      
+
       <div className="print-actions">
         <Button onClick={handlePrint} className="print-button">
           <Printer className="w-4 h-4 mr-2" />

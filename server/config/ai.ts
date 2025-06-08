@@ -75,7 +75,7 @@ export const AIServiceErrors = {
     undefined, // statusCode
     true, // retryable
     5000 // retryAfter
-  )
+  ),
 };
 
 export const defaultAIServiceConfig: AIServiceConfig = {
@@ -85,11 +85,11 @@ export const defaultAIServiceConfig: AIServiceConfig = {
   maxTokens: 2000,
   rateLimit: {
     window: 60, // 1 minute
-    maxRequests: 60
+    maxRequests: 60,
   },
   cache: {
     enabled: true,
     ttl: 300, // 5 minutes
-    maxEntries: 1000
-  }
+    maxEntries: 1000,
+  },
 };

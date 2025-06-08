@@ -1,7 +1,8 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Delete, XCircle } from 'lucide-react';
+import React from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface NumpadProps {
   onInput: (value: string) => void;
@@ -9,12 +10,7 @@ interface NumpadProps {
 }
 
 export function Numpad({ onInput, activeInput }: NumpadProps) {
-  const buttons = [
-    '7', '8', '9',
-    '4', '5', '6',
-    '1', '2', '3',
-    '0', '.', 'backspace'
-  ];
+  const buttons = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '.', 'backspace'];
 
   const handleButtonClick = (value: string) => {
     onInput(value);
@@ -34,7 +30,7 @@ export function Numpad({ onInput, activeInput }: NumpadProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 gap-2">
-          {buttons.map((button) => (
+          {buttons.map(button => (
             <Button
               key={button}
               variant={button === 'backspace' ? 'outline' : 'secondary'}
@@ -42,11 +38,7 @@ export function Numpad({ onInput, activeInput }: NumpadProps) {
               disabled={!activeInput}
               onClick={() => handleButtonClick(button)}
             >
-              {button === 'backspace' ? (
-                <Delete className="h-5 w-5" />
-              ) : (
-                button
-              )}
+              {button === 'backspace' ? <Delete className="h-5 w-5" /> : button}
             </Button>
           ))}
           <Button
@@ -59,7 +51,7 @@ export function Numpad({ onInput, activeInput }: NumpadProps) {
             Clear
           </Button>
         </div>
-        
+
         <div className="mt-6 space-y-3">
           <h3 className="text-sm font-medium">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-2">

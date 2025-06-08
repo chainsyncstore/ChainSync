@@ -4,9 +4,9 @@ import { Request } from 'express'; // Keep if Role or FileUtils are used with it
 // export interface User { ... }
 
 export interface Role {
-    id: string;
-    name: string;
-    permissions: string[];
+  id: string;
+  name: string;
+  permissions: string[];
 }
 
 // Removed local AppError, ErrorCategory, ErrorCode. Use from shared/types/errors.ts via server/middleware/types/app-error.ts
@@ -15,12 +15,12 @@ export interface Role {
 // export enum ErrorCode { ... }
 
 export interface FileUtils {
-    VALID_FILENAME_REGEX: RegExp;
-    sanitizeFilename(filename: string): string;
-    validateFilename(filename: string): boolean;
-    validateFileExtension(mimeType: string): boolean;
-    calculateFileSize(buffer: Buffer): number;
-    calculateFileHash(buffer: Buffer): Promise<string>;
+  VALID_FILENAME_REGEX: RegExp;
+  sanitizeFilename(filename: string): string;
+  validateFilename(filename: string): boolean;
+  validateFileExtension(mimeType: string): boolean;
+  calculateFileSize(buffer: Buffer): number;
+  calculateFileHash(buffer: Buffer): Promise<string>;
 }
 
 // Removed FileUploadConfig, FileUploadErrors, ProgressSubscription, FileUploadProgress

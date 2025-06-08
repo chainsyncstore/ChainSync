@@ -1,8 +1,17 @@
-import Paystack from 'paystack-node';
 import Flutterwave from 'flutterwave-node-v3';
+import Paystack from 'paystack-node';
+
+import {
+  PaymentProviderConfig,
+  PaymentVerificationResponse,
+  PaymentAnalytics,
+  PaymentWebhookRequest,
+  PaymentStatus,
+  PaymentInitializationResponse,
+  FlutterwavePaymentRequest,
+} from './payment-types';
 import type { Logger } from '../../../src/logging/Logger';
 import { ConsoleLogger } from '../../../src/logging/Logger';
-import { PaymentProviderConfig, PaymentVerificationResponse, PaymentAnalytics, PaymentWebhookRequest, PaymentStatus, PaymentInitializationResponse, FlutterwavePaymentRequest } from './payment-types';
 
 export class PaymentService {
   private readonly paystack: unknown;
@@ -16,12 +25,12 @@ export class PaymentService {
     this.config = {
       paystack: {
         secretKey: process.env.PAYSTACK_SECRET_KEY || '',
-        publicKey: process.env.PAYSTACK_PUBLIC_KEY || ''
+        publicKey: process.env.PAYSTACK_PUBLIC_KEY || '',
       },
       flutterwave: {
         secretKey: process.env.FLUTTERWAVE_SECRET_KEY || '',
-        publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || ''
-      }
+        publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || '',
+      },
     };
 
     try {
@@ -39,7 +48,7 @@ export class PaymentService {
     } catch (error: unknown) {
       this.logger.error('Error initializing payment providers:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       this.paystack = null;
       this.flutterwave = null;
@@ -58,13 +67,33 @@ export class PaymentService {
    * Example: Loyalty accrual logic (to be called after payment success)
    * Skips accrual for refunded/failed/flagged transactions and logs with structured fields.
    */
-  async handleLoyaltyAccrual({ transactionId, customerId, status, flagged }: { transactionId: string, customerId: number, status: string, flagged?: boolean }) {
+  async handleLoyaltyAccrual({
+    transactionId,
+    customerId,
+    status,
+    flagged,
+  }: {
+    transactionId: string;
+    customerId: number;
+    status: string;
+    flagged?: boolean;
+  }) {
     if (status === 'refunded' || status === 'failed' || flagged) {
-      this.logger.info('Loyalty accrual skipped', { transactionId, customerId, reason: status === 'refunded' ? 'refunded' : status === 'failed' ? 'failed' : 'flagged', timestamp: new Date().toISOString() });
+      this.logger.info('Loyalty accrual skipped', {
+        transactionId,
+        customerId,
+        reason: status === 'refunded' ? 'refunded' : status === 'failed' ? 'failed' : 'flagged',
+        timestamp: new Date().toISOString(),
+      });
       return;
     }
     // ...call loyalty accrual logic here
-    this.logger.info('Loyalty accrued', { transactionId, customerId, status, timestamp: new Date().toISOString() });
+    this.logger.info('Loyalty accrued', {
+      transactionId,
+      customerId,
+      status,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   async initializePayment(
@@ -82,13 +111,13 @@ export class PaymentService {
         amount,
         email,
         currency,
-        reference
+        reference,
       });
 
       return {
         authorization_url: response.data.authorization_url,
         reference: response.data.reference,
-        provider: 'paystack'
+        provider: 'paystack',
       };
     } catch (error: unknown) {
       this.logger.error('Error initializing payment:', error);
@@ -112,7 +141,7 @@ export class PaymentService {
         currency: data.currency,
         metadata: data.metadata || {},
         provider: 'paystack',
-        timestamp: new Date(data.paid_at)
+        timestamp: new Date(data.paid_at),
       };
     } catch (error: unknown) {
       this.logger.error('Error verifying payment:', error);
@@ -120,7 +149,9 @@ export class PaymentService {
     }
   }
 
-  async processFlutterwavePayment(request: FlutterwavePaymentRequest): Promise<PaymentInitializationResponse> {
+  async processFlutterwavePayment(
+    request: FlutterwavePaymentRequest
+  ): Promise<PaymentInitializationResponse> {
     try {
       if (!this.flutterwave) {
         throw new Error('Flutterwave provider not initialized');
@@ -128,13 +159,13 @@ export class PaymentService {
 
       const response = await this.flutterwave.Transaction.initialize({
         ...request,
-        redirect_url: request.redirect_url || process.env.FLUTTERWAVE_REDIRECT_URL || ''
+        redirect_url: request.redirect_url || process.env.FLUTTERWAVE_REDIRECT_URL || '',
       });
 
       return {
         authorization_url: response.data.link,
         reference: response.data.tx_ref,
-        provider: 'flutterwave'
+        provider: 'flutterwave',
       };
     } catch (error: unknown) {
       this.logger.error('Error processing Flutterwave payment:', error);
@@ -151,13 +182,13 @@ export class PaymentService {
       if (request.event === 'charge.success') {
         return {
           status: 'success',
-          message: 'Payment successful'
+          message: 'Payment successful',
         };
       }
 
       return {
         status: 'failed',
-        message: 'Payment failed'
+        message: 'Payment failed',
       };
     } catch (error: unknown) {
       this.logger.error('Error handling webhook:', error);
@@ -173,7 +204,7 @@ export class PaymentService {
 
       const response = await this.paystack.transaction.list({
         from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        to: new Date().toISOString()
+        to: new Date().toISOString(),
       });
 
       const transactions = response.data.data;
@@ -187,7 +218,7 @@ export class PaymentService {
         totalTransactions,
         totalAmount,
         successRate,
-        failedTransactions
+        failedTransactions,
       };
     } catch (error: unknown) {
       this.logger.error('Error getting analytics:', error);

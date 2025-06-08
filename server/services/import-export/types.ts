@@ -1,4 +1,4 @@
-import { AppError, ErrorCategory } from '@shared/types/errors';
+import { AppError, ErrorCategory } from '@shared/types/errors.js';
 import { Express } from 'express';
 
 // Use Express types instead of custom File interface
@@ -13,10 +13,19 @@ declare global {
 
 export interface IES {
   validateData(data: unknown[], options?: ValidationOptions): Promise<ImportExportResult>;
-  importData(userId: number, data: unknown[], entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
+  importData(
+    userId: number,
+    data: unknown[],
+    entityType: string,
+    options?: ImportExportOptions
+  ): Promise<ImportExportResult>;
   exportData(userId: number, entityType: string, options?: ExportOptions): Promise<Buffer>;
   validateFile(file: File): Promise<{ type: string; data: unknown[] }>;
-  processImport(data: unknown[], options: ImportExportOptions, importId: string): Promise<ImportExportResult>;
+  processImport(
+    data: unknown[],
+    options: ImportExportOptions,
+    importId: string
+  ): Promise<ImportExportResult>;
   processBatch(data: unknown[], importId: string): Promise<ImportExportResult>;
 }
 

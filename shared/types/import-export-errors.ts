@@ -1,13 +1,13 @@
-import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
+import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors.js';
 
-export type ImportExportErrorCategory = 
-  | ErrorCategory.IMPORT_EXPORT 
-  | ErrorCategory.PROCESSING 
-  | ErrorCategory.INVALID_FORMAT 
-  | ErrorCategory.EXPORT_ERROR 
+export type ImportExportErrorCategory =
+  | ErrorCategory.IMPORT_EXPORT
+  | ErrorCategory.PROCESSING
+  | ErrorCategory.INVALID_FORMAT
+  | ErrorCategory.EXPORT_ERROR
   | ErrorCategory.DATABASE;
 
-export type ImportExportErrorCode = 
+export type ImportExportErrorCode =
   | ErrorCode.INVALID_FILE
   | ErrorCode.PROCESSING_ERROR
   | ErrorCode.INVALID_FORMAT
@@ -26,7 +26,7 @@ export const ImportExportErrorCodes = {
   PROCESSING_ERROR: 'PROCESSING_ERROR',
   INVALID_FORMAT: 'INVALID_FORMAT',
   EXPORT_ERROR: 'EXPORT_ERROR',
-  DATABASE_ERROR: 'DATABASE_ERROR'
+  DATABASE_ERROR: 'DATABASE_ERROR',
 } as const;
 
 export const ImportExportErrorCategories = {
@@ -34,7 +34,7 @@ export const ImportExportErrorCategories = {
   PROCESSING: 'PROCESSING',
   INVALID_FORMAT: 'INVALID_FORMAT',
   EXPORT_ERROR: 'EXPORT_ERROR',
-  DATABASE: 'DATABASE'
+  DATABASE: 'DATABASE',
 } as const;
 
 export const ImportExportErrors: Record<ImportExportErrorCode, ImportExportError> = {
@@ -72,7 +72,7 @@ export const ImportExportErrors: Record<ImportExportErrorCode, ImportExportError
     ErrorCode.DATABASE_ERROR,
     undefined,
     500
-  ) as ImportExportError
+  ) as ImportExportError,
 } as const;
 
 export type ImportExportErrorCodes = typeof ImportExportErrorCodes;

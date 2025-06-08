@@ -1,11 +1,12 @@
 /**
  * Database Validation Layer
- * 
+ *
  * This module provides runtime schema validation for database responses
  * using Zod to ensure data integrity and prevent runtime errors.
  */
 
 import { z } from 'zod';
+
 import { validateDbResponse } from './sqlHelpers';
 import { getLogger } from '../../src/logging';
 
@@ -26,7 +27,7 @@ export const userSchema = z.object({
   role: z.string(),
   isActive: isActiveSchema,
   createdAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const storeSchema = z.object({
@@ -39,7 +40,7 @@ export const storeSchema = z.object({
   country: z.string().length(2),
   isActive: isActiveSchema,
   createdAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const customerSchema = z.object({
@@ -50,7 +51,7 @@ export const customerSchema = z.object({
   phone: z.string().nullable(),
   address: z.string().nullable(),
   createdAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const productSchema = z.object({
@@ -63,7 +64,7 @@ export const productSchema = z.object({
   stockQuantity: z.number().int(),
   isActive: isActiveSchema,
   createdAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const orderSchema = z.object({
@@ -74,7 +75,7 @@ export const orderSchema = z.object({
   status: z.string(),
   totalAmount: z.string(), // Decimal as string
   createdAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const orderItemSchema = z.object({
@@ -84,7 +85,7 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().positive(),
   unitPrice: z.string(), // Decimal as string
   totalPrice: z.string(), // Decimal as string
-  createdAt: createdAtSchema
+  createdAt: createdAtSchema,
 });
 
 export const loyaltyProgramSchema = z.object({
@@ -94,7 +95,7 @@ export const loyaltyProgramSchema = z.object({
   description: z.string().nullable(),
   isActive: isActiveSchema,
   createdAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const loyaltyTierSchema = z.object({
@@ -105,7 +106,7 @@ export const loyaltyTierSchema = z.object({
   pointsRequired: z.string(), // Decimal as string
   multiplier: z.string(), // Decimal as string
   createdAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const loyaltyMemberSchema = z.object({
@@ -118,7 +119,7 @@ export const loyaltyMemberSchema = z.object({
   isActive: isActiveSchema,
   enrolledBy: idSchema,
   enrolledAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const loyaltyRewardSchema = z.object({
@@ -131,7 +132,7 @@ export const loyaltyRewardSchema = z.object({
   type: z.string(),
   metadata: z.record(z.unknown()).nullable(),
   createdAt: createdAtSchema,
-  updatedAt: updatedAtSchema
+  updatedAt: updatedAtSchema,
 });
 
 export const loyaltyTransactionSchema = z.object({
@@ -144,7 +145,7 @@ export const loyaltyTransactionSchema = z.object({
   points: z.string(), // Decimal as string
   notes: z.string().nullable(),
   userId: idSchema,
-  createdAt: createdAtSchema
+  createdAt: createdAtSchema,
 });
 
 // Types derived from schemas
@@ -167,14 +168,14 @@ export const loyaltyMemberWithDetailsSchema = z.object({
     id: idSchema,
     fullName: z.string(),
     email: z.string().email(),
-    phone: z.string().nullable()
+    phone: z.string().nullable(),
   }),
   program: loyaltyProgramSchema,
   tier: loyaltyTierSchema.nullable(),
   statistics: z.object({
     totalPoints: z.string(), // Decimal as string
-    recentTransactions: z.array(loyaltyTransactionSchema)
-  })
+    recentTransactions: z.array(loyaltyTransactionSchema),
+  }),
 });
 
 export type LoyaltyMemberWithDetails = z.infer<typeof loyaltyMemberWithDetailsSchema>;
@@ -270,6 +271,6 @@ export function validateArray<T>(data: unknown, schema: z.ZodSchema<T>): T[] {
   if (!Array.isArray(data)) {
     throw new Error('Expected array but received ' + typeof data);
   }
-  
+
   return data.map(item => validateDbResponse(item, schema));
 }

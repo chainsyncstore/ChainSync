@@ -1,23 +1,27 @@
+import { Loader2 } from 'lucide-react';
 import React, { useCallback } from 'react';
-import { 
-  DropdownMenu, 
-  DropdownMenuTrigger, 
-  DropdownMenuContent, 
-  DropdownMenuItem
-} from '@/components/ui/dropdown-menu';
+
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { currencies, CurrencyCode } from '@/lib/utils';
 import { useCurrency } from '@/providers/currency-provider';
-import { Loader2 } from 'lucide-react';
 
 const CurrencySelector = () => {
   const { currency, setCurrency, currencySymbol, isDetectingLocation } = useCurrency();
-  
+
   // Use a memoized callback to prevent unnecessary re-renders
-  const handleCurrencyChange = useCallback((code: CurrencyCode) => {
-    setCurrency(code);
-  }, [setCurrency]);
-  
+  const handleCurrencyChange = useCallback(
+    (code: CurrencyCode) => {
+      setCurrency(code);
+    },
+    [setCurrency]
+  );
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -34,9 +38,9 @@ const CurrencySelector = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {Object.entries(currencies).map(([code, info]) => (
-          <DropdownMenuItem 
+          <DropdownMenuItem
             key={code}
-            className={currency === code ? "bg-primary/10" : ""}
+            className={currency === code ? 'bg-primary/10' : ''}
             onClick={() => handleCurrencyChange(code as CurrencyCode)}
           >
             <span className="mr-2">{info.symbol}</span>

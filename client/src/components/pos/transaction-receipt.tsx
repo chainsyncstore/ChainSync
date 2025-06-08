@@ -1,4 +1,9 @@
 import React, { useState } from 'react';
+
+import ReceiptPrint from './receipt-print';
+import ThermalPrinter from './thermal-printer';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -6,10 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ReceiptPrint from './receipt-print';
-import ThermalPrinter from './thermal-printer';
 
 // Interface for transaction data
 interface TransactionItem {
@@ -70,7 +72,7 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
   const receiptData = {
     receiptNumber: transaction.transactionId,
     storeName: transaction.store?.name || 'ChainSync Store',
-    storeAddress: transaction.store?.address 
+    storeAddress: transaction.store?.address
       ? `${transaction.store.address}, ${transaction.store.city || ''}, ${transaction.store.state || ''}`
       : undefined,
     storePhone: transaction.store?.phone,
@@ -87,40 +89,36 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
     total: parseFloat(transaction.total),
     paymentMethod: transaction.paymentMethod,
     customerName: transaction.customer?.fullName,
-    loyaltyPoints: transaction.pointsEarned ? {
-      earned: transaction.pointsEarned,
-      balance: transaction.loyaltyMember?.points || transaction.pointsEarned,
-    } : undefined,
+    loyaltyPoints: transaction.pointsEarned
+      ? {
+          earned: transaction.pointsEarned,
+          balance: transaction.loyaltyMember?.points || transaction.pointsEarned,
+        }
+      : undefined,
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Transaction Receipt: {transaction.transactionId}</DialogTitle>
         </DialogHeader>
-        
+
         <Tabs defaultValue="standard" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="standard">Standard Receipt</TabsTrigger>
             <TabsTrigger value="thermal">Thermal Printer</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="standard" className="py-4">
-            <ReceiptPrint
-              data={receiptData}
-              onClose={onClose}
-            />
+            <ReceiptPrint data={receiptData} onClose={onClose} />
           </TabsContent>
-          
+
           <TabsContent value="thermal" className="py-4">
-            <ThermalPrinter
-              transaction={transaction}
-              onClose={onClose}
-            />
+            <ThermalPrinter transaction={transaction} onClose={onClose} />
           </TabsContent>
         </Tabs>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Close

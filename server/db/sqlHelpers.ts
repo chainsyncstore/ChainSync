@@ -1,16 +1,30 @@
 /**
  * SQL Helper Library
- * 
+ *
  * This module provides type-safe, centralized helpers for database operations
  * to ensure consistent patterns across the application.
  */
 
-import { sql, SQL, eq, and, or, asc, desc, SQLWrapper, Table, Column, ColumnBaseConfig, ColumnDataType } from 'drizzle-orm';
+import {
+  sql,
+  SQL,
+  eq,
+  and,
+  or,
+  asc,
+  desc,
+  SQLWrapper,
+  Table,
+  Column,
+  ColumnBaseConfig,
+  ColumnDataType,
+} from 'drizzle-orm';
 import { MySqlColumn } from 'drizzle-orm/mysql-core';
 import { z } from 'zod';
+
 import { DrizzleClient, Transaction } from './types';
-import { Logger } from '../utils/logger';
 import { getLogger } from '../../src/logging';
+import { Logger } from '../utils/logger';
 
 const logger = getLogger().child({ component: 'sql-helpers' });
 
@@ -27,7 +41,7 @@ export type PaginationParams = {
 // Error class for SQL operations
 export class SqlError extends Error {
   constructor(
-    message: string, 
+    message: string,
     public readonly code: string,
     public readonly operation: string,
     public readonly context?: Record<string, unknown>
@@ -81,34 +95,31 @@ export async function withDbTryCatch<T>(
 ): Promise<T> {
   const startTime = Date.now();
   const loggerInstance = customLogger || logger;
-  
+
   try {
     loggerInstance.debug(`Starting database operation: ${operationName}`);
     const result = await queryFn(executor);
     const duration = Date.now() - startTime;
-    
+
     loggerInstance.debug(`Completed database operation: ${operationName}`, {
-      durationMs: duration
+      durationMs: duration,
     });
-    
+
     return result;
   } catch (error) {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorCode = error instanceof SqlError ? error.code : 'DB_ERROR';
-    
+
     loggerInstance.error(`Database operation failed: ${operationName}`, {
       durationMs: duration,
       error: errorMessage,
-      code: errorCode
+      code: errorCode,
     });
-    
-    throw new SqlError(
-      `Database operation failed: ${errorMessage}`,
-      errorCode,
-      operationName,
-      { durationMs: duration }
-    );
+
+    throw new SqlError(`Database operation failed: ${errorMessage}`, errorCode, operationName, {
+      durationMs: duration,
+    });
   }
 }
 
@@ -121,7 +132,7 @@ export function paginationClause(params: PaginationParams): SQL<unknown> {
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
-  
+
   return sql`LIMIT ${limit} OFFSET ${offset}`;
 }
 
@@ -151,13 +162,10 @@ export async function findById<T>(
 ): Promise<T | null> {
   return withDbTryCatch(
     executor,
-    async (db) => {
-      const results = await db.select()
-        .from(table)
-        .where(eq(table[idColumn], id))
-        .limit(1);
-      
-      return results.length > 0 ? results[0] as T : null;
+    async db => {
+      const results = await db.select().from(table).where(eq(table[idColumn], id)).limit(1);
+
+      return results.length > 0 ? (results[0] as T) : null;
     },
     `findById:${table}:${id}`
   );
@@ -182,18 +190,18 @@ export async function findMany<T>(
 ): Promise<T[]> {
   return withDbTryCatch(
     executor,
-    async (db) => {
+    async db => {
       // Use raw SQL for better type compatibility
       let query = db.execute(sql`
         SELECT * FROM ${sql.identifier(typeof table === 'string' ? table : table.name)}
         ${whereClause ? sql`WHERE ${whereClause}` : sql``}
       `);
-      
+
       // Execute with direct SQL for query with order and pagination
       if (orderBy || pagination) {
         const limit = pagination?.limit || 20;
         const offset = ((pagination?.page || 1) - 1) * limit;
-        
+
         return db.execute(sql`
           SELECT * FROM ${sql.identifier(typeof table === 'string' ? table : table.name)}
           ${whereClause ? sql`WHERE ${whereClause}` : sql``}
@@ -201,8 +209,8 @@ export async function findMany<T>(
           ${pagination ? sql`LIMIT ${limit} OFFSET ${offset}` : sql``}
         `) as unknown as T[];
       }
-      
-      return await query as T[];
+
+      return (await query) as T[];
     },
     `findMany:${table}`
   );
@@ -214,15 +222,14 @@ export async function findMany<T>(
  * @param table Database table
  * @param data Record data
  */
-export async function insertOne<T, U>(
-  executor: QueryExecutor,
-  table: any,
-  data: U
-): Promise<T> {
+export async function insertOne<T, U>(executor: QueryExecutor, table: any, data: U): Promise<T> {
   return withDbTryCatch(
     executor,
-    async (db) => {
-      const result = await db.insert(table).values(data as any).returning();
+    async db => {
+      const result = await db
+        .insert(table)
+        .values(data as any)
+        .returning();
       return result[0] as T;
     },
     `insertOne:${table}`
@@ -246,13 +253,14 @@ export async function updateById<T, U>(
 ): Promise<T | null> {
   return withDbTryCatch(
     executor,
-    async (db) => {
-      const result = await db.update(table)
+    async db => {
+      const result = await db
+        .update(table)
         .set(data as any)
         .where(eq(table[idColumn], id))
         .returning();
-      
-      return result.length > 0 ? result[0] as T : null;
+
+      return result.length > 0 ? (result[0] as T) : null;
     },
     `updateById:${table}:${id}`
   );
@@ -273,12 +281,10 @@ export async function deleteById<T>(
 ): Promise<T | null> {
   return withDbTryCatch(
     executor,
-    async (db) => {
-      const result = await db.delete(table)
-        .where(eq(table[idColumn], id))
-        .returning();
-      
-      return result.length > 0 ? result[0] as T : null;
+    async db => {
+      const result = await db.delete(table).where(eq(table[idColumn], id)).returning();
+
+      return result.length > 0 ? (result[0] as T) : null;
     },
     `deleteById:${table}:${id}`
   );
@@ -298,9 +304,9 @@ export function validateDbResponse<T>(data: unknown, schema: z.ZodSchema<T>): T 
         'Database response validation failed',
         'VALIDATION_ERROR',
         'validateDbResponse',
-        { 
+        {
           validationErrors: error.errors,
-          data
+          data,
         }
       );
     }
@@ -321,8 +327,8 @@ export async function executeRawQuery<T>(
 ): Promise<T[]> {
   return withDbTryCatch(
     executor,
-    async (db) => {
-      return await db.execute(query) as T[];
+    async db => {
+      return (await db.execute(query)) as T[];
     },
     `rawQuery:${operationName}`
   );
@@ -340,8 +346,8 @@ export async function withTransaction<T>(
 ): Promise<T> {
   return withDbTryCatch(
     client,
-    async (db) => {
-      return await db.transaction(async (tx) => {
+    async db => {
+      return await db.transaction(async tx => {
         return await fn(tx);
       });
     },
@@ -364,11 +370,12 @@ export async function existsById(
 ): Promise<boolean> {
   return withDbTryCatch(
     executor,
-    async (db) => {
-      const results = await db.select({ count: sql<string>`COUNT(*)` }) // Assume count is string
+    async db => {
+      const results = await db
+        .select({ count: sql<string>`COUNT(*)` }) // Assume count is string
         .from(table)
         .where(eq(table[idColumn], id));
-      
+
       // Ensure results[0] exists and count is a string representing a number
       const countValue = results[0]?.count;
       return typeof countValue === 'string' && parseInt(countValue, 10) > 0;
@@ -398,23 +405,24 @@ export async function joinTables<T>(
 ): Promise<T[]> {
   return withDbTryCatch(
     executor,
-    async (db) => {
-      let queryBuilder: any = db.select() // Initialize with 'any' to simplify chaining
+    async db => {
+      let queryBuilder: any = db
+        .select() // Initialize with 'any' to simplify chaining
         .from(baseTable)
         .innerJoin(joinTable, eq((baseTable as any)[baseColumn], (joinTable as any)[joinColumn]));
-      
+
       if (whereClause) {
         queryBuilder = queryBuilder.where(whereClause);
       }
-      
+
       if (pagination) {
         const limit = pagination.limit || 20;
         const page = pagination.page || 1;
         const offset = (page - 1) * limit;
         queryBuilder = queryBuilder.limit(limit).offset(offset);
       }
-      
-      return await queryBuilder as T[];
+
+      return (await queryBuilder) as T[];
     },
     `joinTables:${(baseTable as any).name || 'baseTable'}:${(joinTable as any).name || 'joinTable'}`
   );

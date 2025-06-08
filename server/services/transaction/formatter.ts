@@ -1,18 +1,19 @@
 /**
  * Transaction Formatter
- * 
+ *
  * A formatter class for the Transaction module that standardizes
  * conversion between database rows and domain objects.
  */
-import { ResultFormatter } from '@shared/utils/service-helpers';
-import { 
-  Transaction, 
-  TransactionItem, 
-  TransactionPayment, 
+import { ResultFormatter } from '@shared/utils/service-helpers.js';
+
+import {
+  Transaction,
+  TransactionItem,
+  TransactionPayment,
   TransactionStatus,
   PaymentStatus,
-  PaymentMethod
-} from './types';
+  PaymentMethod,
+} from './types.js';
 
 /**
  * Formatter for transaction data from database to domain objects
@@ -20,7 +21,7 @@ import {
 export class TransactionFormatter extends ResultFormatter<Transaction> {
   /**
    * Format a single database result row into a Transaction domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted Transaction object
    */
@@ -28,19 +29,21 @@ export class TransactionFormatter extends ResultFormatter<Transaction> {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
-    const withDates = this.formatDates(
-      base, 
-      ['createdAt', 'updatedAt', 'transactionDate', 'completedAt']
-    );
-    
+    const withDates = this.formatDates(base, [
+      'createdAt',
+      'updatedAt',
+      'transactionDate',
+      'completedAt',
+    ]);
+
     // Format the transaction with specific type handling
     return {
       ...withDates,
@@ -61,7 +64,7 @@ export class TransactionFormatter extends ResultFormatter<Transaction> {
       channel: withDates.channel || 'in-store',
       deviceId: withDates.deviceId || null,
       reference: withDates.reference || null,
-      metadata: metadata
+      metadata: metadata,
     };
   }
 }
@@ -72,7 +75,7 @@ export class TransactionFormatter extends ResultFormatter<Transaction> {
 export class TransactionItemFormatter extends ResultFormatter<TransactionItem> {
   /**
    * Format a single database result row into a TransactionItem domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted TransactionItem object
    */
@@ -80,19 +83,16 @@ export class TransactionItemFormatter extends ResultFormatter<TransactionItem> {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction item result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
-    const withDates = this.formatDates(
-      base, 
-      ['createdAt', 'updatedAt']
-    );
-    
+    const withDates = this.formatDates(base, ['createdAt', 'updatedAt']);
+
     // Format the transaction item with specific type handling
     return {
       ...withDates,
@@ -111,7 +111,7 @@ export class TransactionItemFormatter extends ResultFormatter<TransactionItem> {
       discount: String(withDates.discount || '0.00'),
       total: String(withDates.total || '0.00'),
       notes: withDates.notes || '',
-      metadata: metadata
+      metadata: metadata,
     };
   }
 }
@@ -122,7 +122,7 @@ export class TransactionItemFormatter extends ResultFormatter<TransactionItem> {
 export class TransactionPaymentFormatter extends ResultFormatter<TransactionPayment> {
   /**
    * Format a single database result row into a TransactionPayment domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted TransactionPayment object
    */
@@ -130,19 +130,21 @@ export class TransactionPaymentFormatter extends ResultFormatter<TransactionPaym
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction payment result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
-    const withDates = this.formatDates(
-      base, 
-      ['createdAt', 'updatedAt', 'paymentDate', 'settledAt']
-    );
-    
+    const withDates = this.formatDates(base, [
+      'createdAt',
+      'updatedAt',
+      'paymentDate',
+      'settledAt',
+    ]);
+
     // Format the transaction payment with specific type handling
     return {
       ...withDates,
@@ -157,7 +159,7 @@ export class TransactionPaymentFormatter extends ResultFormatter<TransactionPaym
       paymentProcessor: withDates.paymentProcessor || '',
       processorTransactionId: withDates.processorTransactionId || null,
       notes: withDates.notes || '',
-      metadata: metadata
+      metadata: metadata,
     };
   }
 }

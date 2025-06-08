@@ -1,18 +1,7 @@
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle 
-} from '@/components/ui/card';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { CalendarIcon, LineChart, BarChart } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -23,8 +12,21 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts';
+
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { useCurrency } from '@/providers/currency-provider';
@@ -66,14 +68,12 @@ interface SalesTrendsResponse {
 
 export const SalesTrends = () => {
   // State for filters
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    () => {
-      // Default to 30 days ago
-      const date = new Date();
-      date.setDate(date.getDate() - 30);
-      return date;
-    }
-  );
+  const [startDate, setStartDate] = useState<Date | undefined>(() => {
+    // Default to 30 days ago
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date;
+  });
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day');
   const [storeId, setStoreId] = useState<string | undefined>();
@@ -86,36 +86,36 @@ export const SalesTrends = () => {
   });
 
   // Fetch sales trend data
-  const { 
-    data: salesTrends, 
-    isLoading, 
-    isError, 
-    refetch 
+  const {
+    data: salesTrends,
+    isLoading,
+    isError,
+    refetch,
   } = useQuery<SalesTrendsResponse>({
     queryKey: ['/api/analytics/sales-trends', startDate, endDate, groupBy, storeId],
     queryFn: async () => {
       // Build URL with query parameters
       const url = new URL('/api/analytics/sales-trends', window.location.origin);
-      
+
       if (startDate) {
         url.searchParams.append('startDate', startDate.toISOString());
       }
-      
+
       if (endDate) {
         url.searchParams.append('endDate', endDate.toISOString());
       }
-      
+
       url.searchParams.append('groupBy', groupBy);
-      
+
       if (storeId) {
         url.searchParams.append('store', storeId);
       }
-      
+
       const response = await fetch(url.toString());
       if (!response.ok) {
         throw new Error('Failed to fetch sales trends');
       }
-      
+
       return await response.json();
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -136,7 +136,7 @@ export const SalesTrends = () => {
     // Format data for displaying in chart
     const chartData = salesTrends.trendData.map(item => ({
       ...item,
-      formattedDate: formatDateLabel(item.dateGroup, groupBy)
+      formattedDate: formatDateLabel(item.dateGroup, groupBy),
     }));
 
     if (chartType === 'line') {
@@ -152,18 +152,11 @@ export const SalesTrends = () => {
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="formattedDate"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis 
-              tickFormatter={(value) => formatCurrency(value)}
-            />
+            <XAxis dataKey="formattedDate" angle={-45} textAnchor="end" height={80} />
+            <YAxis tickFormatter={value => formatCurrency(value)} />
             <Tooltip
               formatter={(value: number) => formatCurrency(value)}
-              labelFormatter={(label) => `Date: ${label}`}
+              labelFormatter={label => `Date: ${label}`}
             />
             <Legend />
             <Line
@@ -195,30 +188,15 @@ export const SalesTrends = () => {
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="formattedDate"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis 
-              tickFormatter={(value) => formatCurrency(value)}
-            />
+            <XAxis dataKey="formattedDate" angle={-45} textAnchor="end" height={80} />
+            <YAxis tickFormatter={value => formatCurrency(value)} />
             <Tooltip
               formatter={(value: number) => formatCurrency(value)}
-              labelFormatter={(label) => `Date: ${label}`}
+              labelFormatter={label => `Date: ${label}`}
             />
             <Legend />
-            <Bar
-              dataKey="totalSales"
-              name="Total Sales"
-              fill="#8884d8"
-            />
-            <Bar
-              dataKey="transactionCount"
-              name="Transaction Count"
-              fill="#82ca9d"
-            />
+            <Bar dataKey="totalSales" name="Total Sales" fill="#8884d8" />
+            <Bar dataKey="transactionCount" name="Transaction Count" fill="#82ca9d" />
           </RechartsBarChart>
         </ResponsiveContainer>
       );
@@ -268,7 +246,7 @@ export const SalesTrends = () => {
                 </tr>
               </thead>
               <tbody>
-                {salesTrends.storeBreakdown.map((store) => (
+                {salesTrends.storeBreakdown.map(store => (
                   <tr key={store.storeId} className="border-t">
                     <td className="p-2">{store.storeName}</td>
                     <td className="text-right p-2">{formatCurrency(store.totalSales)}</td>
@@ -308,7 +286,7 @@ export const SalesTrends = () => {
                 </tr>
               </thead>
               <tbody>
-                {salesTrends.paymentMethodBreakdown.map((method) => (
+                {salesTrends.paymentMethodBreakdown.map(method => (
                   <tr key={method.paymentMethodId} className="border-t">
                     <td className="p-2">{method.paymentMethodName}</td>
                     <td className="text-right p-2">{formatCurrency(method.total)}</td>
@@ -347,9 +325,7 @@ export const SalesTrends = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Transaction Count</CardDescription>
-            <CardTitle className="text-2xl">
-              {salesTrends.totals.transactionCount}
-            </CardTitle>
+            <CardTitle className="text-2xl">{salesTrends.totals.transactionCount}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -418,9 +394,7 @@ export const SalesTrends = () => {
                       selected={endDate}
                       onSelect={setEndDate}
                       initialFocus
-                      disabled={(date) =>
-                        startDate ? date < startDate : false
-                      }
+                      disabled={date => (startDate ? date < startDate : false)}
                     />
                   </PopoverContent>
                 </Popover>
@@ -443,20 +417,18 @@ export const SalesTrends = () => {
 
             <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Store Selector */}
-              <Select 
-                value={storeId} 
-                onValueChange={setStoreId}
-              >
+              <Select value={storeId} onValueChange={setStoreId}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Stores" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all_stores">All Stores</SelectItem>
-                  {Array.isArray(stores) && stores.map((store: any) => (
-                    <SelectItem key={store.id} value={store.id.toString()}>
-                      {store.name}
-                    </SelectItem>
-                  ))}
+                  {Array.isArray(stores) &&
+                    stores.map((store: any) => (
+                      <SelectItem key={store.id} value={store.id.toString()}>
+                        {store.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
 
@@ -510,18 +482,10 @@ export const SalesTrends = () => {
       </Card>
 
       {/* Store Breakdown */}
-      {isLoading ? (
-        <Skeleton className="h-64 w-full" />
-      ) : (
-        !storeId && renderStoreBreakdown()
-      )}
+      {isLoading ? <Skeleton className="h-64 w-full" /> : !storeId && renderStoreBreakdown()}
 
       {/* Payment Method Breakdown */}
-      {isLoading ? (
-        <Skeleton className="h-64 w-full" />
-      ) : (
-        renderPaymentMethodBreakdown()
-      )}
+      {isLoading ? <Skeleton className="h-64 w-full" /> : renderPaymentMethodBreakdown()}
     </div>
   );
 };

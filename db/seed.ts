@@ -1,7 +1,8 @@
+import * as bcrypt from 'bcrypt';
+import { eq, and } from 'drizzle-orm';
+
 import { db } from './index.js';
 import * as schema from '../shared/schema.js';
-import { eq, and } from 'drizzle-orm';
-import * as bcrypt from 'bcrypt';
 
 function getFirst<T>(result: any): T | undefined {
   if (Array.isArray(result)) return result[0];
@@ -24,7 +25,7 @@ async function seed() {
 
     // Create schema.categories
     console.log('Creating product schema.categories...');
-    const categorySeed: typeof schema.categories.$inferInsert[] = [
+    const categorySeed: (typeof schema.categories.$inferInsert)[] = [
       { name: 'Produce', description: 'Fresh fruits and vegetables' },
       { name: 'Dairy', description: 'Milk, cheese, and other dairy schema.products' },
       { name: 'Bakery', description: 'Breads, pastries, and baked goods' },
@@ -37,7 +38,10 @@ async function seed() {
 
     const createdCategories = await Promise.all(
       categorySeed.map(async (category: typeof schema.categories.$inferInsert) => {
-        const existing = await db.select().from(schema.categories).where(eq(schema.categories.name, category.name));
+        const existing = await db
+          .select()
+          .from(schema.categories)
+          .where(eq(schema.categories.name, category.name));
         const found = getFirst<typeof schema.categories.$inferSelect>(existing);
         if (found) {
           return found;
@@ -50,7 +54,7 @@ async function seed() {
 
     // Create schema.stores
     console.log('Creating schema.stores...');
-    const storeSeed: typeof schema.stores.$inferInsert[] = [
+    const storeSeed: (typeof schema.stores.$inferInsert)[] = [
       {
         name: 'Downtown Store',
         address: '123 Main St',
@@ -121,7 +125,10 @@ async function seed() {
 
     const createdStores = await Promise.all(
       storeSeed.map(async (store: typeof schema.stores.$inferInsert) => {
-        const existing = await db.select().from(schema.stores).where(eq(schema.stores.name, store.name));
+        const existing = await db
+          .select()
+          .from(schema.stores)
+          .where(eq(schema.stores.name, store.name));
         const found = getFirst<typeof schema.stores.$inferSelect>(existing);
         if (found) {
           return found;
@@ -150,22 +157,24 @@ async function seed() {
 
     // Create store managers
     await Promise.all(
-      (createdStores.filter(Boolean) as typeof schema.stores.$inferSelect[]).map(async (store, index) => {
-        // Use type assertion to bypass TypeScript schema validation
-        const managerUser: typeof schema.users.$inferInsert = {
-          username: `manager${index + 1}`,
-          password: passwordHash,
-          fullName: `Manager ${index + 1}`,
-          email: `manager${index + 1}@chainsync.com`,
-          role: 'manager',
-          storeId: store.id,
-        };
-        await db.insert(schema.users).values(managerUser);
-      })
+      (createdStores.filter(Boolean) as (typeof schema.stores.$inferSelect)[]).map(
+        async (store, index) => {
+          // Use type assertion to bypass TypeScript schema validation
+          const managerUser: typeof schema.users.$inferInsert = {
+            username: `manager${index + 1}`,
+            password: passwordHash,
+            fullName: `Manager ${index + 1}`,
+            email: `manager${index + 1}@chainsync.com`,
+            role: 'manager',
+            storeId: store.id,
+          };
+          await db.insert(schema.users).values(managerUser);
+        }
+      )
     );
 
     // Create cashiers (2 per store)
-    for (const store of createdStores as typeof schema.stores.$inferSelect[]) {
+    for (const store of createdStores as (typeof schema.stores.$inferSelect)[]) {
       const storeIndex = createdStores.indexOf(store);
 
       // Create each cashier individually instead of as an array with type assertion
@@ -192,13 +201,15 @@ async function seed() {
 
     // Create schema.products
     console.log('Creating schema.products...');
-    const productSeed: typeof schema.products.$inferInsert[] = [
+    const productSeed: (typeof schema.products.$inferInsert)[] = [
       {
         name: 'Organic Bananas',
         description: 'Bunch of fresh organic bananas',
         sku: 'SKU-5011001',
         barcode: '5011001',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Produce')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Produce'
+        )!.id,
         price: '1.99',
         cost: '0.89',
         isPerishable: true,
@@ -208,7 +219,9 @@ async function seed() {
         description: '1 gallon of whole milk',
         sku: 'SKU-5011002',
         barcode: '5011002',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Dairy')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Dairy'
+        )!.id,
         price: '3.49',
         cost: '2.10',
         isPerishable: true,
@@ -218,7 +231,9 @@ async function seed() {
         description: 'Fresh baked sourdough bread',
         sku: 'SKU-5011003',
         barcode: '5011003',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Bakery')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Bakery'
+        )!.id,
         price: '4.99',
         cost: '2.50',
         isPerishable: true,
@@ -228,7 +243,9 @@ async function seed() {
         description: '1 pound of 80/20 ground beef',
         sku: 'SKU-5011004',
         barcode: '5011004',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Meat & Seafood')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Meat & Seafood'
+        )!.id,
         price: '5.99',
         cost: '3.75',
         isPerishable: true,
@@ -238,7 +255,9 @@ async function seed() {
         description: '2 liter bottle of cola',
         sku: 'SKU-5011005',
         barcode: '5011005',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Beverages')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Beverages'
+        )!.id,
         price: '2.49',
         cost: '1.20',
         isPerishable: false,
@@ -248,7 +267,9 @@ async function seed() {
         description: '8oz bag of potato chips',
         sku: 'SKU-5011006',
         barcode: '5011006',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Snacks')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Snacks'
+        )!.id,
         price: '3.99',
         cost: '1.75',
         isPerishable: false,
@@ -258,7 +279,9 @@ async function seed() {
         description: '10.5oz can of condensed soup',
         sku: 'SKU-5011007',
         barcode: '5011007',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Canned Goods')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Canned Goods'
+        )!.id,
         price: '1.79',
         cost: '0.95',
         isPerishable: false,
@@ -268,7 +291,9 @@ async function seed() {
         description: '12-inch frozen pepperoni pizza',
         sku: 'SKU-5011008',
         barcode: '5011008',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Frozen Foods')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Frozen Foods'
+        )!.id,
         price: '6.99',
         cost: '3.50',
         isPerishable: false,
@@ -278,7 +303,9 @@ async function seed() {
         description: 'Fresh red apples',
         sku: 'SKU-5011009',
         barcode: '5011009',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Produce')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Produce'
+        )!.id,
         price: '0.79',
         cost: '0.35',
         isPerishable: true,
@@ -288,7 +315,9 @@ async function seed() {
         description: '6oz container of Greek yogurt',
         sku: 'SKU-5011010',
         barcode: '5011010',
-        categoryId: createdCategories.find((c: typeof schema.categories.$inferSelect) => c.name === 'Dairy')!.id,
+        categoryId: createdCategories.find(
+          (c: typeof schema.categories.$inferSelect) => c.name === 'Dairy'
+        )!.id,
         price: '1.29',
         cost: '0.70',
         isPerishable: true,
@@ -297,7 +326,10 @@ async function seed() {
 
     const createdProducts = await Promise.all(
       productSeed.map(async (product: typeof schema.products.$inferInsert) => {
-        const existing = await db.select().from(schema.products).where(eq(schema.products.name, product.name));
+        const existing = await db
+          .select()
+          .from(schema.products)
+          .where(eq(schema.products.name, product.name));
         const found = getFirst<typeof schema.products.$inferSelect>(existing);
         if (found) {
           return found;
@@ -310,8 +342,10 @@ async function seed() {
 
     // Create schema.inventory for each product in each store
     console.log('Creating schema.inventory...');
-    for (const store of createdStores as typeof schema.stores.$inferSelect[]) {
-      for (const product of createdProducts.filter(Boolean) as typeof schema.products.$inferSelect[]) {
+    for (const store of createdStores as (typeof schema.stores.$inferSelect)[]) {
+      for (const product of createdProducts.filter(
+        Boolean
+      ) as (typeof schema.products.$inferSelect)[]) {
         if (!product) continue;
         // Random quantity between 20 and 100
         const quantity = Math.floor(Math.random() * 81) + 20;
@@ -363,15 +397,21 @@ async function seed() {
     const cashiers = await db.select().from(schema.users).where(eq(schema.users.role, 'cashier'));
 
     // Group cashiers by store
-    const cashiersByStore: Record<number, typeof schema.users.$inferSelect[]> = cashiers.reduce((acc: Record<number, typeof schema.users.$inferSelect[]>, cashier: typeof schema.users.$inferSelect) => {
-      if (!cashier.storeId) return acc;
-      if (!acc[cashier.storeId]) acc[cashier.storeId] = [];
-      acc[cashier.storeId].push(cashier);
-      return acc;
-    }, {});
+    const cashiersByStore: Record<number, (typeof schema.users.$inferSelect)[]> = cashiers.reduce(
+      (
+        acc: Record<number, (typeof schema.users.$inferSelect)[]>,
+        cashier: typeof schema.users.$inferSelect
+      ) => {
+        if (!cashier.storeId) return acc;
+        if (!acc[cashier.storeId]) acc[cashier.storeId] = [];
+        acc[cashier.storeId].push(cashier);
+        return acc;
+      },
+      {}
+    );
 
     // Create a few schema.transactions for each store
-    for (const store of createdStores as typeof schema.stores.$inferSelect[]) {
+    for (const store of createdStores as (typeof schema.stores.$inferSelect)[]) {
       const storeCashiers = cashiersByStore[store.id] || [];
       if (storeCashiers.length === 0) continue;
 
@@ -389,7 +429,7 @@ async function seed() {
         let subtotal = 0;
         const transactionItems: Array<typeof schema.transactionItems.$inferInsert> = [];
 
-        for (const product of selectedProducts as typeof schema.products.$inferSelect[]) {
+        for (const product of selectedProducts as (typeof schema.products.$inferSelect)[]) {
           const quantity = Math.floor(Math.random() * 3) + 1;
           const unitPrice = parseFloat(product.price);
           const itemSubtotal = unitPrice * quantity;
@@ -399,7 +439,6 @@ async function seed() {
             productId: product.id,
             quantity,
             unitPrice: product.price,
-            
           });
         }
 
@@ -420,11 +459,14 @@ async function seed() {
           syncedAt: Math.random() > 0.9 ? null : new Date(),
         };
 
-        const [transaction] = await db.insert(schema.transactions).values(transactionData).returning();
+        const [transaction] = await db
+          .insert(schema.transactions)
+          .values(transactionData)
+          .returning();
 
         // Insert transaction items
         await Promise.all(
-          transactionItems.map((item) =>
+          transactionItems.map(item =>
             db.insert(schema.transactionItems).values({
               ...item,
               transactionId: transaction.id,
@@ -434,19 +476,30 @@ async function seed() {
 
         // Update schema.inventory for each item
         for (const item of transactionItems) {
-            if (!store) continue;
-            if (!item.productId) continue;
-          const inv = await db.select().from(schema.inventory).where(and(eq(schema.inventory.storeId, store.id!), eq(schema.inventory.productId, item.productId!))).limit(1);
+          if (!store) continue;
+          if (!item.productId) continue;
+          const inv = await db
+            .select()
+            .from(schema.inventory)
+            .where(
+              and(
+                eq(schema.inventory.storeId, store.id),
+                eq(schema.inventory.productId, item.productId)
+              )
+            )
+            .limit(1);
           if (inv && inv.length > 0) {
-            await db.update(schema.inventory).set({
-              totalQuantity: Math.max(0, inv[0].totalQuantity - item.quantity)
-            }).where(eq(schema.inventory.id, inv[0].id!));
+            await db
+              .update(schema.inventory)
+              .set({
+                totalQuantity: Math.max(0, inv[0].totalQuantity - item.quantity),
+              })
+              .where(eq(schema.inventory.id, inv[0].id));
           }
         }
       }
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('❌ Seed failed:', error);
   }
 }

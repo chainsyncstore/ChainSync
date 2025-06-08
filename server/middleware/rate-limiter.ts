@@ -1,7 +1,8 @@
+import { Request, Response, NextFunction, Application } from 'express'; // Added Application
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { Request, Response, NextFunction, Application } from 'express'; // Added Application
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'; // Added RedisClientType and RedisClientOptions
+
 import { getLogger } from '../../src/logging';
 
 const logger = getLogger().child({ component: 'rate-limiter' });
@@ -36,7 +37,8 @@ try {
  * Falls back to memory store if Redis is not available
  */
 function createStore() {
-  if (redisClient && redisClient.isOpen) { // Use isOpen for redis v4
+  if (redisClient && redisClient.isOpen) {
+    // Use isOpen for redis v4
     logger.info('Using Redis store for rate limiting');
     return new RedisStore({
       // rate-limit-redis StoreOptions.sendCommand is:
@@ -45,7 +47,7 @@ function createStore() {
       // sendCommand<T = RedisCommandReply>(args: string[], options?: CommandOptions): Promise<T>;
       // Casting the entire function to 'any' to bypass stubborn type mismatch.
       sendCommand: (async (args: ReadonlyArray<string | number | Buffer>): Promise<any> => {
-        const commandArgsForClient = args.map(arg => String(arg)); 
+        const commandArgsForClient = args.map(arg => String(arg));
 
         if (!redisClient || !redisClient.isOpen) {
           logger.error('Redis client not available for sendCommand in rate limiter');
@@ -53,10 +55,10 @@ function createStore() {
         }
         return redisClient.sendCommand(commandArgsForClient);
       }) as any, // Cast the entire function expression
-      prefix: 'rl:'
+      prefix: 'rl:',
     });
   }
-  
+
   logger.warn('Using memory store for rate limiting - not suitable for production clusters');
   return undefined; // Will use memory store
 }
@@ -164,9 +166,9 @@ export function createRateLimiter(options: RateLimiterOptions) {
     skip,
     handler,
     headers = true,
-    sensitive = false
+    sensitive = false,
   } = options;
-  
+
   return rateLimit({
     windowMs,
     max,
@@ -183,22 +185,23 @@ export function createRateLimiter(options: RateLimiterOptions) {
 /**
  * Applies appropriate rate limiters to routes based on sensitivity
  */
-export function applyRateLimiters(app: Application) { // Typed app
+export function applyRateLimiters(app: Application) {
+  // Typed app
   // Apply standard limiter globally
   app.use(rateLimitMiddleware);
-  
+
   // Apply auth limiter to authentication routes
   app.use('/api/auth/*', authRateLimiter);
-  
+
   // Apply sensitive operation limiter to admin routes
   app.use('/api/admin/*', sensitiveOpRateLimiter);
-  
+
   // Apply public endpoint limiter to public routes
   app.use('/api/public/*', publicEndpointLimiter);
-  
+
   // Apply brute force protection to login and password reset
   app.use(['/api/auth/login', '/api/auth/reset-password'], bruteForceProtectionLimiter);
-  
+
   logger.info('Rate limiters applied to routes');
 }
 
@@ -206,7 +209,8 @@ export function applyRateLimiters(app: Application) { // Typed app
  * Graceful shutdown handler for rate limiter
  */
 export async function shutdownRateLimiter() {
-  if (redisClient && redisClient.isOpen) { // Use isOpen for redis v4
+  if (redisClient && redisClient.isOpen) {
+    // Use isOpen for redis v4
     try {
       await redisClient.quit(); // No need to cast if redisClient is correctly typed and narrowed
       logger.info('Rate limiter Redis client closed');

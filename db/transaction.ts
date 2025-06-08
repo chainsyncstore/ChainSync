@@ -1,7 +1,8 @@
-import { db } from './connection-manager.js';
-import { getLogger } from '../shared/logging.js';
-import { retry, RetryOptions } from '../server/utils/retry.js';
 import { sql } from 'drizzle-orm';
+
+import { db } from './connection-manager.js';
+import { retry, RetryOptions } from '../server/utils/retry.js';
+import { getLogger } from '../shared/logging.js';
 
 const logger = getLogger().child({ component: 'db-transaction' });
 
@@ -11,19 +12,19 @@ const logger = getLogger().child({ component: 'db-transaction' });
 export interface TransactionOptions {
   /** Maximum number of retries for transient failures */
   maxRetries?: number;
-  
+
   /** Initial delay between retries in milliseconds */
   initialDelayMs?: number;
-  
+
   /** Transaction name for logging purposes */
   transactionName?: string;
-  
+
   /** Custom retry options */
   retryOptions?: RetryOptions;
-  
+
   /** Whether to use serializable isolation level for strong consistency */
   serializable?: boolean;
-  
+
   /** Timeout for the transaction in milliseconds */
   timeoutMs?: number;
 }
@@ -32,7 +33,10 @@ export interface TransactionOptions {
  * Error indicating a transaction needs to be retried
  */
 export class TransactionRetryError extends Error {
-  constructor(message: string, public cause?: any) {
+  constructor(
+    message: string,
+    public cause?: any
+  ) {
     super(message);
     this.name = 'TransactionRetryError';
   }
@@ -79,10 +83,10 @@ function isTransientError(error: any): boolean {
   if (error.code && RETRYABLE_ERROR_CODES.includes(error.code)) {
     return true;
   }
-  
+
   // Check for specific error messages
   const errorMessage = error.message || String(error);
-  return RETRYABLE_ERROR_MESSAGES.some(msg => 
+  return RETRYABLE_ERROR_MESSAGES.some(msg =>
     errorMessage.toLowerCase().includes(msg.toLowerCase())
   );
 }
@@ -90,7 +94,7 @@ function isTransientError(error: any): boolean {
 /**
  * Execute a function within a database transaction with automatic retries
  * for transient failures
- * 
+ *
  * @param fn The function to execute within a transaction
  * @param options Transaction options
  * @returns The result of the function
@@ -100,7 +104,7 @@ export async function withTransaction<T>(
   options: TransactionOptions = {}
 ): Promise<T> {
   const transactionName = options.transactionName || 'unnamed-transaction';
-  
+
   // Set up retry options
   const retryOptions: RetryOptions = options.retryOptions || {
     maxAttempts: options.maxRetries || 3,
@@ -110,23 +114,23 @@ export async function withTransaction<T>(
     useJitter: true,
     nonRetryableErrors: [],
     operationName: `transaction:${transactionName}`,
-    isRetryable: (error) => isTransientError(error),
+    isRetryable: error => isTransientError(error),
   };
-  
+
   // Execute with retry logic
   const result = await retry(async () => {
     // Start a transaction
-    return db.transaction(async (tx) => {
+    return db.transaction(async tx => {
       // Set transaction timeout if specified
       if (options.timeoutMs) {
         await tx.execute(sql`SET LOCAL statement_timeout = ${options.timeoutMs}`);
       }
-      
+
       // Set isolation level to serializable if requested
       if (options.serializable) {
         await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`);
       }
-      
+
       try {
         // Execute the function within the transaction
         const result = await fn(tx);
@@ -138,28 +142,28 @@ export async function withTransaction<T>(
             error: error instanceof Error ? error.message : String(error),
             errorCode: (error as any).code,
           });
-          
+
           // Wrap in a TransactionRetryError to signal retry
           throw new TransactionRetryError('Transaction needs to be retried', error);
         }
-        
+
         // Re-throw non-transient errors
         throw error;
       }
     });
   }, retryOptions);
-  
+
   if (!result.success) {
     throw result.error;
   }
-  
+
   return result.result as T;
 }
 
 /**
  * Execute a function with retry logic for database operations
  * that don't require a transaction
- * 
+ *
  * @param fn The database function to execute
  * @param options Retry options
  * @returns The result of the function
@@ -175,16 +179,16 @@ export async function withDatabaseRetry<T>(
     maxDelayMs: 2000,
     useJitter: true,
     operationName: options.operationName || 'db-operation',
-    isRetryable: (error) => isTransientError(error),
+    isRetryable: error => isTransientError(error),
   };
-  
+
   const retryOptions = { ...defaultOptions, ...options };
-  
+
   const result = await retry(fn, retryOptions);
-  
+
   if (!result.success) {
     throw result.error;
   }
-  
+
   return result.result as T;
 }

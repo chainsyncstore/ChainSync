@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Search, Barcode, ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+
+import BarcodeScanner from './barcode-scanner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Barcode, ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { debounce } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import BarcodeScanner from './barcode-scanner';
+import { formatCurrency, formatDate, debounce } from '@/lib/utils';
 
 interface ProductSearchProps {
   onProductSelect: (product: any) => void;
@@ -18,9 +19,9 @@ interface ProductSearchProps {
 export function ProductSearch({ onProductSelect }: ProductSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('search');
-  
+
   const { toast } = useToast();
-  
+
   // Search products query
   const searchQuery = useQuery({
     queryKey: ['/api/products/search', searchTerm],
@@ -34,7 +35,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
     },
     enabled: searchTerm.length >= 2,
   });
-  
+
   // Popular products query
   const popularProductsQuery = useQuery({
     queryKey: ['/api/products/popular'],
@@ -51,9 +52,9 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
         console.log('Error fetching popular products:', error);
         throw error;
       }
-    }
+    },
   });
-  
+
   // All products fallback query
   const allProductsQuery = useQuery({
     queryKey: ['/api/products'],
@@ -66,49 +67,49 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
     },
     enabled: !popularProductsQuery.data && popularProductsQuery.isError,
   });
-  
+
   // Handle search input with debounce
   const debouncedSearch = debounce((value: string) => {
     setSearchTerm(value);
   }, 300);
-  
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     debouncedSearch(e.target.value);
   };
-  
+
   // Get products to display
   const getProductsToDisplay = () => {
     if (activeTab === 'search' && searchTerm.length >= 2) {
       return searchQuery.data || [];
     }
-    
+
     return popularProductsQuery.data || allProductsQuery.data || [];
   };
-  
+
   // Handle product selection with expiry check
   const handleProductSelect = (product: any) => {
     if (product.isExpired) {
       // Don't allow adding expired products to cart
       const expiryDate = product.expiryDate ? new Date(product.expiryDate) : null;
       const formattedDate = expiryDate ? expiryDate.toLocaleDateString() : 'unknown date';
-      
+
       toast({
-        title: "Product Expired",
+        title: 'Product Expired',
         description: `This product expired on ${formattedDate} and cannot be sold.`,
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
-    
+
     onProductSelect(product);
   };
-  
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-medium">Product Search</CardTitle>
       </CardHeader>
-      
+
       <CardContent>
         <Tabs defaultValue="search" onValueChange={setActiveTab} value={activeTab}>
           <TabsList className="mb-4">
@@ -121,7 +122,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
               Barcode
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="search" className="space-y-4">
             <div>
               <div className="relative">
@@ -134,7 +135,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {searchQuery.isLoading && searchTerm.length >= 2 ? (
                 <div className="col-span-full flex justify-center py-8">
@@ -156,7 +157,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                     </div>
                     <div className="flex w-full justify-between items-center mt-1">
                       <Badge variant="secondary" className="text-xs">
-                        {product.category?.name || "N/A"}
+                        {product.category?.name || 'N/A'}
                       </Badge>
                       <span className="text-sm font-bold">{formatCurrency(product.price)}</span>
                     </div>
@@ -170,13 +171,16 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
                   </Button>
                 ))
               )}
-              
-              {activeTab === 'search' && searchTerm.length >= 2 && searchQuery.data?.length === 0 && !searchQuery.isLoading && (
-                <div className="col-span-full text-center py-8 text-muted-foreground">
-                  No products found matching "{searchTerm}"
-                </div>
-              )}
-              
+
+              {activeTab === 'search' &&
+                searchTerm.length >= 2 &&
+                searchQuery.data?.length === 0 &&
+                !searchQuery.isLoading && (
+                  <div className="col-span-full text-center py-8 text-muted-foreground">
+                    No products found matching "{searchTerm}"
+                  </div>
+                )}
+
               {activeTab === 'search' && searchTerm.length < 2 && (
                 <div className="col-span-full">
                   <h3 className="font-medium mb-2 text-sm">Popular Products</h3>
@@ -196,21 +200,21 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="barcode" className="space-y-4">
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-medium mb-2">Scan Product Barcode</h3>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Simply scan a barcode with your scanner or type it in below.
-                  The input field is always focused and ready to receive input.
+                  Simply scan a barcode with your scanner or type it in below. The input field is
+                  always focused and ready to receive input.
                 </p>
-                <BarcodeScanner 
-                  onProductFound={onProductSelect} 
-                  disabled={activeTab !== 'barcode'} 
+                <BarcodeScanner
+                  onProductFound={onProductSelect}
+                  disabled={activeTab !== 'barcode'}
                 />
               </div>
-              
+
               <div className="pt-4 border-t">
                 <h3 className="text-sm font-medium mb-2">Scanning Tips</h3>
                 <ul className="text-xs text-muted-foreground space-y-1">

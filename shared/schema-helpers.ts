@@ -1,14 +1,16 @@
 /**
  * Schema Helpers
- * 
+ *
  * This utility file provides helper functions to bridge mismatches between
  * code field names and the actual database schema structure.
  * These are temporary solutions to allow the application to function while
  * schema alignment is being addressed more comprehensively.
  */
 
-import * as schema from './schema';
 import { eq, and, gt, lt, desc, sql, asc } from 'drizzle-orm';
+
+import { NewSubscription } from './db/subscriptions.js';
+import * as schema from './schema.js';
 
 /**
  * Generic type assertion helper for database operations
@@ -37,7 +39,7 @@ export function prepareProductData(data: unknown) {
   // Ensure SKU exists
   const preparedData = {
     ...dataObj,
-    sku: dataObj.sku || `SKU-${Date.now()}`
+    sku: dataObj.sku || `SKU-${Date.now()}`,
   };
   return preparedData as any;
 }
@@ -64,13 +66,13 @@ export function prepareLoyaltyTierData(data: unknown) {
     // Map pointsRequired to requiredPoints if it exists
     ...(dataObj.pointsRequired && { requiredPoints: dataObj.pointsRequired }),
     // Map status to active if it exists
-    ...(dataObj.status && { active: dataObj.status === 'active' })
+    ...(dataObj.status && { active: dataObj.status === 'active' }),
   };
-  
+
   // Remove unmapped fields to avoid conflicts
   if (preparedData.pointsRequired) delete preparedData.pointsRequired;
   if (preparedData.status) delete preparedData.status;
-  
+
   return preparedData as any;
 }
 
@@ -82,9 +84,9 @@ export function prepareLoyaltyMemberData(data: unknown) {
   // Schema uses 'isActive', code uses 'status'
   const preparedData: Record<string, any> = {
     ...dataObj,
-    ...(dataObj.status && { isActive: dataObj.status === 'active' })
+    ...(dataObj.status && { isActive: dataObj.status === 'active' }),
   };
-  
+
   if (preparedData.status) delete preparedData.status;
   return preparedData as any;
 }
@@ -100,7 +102,22 @@ export function prepareLoyaltyRedemptionData(data: unknown) {
 /**
  * Subscription Module Helpers
  */
-export function prepareSubscriptionData(data: unknown) {
+export function prepareSubscriptionData(data: {
+  userId: number;
+  plan: string;
+  status?: string; // Made optional, function defaults to 'active'
+  amount: string;
+  currency?: string | null; // Made optional, function defaults to 'NGN', allow null
+  referralCode?: string;
+  discountApplied?: boolean; // Made optional, DB default applies if undefined
+  discountAmount?: string; // Made optional, DB default applies if undefined
+  startDate: Date;
+  endDate: Date;
+  autoRenew?: boolean; // Made optional, DB default applies if undefined
+  paymentProvider?: string | null; // Made optional/nullable
+  paymentReference?: string | null; // Made optional/nullable
+  metadata?: any;
+}): NewSubscription {
   if (typeof data !== 'object' || data === null) {
     throw new Error('Subscription data must be an object.');
   }
@@ -114,42 +131,29 @@ export function prepareSubscriptionData(data: unknown) {
     }
   }
 
-  // Create a base object with minimal required fields
-  const baseData = {
-    user_id: dataObj.userId,
-    plan: dataObj.plan,
-    amount: dataObj.amount,
-    end_date: dataObj.endDate
+  // Construct the NewSubscription object directly with camelCase keys
+  const newSubscriptionEntry: NewSubscription = {
+    userId: data.userId,
+    plan: data.plan,
+    status: data.status || 'active', // Default if not provided
+    amount: data.amount,
+    currency: data.currency || 'NGN', // Default if not provided
+    startDate: data.startDate,
+    endDate: data.endDate,
+
+    // Optional fields - Drizzle handles undefined for optional columns
+    referralCode: data.referralCode,
+    discountApplied: data.discountApplied,
+    discountAmount: data.discountAmount,
+    autoRenew: data.autoRenew,
+    paymentProvider: data.paymentProvider,
+    paymentReference: data.paymentReference,
+    metadata: data.metadata,
+
+    // id, createdAt, updatedAt are typically auto-generated or handled by DB/Drizzle defaults
+    // and should not be part of NewSubscription data passed to insert typically.
   };
-  
-  // Build the full prepared data object with all fields
-  const preparedData: Record<string, any> = {
-    ...baseData,
-    // Optional fields with defaults
-    status: dataObj.status || 'active',
-    currency: dataObj.currency || 'NGN',
-    auto_renew: dataObj.autoRenew ?? true,
-    payment_provider: dataObj.paymentProvider || 'paystack',
-    
-    // Optional fields without defaults
-    referral_code: dataObj.referralCode,
-    discount_applied: dataObj.discountApplied,
-    discount_amount: dataObj.discountAmount,
-    start_date: dataObj.startDate,
-    payment_reference: dataObj.paymentReference,
-    metadata: dataObj.metadata,
-    created_at: dataObj.createdAt,
-    updated_at: dataObj.updatedAt
-  };
-  
-  // Filter out undefined values
-  Object.keys(preparedData).forEach(key => {
-    if (preparedData[key] === undefined) {
-      delete preparedData[key];
-    }
-  });
-  
-  return preparedData;
+  return newSubscriptionEntry;
 }
 
 /**
@@ -185,7 +189,7 @@ export const refundItems = {
 // Helper function for formatting refund query results
 export function formatRefundResult(refund: unknown) {
   if (!refund) return null;
-  
+
   return {
     ...refund,
     // Map any additional fields if needed
@@ -204,7 +208,7 @@ export function formatLoyaltyTierResult(tier: unknown) {
   return {
     ...tierObj,
     pointsRequired: tierObj.requiredPoints,
-    status: tierObj.active ? 'active' : 'inactive'
+    status: tierObj.active ? 'active' : 'inactive',
   };
 }
 
@@ -215,7 +219,7 @@ export function formatLoyaltyMemberResult(member: unknown) {
   const memberObj = member as Record<string, any>;
   return {
     ...memberObj,
-    status: memberObj.isActive ? 'active' : 'inactive'
+    status: memberObj.isActive ? 'active' : 'inactive',
   };
 }
 
@@ -224,7 +228,7 @@ export function formatSubscriptionResult(subscription: unknown) {
     return null;
   }
   const subObj = subscription as Record<string, any>;
-  
+
   // Parse metadata if it exists and is a string
   let parsedMetadata = subObj.metadata;
   if (typeof subObj.metadata === 'string' && subObj.metadata) {
@@ -235,7 +239,7 @@ export function formatSubscriptionResult(subscription: unknown) {
       // Keep original string if parsing fails
     }
   }
-  
+
   // Map fields from snake_case to camelCase
   // Create a properly typed object that matches our service expectations
   const result = {
@@ -255,11 +259,14 @@ export function formatSubscriptionResult(subscription: unknown) {
     paymentReference: subObj.payment_reference || null,
     metadata: parsedMetadata,
     createdAt: subObj.created_at instanceof Date ? subObj.created_at : new Date(subObj.created_at),
-    updatedAt: subObj.updated_at instanceof Date ? 
-      subObj.updated_at : 
-      (subObj.updated_at ? new Date(subObj.updated_at) : new Date(subObj.created_at))
+    updatedAt:
+      subObj.updated_at instanceof Date
+        ? subObj.updated_at
+        : subObj.updated_at
+          ? new Date(subObj.updated_at)
+          : new Date(subObj.created_at),
   };
-  
+
   // Add user information if available
   if (subObj.user) {
     const userObj = subObj.user as Record<string, any>;
@@ -268,10 +275,10 @@ export function formatSubscriptionResult(subscription: unknown) {
       user: {
         id: userObj.id,
         name: userObj.name,
-        email: userObj.email
-      }
+        email: userObj.email,
+      },
     };
   }
-  
+
   return result;
 }

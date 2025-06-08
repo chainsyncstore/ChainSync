@@ -1,19 +1,20 @@
 /**
  * Standardized Inventory Service
- * 
- * This implementation follows the standard service pattern and 
+ *
+ * This implementation follows the standard service pattern and
  * provides resilient inventory management functionality.
  */
 
-import { z } from 'zod';
-import { eq, and, gt, lte, sql } from 'drizzle-orm';
-import { BaseService, ServiceError, ServiceConfig, RetryOptions } from '../base/standard-service';
-import { CacheService } from '../cache';
-import { ResilientHttpClient } from '../../utils/resilient-http-client';
-import { CircuitBreaker } from '../../utils/fallback';
-import { generateEntityCacheKey, invalidateEntityCache } from '@src/cache/cache-strategy';
 import { inventory, inventoryBatches, products } from '@shared/db';
 import { ErrorCode } from '@shared/types/errors';
+import { generateEntityCacheKey, invalidateEntityCache } from '@src/cache/cache-strategy';
+import { eq, and, gt, lte, sql } from 'drizzle-orm';
+import { z } from 'zod';
+
+import { CircuitBreaker } from '../../utils/fallback';
+import { ResilientHttpClient } from '../../utils/resilient-http-client';
+import { BaseService, ServiceError, ServiceConfig, RetryOptions } from '../base/standard-service';
+import { CacheService } from '../cache';
 
 // Schema definitions for input validation
 const inventoryCreateSchema = z.object({
@@ -140,9 +141,7 @@ class SupplierApiService {
         maxAttempts: 3,
         initialDelayMs: 500,
       },
-      fallbackBaseURLs: [
-        process.env.SUPPLIER_API_FALLBACK_URL,
-      ].filter(Boolean) as string[],
+      fallbackBaseURLs: [process.env.SUPPLIER_API_FALLBACK_URL].filter(Boolean) as string[],
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': apiKey,
@@ -200,20 +199,21 @@ class SupplierApiService {
 /**
  * Standardized Inventory Service implementation
  */
-export class InventoryService extends BaseService<Inventory, 
-  z.infer<typeof inventoryCreateSchema>, 
-  z.infer<typeof inventoryUpdateSchema>> {
-  
+export class InventoryService extends BaseService<
+  Inventory,
+  z.infer<typeof inventoryCreateSchema>,
+  z.infer<typeof inventoryUpdateSchema>
+> {
   protected readonly entityName = 'inventory';
   protected readonly tableName = inventory;
   protected readonly primaryKeyField = 'id';
   protected readonly createSchema = inventoryCreateSchema;
   protected readonly updateSchema = inventoryUpdateSchema;
-  
+
   private readonly batchesTableName = inventoryBatches;
   private readonly productsTableName = products;
   private readonly supplierApi: SupplierApiService;
-  
+
   /**
    * Cache TTLs (in seconds)
    */
@@ -223,31 +223,28 @@ export class InventoryService extends BaseService<Inventory,
     INVENTORY_LIST: 300, // 5 minutes
     LOW_STOCK: 300, // 5 minutes
   };
-  
+
   constructor(
-    config: ServiceConfig & { 
+    config: ServiceConfig & {
       supplierApiBaseUrl?: string;
       supplierApiKey?: string;
     }
   ) {
     super(config);
-    
+
     // Initialize supplier API service
-    this.supplierApi = new SupplierApiService(
-      config.supplierApiBaseUrl,
-      config.supplierApiKey
-    );
-    
+    this.supplierApi = new SupplierApiService(config.supplierApiBaseUrl, config.supplierApiKey);
+
     this.logger.info('InventoryService initialized with supplier API integration');
   }
-  
+
   /**
    * Get inventory with product details
    */
   async getInventoryWithProduct(id: number): Promise<InventoryWithProduct | null> {
     try {
       const cacheKey = `inventory:with-product:${id}`;
-      
+
       // Try to get from cache first if available
       if (this.cache) {
         const cached = await this.cache.get(cacheKey);
@@ -256,54 +253,52 @@ export class InventoryService extends BaseService<Inventory,
           return cached as InventoryWithProduct;
         }
       }
-      
+
       // Fetch from database if not in cache
-      const result = await this.executeQuery(
-        async (db) => {
-          return db.select({
+      const result = await this.executeQuery(async db => {
+        return db
+          .select({
             inventory: inventory,
             product: {
               id: products.id,
               name: products.name,
               sku: products.sku,
-            }
+            },
           })
           .from(inventory)
           .innerJoin(products, eq(inventory.productId, products.id))
           .where(eq(inventory.id, id))
           .limit(1);
-        },
-        'inventory.getWithProduct'
-      );
-      
+      }, 'inventory.getWithProduct');
+
       if (!result.length) {
         return null;
       }
-      
+
       // Transform result to expected format
       const inventoryWithProduct: InventoryWithProduct = {
         ...result[0].inventory,
-        product: result[0].product
+        product: result[0].product,
       };
-      
+
       // Cache the result
       if (this.cache) {
         await this.cache.set(cacheKey, inventoryWithProduct, this.CACHE_TTL.INVENTORY);
       }
-      
+
       return inventoryWithProduct;
     } catch (error) {
       return this.handleError(error, `Error fetching inventory with product details for ID: ${id}`);
     }
   }
-  
+
   /**
    * Get inventory items with low stock (below minimum quantity)
    */
   async getLowStockItems(storeId?: number): Promise<InventoryWithProduct[]> {
     try {
       const cacheKey = `inventory:low-stock:${storeId || 'all'}`;
-      
+
       // Try to get from cache first if available
       if (this.cache) {
         const cached = await this.cache.get(cacheKey);
@@ -312,53 +307,49 @@ export class InventoryService extends BaseService<Inventory,
           return cached as InventoryWithProduct[];
         }
       }
-      
+
       // Fetch from database if not in cache
-      const result = await this.executeQuery(
-        async (db) => {
-          let query = db.select({
+      const result = await this.executeQuery(async db => {
+        let query = db
+          .select({
             inventory: inventory,
             product: {
               id: products.id,
               name: products.name,
               sku: products.sku,
-            }
+            },
           })
           .from(inventory)
           .innerJoin(products, eq(inventory.productId, products.id))
-          .where(
-            and(
-              eq(inventory.isActive, true),
-              lte(inventory.quantity, inventory.minQuantity)
-            )
-          );
-          
-          if (storeId !== undefined) {
-            query = query.where(eq(inventory.storeId, storeId));
-          }
-          
-          return query;
-        },
-        'inventory.getLowStock'
-      );
-      
+          .where(and(eq(inventory.isActive, true), lte(inventory.quantity, inventory.minQuantity)));
+
+        if (storeId !== undefined) {
+          query = query.where(eq(inventory.storeId, storeId));
+        }
+
+        return query;
+      }, 'inventory.getLowStock');
+
       // Transform results to expected format
       const lowStockItems: InventoryWithProduct[] = result.map(row => ({
         ...row.inventory,
-        product: row.product
+        product: row.product,
       }));
-      
+
       // Cache the result
       if (this.cache) {
         await this.cache.set(cacheKey, lowStockItems, this.CACHE_TTL.LOW_STOCK);
       }
-      
+
       return lowStockItems;
     } catch (error) {
-      return this.handleError(error, `Error fetching low stock items${storeId ? ` for store ${storeId}` : ''}`);
+      return this.handleError(
+        error,
+        `Error fetching low stock items${storeId ? ` for store ${storeId}` : ''}`
+      );
     }
   }
-  
+
   /**
    * Create a new inventory batch
    */
@@ -366,7 +357,7 @@ export class InventoryService extends BaseService<Inventory,
     try {
       // Validate input data
       const validatedData = this.validateInput(data, batchCreateSchema);
-      
+
       // Verify the inventory exists
       const inventoryExists = await this.getById(validatedData.inventoryId);
       if (!inventoryExists) {
@@ -376,93 +367,92 @@ export class InventoryService extends BaseService<Inventory,
           { inventoryId: validatedData.inventoryId }
         );
       }
-      
+
       // Create the batch
-      return await this.withTransaction(async (trx) => {
+      return await this.withTransaction(async trx => {
         // Insert the batch
         const batchResult = await trx
           .insert(this.batchesTableName)
           .values({
             ...validatedData,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .returning();
-        
+
         const batch = batchResult[0];
-        
+
         if (!batch) {
-          throw new ServiceError(
-            ErrorCode.DATABASE_ERROR,
-            'Failed to create inventory batch',
-            { data: validatedData }
-          );
+          throw new ServiceError(ErrorCode.DATABASE_ERROR, 'Failed to create inventory batch', {
+            data: validatedData,
+          });
         }
-        
+
         // Update inventory quantity
         await trx
           .update(this.tableName)
           .set({
             quantity: sql`${inventory.quantity} + ${validatedData.quantity}`,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(inventory.id, validatedData.inventoryId));
-        
+
         return batch;
       });
     } catch (error) {
       return this.handleError(error, 'Error creating inventory batch');
     }
   }
-  
+
   /**
    * Update an inventory batch
    */
-  async updateBatch(id: number, data: z.infer<typeof batchUpdateSchema>): Promise<InventoryBatch | null> {
+  async updateBatch(
+    id: number,
+    data: z.infer<typeof batchUpdateSchema>
+  ): Promise<InventoryBatch | null> {
     try {
       // Validate input data
       const validatedData = this.validateInput(data, batchUpdateSchema);
-      
+
       // Get the existing batch
-      const existingBatch = await this.executeQuery(
-        async (db) => {
-          return db
-            .select()
-            .from(this.batchesTableName)
-            .where(eq(this.batchesTableName.id, id))
-            .limit(1);
-        },
-        'inventoryBatch.getById'
-      );
-      
+      const existingBatch = await this.executeQuery(async db => {
+        return db
+          .select()
+          .from(this.batchesTableName)
+          .where(eq(this.batchesTableName.id, id))
+          .limit(1);
+      }, 'inventoryBatch.getById');
+
       if (!existingBatch.length) {
-        throw new ServiceError(
-          ErrorCode.NOT_FOUND,
-          `Inventory batch with ID ${id} not found`,
-          { batchId: id }
-        );
+        throw new ServiceError(ErrorCode.NOT_FOUND, `Inventory batch with ID ${id} not found`, {
+          batchId: id,
+        });
       }
-      
+
       const currentBatch = existingBatch[0];
-      
+
       // Handle quantity update specially
-      if (validatedData.quantity !== undefined && validatedData.quantity !== currentBatch.quantity) {
-        return await this.withTransaction(async (trx) => {
+      if (
+        validatedData.quantity !== undefined &&
+        validatedData.quantity !== currentBatch.quantity
+      ) {
+        return await this.withTransaction(async trx => {
           // Calculate quantity difference
           const quantityDiff = validatedData.quantity - currentBatch.quantity;
-          
+
           // Update the batch
           const batchResult = await trx
             .update(this.batchesTableName)
             .set({
               ...validatedData,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(this.batchesTableName.id, id))
             .returning();
-          
+
           const batch = batchResult[0];
-          
+
           if (!batch) {
             throw new ServiceError(
               ErrorCode.DATABASE_ERROR,
@@ -470,48 +460,45 @@ export class InventoryService extends BaseService<Inventory,
               { batchId: id, data: validatedData }
             );
           }
-          
+
           // Update inventory quantity
           await trx
             .update(this.tableName)
             .set({
               quantity: sql`${inventory.quantity} + ${quantityDiff}`,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(inventory.id, batch.inventoryId));
-          
+
           return batch;
         });
       } else {
         // Simple update without quantity change
-        const result = await this.executeQuery(
-          async (db) => {
-            return db
-              .update(this.batchesTableName)
-              .set({
-                ...validatedData,
-                updatedAt: new Date()
-              })
-              .where(eq(this.batchesTableName.id, id))
-              .returning();
-          },
-          'inventoryBatch.update'
-        );
-        
+        const result = await this.executeQuery(async db => {
+          return db
+            .update(this.batchesTableName)
+            .set({
+              ...validatedData,
+              updatedAt: new Date(),
+            })
+            .where(eq(this.batchesTableName.id, id))
+            .returning();
+        }, 'inventoryBatch.update');
+
         return result[0] || null;
       }
     } catch (error) {
       return this.handleError(error, `Error updating inventory batch with ID: ${id}`);
     }
   }
-  
+
   /**
    * Get all batches for an inventory item
    */
   async getBatchesByInventoryId(inventoryId: number): Promise<InventoryBatch[]> {
     try {
       const cacheKey = `inventory:${inventoryId}:batches`;
-      
+
       // Try to get from cache first if available
       if (this.cache) {
         const cached = await this.cache.get(cacheKey);
@@ -520,30 +507,27 @@ export class InventoryService extends BaseService<Inventory,
           return cached as InventoryBatch[];
         }
       }
-      
+
       // Fetch from database if not in cache
-      const batches = await this.executeQuery(
-        async (db) => {
-          return db
-            .select()
-            .from(this.batchesTableName)
-            .where(eq(this.batchesTableName.inventoryId, inventoryId))
-            .orderBy(this.batchesTableName.createdAt);
-        },
-        'inventoryBatch.getByInventoryId'
-      );
-      
+      const batches = await this.executeQuery(async db => {
+        return db
+          .select()
+          .from(this.batchesTableName)
+          .where(eq(this.batchesTableName.inventoryId, inventoryId))
+          .orderBy(this.batchesTableName.createdAt);
+      }, 'inventoryBatch.getByInventoryId');
+
       // Cache the result
       if (this.cache) {
         await this.cache.set(cacheKey, batches, this.CACHE_TTL.BATCH);
       }
-      
+
       return batches;
     } catch (error) {
       return this.handleError(error, `Error fetching batches for inventory ID: ${inventoryId}`);
     }
   }
-  
+
   /**
    * Update inventory quantity
    */
@@ -551,15 +535,15 @@ export class InventoryService extends BaseService<Inventory,
     try {
       // Validate input data
       const validatedData = this.validateInput(params, quantityUpdateSchema);
-      
-      return await this.withTransaction(async (trx) => {
+
+      return await this.withTransaction(async trx => {
         // Get current inventory
         const inventoryResult = await trx
           .select()
           .from(this.tableName)
           .where(eq(this.tableName.id, validatedData.inventoryId))
           .limit(1);
-        
+
         if (!inventoryResult.length) {
           throw new ServiceError(
             ErrorCode.NOT_FOUND,
@@ -567,10 +551,10 @@ export class InventoryService extends BaseService<Inventory,
             { inventoryId: validatedData.inventoryId }
           );
         }
-        
+
         const currentInventory = inventoryResult[0];
         let newQuantity: number;
-        
+
         // Calculate new quantity based on operation
         switch (validatedData.operation) {
           case 'add':
@@ -582,10 +566,10 @@ export class InventoryService extends BaseService<Inventory,
               throw new ServiceError(
                 ErrorCode.VALIDATION_ERROR,
                 'Cannot reduce inventory below zero',
-                { 
+                {
                   inventoryId: validatedData.inventoryId,
                   currentQuantity: currentInventory.quantity,
-                  requestedReduction: validatedData.quantity
+                  requestedReduction: validatedData.quantity,
                 }
               );
             }
@@ -594,33 +578,29 @@ export class InventoryService extends BaseService<Inventory,
             newQuantity = validatedData.quantity;
             break;
           default:
-            throw new ServiceError(
-              ErrorCode.VALIDATION_ERROR,
-              'Invalid operation',
-              { operation: validatedData.operation }
-            );
+            throw new ServiceError(ErrorCode.VALIDATION_ERROR, 'Invalid operation', {
+              operation: validatedData.operation,
+            });
         }
-        
+
         // Update inventory
         const updatedInventoryResult = await trx
           .update(this.tableName)
           .set({
             quantity: newQuantity,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(this.tableName.id, validatedData.inventoryId))
           .returning();
-        
+
         const updatedInventory = updatedInventoryResult[0];
-        
+
         if (!updatedInventory) {
-          throw new ServiceError(
-            ErrorCode.DATABASE_ERROR,
-            'Failed to update inventory quantity',
-            { inventoryId: validatedData.inventoryId }
-          );
+          throw new ServiceError(ErrorCode.DATABASE_ERROR, 'Failed to update inventory quantity', {
+            inventoryId: validatedData.inventoryId,
+          });
         }
-        
+
         // Update batch if specified
         if (validatedData.batchId) {
           // Get current batch
@@ -629,7 +609,7 @@ export class InventoryService extends BaseService<Inventory,
             .from(this.batchesTableName)
             .where(eq(this.batchesTableName.id, validatedData.batchId))
             .limit(1);
-          
+
           if (!batchResult.length) {
             throw new ServiceError(
               ErrorCode.NOT_FOUND,
@@ -637,10 +617,10 @@ export class InventoryService extends BaseService<Inventory,
               { batchId: validatedData.batchId }
             );
           }
-          
+
           const currentBatch = batchResult[0];
           let newBatchQuantity: number;
-          
+
           // Calculate new batch quantity based on operation
           switch (validatedData.operation) {
             case 'add':
@@ -652,10 +632,10 @@ export class InventoryService extends BaseService<Inventory,
                 throw new ServiceError(
                   ErrorCode.VALIDATION_ERROR,
                   'Cannot reduce batch below zero',
-                  { 
+                  {
                     batchId: validatedData.batchId,
                     currentQuantity: currentBatch.quantity,
-                    requestedReduction: validatedData.quantity
+                    requestedReduction: validatedData.quantity,
                   }
                 );
               }
@@ -664,17 +644,17 @@ export class InventoryService extends BaseService<Inventory,
               newBatchQuantity = validatedData.quantity;
               break;
           }
-          
+
           // Update batch
           await trx
             .update(this.batchesTableName)
             .set({
               quantity: newBatchQuantity,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(this.batchesTableName.id, validatedData.batchId));
         }
-        
+
         // Create audit log entry
         // This would be a separate table in a real implementation
         this.logger.info('Inventory quantity updated', {
@@ -687,9 +667,9 @@ export class InventoryService extends BaseService<Inventory,
           reason: validatedData.reason,
           reference: validatedData.reference,
           metadata: validatedData.metadata,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
-        
+
         // Invalidate cache
         if (this.cache) {
           await this.cache.del(`inventory:${validatedData.inventoryId}`);
@@ -700,14 +680,14 @@ export class InventoryService extends BaseService<Inventory,
           await this.cache.invalidatePattern(`inventory:list:*`);
           await this.cache.invalidatePattern(`inventory:low-stock:*`);
         }
-        
+
         return updatedInventory;
       });
     } catch (error) {
       return this.handleError(error, 'Error updating inventory quantity');
     }
   }
-  
+
   /**
    * Check product availability from supplier
    */
@@ -716,19 +696,19 @@ export class InventoryService extends BaseService<Inventory,
       const retryOptions: RetryOptions = {
         maxRetries: 3,
         baseDelayMs: 1000,
-        retryableErrors: [ErrorCode.TEMPORARY_UNAVAILABLE, ErrorCode.EXTERNAL_SERVICE_ERROR]
+        retryableErrors: [ErrorCode.TEMPORARY_UNAVAILABLE, ErrorCode.EXTERNAL_SERVICE_ERROR],
       };
-      
+
       return await this.withRetry(
         async () => this.supplierApi.checkAvailability(productId),
         retryOptions
       );
     } catch (error) {
-      this.logger.warn('Failed to check supplier availability, using fallback', { 
-        error, 
-        productId 
+      this.logger.warn('Failed to check supplier availability, using fallback', {
+        error,
+        productId,
       });
-      
+
       // Return fallback response
       return {
         available: false,
@@ -737,7 +717,7 @@ export class InventoryService extends BaseService<Inventory,
       };
     }
   }
-  
+
   /**
    * Place an order with supplier
    */
@@ -753,48 +733,44 @@ export class InventoryService extends BaseService<Inventory,
       return this.handleError(error, 'Error placing supplier order');
     }
   }
-  
+
   /**
    * Get order status from supplier
    */
-  async getSupplierOrderStatus(orderId: string): Promise<{ status: string; trackingNumber?: string }> {
+  async getSupplierOrderStatus(
+    orderId: string
+  ): Promise<{ status: string; trackingNumber?: string }> {
     try {
       return await this.supplierApi.getOrderStatus(orderId);
     } catch (error) {
       return this.handleError(error, 'Error getting supplier order status');
     }
   }
-  
+
   /**
    * Process expired batches
    */
   async processExpiredBatches(): Promise<number> {
     try {
       const now = new Date();
-      
+
       // Find expired batches
-      const expiredBatches = await this.executeQuery(
-        async (db) => {
-          return db
-            .select()
-            .from(this.batchesTableName)
-            .where(
-              and(
-                lte(this.batchesTableName.expiryDate, now),
-                gt(this.batchesTableName.quantity, 0)
-              )
-            );
-        },
-        'inventory.findExpiredBatches'
-      );
-      
+      const expiredBatches = await this.executeQuery(async db => {
+        return db
+          .select()
+          .from(this.batchesTableName)
+          .where(
+            and(lte(this.batchesTableName.expiryDate, now), gt(this.batchesTableName.quantity, 0))
+          );
+      }, 'inventory.findExpiredBatches');
+
       if (!expiredBatches.length) {
         return 0;
       }
-      
+
       // Process each expired batch
       let processedCount = 0;
-      
+
       for (const batch of expiredBatches) {
         try {
           await this.updateQuantity({
@@ -807,26 +783,26 @@ export class InventoryService extends BaseService<Inventory,
             metadata: {
               batchNumber: batch.batchNumber,
               expiryDate: batch.expiryDate,
-              processingDate: now
-            }
+              processingDate: now,
+            },
           });
-          
+
           processedCount++;
         } catch (error) {
-          this.logger.error('Failed to process expired batch', { 
-            error, 
+          this.logger.error('Failed to process expired batch', {
+            error,
             batchId: batch.id,
-            inventoryId: batch.inventoryId
+            inventoryId: batch.inventoryId,
           });
         }
       }
-      
+
       return processedCount;
     } catch (error) {
       return this.handleError(error, 'Error processing expired batches');
     }
   }
-  
+
   /**
    * Generate low stock report
    */
@@ -847,24 +823,26 @@ export class InventoryService extends BaseService<Inventory,
     try {
       // Get low stock items
       const lowStockItems = await this.getLowStockItems(storeId);
-      
+
       // Build report items with supplier availability
       const reportItems = await Promise.all(
         lowStockItems.map(async item => {
           // Check supplier availability for items below minimum quantity
           let supplierAvailability: SupplierAvailability | undefined;
-          
+
           if (item.quantity < item.minQuantity) {
             try {
-              supplierAvailability = await this.checkSupplierAvailability(item.product.id.toString());
+              supplierAvailability = await this.checkSupplierAvailability(
+                item.product.id.toString()
+              );
             } catch (error) {
               this.logger.warn('Failed to check supplier availability for product', {
                 error,
-                productId: item.product.id
+                productId: item.product.id,
               });
             }
           }
-          
+
           return {
             id: item.id,
             productId: item.product.id,
@@ -873,21 +851,21 @@ export class InventoryService extends BaseService<Inventory,
             currentQuantity: item.quantity,
             minQuantity: item.minQuantity,
             deficit: Math.max(0, item.minQuantity - item.quantity),
-            supplierAvailability
+            supplierAvailability,
           };
         })
       );
-      
+
       return {
         timestamp: new Date(),
         storeId,
-        items: reportItems
+        items: reportItems,
       };
     } catch (error) {
       return this.handleError(error, 'Error generating low stock report');
     }
   }
-  
+
   /**
    * Override default cache key for inventory
    */
@@ -895,7 +873,7 @@ export class InventoryService extends BaseService<Inventory,
     if (!this.cache) return null;
     return `inventory:${id}`;
   }
-  
+
   /**
    * Override default list cache invalidation
    */

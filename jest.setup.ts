@@ -1,8 +1,9 @@
 // jest.setup.ts
 // Global test setup for Jest
+import { TextEncoder, TextDecoder } from 'util';
+
 import { db as mockDbInstance } from './test/factories/db'; // Adjust path as necessary
 import { server } from './test/mocks/server'; // MSW server
-import { TextEncoder, TextDecoder } from 'util';
 
 // Assign TextEncoder and TextDecoder to global for tests if not already present
 if (typeof global.TextEncoder === 'undefined') {
@@ -11,7 +12,6 @@ if (typeof global.TextEncoder === 'undefined') {
 if (typeof global.TextDecoder === 'undefined') {
   (global as any).TextDecoder = TextDecoder;
 }
-
 
 // Mock the database connection for all tests
 jest.mock('@/server/db/connection', () => ({

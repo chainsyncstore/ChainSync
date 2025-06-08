@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Search, RefreshCw, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -15,20 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { useAuth } from '@/providers/auth-provider';
 import { formatDate, formatNumber } from '@/lib/utils';
-import { Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/providers/auth-provider';
 
 interface Product {
   id: number;
@@ -66,50 +61,54 @@ export function ExpiredItems() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all_categories');
   const [storeId, setStoreId] = useState<string>(
-    user?.role !== 'admin' && user?.storeId 
-      ? user.storeId.toString() 
-      : ''
+    user?.role !== 'admin' && user?.storeId ? user.storeId.toString() : ''
   );
-  
+
   // Fetch expired items data
-  const { data: expiredItems, isLoading: isLoadingExpired, refetch } = useQuery<ExpiredItem[]>({
-    queryKey: ['/api/inventory/expired', { 
-      storeId: storeId ? parseInt(storeId) : undefined,
-    }],
+  const {
+    data: expiredItems,
+    isLoading: isLoadingExpired,
+    refetch,
+  } = useQuery<ExpiredItem[]>({
+    queryKey: [
+      '/api/inventory/expired',
+      {
+        storeId: storeId ? parseInt(storeId) : undefined,
+      },
+    ],
   });
-  
+
   // Fetch all stores (for admin dropdown)
   const { data: storesData, isLoading: isLoadingStores } = useQuery<Store[]>({
     queryKey: ['/api/stores'],
     enabled: user?.role === 'admin',
   });
-  
+
   // Fetch all categories for filtering
   const { data: categoriesData, isLoading: isLoadingCategories } = useQuery<any[]>({
     queryKey: ['/api/products/categories'],
   });
-  
+
   // Filter data based on search term and category
-  const filteredItems = Array.isArray(expiredItems) 
+  const filteredItems = Array.isArray(expiredItems)
     ? expiredItems.filter((item: ExpiredItem) => {
-        const matchesSearch = 
+        const matchesSearch =
           item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.product.barcode && item.product.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.product.barcode &&
+            item.product.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (item.batchNumber && item.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        const matchesCategory = 
-          categoryFilter === 'all_categories' || 
+
+        const matchesCategory =
+          categoryFilter === 'all_categories' ||
           item.product.category.id.toString() === categoryFilter;
-        
+
         return matchesSearch && matchesCategory;
       })
     : [];
-  
+
   // Get unique categories from the data
-  const uniqueCategories = Array.isArray(categoriesData) 
-    ? categoriesData 
-    : [];
-  
+  const uniqueCategories = Array.isArray(categoriesData) ? categoriesData : [];
+
   // Loading state
   if (isLoadingExpired || isLoadingStores || isLoadingCategories) {
     return (
@@ -124,7 +123,7 @@ export function ExpiredItems() {
             <Skeleton className="h-10 w-full md:w-48" />
             {user?.role === 'admin' && <Skeleton className="h-10 w-full md:w-48" />}
           </div>
-          
+
           <div className="border rounded-md">
             <div className="border-b bg-muted/40 p-2">
               <div className="grid grid-cols-12 gap-2">
@@ -153,7 +152,7 @@ export function ExpiredItems() {
       </Card>
     );
   }
-  
+
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-2">
@@ -173,15 +172,12 @@ export function ExpiredItems() {
               placeholder="Search products..."
               className="pl-8"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           {/* Category filter */}
-          <Select
-            value={categoryFilter}
-            onValueChange={setCategoryFilter}
-          >
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
@@ -194,32 +190,30 @@ export function ExpiredItems() {
               ))}
             </SelectContent>
           </Select>
-          
+
           {/* Store selector (admin only) */}
           {user?.role === 'admin' && (
-            <Select
-              value={storeId}
-              onValueChange={setStoreId}
-            >
+            <Select value={storeId} onValueChange={setStoreId}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Select store" />
               </SelectTrigger>
               <SelectContent>
-                {Array.isArray(storesData) && storesData.map((store: Store) => (
-                  <SelectItem key={store.id} value={store.id.toString()}>
-                    {store.name}
-                  </SelectItem>
-                ))}
+                {Array.isArray(storesData) &&
+                  storesData.map((store: Store) => (
+                    <SelectItem key={store.id} value={store.id.toString()}>
+                      {store.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           )}
-          
+
           {/* Refresh button */}
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        
+
         {/* Expired items table */}
         <div className="border rounded-md">
           <Table>

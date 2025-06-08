@@ -7,16 +7,31 @@ import { Request, Response, NextFunction } from 'express';
 
 declare module 'multer' {
   function multer(options?: unknown): unknown;
-  
+
   namespace multer {
     function single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
-    function array(fieldname: string, maxCount?: number): (req: Request, res: Response, next: NextFunction) => void;
-    function fields(fields: Array<{ name: string; maxCount?: number }>): (req: Request, res: Response, next: NextFunction) => void;
+    function array(
+      fieldname: string,
+      maxCount?: number
+    ): (req: Request, res: Response, next: NextFunction) => void;
+    function fields(
+      fields: Array<{ name: string; maxCount?: number }>
+    ): (req: Request, res: Response, next: NextFunction) => void;
     function any(): (req: Request, res: Response, next: NextFunction) => void;
     function none(): (req: Request, res: Response, next: NextFunction) => void;
     function diskStorage(options: {
-      destination?: string | ((req: Request, file: unknown, cb: (error: Error | null, destination: string) => void) => void);
-      filename?: (req: Request, file: unknown, cb: (error: Error | null, filename: string) => void) => void;
+      destination?:
+        | string
+        | ((
+            req: Request,
+            file: unknown,
+            cb: (error: Error | null, destination: string) => void
+          ) => void);
+      filename?: (
+        req: Request,
+        file: unknown,
+        cb: (error: Error | null, filename: string) => void
+      ) => void;
     }): unknown;
     function memoryStorage(): unknown;
   }

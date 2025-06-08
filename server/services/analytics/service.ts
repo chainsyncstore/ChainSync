@@ -1,22 +1,25 @@
-import { BaseService } from '../base/service';
-import { AnalyticsConfig, AnalyticsServiceErrors, AnalyticsError } from '../../config/analytics';
-import { CacheService } from '../cache/cache';
-import { Redis } from 'ioredis';
 import { performance } from 'perf_hooks';
+
+import { schema } from '@shared/schema.js';
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { schema } from '@shared/schema';
 import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm';
+import { Redis } from 'ioredis';
+
+import { AnalyticsConfig, AnalyticsServiceErrors, AnalyticsError } from '../../config/analytics';
+import { BaseService } from '../base/service';
+import { CacheService } from '../cache/cache';
 
 export class AnalyticsService extends BaseService {
   private redis: Redis;
   private cache: CacheService;
   private config: AnalyticsConfig;
   private aggregationQueue: Array<any>;
+  private logger = this.logger || console;
 
   constructor(config: Partial<AnalyticsConfig> = {}) {
     super();
     this.config = { ...defaultAnalyticsConfig, ...config };
-    
+
     if (this.config.storage.type === 'redis') {
       this.redis = new Redis(this.config.storage.connection);
     }
@@ -56,13 +59,15 @@ export class AnalyticsService extends BaseService {
       // Process in batches
       for (let i = 0; i < this.aggregationQueue.length; i += this.config.aggregation.batchSize) {
         const batch = this.aggregationQueue.slice(i, i + this.config.aggregation.batchSize);
-        await Promise.all(batch.map(async (item: unknown) => {
-          try {
-            await this.processAggregation(item);
-          } catch (error: unknown) {
-            console.error('Failed to process aggregation:', error);
-          }
-        }));
+        await Promise.all(
+          batch.map(async (item: unknown) => {
+            try {
+              await this.processAggregation(item);
+            } catch (error: unknown) {
+              console.error('Failed to process aggregation:', error);
+            }
+          })
+        );
       }
 
       this.aggregationQueue = [];
@@ -102,7 +107,7 @@ export class AnalyticsService extends BaseService {
       const metrics = {
         totalAmount: data.amount,
         count: 1,
-        timestamp: data.timestamp
+        timestamp: data.timestamp,
       };
 
       // Store in Redis
@@ -124,7 +129,7 @@ export class AnalyticsService extends BaseService {
       const metrics = {
         totalUsers: 1,
         activeUsers: data.active ? 1 : 0,
-        timestamp: data.timestamp
+        timestamp: data.timestamp,
       };
 
       // Store in Redis
@@ -149,7 +154,7 @@ export class AnalyticsService extends BaseService {
         totalProducts: 1,
         inStock: data.inStock ? 1 : 0,
         outOfStock: !data.inStock ? 1 : 0,
-        timestamp: data.timestamp
+        timestamp: data.timestamp,
       };
 
       // Store in Redis
@@ -182,7 +187,7 @@ export class AnalyticsService extends BaseService {
         storeId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        interval
+        interval,
       });
 
       // Check cache
@@ -192,28 +197,25 @@ export class AnalyticsService extends BaseService {
       }
 
       // Query database
-      const metrics = await this.withRetry(
-        async () => {
-          const query = db
-            .select({
-              date: sql<string>`DATE(${schema.transactions.createdAt})`,
-              totalSales: sql<number>`SUM(${schema.transactions.amount})`,
-              totalTransactions: sql<number>`COUNT(*)`,
-              averageTransaction: sql<number>`AVG(${schema.transactions.amount})`
-            })
-            .from(schema.transactions)
-            .where(
-              and(
-                eq(schema.transactions.storeId, storeId),
-                gte(schema.transactions.createdAt, startDate),
-                lte(schema.transactions.createdAt, endDate)
-              )
-            );
+      const metrics = await this.withRetry(async () => {
+        const query = db
+          .select({
+            date: sql<string>`DATE(${schema.transactions.createdAt})`,
+            totalSales: sql<number>`SUM(${schema.transactions.amount})`,
+            totalTransactions: sql<number>`COUNT(*)`,
+            averageTransaction: sql<number>`AVG(${schema.transactions.amount})`,
+          })
+          .from(schema.transactions)
+          .where(
+            and(
+              eq(schema.transactions.storeId, storeId),
+              gte(schema.transactions.createdAt, startDate),
+              lte(schema.transactions.createdAt, endDate)
+            )
+          );
 
-          return query;
-        },
-        'Getting store metrics'
-      );
+        return query;
+      }, 'Getting store metrics');
 
       // Cache results
       await this.cache.set(cacheKey, metrics, this.config.cache.ttl);
@@ -239,7 +241,7 @@ export class AnalyticsService extends BaseService {
         storeId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        interval
+        interval,
       });
 
       // Check cache
@@ -249,30 +251,27 @@ export class AnalyticsService extends BaseService {
       }
 
       // Query database
-      const metrics = await this.withRetry(
-        async () => {
-          const query = db
-            .select({
-              date: sql<string>`DATE(${schema.users.createdAt})`,
-              totalUsers: sql<number>`COUNT(*)`,
-              activeUsers: sql<number>`COUNT(*) filter (where ${schema.users.status} = 'active')`,
-              averageTransactions: sql<number>`AVG(
+      const metrics = await this.withRetry(async () => {
+        const query = db
+          .select({
+            date: sql<string>`DATE(${schema.users.createdAt})`,
+            totalUsers: sql<number>`COUNT(*)`,
+            activeUsers: sql<number>`COUNT(*) filter (where ${schema.users.status} = 'active')`,
+            averageTransactions: sql<number>`AVG(
                 (SELECT COUNT(*) FROM ${schema.transactions} WHERE ${schema.transactions.userId} = ${schema.users.id})
-              )`
-            })
-            .from(schema.users)
-            .where(
-              and(
-                eq(schema.users.storeId, storeId),
-                gte(schema.users.createdAt, startDate),
-                lte(schema.users.createdAt, endDate)
-              )
-            );
+              )`,
+          })
+          .from(schema.users)
+          .where(
+            and(
+              eq(schema.users.storeId, storeId),
+              gte(schema.users.createdAt, startDate),
+              lte(schema.users.createdAt, endDate)
+            )
+          );
 
-          return query;
-        },
-        'Getting user metrics'
-      );
+        return query;
+      }, 'Getting user metrics');
 
       // Cache results
       await this.cache.set(cacheKey, metrics, this.config.cache.ttl);
@@ -298,7 +297,7 @@ export class AnalyticsService extends BaseService {
         storeId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        interval
+        interval,
       });
 
       // Check cache
@@ -308,29 +307,26 @@ export class AnalyticsService extends BaseService {
       }
 
       // Query database
-      const metrics = await this.withRetry(
-        async () => {
-          const query = db
-            .select({
-              date: sql<string>`DATE(${schema.products.createdAt})`,
-              totalProducts: sql<number>`COUNT(*)`,
-              inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.stockQuantity} > 0)`,
-              outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.stockQuantity} = 0)`,
-              averagePrice: sql<number>`AVG(${schema.products.price})`
-            })
-            .from(schema.products)
-            .where(
-              and(
-                eq(schema.products.storeId, storeId),
-                gte(schema.products.createdAt, startDate),
-                lte(schema.products.createdAt, endDate)
-              )
-            );
+      const metrics = await this.withRetry(async () => {
+        const query = db
+          .select({
+            date: sql<string>`DATE(${schema.products.createdAt})`,
+            totalProducts: sql<number>`COUNT(*)`,
+            inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.stockQuantity} > 0)`,
+            outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.stockQuantity} = 0)`,
+            averagePrice: sql<number>`AVG(${schema.products.price})`,
+          })
+          .from(schema.products)
+          .where(
+            and(
+              eq(schema.products.storeId, storeId),
+              gte(schema.products.createdAt, startDate),
+              lte(schema.products.createdAt, endDate)
+            )
+          );
 
-          return query;
-        },
-        'Getting product metrics'
-      );
+        return query;
+      }, 'Getting product metrics');
 
       // Cache results
       await this.cache.set(cacheKey, metrics, this.config.cache.ttl);
@@ -356,7 +352,7 @@ export class AnalyticsService extends BaseService {
         storeId,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        interval
+        interval,
       });
 
       // Check cache
@@ -366,29 +362,29 @@ export class AnalyticsService extends BaseService {
       }
 
       // Query database
-      const metrics = await this.withRetry(
-        async () => {
-          const query = db
-            .select({
-              date: sql<string>`DATE(${schema.loyaltyTransactions.createdAt})`,
-              totalPoints: sql<number>`SUM(${schema.loyaltyTransactions.pointsEarned})`,
-              totalRedemptions: sql<number>`SUM(${schema.loyaltyTransactions.pointsRedeemed})`,
-              activeMembers: sql<number>`COUNT(DISTINCT ${schema.loyaltyMembers.id})`
-            })
-            .from(schema.loyaltyTransactions)
-            .leftJoin(schema.loyaltyMembers, eq(schema.loyaltyMembers.id, schema.loyaltyTransactions.memberId))
-            .where(
-              and(
-                eq(schema.loyaltyMembers.storeId, storeId),
-                gte(schema.loyaltyTransactions.createdAt, startDate),
-                lte(schema.loyaltyTransactions.createdAt, endDate)
-              )
-            );
+      const metrics = await this.withRetry(async () => {
+        const query = db
+          .select({
+            date: sql<string>`DATE(${schema.loyaltyTransactions.createdAt})`,
+            totalPoints: sql<number>`SUM(${schema.loyaltyTransactions.pointsEarned})`,
+            totalRedemptions: sql<number>`SUM(${schema.loyaltyTransactions.pointsRedeemed})`,
+            activeMembers: sql<number>`COUNT(DISTINCT ${schema.loyaltyMembers.id})`,
+          })
+          .from(schema.loyaltyTransactions)
+          .leftJoin(
+            schema.loyaltyMembers,
+            eq(schema.loyaltyMembers.id, schema.loyaltyTransactions.memberId)
+          )
+          .where(
+            and(
+              eq(schema.loyaltyMembers.storeId, storeId),
+              gte(schema.loyaltyTransactions.createdAt, startDate),
+              lte(schema.loyaltyTransactions.createdAt, endDate)
+            )
+          );
 
-          return query;
-        },
-        'Getting loyalty metrics'
-      );
+        return query;
+      }, 'Getting loyalty metrics');
 
       // Cache results
       await this.cache.set(cacheKey, metrics, this.config.cache.ttl);
@@ -399,10 +395,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  async addAggregationToQueue(
-    type: string,
-    data: unknown
-  ): Promise<void> {
+  async addAggregationToQueue(type: string, data: unknown): Promise<void> {
     try {
       this.aggregationQueue.push({ type, data });
       if (this.aggregationQueue.length >= this.config.aggregation.batchSize) {
@@ -427,5 +420,9 @@ export class AnalyticsService extends BaseService {
     } catch (error: unknown) {
       throw AnalyticsServiceErrors.CACHE_ERROR;
     }
+  }
+
+  private handleError(error: unknown, context: string): void {
+    this.logger.error({ error, context }, `Error in analytics processing: ${context}`);
   }
 }

@@ -1,22 +1,22 @@
 // This file contains type definitions to handle circular dependencies
 
 // Import types without causing circular dependencies
-type User = import('./users').User;
-type PasswordResetToken = import('./users').PasswordResetToken;
-type Store = import('./stores').Store;
-type UserRole = import('./users').UserRole;
-type Product = import('./products').Product;
-type Category = import('./products').Category;
-type Inventory = import('./inventory').Inventory;
-type InventoryBatch = import('./inventory').InventoryBatch;
-type Supplier = import('./suppliers').Supplier;
+type User = import('./users.js').User;
+type PasswordResetToken = import('./users.js').PasswordResetToken;
+type Store = import('./stores.js').Store;
+type UserRole = import('./users.js').UserRole;
+type Product = import('./products.js').Product;
+type Category = import('./products.js').Category;
+type Inventory = import('./inventory.js').Inventory;
+type InventoryBatch = import('./inventory.js').InventoryBatch;
+type Supplier = import('./suppliers.js').Supplier;
 
 // Global type augmentations
 declare global {
   namespace NodeJS {
     interface Global {
       stores: unknown; // Will be populated at runtime
-      users: unknown;   // Will be populated at runtime
+      users: unknown; // Will be populated at runtime
       products: unknown; // Will be populated at runtime
       categories: unknown; // Will be populated at runtime
       inventory: unknown; // Will be populated at runtime
@@ -45,16 +45,16 @@ if (!globalRef.__chainSyncGlobals) {
 export async function initializeGlobals() {
   if (!globalRef.__chainSyncGlobals.stores) {
     try {
-      const { stores } = await import('./stores');
+      const { stores } = await import('./stores.js');
       globalRef.__chainSyncGlobals.stores = stores;
     } catch (error: unknown) {
       console.warn('Failed to initialize stores:', error);
     }
   }
-  
+
   if (!globalRef.__chainSyncGlobals.users) {
     try {
-      const { users } = await import('./users');
+      const { users } = await import('./users.js');
       globalRef.__chainSyncGlobals.users = users;
     } catch (error: unknown) {
       console.warn('Failed to initialize users:', error);
@@ -63,7 +63,7 @@ export async function initializeGlobals() {
 
   if (!globalRef.__chainSyncGlobals.products) {
     try {
-      const { products, categories } = await import('./products'); // Assuming categories is in products.ts
+      const { products, categories } = await import('./products.js'); // Assuming categories is in products.ts
       globalRef.__chainSyncGlobals.products = products;
       globalRef.__chainSyncGlobals.categories = categories;
     } catch (error: unknown) {
@@ -73,7 +73,7 @@ export async function initializeGlobals() {
 
   if (!globalRef.__chainSyncGlobals.inventory) {
     try {
-      const { inventory, inventoryBatches } = await import('./inventory'); // Assuming inventoryBatches is in inventory.ts
+      const { inventory, inventoryBatches } = await import('./inventory.js'); // Assuming inventoryBatches is in inventory.ts
       globalRef.__chainSyncGlobals.inventory = inventory;
       globalRef.__chainSyncGlobals.inventoryBatches = inventoryBatches;
     } catch (error: unknown) {
@@ -83,7 +83,7 @@ export async function initializeGlobals() {
 
   if (!globalRef.__chainSyncGlobals.suppliers) {
     try {
-      const { suppliers } = await import('./suppliers');
+      const { suppliers } = await import('./suppliers.js');
       globalRef.__chainSyncGlobals.suppliers = suppliers;
     } catch (error: unknown) {
       console.warn('Failed to initialize suppliers:', error);
@@ -127,13 +127,12 @@ export interface SupplierWithRelations extends Supplier {
   // inventoryBatches?: InventoryBatch[]; // If supplier links to inventory batches
 }
 
-
 // Export enums and other shared types
 export type { UserRole };
 
 // Export schema types
-export type * from './users';
-export type * from './stores';
-export type * from './products';
-export type * from './inventory';
-export type * from './suppliers';
+export type * from './users.js';
+export type * from './stores.js';
+export type * from './products.js';
+export type * from './inventory.js';
+export type * from './suppliers.js';

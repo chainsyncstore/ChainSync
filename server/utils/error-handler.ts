@@ -1,7 +1,11 @@
-import { AppError, ErrorCode, ErrorCategory, RetryableError } from '@shared/types/errors';
-import { ImportExportErrorCode, ImportExportErrorCodes } from '@shared/types/import-export-errors';
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
+
+import { AppError, ErrorCode, ErrorCategory, RetryableError } from '@shared/types/errors.js';
+import {
+  ImportExportErrorCode,
+  ImportExportErrorCodes,
+} from '@shared/types/import-export-errors.js';
 
 export interface ErrorContext {
   operation: string;
@@ -55,7 +59,8 @@ export class ErrorHandler extends EventEmitter {
   }
 
   private calculateDelay(attempt: number): number {
-    const delay = this.config.retry.initialDelay * Math.pow(this.config.retry.backoffFactor, attempt - 1);
+    const delay =
+      this.config.retry.initialDelay * Math.pow(this.config.retry.backoffFactor, attempt - 1);
     return Math.min(delay, this.config.retry.maxDelay);
   }
 
@@ -75,7 +80,11 @@ export class ErrorHandler extends EventEmitter {
         this.handleError(error, { ...context, attempt });
 
         if (attempt === retryConfig.maxAttempts) {
-          throw error instanceof AppError ? error : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, { error: error instanceof Error ? error.message : 'Unknown error' });
+          throw error instanceof AppError
+            ? error
+            : new AppError('Unexpected error', ErrorCategory.SYSTEM, ErrorCode.UNKNOWN_ERROR, {
+                error: error instanceof Error ? error.message : 'Unknown error',
+              });
         }
 
         const delay = this.calculateDelay(attempt);
@@ -88,7 +97,13 @@ export class ErrorHandler extends EventEmitter {
       errorObj = lastError;
     } else if (typeof lastError === 'string') {
       errorObj = new Error(lastError);
-    } else if (lastError && typeof lastError === 'object' && lastError !== null && 'message' in lastError && typeof (lastError as any).message === 'string') {
+    } else if (
+      lastError &&
+      typeof lastError === 'object' &&
+      lastError !== null &&
+      'message' in lastError &&
+      typeof (lastError as any).message === 'string'
+    ) {
       errorObj = new Error(String((lastError as any).message));
     }
 
@@ -101,14 +116,17 @@ export class ErrorHandler extends EventEmitter {
 
   private handleError(error: unknown, context: ErrorContext): void {
     const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
-    
+
     // If we have an object with a message, use that
     if (error && typeof error === 'object' && 'message' in error) {
       errorObj.message = (error as any).message;
     }
 
     // Ensure we have a proper Error object
-    const errorInstance: Error = errorObj instanceof Error ? errorObj : new Error(String((errorObj as any).message || 'Unknown error'));
+    const errorInstance: Error =
+      errorObj instanceof Error
+        ? errorObj
+        : new Error(String((errorObj as any).message || 'Unknown error'));
 
     const enhancedError = this.enrichError(errorInstance, context);
 
@@ -158,7 +176,7 @@ export class ErrorHandler extends EventEmitter {
         userId: context.userId,
         requestId: context.requestId,
         attempt: context.attempt,
-        ...(context.metadata as Record<string, unknown> || {})
+        ...((context.metadata as Record<string, unknown>) || {}),
       },
       400,
       false,
@@ -185,7 +203,7 @@ export class ErrorHandler extends EventEmitter {
       message: error.message,
       operation: context.operation,
       timestamp: context.timestamp,
-      metadata: context.metadata
+      metadata: context.metadata,
     });
   }
 
@@ -224,7 +242,7 @@ export class ErrorHandler extends EventEmitter {
   }
 
   static isRetryable(error: Error): boolean {
-    return error instanceof AppError && !!(error as AppError).retryable;
+    return error instanceof AppError && !!error.retryable;
   }
 
   static getRetryDelay(error: Error): number {

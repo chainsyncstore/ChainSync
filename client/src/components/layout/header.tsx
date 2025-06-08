@@ -1,20 +1,9 @@
+import { Menu, Search, LogOut, User as UserIcon, Store, Settings } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link } from 'wouter';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/providers/auth-provider';
-import { User } from '@/providers/auth-provider';
-import { getInitials } from '@/lib/utils';
-import { 
-  Menu, 
-  Search, 
-  LogOut, 
-  User as UserIcon,
-  Store,
-  Settings
-} from 'lucide-react';
-import { MessagePopover } from '@/components/ui/message-popover';
-import { NotificationPopover } from '@/components/ui/notification-popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { MessagePopover } from '@/components/ui/message-popover';
+import { NotificationPopover } from '@/components/ui/notification-popover';
+import { getInitials } from '@/lib/utils';
+import { useAuth, User } from '@/providers/auth-provider';
 
 interface HeaderProps {
   user: User;
@@ -35,13 +28,13 @@ interface HeaderProps {
 export function Header({ user, onMenuClick, isSidebarOpen }: HeaderProps) {
   const { logout } = useAuth();
   const [searchValue, setSearchValue] = useState('');
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle search logic here
     console.log('Searching for:', searchValue);
   };
-  
+
   const handleLogout = async () => {
     await logout();
   };
@@ -50,15 +43,15 @@ export function Header({ user, onMenuClick, isSidebarOpen }: HeaderProps) {
     <header className="bg-white border-b border-neutral-200 shadow-sm">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onMenuClick} 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuClick}
             className="md:hidden text-neutral-500 mr-2"
           >
             <Menu className="h-6 w-6" />
           </Button>
-          
+
           {user.role !== 'cashier' && (
             <form onSubmit={handleSearch} className="hidden md:block relative ml-4">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-neutral-400" />
@@ -66,19 +59,17 @@ export function Header({ user, onMenuClick, isSidebarOpen }: HeaderProps) {
                 type="search"
                 placeholder="Search..."
                 value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
+                onChange={e => setSearchValue(e.target.value)}
                 className="pl-9 pr-4 py-2 w-64 rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </form>
           )}
         </div>
-        
+
         <div className="flex items-center">
           {/* AI Assistant Button */}
-          {user.role !== 'cashier' && (
-            <MessagePopover />
-          )}
-          
+          {user.role !== 'cashier' && <MessagePopover />}
+
           {/* Notifications */}
           <NotificationPopover />
 

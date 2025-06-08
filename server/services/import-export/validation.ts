@@ -1,8 +1,12 @@
-import { AppError, ErrorCategory } from '@shared/types/errors';
+import { AppError, ErrorCategory } from '@shared/types/errors.js';
+
 import { ValidationOptions } from './types';
 
 export interface ValidationService {
-  validate(data: unknown[], options?: ValidationOptions): Promise<{
+  validate(
+    data: unknown[],
+    options?: ValidationOptions
+  ): Promise<{
     validCount: number;
     invalidCount: number;
     validRecords: unknown[];
@@ -11,7 +15,10 @@ export interface ValidationService {
 }
 
 export class ValidationService implements ValidationService {
-  async validate(data: unknown[], options?: ValidationOptions): Promise<{
+  async validate(
+    data: unknown[],
+    options?: ValidationOptions
+  ): Promise<{
     validCount: number;
     invalidCount: number;
     validRecords: unknown[];
@@ -25,7 +32,7 @@ export class ValidationService implements ValidationService {
       if (!Array.isArray(data)) {
         throw new AppError({
           category: ErrorCategory.IMPORT_EXPORT,
-          message: 'Data must be an array'
+          message: 'Data must be an array',
         });
       }
 
@@ -33,7 +40,7 @@ export class ValidationService implements ValidationService {
         if (typeof record !== 'object' || record === null) {
           invalidRecords.push({
             record,
-            errors: ['Invalid record format']
+            errors: ['Invalid record format'],
           });
           continue;
         }
@@ -62,7 +69,7 @@ export class ValidationService implements ValidationService {
         } else {
           invalidRecords.push({
             record,
-            errors: validationErrors
+            errors: validationErrors,
           });
         }
       }
@@ -71,12 +78,12 @@ export class ValidationService implements ValidationService {
         validCount: validRecords.length,
         invalidCount: invalidRecords.length,
         validRecords,
-        invalidRecords
+        invalidRecords,
       };
     } catch (error: unknown) {
       throw new AppError({
         category: ErrorCategory.IMPORT_EXPORT,
-        message: error instanceof Error ? error.message : 'Validation failed'
+        message: error instanceof Error ? error.message : 'Validation failed',
       });
     }
   }

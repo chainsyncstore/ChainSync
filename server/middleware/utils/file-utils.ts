@@ -1,50 +1,51 @@
 // Removed promisify and fileTypeFromBuffer as they are not used.
-import sanitize from 'sanitize-filename';
 import crypto from 'crypto';
 
+import sanitize from 'sanitize-filename';
+
 export const FileUtils = {
-    VALID_FILENAME_REGEX: /^[a-zA-Z0-9._-]+$/,
+  VALID_FILENAME_REGEX: /^[a-zA-Z0-9._-]+$/,
 
-    sanitizeFilename: (filename: string): string => {
-        return sanitize(filename);
-    },
+  sanitizeFilename: (filename: string): string => {
+    return sanitize(filename);
+  },
 
-    validateFilename: (filename: string): boolean => {
-        return FileUtils.VALID_FILENAME_REGEX.test(filename);
-    },
+  validateFilename: (filename: string): boolean => {
+    return FileUtils.VALID_FILENAME_REGEX.test(filename);
+  },
 
-    validateFileExtension: (mimeType: string): boolean => {
-        const allowedMimeTypes = [
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-powerpoint',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'text/plain',
-            'application/json',
-            'application/xml',
-            'application/zip',
-            'application/x-rar-compressed',
-            'application/x-7z-compressed'
-        ];
+  validateFileExtension: (mimeType: string): boolean => {
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'text/plain',
+      'application/json',
+      'application/xml',
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
+    ];
 
-        return allowedMimeTypes.includes(mimeType);
-    },
+    return allowedMimeTypes.includes(mimeType);
+  },
 
-    calculateFileSize: (buffer: Buffer): number => {
-        return buffer.byteLength;
-    },
+  calculateFileSize: (buffer: Buffer): number => {
+    return buffer.byteLength;
+  },
 
-    calculateFileHash: async (buffer: Buffer): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const hash = crypto.createHash('sha256');
-            hash.update(buffer);
-            resolve(hash.digest('hex'));
-        });
-    }
+  calculateFileHash: async (buffer: Buffer): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const hash = crypto.createHash('sha256');
+      hash.update(buffer);
+      resolve(hash.digest('hex'));
+    });
+  },
 };

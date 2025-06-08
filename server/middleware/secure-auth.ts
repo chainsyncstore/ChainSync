@@ -1,17 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
-import { getLogger } from '../../src/logging';
-import { UnifiedAuthService } from '../services/auth/unified-auth-service';
+import Redis from 'ioredis';
+
+import { db } from '../../db';
 import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors';
+import { getRedisClient } from '../../src/cache/redis';
+import { getLogger } from '../../src/logging';
+import { UnifiedAuthService, JWTPayload } from '../services/auth/unified-auth-service';
 import { UserPayload } from '../types/user';
-import { JWTPayload } from '../services/auth/unified-auth-service';
 
 // Initialize logger
 const logger = {
   info: console.info,
   warn: console.warn,
   error: console.error,
-  debug: console.debug
+  debug: console.debug,
 };
 
 // Attempt to use the getLogger if available
@@ -25,9 +28,6 @@ try {
 }
 
 // Import required dependencies
-import { db } from '../../db';
-import { getRedisClient } from '../../src/cache/redis';
-import Redis from 'ioredis';
 
 // Create singleton instance of auth service with required dependencies
 let redis;
@@ -43,7 +43,7 @@ try {
       del: async () => 1,
       expire: async () => 1,
       scan: async () => ['0', []],
-      quit: async () => 'OK'
+      quit: async () => 'OK',
     } as unknown as Redis;
   }
 } catch (e: unknown) {
@@ -55,14 +55,14 @@ try {
     del: async () => 1,
     expire: async () => 1,
     scan: async () => ['0', []],
-    quit: async () => 'OK'
+    quit: async () => 'OK',
   } as unknown as Redis;
 }
 
 const authService = new UnifiedAuthService(
-  db, 
-  redis, 
-  process.env.JWT_SECRET, 
+  db,
+  redis,
+  process.env.JWT_SECRET,
   process.env.JWT_REFRESH_SECRET
 );
 
@@ -73,12 +73,12 @@ export const authRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: Request, res: Response) => {
-    logger.warn('Rate limit exceeded', { 
-      ip: req.ip, 
+    logger.warn('Rate limit exceeded', {
+      ip: req.ip,
       path: req.path,
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers['user-agent'],
     });
-    
+
     const error = new AppError( // Constructor order: message, category, code, details, statusCode
       'Too many authentication attempts, please try again later',
       ErrorCategory.AUTHENTICATION,
@@ -86,16 +86,16 @@ export const authRateLimiter = rateLimit({
       { retryAfter: '15 minutes' },
       429
     );
-    
+
     res.status(429).json({
       success: false,
       error: {
         code: error.code,
         message: error.message,
-        retryAfter: '15 minutes'
-      }
+        retryAfter: '15 minutes',
+      },
     });
-  }
+  },
 });
 
 /**
@@ -105,24 +105,24 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
   try {
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next();
     }
-    
+
     const token = authHeader.split(' ')[1];
-    
+
     if (!token) {
       return next();
     }
-    
+
     // Validate token
     const payload = await authService.validateAccessToken(token);
-    
+
     if (!payload) {
       return next();
     }
-    
+
     // Set user data on request using centralized UserPayload interface
     req.user = {
       id: payload.userId,
@@ -131,9 +131,9 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
       name: payload.email || 'Unknown User', // name is optional in UserPayload
       email: payload.email, // email is optional in UserPayload
       permissions: payload.permissions,
-      sessionId: payload.sessionId
+      sessionId: payload.sessionId,
     } as UserPayload; // Cast to UserPayload
-    
+
     next();
   } catch (error: unknown) {
     logger.error('Authentication error', { error });
@@ -150,11 +150,11 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
       success: false,
       error: {
         code: ErrorCode.AUTHENTICATION,
-        message: 'Authentication required'
-      }
+        message: 'Authentication required',
+      },
     });
   }
-  
+
   next();
 };
 
@@ -168,22 +168,22 @@ export const requireRole = (roles: string[]) => {
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: 'Authentication required'
-        }
+          message: 'Authentication required',
+        },
       });
     }
-    
+
     // Create a partial JWT payload with the necessary fields for role checking
     if (!authService.hasRole(req.user.role, roles)) {
       return res.status(403).json({
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: 'Insufficient permissions'
-        }
+          message: 'Insufficient permissions',
+        },
       });
     }
-    
+
     next();
   };
 };
@@ -198,22 +198,26 @@ export const requirePermission = (permission: string) => {
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: 'Authentication required'
-        }
+          message: 'Authentication required',
+        },
       });
     }
-    
+
     // Check permission directly
-    if (!(req.user as UserPayload).permissions?.includes(permission) && (req.user as UserPayload).role !== 'admin') { // Cast req.user
+    if (
+      !(req.user as UserPayload).permissions?.includes(permission) &&
+      (req.user as UserPayload).role !== 'admin'
+    ) {
+      // Cast req.user
       return res.status(403).json({
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: `Required permission: ${permission}`
-        }
+          message: `Required permission: ${permission}`,
+        },
       });
     }
-    
+
     next();
   };
 };
@@ -229,41 +233,41 @@ export const requireStoreAccess = (storeIdParam = 'storeId') => {
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: 'Authentication required'
-        }
+          message: 'Authentication required',
+        },
       });
     }
-    
+
     // Admin users can access any store
-    if ((req.user as UserPayload).role === 'admin') { // Cast req.user
+    if ((req.user as UserPayload).role === 'admin') {
+      // Cast req.user
       return next();
     }
-    
+
     // Get store ID from request parameters, query, or body
-    const requestStoreId = 
-      req.params[storeIdParam] || 
-      req.query[storeIdParam] || 
-      (req.body && req.body[storeIdParam]);
-    
+    const requestStoreId =
+      req.params[storeIdParam] || req.query[storeIdParam] || (req.body && req.body[storeIdParam]);
+
     // Convert to number for comparison
     const storeIdToCheck = requestStoreId ? Number(requestStoreId) : undefined;
-    
+
     // If no store ID is specified in the request, continue
     if (!storeIdToCheck) {
       return next();
     }
-    
+
     // Check if user has access to the requested store
-    if ((req.user as UserPayload).storeId && (req.user as UserPayload).storeId !== storeIdToCheck) { // Cast req.user
+    if ((req.user as UserPayload).storeId && (req.user as UserPayload).storeId !== storeIdToCheck) {
+      // Cast req.user
       return res.status(403).json({
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: 'You do not have access to this store'
-        }
+          message: 'You do not have access to this store',
+        },
       });
     }
-    
+
     next();
   };
 };
@@ -272,34 +276,34 @@ export const requireStoreAccess = (storeIdParam = 'storeId') => {
 export const handleTokenRefresh = async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
-    
+
     if (!refreshToken) {
       return res.status(400).json({
         success: false,
         error: {
           code: ErrorCode.BAD_REQUEST,
-          message: 'Refresh token is required'
-        }
+          message: 'Refresh token is required',
+        },
       });
     }
-    
+
     const result = await authService.refreshAccessToken(refreshToken);
-    
+
     if (!result) {
       return res.status(401).json({
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: 'Invalid or expired refresh token'
-        }
+          message: 'Invalid or expired refresh token',
+        },
       });
     }
-    
+
     res.json({
       success: true,
       data: {
-        accessToken: result.accessToken
-      }
+        accessToken: result.accessToken,
+      },
     });
   } catch (error: unknown) {
     logger.error('Error refreshing token', { error });
@@ -307,8 +311,8 @@ export const handleTokenRefresh = async (req: Request, res: Response) => {
       success: false,
       error: {
         code: ErrorCode.INTERNAL_SERVER_ERROR,
-        message: 'Failed to refresh token'
-      }
+        message: 'Failed to refresh token',
+      },
     });
   }
 };
@@ -321,29 +325,29 @@ export const handleLogout = async (req: Request, res: Response) => {
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: 'Authentication required'
-        }
+          message: 'Authentication required',
+        },
       });
     }
-    
+
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(400).json({
         success: false,
         error: {
           code: ErrorCode.BAD_REQUEST,
-          message: 'Invalid token format'
-        }
+          message: 'Invalid token format',
+        },
       });
     }
-    
+
     const token = authHeader.split(' ')[1];
-    
+
     try {
       // Validate and decode the token to get the session ID
       const payload = await authService.validateAccessToken(token);
-      
+
       if (payload && payload.sessionId) {
         // Invalidate the session
         await authService.logout(payload.sessionId);
@@ -352,10 +356,10 @@ export const handleLogout = async (req: Request, res: Response) => {
       // Even if token validation fails, we consider the user logged out
       logger.warn('Error during logout token validation', { error });
     }
-    
+
     res.json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Logged out successfully',
     });
   } catch (error: unknown) {
     logger.error('Error during logout', { error });
@@ -363,8 +367,8 @@ export const handleLogout = async (req: Request, res: Response) => {
       success: false,
       error: {
         code: ErrorCode.INTERNAL_SERVER_ERROR,
-        message: 'Failed to process logout'
-      }
+        message: 'Failed to process logout',
+      },
     });
   }
 };
@@ -377,16 +381,16 @@ export const handleLogoutAll = async (req: Request, res: Response) => {
         success: false,
         error: {
           code: ErrorCode.AUTHENTICATION,
-          message: 'Authentication required'
-        }
+          message: 'Authentication required',
+        },
       });
     }
-    
+
     await authService.logoutAllSessions((req.user as UserPayload).id.toString()); // Cast req.user
-    
+
     res.json({
       success: true,
-      message: 'Logged out of all sessions successfully'
+      message: 'Logged out of all sessions successfully',
     });
   } catch (error: unknown) {
     logger.error('Error during logout all sessions', { error });
@@ -394,8 +398,8 @@ export const handleLogoutAll = async (req: Request, res: Response) => {
       success: false,
       error: {
         code: ErrorCode.INTERNAL_SERVER_ERROR,
-        message: 'Failed to process logout for all sessions'
-      }
+        message: 'Failed to process logout for all sessions',
+      },
     });
   }
 };

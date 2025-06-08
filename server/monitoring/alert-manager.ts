@@ -1,6 +1,8 @@
-import { getLogger } from '../../src/logging';
-import axios from 'axios';
 import { EventEmitter } from 'events';
+
+import axios from 'axios';
+
+import { getLogger } from '../../src/logging';
 
 const logger = getLogger().child({ component: 'alert-manager' });
 
@@ -11,7 +13,7 @@ export enum AlertSeverity {
   INFO = 'info',
   WARNING = 'warning',
   ERROR = 'error',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 /**
@@ -22,7 +24,7 @@ export enum AlertChannel {
   SLACK = 'slack',
   WEBHOOK = 'webhook',
   SMS = 'sms',
-  LOG = 'log'
+  LOG = 'log',
 }
 
 /**
@@ -67,7 +69,7 @@ export interface AlertNotificationConfig {
  */
 const DEFAULT_ALERT_CONFIG: AlertNotificationConfig = {
   channels: [AlertChannel.LOG],
-  minSeverity: AlertSeverity.WARNING
+  minSeverity: AlertSeverity.WARNING,
 };
 
 /**
@@ -77,7 +79,7 @@ const SEVERITY_LEVELS = {
   [AlertSeverity.INFO]: 0,
   [AlertSeverity.WARNING]: 1,
   [AlertSeverity.ERROR]: 2,
-  [AlertSeverity.CRITICAL]: 3
+  [AlertSeverity.CRITICAL]: 3,
 };
 
 /**
@@ -87,7 +89,10 @@ export class AlertManager extends EventEmitter {
   private static instance: AlertManager;
   private config: AlertNotificationConfig;
   private alertHistory: Alert[] = [];
-  private alertRules: Map<string, { condition: () => boolean, alert: Omit<Alert, 'id' | 'timestamp'> }> = new Map();
+  private alertRules: Map<
+    string,
+    { condition: () => boolean; alert: Omit<Alert, 'id' | 'timestamp'> }
+  > = new Map();
   private evaluationInterval: NodeJS.Timeout | null = null;
 
   /**
@@ -106,10 +111,10 @@ export class AlertManager extends EventEmitter {
   private constructor() {
     super();
     this.config = DEFAULT_ALERT_CONFIG;
-    
+
     // Load configuration from environment variables
     this.loadConfigFromEnv();
-    
+
     // Listen for alert events
     this.on('alert', this.processAlert.bind(this));
 
@@ -122,44 +127,50 @@ export class AlertManager extends EventEmitter {
    */
   private loadConfigFromEnv(): void {
     const channels: AlertChannel[] = [];
-    
+
     if (process.env.ALERT_CHANNEL_LOG === 'true') {
       channels.push(AlertChannel.LOG);
     }
-    
+
     if (process.env.ALERT_CHANNEL_WEBHOOK === 'true' && process.env.ALERT_WEBHOOK_URL) {
       channels.push(AlertChannel.WEBHOOK);
     }
-    
+
     if (process.env.ALERT_CHANNEL_SLACK === 'true' && process.env.ALERT_SLACK_WEBHOOK_URL) {
       channels.push(AlertChannel.SLACK);
     }
-    
+
     if (process.env.ALERT_CHANNEL_EMAIL === 'true' && process.env.ALERT_EMAIL_RECIPIENTS) {
       channels.push(AlertChannel.EMAIL);
     }
-    
+
     if (process.env.ALERT_CHANNEL_SMS === 'true' && process.env.ALERT_SMS_NUMBERS) {
       channels.push(AlertChannel.SMS);
     }
-    
+
     // Only update if we have channels configured
     if (channels.length > 0) {
       this.config = {
         channels,
         minSeverity: (process.env.ALERT_MIN_SEVERITY as AlertSeverity) || AlertSeverity.WARNING,
         webhookUrl: process.env.ALERT_WEBHOOK_URL,
-        slackConfig: process.env.ALERT_SLACK_WEBHOOK_URL ? {
-          channel: process.env.ALERT_SLACK_CHANNEL || '#alerts',
-          webhookUrl: process.env.ALERT_SLACK_WEBHOOK_URL
-        } : undefined,
-        emailConfig: process.env.ALERT_EMAIL_RECIPIENTS ? {
-          recipients: process.env.ALERT_EMAIL_RECIPIENTS.split(','),
-          subject: process.env.ALERT_EMAIL_SUBJECT || 'ChainSync Alert'
-        } : undefined,
-        smsConfig: process.env.ALERT_SMS_NUMBERS ? {
-          phoneNumbers: process.env.ALERT_SMS_NUMBERS.split(',')
-        } : undefined
+        slackConfig: process.env.ALERT_SLACK_WEBHOOK_URL
+          ? {
+              channel: process.env.ALERT_SLACK_CHANNEL || '#alerts',
+              webhookUrl: process.env.ALERT_SLACK_WEBHOOK_URL,
+            }
+          : undefined,
+        emailConfig: process.env.ALERT_EMAIL_RECIPIENTS
+          ? {
+              recipients: process.env.ALERT_EMAIL_RECIPIENTS.split(','),
+              subject: process.env.ALERT_EMAIL_SUBJECT || 'ChainSync Alert',
+            }
+          : undefined,
+        smsConfig: process.env.ALERT_SMS_NUMBERS
+          ? {
+              phoneNumbers: process.env.ALERT_SMS_NUMBERS.split(','),
+            }
+          : undefined,
       };
     }
   }
@@ -179,9 +190,9 @@ export class AlertManager extends EventEmitter {
     const alert: Alert = {
       ...alertData,
       id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    
+
     this.emit('alert', alert);
   }
 
@@ -193,13 +204,13 @@ export class AlertManager extends EventEmitter {
     if (SEVERITY_LEVELS[alert.severity] < SEVERITY_LEVELS[this.config.minSeverity]) {
       return;
     }
-    
+
     // Add to history
     this.alertHistory.push(alert);
     if (this.alertHistory.length > 100) {
       this.alertHistory.shift(); // Keep history size limited
     }
-    
+
     // Process through each configured channel
     await Promise.all(this.config.channels.map(channel => this.sendAlertToChannel(channel, alert)));
   }
@@ -227,10 +238,10 @@ export class AlertManager extends EventEmitter {
           break;
       }
     } catch (error) {
-      logger.error('Failed to send alert to channel', { 
-        channel, 
-        alertId: alert.id, 
-        error: (error as Error).message 
+      logger.error('Failed to send alert to channel', {
+        channel,
+        alertId: alert.id,
+        error: (error as Error).message,
       });
     }
   }
@@ -243,15 +254,15 @@ export class AlertManager extends EventEmitter {
       [AlertSeverity.INFO]: logger.info.bind(logger),
       [AlertSeverity.WARNING]: logger.warn.bind(logger),
       [AlertSeverity.ERROR]: logger.error.bind(logger),
-      [AlertSeverity.CRITICAL]: logger.error.bind(logger)
+      [AlertSeverity.CRITICAL]: logger.error.bind(logger),
     }[alert.severity];
-    
+
     logMethod(`ALERT: ${alert.title}`, {
       alertId: alert.id,
       message: alert.message,
       severity: alert.severity,
       source: alert.source,
-      tags: alert.tags
+      tags: alert.tags,
     });
   }
 
@@ -263,7 +274,7 @@ export class AlertManager extends EventEmitter {
       logger.warn('No webhook URL configured for alerts');
       return;
     }
-    
+
     await axios.post(this.config.webhookUrl, alert);
   }
 
@@ -275,34 +286,36 @@ export class AlertManager extends EventEmitter {
       logger.warn('No Slack webhook URL configured for alerts');
       return;
     }
-    
+
     const color = {
       [AlertSeverity.INFO]: '#36a64f',
       [AlertSeverity.WARNING]: '#ffcc00',
       [AlertSeverity.ERROR]: '#ff9900',
-      [AlertSeverity.CRITICAL]: '#ff0000'
+      [AlertSeverity.CRITICAL]: '#ff0000',
     }[alert.severity];
-    
+
     const payload = {
       channel: this.config.slackConfig.channel,
-      attachments: [{
-        fallback: `${alert.severity.toUpperCase()}: ${alert.title}`,
-        color,
-        title: `[${alert.severity.toUpperCase()}] ${alert.title}`,
-        text: alert.message,
-        fields: [
-          { title: 'Source', value: alert.source, short: true },
-          { title: 'Severity', value: alert.severity, short: true },
-          ...Object.entries(alert.tags).map(([key, value]) => ({
-            title: key,
-            value: value,
-            short: true
-          }))
-        ],
-        ts: Math.floor(alert.timestamp / 1000)
-      }]
+      attachments: [
+        {
+          fallback: `${alert.severity.toUpperCase()}: ${alert.title}`,
+          color,
+          title: `[${alert.severity.toUpperCase()}] ${alert.title}`,
+          text: alert.message,
+          fields: [
+            { title: 'Source', value: alert.source, short: true },
+            { title: 'Severity', value: alert.severity, short: true },
+            ...Object.entries(alert.tags).map(([key, value]) => ({
+              title: key,
+              value: value,
+              short: true,
+            })),
+          ],
+          ts: Math.floor(alert.timestamp / 1000),
+        },
+      ],
     };
-    
+
     await axios.post(this.config.slackConfig.webhookUrl, payload);
   }
 
@@ -314,7 +327,7 @@ export class AlertManager extends EventEmitter {
       logger.warn('No email recipients configured for alerts');
       return;
     }
-    
+
     // This is a placeholder for email sending logic
     // In a real implementation, you would use a library like nodemailer
     logger.info('Would send email alert', {
@@ -330,8 +343,10 @@ export class AlertManager extends EventEmitter {
         ${alert.message}
         
         Tags:
-        ${Object.entries(alert.tags).map(([key, value]) => `${key}: ${value}`).join('\n')}
-      `
+        ${Object.entries(alert.tags)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\n')}
+      `,
     });
   }
 
@@ -343,19 +358,23 @@ export class AlertManager extends EventEmitter {
       logger.warn('No SMS numbers configured for alerts');
       return;
     }
-    
+
     // This is a placeholder for SMS sending logic
     // In a real implementation, you would use a service like Twilio
     logger.info('Would send SMS alert', {
       to: this.config.smsConfig.phoneNumbers,
-      message: `${alert.severity.toUpperCase()}: ${alert.title} - ${alert.message}`
+      message: `${alert.severity.toUpperCase()}: ${alert.title} - ${alert.message}`,
     });
   }
 
   /**
    * Add an alert rule
    */
-  addRule(name: string, condition: () => boolean, alertTemplate: Omit<Alert, 'id' | 'timestamp'>): void {
+  addRule(
+    name: string,
+    condition: () => boolean,
+    alertTemplate: Omit<Alert, 'id' | 'timestamp'>
+  ): void {
     this.alertRules.set(name, { condition, alert: alertTemplate });
   }
 
@@ -373,7 +392,7 @@ export class AlertManager extends EventEmitter {
     if (this.evaluationInterval) {
       clearInterval(this.evaluationInterval);
     }
-    
+
     this.evaluationInterval = setInterval(() => {
       this.evaluateRules();
     }, intervalMs);
@@ -389,9 +408,9 @@ export class AlertManager extends EventEmitter {
           this.alert(rule.alert);
         }
       } catch (error) {
-        logger.error('Error evaluating alert rule', { 
-          ruleName: name, 
-          error: (error as Error).message 
+        logger.error('Error evaluating alert rule', {
+          ruleName: name,
+          error: (error as Error).message,
         });
       }
     }

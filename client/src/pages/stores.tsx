@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
-import { AppShell } from '@/components/layout/app-shell';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { PlusIcon, Store, RefreshCw, Edit, MapPin, Phone, Users, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+
+import { AppShell } from '@/components/layout/app-shell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -16,30 +30,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { PlusIcon, Store, RefreshCw, Edit, MapPin, Phone, Users, Loader2 } from 'lucide-react';
-import { useAuth } from '@/providers/auth-provider';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Switch } from '@/components/ui/switch';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/providers/auth-provider';
 
 // Form schema for adding a new store
 const storeFormSchema = z.object({
-  name: z.string().min(2, "Store name must be at least 2 characters"),
-  address: z.string().min(5, "Please enter a valid address"),
-  city: z.string().min(2, "City name is required"),
-  state: z.string().min(2, "State name is required"),
-  zipCode: z.string().min(5, "ZIP code must be at least 5 characters"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
-  isActive: z.boolean().default(true)
+  name: z.string().min(2, 'Store name must be at least 2 characters'),
+  address: z.string().min(5, 'Please enter a valid address'),
+  city: z.string().min(2, 'City name is required'),
+  state: z.string().min(2, 'State name is required'),
+  zipCode: z.string().min(5, 'ZIP code must be at least 5 characters'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  isActive: z.boolean().default(true),
 });
 
 type StoreFormValues = z.infer<typeof storeFormSchema>;
@@ -52,34 +54,34 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(true);
-  
+
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeFormSchema),
     defaultValues: {
-      name: "",
-      address: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      phone: "",
-      isActive: true
-    }
+      name: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      phone: '',
+      isActive: true,
+    },
   });
-  
+
   const createStoreMutation = useMutation({
     mutationFn: async (storeData: StoreFormValues) => {
-      const response = await apiRequest("POST", "/api/stores", storeData);
+      const response = await apiRequest('POST', '/api/stores', storeData);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create store");
+        throw new Error(error.message || 'Failed to create store');
       }
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Store created successfully",
-        description: "The new store location has been added to your retail chain.",
-        variant: "default"
+        title: 'Store created successfully',
+        description: 'The new store location has been added to your retail chain.',
+        variant: 'default',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/stores'] });
       form.reset();
@@ -88,17 +90,17 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to create store",
+        title: 'Failed to create store',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
-    }
+    },
   });
-  
+
   function onSubmit(data: StoreFormValues) {
     createStoreMutation.mutate(data);
   }
-  
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
@@ -115,7 +117,7 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="address"
@@ -129,7 +131,7 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
             </FormItem>
           )}
         />
-        
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -144,7 +146,7 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="state"
@@ -159,7 +161,7 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
             )}
           />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -174,7 +176,7 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="phone"
@@ -189,7 +191,7 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
             )}
           />
         </div>
-        
+
         <FormField
           control={form.control}
           name="isActive"
@@ -202,21 +204,14 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
                 </p>
               </div>
               <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
             </FormItem>
           )}
         />
-        
+
         <div className="flex justify-between pt-4">
-          <Button 
-            type="button"
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-          >
+          <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
             Cancel
           </Button>
           <Button type="submit" disabled={createStoreMutation.isPending}>
@@ -226,7 +221,7 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
                 Creating...
               </>
             ) : (
-              "Create Store"
+              'Create Store'
             )}
           </Button>
         </div>
@@ -238,7 +233,7 @@ function AddStoreForm({ onSuccess }: AddStoreFormProps) {
 export default function StoresPage() {
   const { user } = useAuth();
   const { data: stores, isLoading, refetch } = useQuery({ queryKey: ['/api/stores'] });
-  
+
   return (
     <AppShell>
       <div className="mb-6 flex items-center justify-between">
@@ -250,7 +245,7 @@ export default function StoresPage() {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          
+
           {user?.role === 'admin' && (
             <Dialog>
               <DialogTrigger asChild>
@@ -266,15 +261,17 @@ export default function StoresPage() {
                     Create a new store location in your retail chain.
                   </DialogDescription>
                 </DialogHeader>
-                <AddStoreForm onSuccess={() => {
-                  refetch();
-                }} />
+                <AddStoreForm
+                  onSuccess={() => {
+                    refetch();
+                  }}
+                />
               </DialogContent>
             </Dialog>
           )}
         </div>
       </div>
-      
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -298,43 +295,52 @@ export default function StoresPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.isArray(stores) ? stores.map((store: any) => (
-            <Card key={store.id}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{store.name}</CardTitle>
-                    <CardDescription>ID: {store.id}</CardDescription>
+          {Array.isArray(stores) ? (
+            stores.map((store: any) => (
+              <Card key={store.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{store.name}</CardTitle>
+                      <CardDescription>ID: {store.id}</CardDescription>
+                    </div>
+                    <Badge
+                      variant={store.isActive ? 'outline' : 'destructive'}
+                      className={
+                        store.isActive ? 'bg-green-100 text-green-700 border-green-200' : ''
+                      }
+                    >
+                      {store.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
-                  <Badge variant={store.isActive ? "outline" : "destructive"} className={store.isActive ? "bg-green-100 text-green-700 border-green-200" : ""}>
-                    {store.isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm">
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="break-words">{store.address}, {store.city}, {store.state} {store.zipCode}</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm">
+                      <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="break-words">
+                        {store.address}, {store.city}, {store.state} {store.zipCode}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>{store.phone}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>5 Employees</span>
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm">
-                    <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{store.phone}</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>5 Employees</span>
-                  </div>
-                </div>
-                <Button variant="outline" className="w-full" asChild>
-                  <a href={`/stores/${store.id}`}>
-                    <Store className="h-4 w-4 mr-2" />
-                    View Store Details
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-          )) : (
+                  <Button variant="outline" className="w-full" asChild>
+                    <a href={`/stores/${store.id}`}>
+                      <Store className="h-4 w-4 mr-2" />
+                      View Store Details
+                    </a>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
             <div className="text-center py-8 text-muted-foreground">
               No stores found. Add a store to get started.
             </div>

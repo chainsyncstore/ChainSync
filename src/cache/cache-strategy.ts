@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+
 import { getCacheValue, setCacheValue, deleteCachePattern } from './redis';
 import { getLogger } from '../logging';
 
@@ -43,13 +44,13 @@ export function generateListCacheKey(
   entityType: keyof typeof CACHE_PREFIX,
   filters: Record<string, any> = {}
 ): string {
-  const filterString = Object.keys(filters).length 
+  const filterString = Object.keys(filters).length
     ? `:${Object.entries(filters)
         .map(([key, value]) => `${key}=${value}`)
         .sort()
         .join('&')}`
     : '';
-  
+
   return `${CACHE_PREFIX[entityType]}:list${filterString}`;
 }
 
@@ -72,10 +73,10 @@ export async function getCachedOrFetch<T>(
     // Cache miss, fetch data
     logger.debug('Cache miss, fetching data', { cacheKey });
     const data = await fetchFn();
-    
+
     // Cache the result
     await setCacheValue<T>(cacheKey, data, ttl);
-    
+
     return data;
   } catch (error: unknown) {
     logger.error('Cache fetch error', { cacheKey, error });
@@ -99,9 +100,7 @@ export async function invalidateEntityCache(
 /**
  * Invalidate cache for a list/collection
  */
-export async function invalidateListCache(
-  entityType: keyof typeof CACHE_PREFIX
-): Promise<void> {
+export async function invalidateListCache(entityType: keyof typeof CACHE_PREFIX): Promise<void> {
   const pattern = `${CACHE_PREFIX[entityType]}:list*`;
   await deleteCachePattern(pattern);
   logger.debug('List cache invalidated', { entityType, pattern });
@@ -110,10 +109,7 @@ export async function invalidateListCache(
 /**
  * Middleware for caching Express API responses
  */
-export function cacheMiddleware(
-  keyFn: (req: Request) => string,
-  ttl = CACHE_TTL.MEDIUM
-) {
+export function cacheMiddleware(keyFn: (req: Request) => string, ttl = CACHE_TTL.MEDIUM) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (req.method !== 'GET') {
       return next();
@@ -127,9 +123,9 @@ export function cacheMiddleware(
       }>(cacheKey);
 
       if (cachedResponse) {
-        logger.debug('API cache hit', { 
-          path: req.path, 
-          cacheKey 
+        logger.debug('API cache hit', {
+          path: req.path,
+          cacheKey,
         });
         return res.status(cachedResponse.statusCode).json(cachedResponse.data);
       }
@@ -138,41 +134,53 @@ export function cacheMiddleware(
       const originalSend = res.send;
 
       // Override the send function
-      res.send = function(this: Response, body: unknown) {
+      res.send = function (this: Response, body: unknown) {
         // Only cache successful responses
         if (this.statusCode >= 200 && this.statusCode < 300) {
           let responseDataToCache: any;
-          const bodyAsString = Buffer.isBuffer(body) ? body.toString() : (typeof body === 'string' ? body : null);
+          const bodyAsString = Buffer.isBuffer(body)
+            ? body.toString()
+            : typeof body === 'string'
+              ? body
+              : null;
 
           if (bodyAsString !== null) {
             try {
               responseDataToCache = JSON.parse(bodyAsString);
             } catch (e) {
-              logger.warn('Response body could not be parsed as JSON for caching.', { cacheKey, path: req.path, bodyPreview: bodyAsString.substring(0, 100) });
+              logger.warn('Response body could not be parsed as JSON for caching.', {
+                cacheKey,
+                path: req.path,
+                bodyPreview: bodyAsString.substring(0, 100),
+              });
               // Decide if you want to cache non-JSON string bodies or skip
               // For now, let's assume we only cache parsable JSON
-              responseDataToCache = undefined; 
+              responseDataToCache = undefined;
             }
           } else if (typeof body === 'object' && body !== null) {
             // If body is already an object (e.g. if res.json() was used and somehow this override gets the object directly)
             responseDataToCache = body;
           } else {
-            logger.debug('Response body is not a string, Buffer, or object; skipping cache.', { cacheKey, path: req.path, type: typeof body });
+            logger.debug('Response body is not a string, Buffer, or object; skipping cache.', {
+              cacheKey,
+              path: req.path,
+              type: typeof body,
+            });
           }
-          
+
           if (typeof responseDataToCache !== 'undefined') {
             setCacheValue(
-              cacheKey, 
-              { 
-                statusCode: this.statusCode, 
-                data: responseDataToCache
-              }, 
+              cacheKey,
+              {
+                statusCode: this.statusCode,
+                data: responseDataToCache,
+              },
               ttl
             ).catch(err => {
-              logger.error('Error caching API response', { 
-                path: req.path, 
-                cacheKey, 
-                error: err 
+              logger.error('Error caching API response', {
+                path: req.path,
+                cacheKey,
+                error: err,
               });
             });
           }
@@ -183,9 +191,9 @@ export function cacheMiddleware(
       next();
     } catch (error: unknown) {
       // In case of error, proceed without caching
-      logger.error('Cache middleware error', { 
-        path: req.path, 
-        error 
+      logger.error('Cache middleware error', {
+        path: req.path,
+        error,
       });
       next();
     }
@@ -202,10 +210,6 @@ export function withCaching<T, Args extends any[]>(
 ): (...args: Args) => Promise<T> {
   return async (...args: Args): Promise<T> => {
     const cacheKey = cacheKeyFn(...args);
-    return getCachedOrFetch<T>(
-      cacheKey,
-      () => serviceFn(...args),
-      ttl
-    );
+    return getCachedOrFetch<T>(cacheKey, () => serviceFn(...args), ttl);
   };
 }

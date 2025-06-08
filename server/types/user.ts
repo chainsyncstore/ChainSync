@@ -1,6 +1,6 @@
 /**
  * Centralized type definitions for user-related interfaces
- * 
+ *
  * This ensures consistency across the application for user objects,
  * particularly in authentication middleware and request handlers.
  */
@@ -14,16 +14,16 @@
 export interface UserPayload {
   id: string;
   role: string;
-  name?: string; 
-  email: string; 
+  name?: string;
+  email?: string;
   storeId?: number;
-  username?: string; 
+  username?: string;
   permissions?: string[];
   sessionId?: string;
   createdAt?: string | Date | number; // Added for enhanced-rate-limit
   // Index signature to allow other properties if necessary,
   // though direct usage of UserPayload is preferred after casting.
-  [key: string]: unknown; 
+  [key: string]: unknown;
 }
 
 // Global Express.Request augmentation is handled in server/types/express.d.ts

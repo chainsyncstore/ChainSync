@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -20,10 +23,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface MinimumLevelDialogProps {
   open: boolean;
@@ -45,20 +46,16 @@ const formSchema = z.object({
     .max(10000, 'Minimum level must be less than 10,000'),
 });
 
-export function MinimumLevelDialog({
-  open,
-  onOpenChange,
-  inventoryItem,
-}: MinimumLevelDialogProps) {
+export function MinimumLevelDialog({ open, onOpenChange, inventoryItem }: MinimumLevelDialogProps) {
   const { toast } = useToast();
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       minimumLevel: inventoryItem?.minimumLevel || 0,
     },
   });
-  
+
   // Set up form values when inventory item changes
   React.useEffect(() => {
     if (inventoryItem) {
@@ -67,7 +64,7 @@ export function MinimumLevelDialog({
       });
     }
   }, [inventoryItem, form]);
-  
+
   const updateMinLevelMutation = useMutation({
     mutationFn: async (data: { inventoryId: number; minimumLevel: number }) => {
       const res = await apiRequest('POST', '/api/inventory/minimum-level', data);
@@ -78,10 +75,10 @@ export function MinimumLevelDialog({
         title: 'Minimum stock level updated',
         description: `Minimum stock level for ${inventoryItem?.productName} has been updated.`,
       });
-      
+
       // Close the dialog
       onOpenChange(false);
-      
+
       // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/inventory/low-stock'] });
@@ -94,16 +91,16 @@ export function MinimumLevelDialog({
       });
     },
   });
-  
+
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     if (!inventoryItem) return;
-    
+
     updateMinLevelMutation.mutate({
       inventoryId: inventoryItem.id,
       minimumLevel: data.minimumLevel,
     });
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -113,7 +110,7 @@ export function MinimumLevelDialog({
             Products below this level will be flagged as low stock.
           </DialogDescription>
         </DialogHeader>
-        
+
         {inventoryItem && (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -130,7 +127,7 @@ export function MinimumLevelDialog({
                   <span className="text-muted-foreground">Current minimum:</span>
                   <span className="font-medium">{inventoryItem.minimumLevel}</span>
                 </div>
-                
+
                 <div className="pt-4">
                   <FormField
                     control={form.control}
@@ -139,12 +136,12 @@ export function MinimumLevelDialog({
                       <FormItem>
                         <FormLabel>New minimum level</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            min={0} 
-                            {...field} 
-                            onChange={(e) => {
-                              const value = e.target.value === "" ? "0" : e.target.value;
+                          <Input
+                            type="number"
+                            min={0}
+                            {...field}
+                            onChange={e => {
+                              const value = e.target.value === '' ? '0' : e.target.value;
                               field.onChange(value);
                             }}
                           />
@@ -158,12 +155,9 @@ export function MinimumLevelDialog({
                   />
                 </div>
               </div>
-              
+
               <DialogFooter>
-                <Button 
-                  type="submit" 
-                  disabled={updateMinLevelMutation.isPending}
-                >
+                <Button type="submit" disabled={updateMinLevelMutation.isPending}>
                   {updateMinLevelMutation.isPending ? 'Saving...' : 'Save changes'}
                 </Button>
               </DialogFooter>

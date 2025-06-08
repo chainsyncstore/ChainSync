@@ -1,6 +1,6 @@
-import { type NeonDatabase, type NeonQueryResultHKT } from 'drizzle-orm/neon-serverless'; // Changed to HKT
-import { sql } from 'drizzle-orm';
 import * as schema from '@shared/schema';
+import { sql } from 'drizzle-orm';
+import { type NeonDatabase, type NeonQueryResultHKT } from 'drizzle-orm/neon-serverless'; // Changed to HKT
 
 // Define the type for the Drizzle instance based on db/connection-manager.ts
 // `drizzle()` from 'drizzle-orm/neon-serverless' returns NeonDatabase<TSchema>
@@ -37,7 +37,7 @@ export class DrizzleAdapter {
       // If this.dbInstance.execute returns Promise<NeonQueryResult<any>>,
       // then result should be NeonQueryResult<any>.
       // Let's assume NeonQueryResultHKT is a stand-in for now.
-      const result: NeonQueryResultHKT["type"] = await this.dbInstance.execute(query); // Attempting to use HKT's 'type'
+      const result: NeonQueryResultHKT['type'] = await this.dbInstance.execute(query); // Attempting to use HKT's 'type'
 
       if (result && result.rows && result.rows.length > 0) {
         const row = result.rows[0] as { exists?: boolean };
@@ -46,10 +46,16 @@ export class DrizzleAdapter {
         }
       }
       // If the structure is different or no rows are returned, log and assume false.
-      console.warn(`Could not determine if table '${tableName}' in schema '${schemaName}' exists from query result:`, JSON.stringify(result));
+      console.warn(
+        `Could not determine if table '${tableName}' in schema '${schemaName}' exists from query result:`,
+        JSON.stringify(result)
+      );
       return false;
     } catch (error) {
-      console.error(`Error checking if table '${tableName}' exists in schema '${schemaName}':`, error);
+      console.error(
+        `Error checking if table '${tableName}' exists in schema '${schemaName}':`,
+        error
+      );
       return false; // Or rethrow, depending on desired error handling
     }
   }

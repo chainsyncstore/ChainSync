@@ -1,12 +1,12 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { AlertCircle } from 'lucide-react';
+import React from 'react';
 import { Link } from 'wouter';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -15,11 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 
 interface RecentTransactionsProps {
@@ -65,9 +61,16 @@ interface Transaction {
 export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  
-  const { data, isLoading, error: queryError } = useQuery<Transaction[]>({
-    queryKey: ['/api/dashboard/recent-transactions', { limit, storeId: !isAdmin ? user?.storeId : undefined }],
+
+  const {
+    data,
+    isLoading,
+    error: queryError,
+  } = useQuery<Transaction[]>({
+    queryKey: [
+      '/api/dashboard/recent-transactions',
+      { limit, storeId: !isAdmin ? user?.storeId : undefined },
+    ],
     retry: 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -142,18 +145,20 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
       </div>
     </Card>
   );
-  
+
   // Handle loading state
   if (isLoading) {
     return <TransactionCardSkeleton />;
   }
-  
+
   // Handle error state
   if (queryError) {
     return (
       <Card className="bg-white rounded-lg shadow-sm border border-neutral-200">
         <CardHeader className="px-6 py-4 border-b border-neutral-200">
-          <CardTitle className="text-lg font-medium text-neutral-800">Recent Transactions</CardTitle>
+          <CardTitle className="text-lg font-medium text-neutral-800">
+            Recent Transactions
+          </CardTitle>
         </CardHeader>
         <CardContent className="py-6">
           <div className="flex flex-col items-center justify-center text-center p-6">
@@ -170,21 +175,25 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
 
   // Check for empty data
   const hasTransactions = Array.isArray(data) && data.length > 0;
-  
+
   return (
     <Card className="bg-white rounded-lg shadow-sm border border-neutral-200">
       <CardHeader className="px-6 py-4 border-b border-neutral-200">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-medium text-neutral-800">Recent Transactions</CardTitle>
+            <CardTitle className="text-lg font-medium text-neutral-800">
+              Recent Transactions
+            </CardTitle>
             <p className="text-sm text-neutral-500 mt-1">
-              {isAdmin 
-                ? 'Latest transactions across all stores' 
-                : `Latest transactions for ${user?.storeId ? 'your store' : 'your stores'}`
-              }
+              {isAdmin
+                ? 'Latest transactions across all stores'
+                : `Latest transactions for ${user?.storeId ? 'your store' : 'your stores'}`}
             </p>
           </div>
-          <Link href="/analytics" className="text-sm text-primary-500 font-medium hover:text-primary-600">
+          <Link
+            href="/analytics"
+            className="text-sm text-primary-500 font-medium hover:text-primary-600"
+          >
             View All
           </Link>
         </div>
@@ -193,94 +202,135 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Transaction ID</TableHead>
-              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Store</TableHead>
-              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Cashier</TableHead>
-              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Items</TableHead>
-              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Total</TableHead>
-              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Time</TableHead>
-              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                Transaction ID
+              </TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                Store
+              </TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                Cashier
+              </TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                Items
+              </TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                Total
+              </TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                Time
+              </TableHead>
+              <TableHead className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                Status
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="bg-white divide-y divide-neutral-200">
-            {hasTransactions ? data.map((transaction) => {
-              // Safely handle cases where nested properties might be undefined
-              const safeTransaction = {
-                id: transaction?.id || 0,
-                transactionId: transaction?.transactionId || 'N/A',
-                total: transaction?.total || '0',
-                createdAt: transaction?.createdAt || new Date().toISOString(),
-                status: transaction?.status || 'unknown',
-                isOfflineTransaction: !!transaction?.isOfflineTransaction,
-                syncedAt: transaction?.syncedAt,
-                synced_at: transaction?.synced_at,
-                store: {
-                  id: transaction?.store?.id || 0,
-                  name: transaction?.store?.name || 'Unknown Store'
-                },
-                cashier: {
-                  id: transaction?.cashier?.id || 0,
-                  fullName: transaction?.cashier?.fullName,
-                  username: transaction?.cashier?.username
-                },
-                items: Array.isArray(transaction?.items) ? transaction.items : []
-              };
-              
-              // Calculate item count safely
-              const itemCount = safeTransaction.items.length;
-              
-              // Format total correctly
-              const formattedTotal = typeof safeTransaction.total === 'string' 
-                ? parseFloat(safeTransaction.total) || 0 
-                : (safeTransaction.total || 0);
-              
-              return (
-                <TableRow key={safeTransaction.id}>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">
-                    {safeTransaction.transactionId}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                    {safeTransaction.store.name}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                    {safeTransaction.cashier.fullName || safeTransaction.cashier.username || 'Unknown'}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                    {itemCount}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">
-                    {formatCurrency(formattedTotal)}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                    {formatTime(safeTransaction.createdAt)}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 whitespace-nowrap">
-                    {safeTransaction.status === 'completed' ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                        Completed
-                      </Badge>
-                    ) : safeTransaction.status === 'pending' ? (
-                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">
-                        Pending
-                      </Badge>
-                    ) : safeTransaction.isOfflineTransaction && !safeTransaction.syncedAt && !safeTransaction.synced_at ? (
-                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">
-                        Syncing...
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200">
-                        {safeTransaction.status || 'Unknown'}
-                      </Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            }) : (
+            {hasTransactions ? (
+              data.map(transaction => {
+                // Safely handle cases where nested properties might be undefined
+                const safeTransaction = {
+                  id: transaction?.id || 0,
+                  transactionId: transaction?.transactionId || 'N/A',
+                  total: transaction?.total || '0',
+                  createdAt: transaction?.createdAt || new Date().toISOString(),
+                  status: transaction?.status || 'unknown',
+                  isOfflineTransaction: !!transaction?.isOfflineTransaction,
+                  syncedAt: transaction?.syncedAt,
+                  synced_at: transaction?.synced_at,
+                  store: {
+                    id: transaction?.store?.id || 0,
+                    name: transaction?.store?.name || 'Unknown Store',
+                  },
+                  cashier: {
+                    id: transaction?.cashier?.id || 0,
+                    fullName: transaction?.cashier?.fullName,
+                    username: transaction?.cashier?.username,
+                  },
+                  items: Array.isArray(transaction?.items) ? transaction.items : [],
+                };
+
+                // Calculate item count safely
+                const itemCount = safeTransaction.items.length;
+
+                // Format total correctly
+                const formattedTotal =
+                  typeof safeTransaction.total === 'string'
+                    ? parseFloat(safeTransaction.total) || 0
+                    : safeTransaction.total || 0;
+
+                return (
+                  <TableRow key={safeTransaction.id}>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">
+                      {safeTransaction.transactionId}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                      {safeTransaction.store.name}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                      {safeTransaction.cashier.fullName ||
+                        safeTransaction.cashier.username ||
+                        'Unknown'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                      {itemCount}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">
+                      {formatCurrency(formattedTotal)}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                      {formatTime(safeTransaction.createdAt)}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
+                      {safeTransaction.status === 'completed' ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-100 text-green-700 border-green-200"
+                        >
+                          Completed
+                        </Badge>
+                      ) : safeTransaction.status === 'pending' ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-100 text-amber-700 border-amber-200"
+                        >
+                          Pending
+                        </Badge>
+                      ) : safeTransaction.isOfflineTransaction &&
+                        !safeTransaction.syncedAt &&
+                        !safeTransaction.synced_at ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-100 text-amber-700 border-amber-200"
+                        >
+                          Syncing...
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200">
+                          {safeTransaction.status || 'Unknown'}
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-neutral-500">
                   <div className="flex flex-col items-center justify-center">
-                    <svg className="w-12 h-12 text-neutral-300 mb-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 12H15M9 16H15M19 4H5C3.89543 4 3 4.89543 3 6V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      className="w-12 h-12 text-neutral-300 mb-3"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M9 12H15M9 16H15M19 4H5C3.89543 4 3 4.89543 3 6V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V6C21 4.89543 20.1046 4 19 4Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                     <p className="text-base font-medium mb-1">No Transactions Found</p>
                     <p className="text-sm text-neutral-400">
@@ -296,26 +346,15 @@ export function RecentTransactions({ limit = 5 }: RecentTransactionsProps) {
       <div className="px-6 py-4 border-t border-neutral-200 bg-neutral-50">
         <div className="flex items-center justify-between">
           <div className="text-sm text-neutral-500">
-            {hasTransactions 
-              ? `Showing ${data.length} of recent transactions` 
-              : "No transactions available"
-            }
+            {hasTransactions
+              ? `Showing ${data.length} of recent transactions`
+              : 'No transactions available'}
           </div>
           <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled
-              className="px-3 py-1 text-sm"
-            >
+            <Button variant="outline" size="sm" disabled className="px-3 py-1 text-sm">
               Previous
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="px-3 py-1 text-sm"
-              asChild
-            >
+            <Button variant="outline" size="sm" className="px-3 py-1 text-sm" asChild>
               <Link href="/analytics">Next</Link>
             </Button>
           </div>

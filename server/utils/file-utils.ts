@@ -1,9 +1,11 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { getLogger } from '../../src/logging';
-import { FileUploadErrors } from '../config/file-upload';
+
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+
+import { getLogger } from '../../src/logging/index.js';
+import { FileUploadErrors } from '../config/file-upload.js';
 
 export class FileUtils {
   private static logger = getLogger();
@@ -21,30 +23,28 @@ export class FileUtils {
    * @param trustLevel Optional trust level of the file source (defaults to 'untrusted')
    * @returns boolean indicating if the file type is allowed
    */
-  public static validateFileType(fileExt: string, trustLevel: 'trusted' | 'untrusted' = 'untrusted'): boolean {
+  public static validateFileType(
+    fileExt: string,
+    trustLevel: 'trusted' | 'untrusted' = 'untrusted'
+  ): boolean {
     fileExt = fileExt.toLowerCase();
-    
+
     // Base allowed types for all trust levels
-    const baseTypes = new Set([
-      '.jpg', '.jpeg', '.png', '.gif', '.pdf', 
-      '.csv', '.json'
-    ]);
-    
+    const baseTypes = new Set(['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.csv', '.json']);
+
     // Potentially risky file types only allowed from trusted sources
-    const trustedOnlyTypes = new Set([
-      '.doc', '.docx', '.xlsx'
-    ]);
-    
+    const trustedOnlyTypes = new Set(['.doc', '.docx', '.xlsx']);
+
     // Check if the file type is in the base allowed types
     if (baseTypes.has(fileExt)) {
       return true;
     }
-    
+
     // For potentially risky file types, only allow if the source is trusted
     if (trustedOnlyTypes.has(fileExt)) {
       return trustLevel === 'trusted';
     }
-    
+
     return false;
   }
 
@@ -143,30 +143,38 @@ export class FileUtils {
       fs.readFile(filePath, (err, data) => {
         if (err) {
           this.logger.error('Error reading Excel file for validation', { error: err });
-          return reject(new AppError(
-            'Error validating Excel file',
-            ErrorCategory.VALIDATION,
-            ErrorCode.INVALID_FILE
-          ));
+          return reject(
+            new AppError(
+              'Error validating Excel file',
+              ErrorCategory.VALIDATION,
+              ErrorCode.INVALID_FILE
+            )
+          );
         }
-        
+
         // Check for ZIP file signature (PK\x03\x04)
-        if (data.length < 4 || 
-            data[0] !== 0x50 || data[1] !== 0x4B || 
-            data[2] !== 0x03 || data[3] !== 0x04) {
+        if (
+          data.length < 4 ||
+          data[0] !== 0x50 ||
+          data[1] !== 0x4b ||
+          data[2] !== 0x03 ||
+          data[3] !== 0x04
+        ) {
           this.logger.warn('Invalid Excel file signature detected');
-          return reject(new AppError(
-            'Invalid Excel file format',
-            ErrorCategory.VALIDATION,
-            ErrorCode.INVALID_FILE
-          ));
+          return reject(
+            new AppError(
+              'Invalid Excel file format',
+              ErrorCategory.VALIDATION,
+              ErrorCode.INVALID_FILE
+            )
+          );
         }
-        
+
         // Additional validation could be performed here, such as:
         // - Checking for presence of expected internal files
         // - Validating the ZIP structure
         // - Scanning for malicious content
-        
+
         resolve(true);
       });
     });
@@ -178,7 +186,7 @@ export class FileUtils {
       const buffer = Buffer.alloc(4);
       await fileHandle.read(buffer, 0, 4, 0);
       await fileHandle.close();
-      
+
       switch (buffer.toString('hex', 0, 4)) {
         case '89504e47':
           return 'image/png';
@@ -210,11 +218,11 @@ export class FileUtils {
     try {
       const hash = crypto.createHash('sha256');
       const stream = fs.createReadStream(filePath);
-      
+
       return new Promise((resolve, reject) => {
-        stream.on('data', (chunk) => hash.update(chunk));
+        stream.on('data', chunk => hash.update(chunk));
         stream.on('end', () => resolve(hash.digest('hex')));
-        stream.on('error', (error) => reject(error));
+        stream.on('error', error => reject(error));
       });
     } catch (error: unknown) {
       throw new AppError(
@@ -235,11 +243,11 @@ export class FileUtils {
   ): Promise<void> {
     try {
       const files = await fs.promises.readdir(directory);
-      
+
       for (const file of files) {
         const filePath = path.join(directory, file);
         const stats = await fs.promises.stat(filePath);
-        
+
         if (Date.now() - stats.birthtimeMs > maxAge) {
           await fs.promises.unlink(filePath);
         }
@@ -271,10 +279,7 @@ export class FileUtils {
     }
   }
 
-  public static async compressFile(
-    filePath: string,
-    targetSize: number
-  ): Promise<string> {
+  public static async compressFile(filePath: string, targetSize: number): Promise<string> {
     try {
       // This would require a compression library
       // Placeholder implementation

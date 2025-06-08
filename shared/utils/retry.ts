@@ -1,4 +1,4 @@
-import { AppError, RetryableError } from '../types/errors';
+import { AppError, RetryableError } from '../types/errors.js';
 
 export class RetryStrategy {
   private readonly maxRetries: number;
@@ -16,16 +16,14 @@ export class RetryStrategy {
   }
 
   private calculateDelay(attempt: number): number {
-    const delay = Math.min(
-      this.baseDelay * Math.pow(2, attempt),
-      this.maxDelay
-    );
+    const delay = Math.min(this.baseDelay * Math.pow(2, attempt), this.maxDelay);
     return Math.floor(delay * (1 + Math.random() * 0.2)); // Add 0-20% jitter
   }
 
   public async retry<T>(
     operation: () => Promise<T>,
-    errorFilter: (error: Error) => boolean = (err) => { // Renamed parameter for clarity
+    errorFilter: (error: Error) => boolean = err => {
+      // Renamed parameter for clarity
       return err instanceof AppError && err.retryable !== undefined;
     },
     onRetry?: (error: Error, attempt: number) => void
@@ -40,12 +38,18 @@ export class RetryStrategy {
 
         if (!errorFilter(errorInstance)) {
           // Re-throw the original error if it's an AppError, otherwise wrap it.
-          throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { cause: error });
+          throw error instanceof AppError
+            ? error
+            : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { cause: error });
         }
 
         if (attempt === this.maxRetries - 1) {
           // Re-throw the original error if it's an AppError, otherwise wrap it.
-          throw error instanceof AppError ? error : new AppError('Max retries exceeded', 'system', 'MAX_RETRIES_EXCEEDED', { cause: error });
+          throw error instanceof AppError
+            ? error
+            : new AppError('Max retries exceeded', 'system', 'MAX_RETRIES_EXCEEDED', {
+                cause: error,
+              });
         }
 
         const delay = this.calculateDelay(attempt);

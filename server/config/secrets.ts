@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+
 import { getLogger } from '../../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'secrets-manager' });
@@ -18,10 +19,10 @@ export class SecretsManager {
   constructor() {
     // Initialize encryption key from environment
     const keyString = process.env.ENCRYPTION_KEY;
-    
+
     // In production, ENCRYPTION_KEY must be provided
     const isProduction = process.env.NODE_ENV === 'production';
-    
+
     if (!keyString) {
       if (isProduction) {
         // Fail fast in production if encryption key is missing
@@ -32,20 +33,20 @@ export class SecretsManager {
         // In development/test, generate a temporary key with warning
         this.encryptionKey = crypto.randomBytes(32);
         logger.warn(
-          'No ENCRYPTION_KEY found, generated temporary key. '
-          + 'This is only acceptable in development environments.'
+          'No ENCRYPTION_KEY found, generated temporary key. ' +
+            'This is only acceptable in development environments.'
         );
         return;
       }
     }
-    
+
     // Validate key format and length
     if (!/^[a-fA-F0-9]{64}$/.test(keyString)) {
       const errorMsg = 'ENCRYPTION_KEY must be a 64-character hexadecimal string';
       logger.error(errorMsg);
       throw new Error(errorMsg);
     }
-    
+
     // Convert the validated key to a buffer
     this.encryptionKey = Buffer.from(keyString, 'hex');
   }
@@ -59,17 +60,17 @@ export class SecretsManager {
     try {
       // Generate a random initialization vector
       const iv = crypto.randomBytes(16);
-      
+
       // Create cipher with proper IV
       const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
-      
+
       // Encrypt the text
       let encrypted = cipher.update(text, 'utf8', 'hex');
       encrypted += cipher.final('hex');
-      
+
       // Get the authentication tag
       const authTag = cipher.getAuthTag().toString('hex');
-      
+
       // Return the IV, authentication tag, and encrypted text
       return `${iv.toString('hex')}:${authTag}:${encrypted}`;
     } catch (error: unknown) {
@@ -87,29 +88,31 @@ export class SecretsManager {
     try {
       // Split the encrypted text into IV, auth tag, and encrypted data
       const parts = encryptedText.split(':');
-      
+
       if (parts.length !== 3) {
         throw new Error('Invalid encrypted data format');
       }
-      
+
       const iv = Buffer.from(parts[0], 'hex');
       const authTag = Buffer.from(parts[1], 'hex');
       const encrypted = parts[2];
-      
+
       // Create decipher with proper IV
       const decipher = crypto.createDecipheriv('aes-256-gcm', this.encryptionKey, iv);
-      
+
       // Set the authentication tag
       decipher.setAuthTag(authTag);
-      
+
       // Decrypt the data
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
-      
+
       return decrypted;
     } catch (error: unknown) {
       logger.error('Decryption failed', { error });
-      throw new Error('Failed to decrypt data. The data may be corrupted or the encryption key may have changed.');
+      throw new Error(
+        'Failed to decrypt data. The data may be corrupted or the encryption key may have changed.'
+      );
     }
   }
 
@@ -122,7 +125,7 @@ export class SecretsManager {
     if (!key || !value) {
       throw new Error('Key and value are required for storing secrets');
     }
-    
+
     this.secrets.set(key, this.encrypt(value));
     logger.info('Secret stored', { key });
   }
@@ -137,7 +140,7 @@ export class SecretsManager {
     if (!encrypted) {
       return undefined;
     }
-    
+
     try {
       return this.decrypt(encrypted);
     } catch (error: unknown) {
@@ -150,7 +153,7 @@ export class SecretsManager {
   loadFromEnvironment(configs: SecretConfig[]): void {
     for (const config of configs) {
       const value = process.env[config.key] || config.defaultValue;
-      
+
       if (!value && config.required) {
         throw new Error(`Required secret ${config.key} is missing: ${config.description}`);
       }
@@ -161,9 +164,9 @@ export class SecretsManager {
 
       if (value) {
         this.setSecret(config.key, value);
-        logger.info('Secret loaded from environment', { 
-          key: config.key, 
-          description: config.description 
+        logger.info('Secret loaded from environment', {
+          key: config.key,
+          description: config.description,
         });
       }
     }
@@ -176,7 +179,7 @@ export class SecretsManager {
 
     for (const config of configs) {
       const value = this.getSecret(config.key);
-      
+
       if (!value && config.required) {
         missing.push(config.key);
         continue;
@@ -213,66 +216,66 @@ export const SECRET_CONFIGS: SecretConfig[] = [
     key: 'JWT_SECRET',
     required: true,
     description: 'Secret key for JWT token signing',
-    validator: (value) => value.length >= 32
+    validator: value => value.length >= 32,
   },
   {
     key: 'JWT_REFRESH_SECRET',
     required: true,
     description: 'Secret key for JWT refresh token signing',
-    validator: (value) => value.length >= 32
+    validator: value => value.length >= 32,
   },
   {
     key: 'DATABASE_URL',
     required: true,
     description: 'PostgreSQL database connection URL',
-    validator: (value) => value.startsWith('postgresql://') || value.startsWith('postgres://')
+    validator: value => value.startsWith('postgresql://') || value.startsWith('postgres://'),
   },
   {
     key: 'REDIS_URL',
     required: false,
     description: 'Redis connection URL for caching',
-    validator: (value) => value.startsWith('redis://') || value.startsWith('rediss://')
+    validator: value => value.startsWith('redis://') || value.startsWith('rediss://'),
   },
   {
     key: 'ENCRYPTION_KEY',
     required: true,
     description: 'Key for encrypting sensitive data (64 hex characters)',
-    validator: (value) => /^[0-9a-fA-F]{64}$/.test(value)
+    validator: value => /^[0-9a-fA-F]{64}$/.test(value),
   },
   {
     key: 'SESSION_SECRET',
     required: true,
     description: 'Secret for session management',
-    validator: (value) => value.length >= 32
+    validator: value => value.length >= 32,
   },
   {
     key: 'SENTRY_DSN',
     required: false,
-    description: 'Sentry DSN for error tracking'
+    description: 'Sentry DSN for error tracking',
   },
   {
     key: 'STRIPE_SECRET_KEY',
     required: false,
     description: 'Stripe secret key for payments',
-    validator: (value) => value.startsWith('sk_')
+    validator: value => value.startsWith('sk_'),
   },
   {
     key: 'SENDGRID_API_KEY',
     required: false,
     description: 'SendGrid API key for email sending',
-    validator: (value) => value.startsWith('SG.')
+    validator: value => value.startsWith('SG.'),
   },
   {
     key: 'FLUTTERWAVE_SECRET_KEY',
     required: false,
-    description: 'Flutterwave secret key for payments'
+    description: 'Flutterwave secret key for payments',
   },
   {
     key: 'PAYSTACK_SECRET_KEY',
     required: false,
     description: 'Paystack secret key for payments',
-    validator: (value) => value.startsWith('sk_')
-  }
+    validator: value => value.startsWith('sk_'),
+  },
 ];
 
 // Global secrets manager instance
@@ -281,12 +284,12 @@ export const secretsManager = new SecretsManager();
 // Initialize secrets on module load
 try {
   secretsManager.loadFromEnvironment(SECRET_CONFIGS);
-  
+
   if (!secretsManager.validateSecrets(SECRET_CONFIGS)) {
     logger.error('Secret validation failed');
     process.exit(1);
   }
-  
+
   logger.info('Secrets manager initialized successfully');
 } catch (error: unknown) {
   logger.error('Failed to initialize secrets manager', error as Error);

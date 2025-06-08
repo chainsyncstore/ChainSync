@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Database Migration Runner Script
- * 
+ *
  * This script runs database migrations and validates schema consistency.
  * Usage:
  *   npm run migrate -- [--validate-only]
@@ -16,35 +16,35 @@ const logger = getLogger().child({ component: 'migration-script' });
 
 async function main() {
   const validateOnly = process.argv.includes('--validate-only');
-  
+
   try {
     // Validate schema consistency between code and database
     logger.info('Validating schema consistency...');
     const { valid, mismatches } = await validateSchema();
-    
+
     if (!valid) {
       logger.error('Schema validation failed', { mismatches });
       console.error('\nSchema validation failed with the following issues:');
       mismatches.forEach(mismatch => console.error(`- ${mismatch}`));
-      
+
       if (validateOnly) {
         process.exit(1);
       }
-      
+
       console.warn('\nProceeding with migrations despite schema inconsistencies...');
     } else {
       logger.info('Schema validation successful');
       console.log('Schema validation successful. Database is consistent with code definitions.');
-      
+
       if (validateOnly) {
         process.exit(0);
       }
     }
-    
+
     // Run migrations
     logger.info('Running migrations...');
     await runMigrations(migrations);
-    
+
     logger.info('Migration process completed successfully');
     console.log('Migrations completed successfully.');
     process.exit(0);

@@ -1,10 +1,10 @@
 /**
  * Transaction Service Types
- * 
+ *
  * This file defines the interfaces and types for the transaction service.
  */
 
-import * as schema from '@shared/schema';
+import * as schema from '@shared/schema.js';
 
 export enum PaymentMethod {
   CASH = 'cash',
@@ -14,7 +14,7 @@ export enum PaymentMethod {
   BANK_TRANSFER = 'bank_transfer',
   STORE_CREDIT = 'store_credit',
   LOYALTY_POINTS = 'loyalty_points',
-  OTHER = 'other'
+  OTHER = 'other',
 }
 
 export enum TransactionType {
@@ -26,7 +26,7 @@ export enum TransactionType {
   PAYMENT = 'PAYMENT',
   DEPOSIT = 'DEPOSIT',
   WITHDRAWAL = 'WITHDRAWAL',
-  ADJUSTMENT = 'ADJUSTMENT'
+  ADJUSTMENT = 'ADJUSTMENT',
 }
 
 export enum TransactionStatus {
@@ -35,7 +35,7 @@ export enum TransactionStatus {
   CANCELLED = 'cancelled',
   REFUNDED = 'refunded',
   PARTIALLY_REFUNDED = 'partially_refunded',
-  FAILED = 'failed'
+  FAILED = 'failed',
 }
 
 export interface CreateTransactionParams {
@@ -127,30 +127,41 @@ export interface TransactionServiceErrors {
 }
 
 export const TransactionServiceErrors: TransactionServiceErrors = {
-  TRANSACTION_NOT_FOUND: new Error("Transaction not found"),
-  TRANSACTION_ITEM_NOT_FOUND: new Error("Transaction item not found"),
-  STORE_NOT_FOUND: new Error("Store not found"),
-  PRODUCT_NOT_FOUND: new Error("Product not found"),
-  CUSTOMER_NOT_FOUND: new Error("Customer not found"),
-  USER_NOT_FOUND: new Error("User not found"),
-  INVALID_REFUND: new Error("Invalid refund operation"),
-  INSUFFICIENT_STOCK: new Error("Insufficient stock available"),
-  PAYMENT_VALIDATION_FAILED: new Error("Payment validation failed"),
-  INVALID_PAYMENT_AMOUNT: new Error("Invalid payment amount"),
-  INVALID_TRANSACTION_STATUS: new Error("Invalid transaction status")
+  TRANSACTION_NOT_FOUND: new Error('Transaction not found'),
+  TRANSACTION_ITEM_NOT_FOUND: new Error('Transaction item not found'),
+  STORE_NOT_FOUND: new Error('Store not found'),
+  PRODUCT_NOT_FOUND: new Error('Product not found'),
+  CUSTOMER_NOT_FOUND: new Error('Customer not found'),
+  USER_NOT_FOUND: new Error('User not found'),
+  INVALID_REFUND: new Error('Invalid refund operation'),
+  INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
+  PAYMENT_VALIDATION_FAILED: new Error('Payment validation failed'),
+  INVALID_PAYMENT_AMOUNT: new Error('Invalid payment amount'),
+  INVALID_TRANSACTION_STATUS: new Error('Invalid transaction status'),
 };
 
 export interface ITransactionService {
   createTransaction(params: CreateTransactionParams): Promise<schema.Transaction>;
-  updateTransaction(transactionId: number, params: UpdateTransactionParams): Promise<schema.Transaction>;
+  updateTransaction(
+    transactionId: number,
+    params: UpdateTransactionParams
+  ): Promise<schema.Transaction>;
   getTransactionById(transactionId: number): Promise<schema.Transaction | null>;
-  getTransactionsByStore(storeId: number, page?: number, limit?: number): Promise<{
+  getTransactionsByStore(
+    storeId: number,
+    page?: number,
+    limit?: number
+  ): Promise<{
     transactions: schema.Transaction[];
     total: number;
     page: number;
     limit: number;
   }>;
-  getTransactionsByCustomer(customerId: number, page?: number, limit?: number): Promise<{
+  getTransactionsByCustomer(
+    customerId: number,
+    page?: number,
+    limit?: number
+  ): Promise<{
     transactions: schema.Transaction[];
     total: number;
     page: number;
@@ -163,7 +174,11 @@ export interface ITransactionService {
     limit: number;
   }>;
   processRefund(params: RefundParams): Promise<schema.Return>;
-  getTransactionAnalytics(storeId: number, startDate?: Date, endDate?: Date): Promise<{
+  getTransactionAnalytics(
+    storeId: number,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{
     totalSales: string;
     totalRefunds: string;
     netSales: string;

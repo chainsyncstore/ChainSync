@@ -1,21 +1,14 @@
-import React, { useState } from 'react';
-import { AppShell } from '@/components/layout/app-shell';
-import { useAuth } from '@/providers/auth-provider';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
+import * as z from 'zod';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { AppShell } from '@/components/layout/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -26,8 +19,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -36,20 +27,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/providers/auth-provider';
 
 // Form schema for adding a new product
 const productFormSchema = z.object({
-  name: z.string().min(2, "Product name must be at least 2 characters"),
+  name: z.string().min(2, 'Product name must be at least 2 characters'),
   description: z.string().optional(),
-  barcode: z.string().min(5, "Barcode must be at least 5 characters"),
-  price: z.string().min(1, "Price is required"),
+  barcode: z.string().min(5, 'Barcode must be at least 5 characters'),
+  price: z.string().min(1, 'Price is required'),
   cost: z.string().optional(),
-  categoryId: z.string().min(1, "Category is required"),
+  categoryId: z.string().min(1, 'Category is required'),
   isPerishable: z.boolean().default(false),
-  storeId: z.string().min(1, "Store is required"),
-  quantity: z.coerce.number().min(0, "Initial quantity cannot be negative"),
-  minimumLevel: z.coerce.number().min(0, "Minimum level cannot be negative").default(5)
+  storeId: z.string().min(1, 'Store is required'),
+  quantity: z.coerce.number().min(0, 'Initial quantity cannot be negative'),
+  minimumLevel: z.coerce.number().min(0, 'Minimum level cannot be negative').default(5),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -59,10 +53,10 @@ export default function AddProductPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  
+
   // Redirect if not manager or admin
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager';
-  
+
   if (!isManagerOrAdmin) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -88,77 +82,77 @@ export default function AddProductPage() {
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      barcode: "",
-      price: "",
-      cost: "",
-      categoryId: "",
+      name: '',
+      description: '',
+      barcode: '',
+      price: '',
+      cost: '',
+      categoryId: '',
       isPerishable: false,
-      storeId: "",
+      storeId: '',
       quantity: 0,
-      minimumLevel: 5
-    }
+      minimumLevel: 5,
+    },
   });
 
   const createProductMutation = useMutation({
     mutationFn: async (productData: ProductFormValues) => {
       // First create the product
-      const productResponse = await apiRequest("POST", "/api/products", {
+      const productResponse = await apiRequest('POST', '/api/products', {
         name: productData.name,
-        description: productData.description || "",
+        description: productData.description || '',
         barcode: productData.barcode,
         price: productData.price,
-        cost: productData.cost || "0",
+        cost: productData.cost || '0',
         categoryId: parseInt(productData.categoryId),
-        isPerishable: productData.isPerishable
+        isPerishable: productData.isPerishable,
       });
-      
+
       if (!productResponse.ok) {
         const error = await productResponse.json();
-        throw new Error(error.message || "Failed to create product");
+        throw new Error(error.message || 'Failed to create product');
       }
-      
+
       const newProduct = await productResponse.json();
-      
+
       // Then create inventory entry for this product at the selected store
-      const inventoryResponse = await apiRequest("POST", "/api/inventory", {
+      const inventoryResponse = await apiRequest('POST', '/api/inventory', {
         productId: newProduct.id,
         storeId: parseInt(productData.storeId),
         quantity: productData.quantity,
-        minimumLevel: productData.minimumLevel
+        minimumLevel: productData.minimumLevel,
       });
-      
+
       if (!inventoryResponse.ok) {
         const error = await inventoryResponse.json();
-        throw new Error(error.message || "Failed to create inventory record");
+        throw new Error(error.message || 'Failed to create inventory record');
       }
-      
+
       return newProduct;
     },
     onSuccess: () => {
       toast({
-        title: "Product created successfully",
-        description: "The new product has been added to your inventory.",
+        title: 'Product created successfully',
+        description: 'The new product has been added to your inventory.',
       });
-      
+
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      
+
       // Reset form
       form.reset();
-      
+
       // Navigate to inventory page
       setLocation('/inventory');
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to create product",
+        title: 'Failed to create product',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   function onSubmit(data: ProductFormValues) {
@@ -232,10 +226,7 @@ export default function AddProductPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
@@ -246,17 +237,16 @@ export default function AddProductPage() {
                             <SelectItem value="loading" disabled>
                               Loading categories...
                             </SelectItem>
-                          ) : (
-                            categories && Array.isArray(categories) && categories.length > 0 ? 
-                              categories.map((category: any) => (
-                                <SelectItem key={category.id} value={category.id.toString()}>
-                                  {category.name}
-                                </SelectItem>
-                              )) 
-                            : 
-                              <SelectItem value="none" disabled>
-                                Add category in settings
+                          ) : categories && Array.isArray(categories) && categories.length > 0 ? (
+                            categories.map((category: any) => (
+                              <SelectItem key={category.id} value={category.id.toString()}>
+                                {category.name}
                               </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="none" disabled>
+                              Add category in settings
+                            </SelectItem>
                           )}
                         </SelectContent>
                       </Select>
@@ -276,17 +266,9 @@ export default function AddProductPage() {
                     <FormItem>
                       <FormLabel>Selling Price</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0.00"
-                          {...field}
-                        />
+                        <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        The retail price of the product.
-                      </FormDescription>
+                      <FormDescription>The retail price of the product.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -300,13 +282,7 @@ export default function AddProductPage() {
                     <FormItem>
                       <FormLabel>Cost Price (Optional)</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0.00"
-                          {...field}
-                        />
+                        <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
                       </FormControl>
                       <FormDescription>
                         How much it costs to purchase or produce this item.
@@ -324,15 +300,10 @@ export default function AddProductPage() {
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                       <div className="space-y-0.5">
                         <FormLabel>Perishable Item</FormLabel>
-                        <FormDescription>
-                          Toggle if this product has an expiry date
-                        </FormDescription>
+                        <FormDescription>Toggle if this product has an expiry date</FormDescription>
                       </div>
                       <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
                     </FormItem>
                   )}
@@ -347,10 +318,7 @@ export default function AddProductPage() {
                   <FormItem>
                     <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Enter a detailed product description..."
-                        {...field}
-                      />
+                      <Textarea placeholder="Enter a detailed product description..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -367,10 +335,7 @@ export default function AddProductPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Store Location</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a store" />
@@ -381,12 +346,14 @@ export default function AddProductPage() {
                               <SelectItem value="loading" disabled>
                                 Loading stores...
                               </SelectItem>
-                            ) : (
-                              stores && Array.isArray(stores) ? stores.map((store: any) => (
+                            ) : stores && Array.isArray(stores) ? (
+                              stores.map((store: any) => (
                                 <SelectItem key={store.id} value={store.id.toString()}>
                                   {store.name}
                                 </SelectItem>
-                              )) : <SelectItem value="none">No stores available</SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="none">No stores available</SelectItem>
                             )}
                           </SelectContent>
                         </Select>
@@ -406,16 +373,9 @@ export default function AddProductPage() {
                       <FormItem>
                         <FormLabel>Initial Quantity</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            {...field}
-                          />
+                          <Input type="number" min="0" step="1" {...field} />
                         </FormControl>
-                        <FormDescription>
-                          How many units are currently in stock.
-                        </FormDescription>
+                        <FormDescription>How many units are currently in stock.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -429,12 +389,7 @@ export default function AddProductPage() {
                       <FormItem>
                         <FormLabel>Minimum Stock Level</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            {...field}
-                          />
+                          <Input type="number" min="0" step="1" {...field} />
                         </FormControl>
                         <FormDescription>
                           The threshold at which to restock this product.
@@ -454,7 +409,7 @@ export default function AddProductPage() {
                       Creating...
                     </>
                   ) : (
-                    "Create Product"
+                    'Create Product'
                   )}
                 </Button>
               </div>

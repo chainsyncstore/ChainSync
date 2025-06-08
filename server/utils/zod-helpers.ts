@@ -1,6 +1,6 @@
 /**
  * Zod validation helpers
- * 
+ *
  * This file contains utility functions and common schemas for use with Zod validation
  * throughout the ChainSync application.
  */
@@ -21,10 +21,13 @@ export const CommonSchemas = {
   nonNegativeNumber: z.number().nonnegative(),
   integerString: z.string().regex(/^\d+$/).transform(Number),
   date: z.date(),
-  dateString: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).transform((str) => new Date(str)),
+  dateString: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .transform(str => new Date(str)),
   boolean: z.boolean(),
-  booleanString: z.enum(['true', 'false']).transform((value) => value === 'true'),
-  
+  booleanString: z.enum(['true', 'false']).transform(value => value === 'true'),
+
   // Common field patterns
   id: z.number().int().positive().or(z.string().uuid()),
   status: z.enum(['active', 'inactive', 'pending', 'deleted']),
@@ -32,15 +35,17 @@ export const CommonSchemas = {
     page: z.number().int().positive().default(1),
     limit: z.number().int().positive().max(100).default(20),
     sortBy: z.string().optional(),
-    sortDirection: z.enum(['asc', 'desc']).optional().default('asc')
+    sortDirection: z.enum(['asc', 'desc']).optional().default('asc'),
   }),
-  dateRange: z.object({
-    startDate: z.date(),
-    endDate: z.date()
-  }).refine(data => data.startDate <= data.endDate, {
-    message: 'End date must be after start date',
-    path: ['endDate']
-  })
+  dateRange: z
+    .object({
+      startDate: z.date(),
+      endDate: z.date(),
+    })
+    .refine(data => data.startDate <= data.endDate, {
+      message: 'End date must be after start date',
+      path: ['endDate'],
+    }),
 };
 
 /**
@@ -50,15 +55,15 @@ export const SchemaUtils = {
   /**
    * Converts string representation of numbers to actual numbers
    */
-  stringToNumber: (schema: z.ZodString) => schema.transform((val) => parseFloat(val)),
-  
+  stringToNumber: (schema: z.ZodString) => schema.transform(val => parseFloat(val)),
+
   /**
    * Trims all string values in an object schema
    */
   trimAllStrings: <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
     const newShape = Object.entries(schema.shape).reduce((acc, [key, value]) => {
       if (value instanceof z.ZodString) {
-        acc[key] = value.transform((val) => val.trim());
+        acc[key] = value.transform(val => val.trim());
       } else if (value instanceof z.ZodObject) {
         acc[key] = SchemaUtils.trimAllStrings(value);
       } else {
@@ -66,24 +71,24 @@ export const SchemaUtils = {
       }
       return acc;
     }, {} as any);
-    
+
     return z.object(newShape);
   },
-  
+
   /**
    * Creates a schema for optional fields that, if present, must meet validation criteria
    */
   optionalField: <T extends z.ZodTypeAny>(schema: T) => {
     return z.union([schema, z.undefined()]);
   },
-  
+
   /**
    * Creates a schema for fields that can be null or must meet validation criteria
    */
   nullableField: <T extends z.ZodTypeAny>(schema: T) => {
     return z.union([schema, z.null()]);
   },
-  
+
   /**
    * Converts enum values to a Zod schema
    */
@@ -91,24 +96,27 @@ export const SchemaUtils = {
     const values = Object.values(enumObj).filter(value => typeof value === 'string') as [T, ...T[]];
     return z.enum(values);
   },
-  
+
   /**
    * Converts number enum values to a Zod schema
    */
-  numberEnumToSchema: <T extends EnumLike>(enumObj: T) => { // Changed constraint to EnumLike
+  numberEnumToSchema: <T extends EnumLike>(enumObj: T) => {
+    // Changed constraint to EnumLike
     return z.nativeEnum(enumObj);
   },
-  
+
   /**
    * Creates a schema for ID validation with appropriate error message
    */
   idValidator: (entityName: string) => {
-    return z.number().int().positive({ 
-      message: `Invalid ${entityName} ID. Must be a positive integer.` 
-    }).or(
-      z.string().uuid({ message: `Invalid ${entityName} ID. Must be a valid UUID.` })
-    );
-  }
+    return z
+      .number()
+      .int()
+      .positive({
+        message: `Invalid ${entityName} ID. Must be a positive integer.`,
+      })
+      .or(z.string().uuid({ message: `Invalid ${entityName} ID. Must be a valid UUID.` }));
+  },
 };
 
 /**
@@ -126,8 +134,8 @@ export const ValidationErrorMessages = {
     max: (field: string, max: number) => `${field} must be at most ${max}`,
     integer: (field: string) => `${field} must be an integer`,
     positive: (field: string) => `${field} must be positive`,
-    nonNegative: (field: string) => `${field} must be zero or positive`
-  }
+    nonNegative: (field: string) => `${field} must be zero or positive`,
+  },
 };
 
 /**
@@ -150,7 +158,7 @@ export const ValidationHelpers = {
     }
     return String(value);
   },
-  
+
   /**
    * Safely parse a string to a number, returning null if invalid
    */
@@ -161,23 +169,23 @@ export const ValidationHelpers = {
     const num = Number(value);
     return isNaN(num) ? null : num;
   },
-  
+
   /**
    * Creates a formatted validation error response
    */
   formatZodError: (error: z.ZodError): Record<string, string[]> => {
     const formattedErrors: Record<string, string[]> = {};
-    
-    error.errors.forEach((err) => {
+
+    error.errors.forEach(err => {
       const path = err.path.join('.');
       if (!formattedErrors[path]) {
         formattedErrors[path] = [];
       }
       formattedErrors[path].push(err.message);
     });
-    
+
     return formattedErrors;
-  }
+  },
 };
 
 /**
@@ -200,7 +208,7 @@ export function validateWithZod<T>(schema: z.ZodType<T>, data: unknown): Validat
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        errors: ValidationHelpers.formatZodError(error)
+        errors: ValidationHelpers.formatZodError(error),
       };
     }
     throw error;

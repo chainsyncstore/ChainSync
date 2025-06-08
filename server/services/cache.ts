@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+
 import { env } from '../config/env';
 import { logger } from '../services/logger';
 
@@ -7,7 +8,7 @@ export class CacheService {
 
   constructor() {
     this.client = new Redis(env.REDIS_URL);
-    this.client.on('error', (error) => {
+    this.client.on('error', error => {
       logger.error('Redis connection error:', error);
     });
     this.client.on('connect', () => {
@@ -22,7 +23,11 @@ export class CacheService {
       return JSON.parse(value);
     } catch (error: unknown) {
       logger.error('Cache get error:', error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   }
 
@@ -31,7 +36,11 @@ export class CacheService {
       await this.client.set(key, JSON.stringify(value), 'EX', ttl);
     } catch (error: unknown) {
       logger.error('Cache set error:', error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   }
 
@@ -40,7 +49,11 @@ export class CacheService {
       await this.client.del(key);
     } catch (error: unknown) {
       logger.error('Cache delete error:', error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   }
 
@@ -52,7 +65,11 @@ export class CacheService {
       }
     } catch (error: unknown) {
       logger.error('Cache invalidate pattern error:', error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   }
 
@@ -61,7 +78,11 @@ export class CacheService {
       await this.client.disconnect();
     } catch (error: unknown) {
       logger.error('Cache close error:', error);
-      throw error instanceof AppError ? error : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', { error: error instanceof Error ? error.message : 'Unknown error' });
+      throw error instanceof AppError
+        ? error
+        : new AppError('Unexpected error', 'system', 'UNKNOWN_ERROR', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
     }
   }
 }

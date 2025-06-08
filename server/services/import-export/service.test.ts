@@ -1,14 +1,18 @@
-import { ImportExportService } from './service';
-import { AppError, ErrorCategory } from '@shared/types/errors';
-import { ImportExportRepository } from './repository';
+import { PassThrough } from 'stream';
+
+import { AppError, ErrorCategory } from '@shared/types/errors.js';
+
 // ValidationService is the actual class name in validation.ts
 // The service aliases it as ValidationServiceImpl internally.
-import { ValidationService } from './validation';
-import { Parser as Json2CsvParser } from 'json2csv';
+
 import { parse as csvParserModule } from 'csv-parse'; // aliased to avoid conflict
 import * as ExcelJS from 'exceljs';
 import { Express } from 'express';
-import { PassThrough } from 'stream';
+import { Parser as Json2CsvParser } from 'json2csv';
+
+import { ImportExportRepository } from './repository';
+import { ImportExportService } from './service';
+import { ValidationService } from './validation';
 
 // --- Mocks Setup ---
 
@@ -76,27 +80,34 @@ jest.mock('json2csv', () => ({
 
 // Mock csv-parse
 const mockCsvParserInstance: unknown = {
-  on: jest.fn((event: string, callback: (...args: unknown[]) => void): unknown => mockCsvParserInstance), // Allow chaining
+  on: jest.fn(
+    (event: string, callback: (...args: unknown[]) => void): unknown => mockCsvParserInstance
+  ), // Allow chaining
   write: jest.fn(),
   end: jest.fn(),
   // Helper to simulate events for tests
   _simulateData: (data: unknown) => {
-    const dataCallback = mockCsvParserInstance.on.mock.calls.find((call: [string, Function]) => call[0] === 'data')?.[1];
+    const dataCallback = mockCsvParserInstance.on.mock.calls.find(
+      (call: [string, Function]) => call[0] === 'data'
+    )?.[1];
     if (dataCallback) dataCallback(data);
   },
   _simulateEnd: () => {
-    const endCallback = mockCsvParserInstance.on.mock.calls.find((call: [string, Function]) => call[0] === 'end')?.[1];
+    const endCallback = mockCsvParserInstance.on.mock.calls.find(
+      (call: [string, Function]) => call[0] === 'end'
+    )?.[1];
     if (endCallback) endCallback();
   },
   _simulateError: (err: Error) => {
-    const errorCallback = mockCsvParserInstance.on.mock.calls.find((call: [string, Function]) => call[0] === 'error')?.[1];
+    const errorCallback = mockCsvParserInstance.on.mock.calls.find(
+      (call: [string, Function]) => call[0] === 'error'
+    )?.[1];
     if (errorCallback) errorCallback(err);
-  }
+  },
 };
 jest.mock('csv-parse', () => ({
   parse: jest.fn(() => mockCsvParserInstance),
 }));
-
 
 // --- Test Suite ---
 
@@ -108,23 +119,30 @@ describe('ImportExportService', () => {
 
     // Reset ExcelJS worksheet mock specifics
     mockExcelWorksheetInstance.addRow.mockClear();
-    mockExcelWorksheetInstance.getRow.mockClear().mockReturnValue({ values: [], getCell: jest.fn().mockReturnValue({ value: undefined }) });
+    mockExcelWorksheetInstance.getRow
+      .mockClear()
+      .mockReturnValue({ values: [], getCell: jest.fn().mockReturnValue({ value: undefined }) });
     mockExcelWorksheetInstance.getRows.mockClear().mockReturnValue([]);
     mockExcelWorksheetInstance.getCell.mockClear().mockReturnValue({ value: undefined });
     mockExcelWorksheetInstance.rowCount = 0;
-    
+
     // Reset csv-parse instance mocks
-    mockCsvParserInstance.on.mockClear().mockImplementation((event: string, callback: (...args: unknown[]) => void) => mockCsvParserInstance);
+    mockCsvParserInstance.on
+      .mockClear()
+      .mockImplementation(
+        (event: string, callback: (...args: unknown[]) => void) => mockCsvParserInstance
+      );
     mockCsvParserInstance.write.mockClear();
     mockCsvParserInstance.end.mockClear().mockImplementation(() => {
       // Default end behavior: if an 'end' callback is registered, call it.
       // Tests can override this by directly calling _simulateEnd or _simulateError.
-      const endCallback = mockCsvParserInstance.on.mock.calls.find((call: [string, Function]) => call[0] === 'end')?.[1];
+      const endCallback = mockCsvParserInstance.on.mock.calls.find(
+        (call: [string, Function]) => call[0] === 'end'
+      )?.[1];
       if (endCallback) {
         endCallback();
       }
     });
-
 
     service = new ImportExportService();
   });
@@ -184,12 +202,16 @@ describe('ImportExportService', () => {
 
       expect(result.success).toBe(false);
       expect(result.message).toBe('Validation failed');
-      expect(result.errors).toEqual([{ record: mockInvalidRecord, errors: mockInvalidRecord.errors }]);
+      expect(result.errors).toEqual([
+        { record: mockInvalidRecord, errors: mockInvalidRecord.errors },
+      ]);
       expect(result.invalidCount).toBe(1);
     });
 
     it('should throw INVALID_DATA if input is not an array', async () => {
-      await expect(service.validateData(null as any)).rejects.toThrow(service['errors'].INVALID_DATA);
+      await expect(service.validateData(null as any)).rejects.toThrow(
+        service['errors'].INVALID_DATA
+      );
     });
   });
 
@@ -218,7 +240,9 @@ describe('ImportExportService', () => {
 
     it('should throw PROCESSING_ERROR if repository.createImport fails', async () => {
       mockCreateImport.mockRejectedValue(new Error('DB error'));
-      await expect(service.importData(userId, mockData, entityType)).rejects.toThrow(service['errors'].PROCESSING_ERROR);
+      await expect(service.importData(userId, mockData, entityType)).rejects.toThrow(
+        service['errors'].PROCESSING_ERROR
+      );
     });
   });
 
@@ -250,18 +274,23 @@ describe('ImportExportService', () => {
     it('should generate XLSX data', async () => {
       const options = { format: 'xlsx' as 'xlsx', includeHeaders: true };
       mockExcelWorkbookInstance.xlsx.writeBuffer.mockResolvedValue(Buffer.from('excel-data'));
-      
+
       // Mock worksheet methods for generateExcel
       mockExcelWorksheetInstance.addRow.mockImplementation(() => {}); // Reset for this test
 
       const buffer = await service.exportData(userId, entityType, options);
-      
+
       expect(mockGetExportData).toHaveBeenCalledWith(userId, entityType, options);
       expect(ExcelJS.Workbook).toHaveBeenCalledTimes(1);
       expect(mockExcelWorkbookInstance.addWorksheet).toHaveBeenCalledWith('Data');
-      expect(mockExcelWorksheetInstance.addRow).toHaveBeenCalledTimes(mockExportData.length + (options.includeHeaders ? 1 : 0));
+      expect(mockExcelWorksheetInstance.addRow).toHaveBeenCalledTimes(
+        mockExportData.length + (options.includeHeaders ? 1 : 0)
+      );
       if (options.includeHeaders && mockExportData.length > 0) {
-        expect(mockExcelWorksheetInstance.addRow).toHaveBeenNthCalledWith(1, Object.keys(mockExportData[0]));
+        expect(mockExcelWorksheetInstance.addRow).toHaveBeenNthCalledWith(
+          1,
+          Object.keys(mockExportData[0])
+        );
       }
       expect(mockExcelWorkbookInstance.xlsx.writeBuffer).toHaveBeenCalledTimes(1);
       expect(buffer.toString()).toBe('excel-data');
@@ -269,28 +298,38 @@ describe('ImportExportService', () => {
 
     it('should throw INVALID_FILE_FORMAT for unsupported format', async () => {
       const options = { format: 'xml' as any, includeHeaders: false };
-      await expect(service.exportData(userId, entityType, options)).rejects.toThrow(service['errors'].INVALID_FILE_FORMAT);
+      await expect(service.exportData(userId, entityType, options)).rejects.toThrow(
+        service['errors'].INVALID_FILE_FORMAT
+      );
     });
 
     it('should throw PROCESSING_ERROR if getExportData fails', async () => {
       mockGetExportData.mockRejectedValue(new Error('DB error'));
       const options = { format: 'csv' as 'csv', includeHeaders: true };
-      await expect(service.exportData(userId, entityType, options)).rejects.toThrow(service['errors'].PROCESSING_ERROR);
+      await expect(service.exportData(userId, entityType, options)).rejects.toThrow(
+        service['errors'].PROCESSING_ERROR
+      );
     });
   });
 
   describe('validateFile', () => {
-    const mockFile = (originalname: string, mimetype: string, size: number, bufferContent: string = '') => ({
-      originalname,
-      mimetype,
-      size,
-      buffer: Buffer.from(bufferContent),
-    } as Express.Multer.File);
+    const mockFile = (
+      originalname: string,
+      mimetype: string,
+      size: number,
+      bufferContent: string = ''
+    ) =>
+      ({
+        originalname,
+        mimetype,
+        size,
+        buffer: Buffer.from(bufferContent),
+      }) as Express.Multer.File;
 
     it('should validate a CSV file successfully', async () => {
       const file = mockFile('test.csv', 'text/csv', 1024, 'header1,header2\nval1,val2');
       const expectedData = [{ header1: 'val1', header2: 'val2' }];
-      
+
       // Configure csv-parse mock for this test
       mockCsvParserInstance.end.mockImplementation(() => {
         mockCsvParserInstance._simulateData({ header1: 'val1', header2: 'val2' });
@@ -312,29 +351,37 @@ describe('ImportExportService', () => {
     });
 
     it('should validate an XLSX file successfully', async () => {
-      const file = mockFile('test.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 1024, 'excelcontent');
+      const file = mockFile(
+        'test.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        1024,
+        'excelcontent'
+      );
       const mockHeaders = [null, 'col1', 'col2']; // ExcelJS often has a leading null/undefined
       const mockRowData = [null, 'val1', 'val2'];
-      
+
       mockExcelWorksheetInstance.getRow.mockImplementation((rowNum: number) => {
         if (rowNum === 1) return { values: mockHeaders, getCell: jest.fn() } as any;
-        return { values: mockRowData, getCell: (colNum: number) => ({ value: mockRowData[colNum-1] }) } as any; // simplified
+        return {
+          values: mockRowData,
+          getCell: (colNum: number) => ({ value: mockRowData[colNum - 1] }),
+        } as any; // simplified
       });
       mockExcelWorksheetInstance.getRows.mockReturnValue([
-        { getCell: (idx: number) => ({ value: mockRowData[idx] }) } // Adjust based on actual cell indexing
+        { getCell: (idx: number) => ({ value: mockRowData[idx] }) }, // Adjust based on actual cell indexing
       ] as any);
       mockExcelWorksheetInstance.rowCount = 2; // Header + 1 data row
 
       // Refined getCell for header mapping
-      const cellValues: { [key: string]: string } = {'col1': 'val1', 'col2': 'val2'};
+      const cellValues: { [key: string]: string } = { col1: 'val1', col2: 'val2' };
       mockExcelWorksheetInstance.getRows.mockReturnValue([
-        { getCell: (idx: number) => {
-            const headerKey = mockHeaders[idx] as string | null;
+        {
+          getCell: (idx: number) => {
+            const headerKey = mockHeaders[idx];
             return { value: headerKey ? cellValues[headerKey] : undefined };
-          }
-        }
+          },
+        },
       ] as any);
-
 
       const result = await service.validateFile(file);
       expect(result.type).toBe('xlsx');
@@ -347,7 +394,7 @@ describe('ImportExportService', () => {
       expect(result.data).toBeInstanceOf(Array); // Basic check
       expect(mockExcelWorkbookInstance.xlsx.load).toHaveBeenCalledWith(file.buffer);
     });
-    
+
     it('should throw FILE_TOO_LARGE if file size exceeds limit', async () => {
       const file = mockFile('large.csv', 'text/csv', 60 * 1024 * 1024); // 60MB
       await expect(service.validateFile(file)).rejects.toThrow(service['errors'].FILE_TOO_LARGE);
@@ -355,7 +402,9 @@ describe('ImportExportService', () => {
 
     it('should throw INVALID_FILE_FORMAT for unsupported extension', async () => {
       const file = mockFile('test.txt', 'text/plain', 1024);
-      await expect(service.validateFile(file)).rejects.toThrow(service['errors'].INVALID_FILE_FORMAT);
+      await expect(service.validateFile(file)).rejects.toThrow(
+        service['errors'].INVALID_FILE_FORMAT
+      );
     });
 
     it('should throw INVALID_MIME_TYPE for mismatched MIME type', async () => {
@@ -382,16 +431,28 @@ describe('ImportExportService', () => {
     });
 
     it('should throw INVALID_DATA if XLSX parsing fails (e.g., load error)', async () => {
-      const file = mockFile('bad.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 1024);
+      const file = mockFile(
+        'bad.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        1024
+      );
       mockExcelWorkbookInstance.xlsx.load.mockRejectedValue(new Error('Excel load error'));
       await expect(service.validateFile(file)).rejects.toThrow(service['errors'].INVALID_DATA);
     });
 
     it('should throw INVALID_EXCEL_WORKSHEET if worksheet is not found', async () => {
-        const file = mockFile('empty.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 1024);
-        mockExcelWorkbookInstance.getWorksheet.mockReturnValue(null); // Simulate no worksheet
-        const expectedError = new AppError('Excel file does not contain a valid worksheet.', ErrorCategory.IMPORT_EXPORT, 'INVALID_EXCEL_WORKSHEET');
-        await expect(service.validateFile(file)).rejects.toThrow(expectedError);
+      const file = mockFile(
+        'empty.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        1024
+      );
+      mockExcelWorkbookInstance.getWorksheet.mockReturnValue(null); // Simulate no worksheet
+      const expectedError = new AppError(
+        'Excel file does not contain a valid worksheet.',
+        ErrorCategory.IMPORT_EXPORT,
+        'INVALID_EXCEL_WORKSHEET'
+      );
+      await expect(service.validateFile(file)).rejects.toThrow(expectedError);
     });
   });
 
@@ -406,9 +467,9 @@ describe('ImportExportService', () => {
       const result = await service.processImport(data, { batchSize: 2 }, importId);
 
       expect(mockProcessBatch).toHaveBeenCalledTimes(3); // 5 items, batch size 2 -> 3 batches (2, 2, 1)
-      expect(mockProcessBatch).toHaveBeenNthCalledWith(1, [{id: 0}, {id: 1}], importId);
-      expect(mockProcessBatch).toHaveBeenNthCalledWith(2, [{id: 2}, {id: 3}], importId);
-      expect(mockProcessBatch).toHaveBeenNthCalledWith(3, [{id: 4}], importId);
+      expect(mockProcessBatch).toHaveBeenNthCalledWith(1, [{ id: 0 }, { id: 1 }], importId);
+      expect(mockProcessBatch).toHaveBeenNthCalledWith(2, [{ id: 2 }, { id: 3 }], importId);
+      expect(mockProcessBatch).toHaveBeenNthCalledWith(3, [{ id: 4 }], importId);
       expect(result.success).toBe(true);
       expect(result.totalProcessed).toBe(data.length);
       expect(result.validCount).toBe(data.length);
@@ -419,7 +480,7 @@ describe('ImportExportService', () => {
       service['config'].batchSize = 2;
       mockProcessBatch
         .mockResolvedValueOnce({ errors: [{ recordId: 0, message: 'err' }] }) // Batch 1 has 1 error
-        .mockResolvedValueOnce({ errors: [] })                                 // Batch 2 succeeds
+        .mockResolvedValueOnce({ errors: [] }) // Batch 2 succeeds
         .mockResolvedValueOnce({ errors: [{ recordId: 4, message: 'err' }] }); // Batch 3 has 1 error
 
       const result = await service.processImport(data, { batchSize: 2 }, importId);
@@ -429,13 +490,14 @@ describe('ImportExportService', () => {
       expect(result.invalidCount).toBe(2); // 2 errors
       expect(result.validCount).toBe(data.length - 2); // 3 valid
     });
-    
+
     it('should throw PROCESSING_ERROR if a batch processing fails unexpectedly', async () => {
       service['config'].batchSize = 2;
-      mockProcessBatch.mockRejectedValueOnce(new Error("Critical batch error"));
+      mockProcessBatch.mockRejectedValueOnce(new Error('Critical batch error'));
 
-      await expect(service.processImport(data, { batchSize: 2 }, importId))
-        .rejects.toThrow(service['errors'].PROCESSING_ERROR);
+      await expect(service.processImport(data, { batchSize: 2 }, importId)).rejects.toThrow(
+        service['errors'].PROCESSING_ERROR
+      );
     });
   });
 
@@ -466,7 +528,9 @@ describe('ImportExportService', () => {
 
     it('should throw STORAGE_ERROR if repository.processBatch fails', async () => {
       mockProcessBatch.mockRejectedValue(new Error('DB connection lost'));
-      await expect(service.processBatch(batchData, importId)).rejects.toThrow(service['errors'].STORAGE_ERROR);
+      await expect(service.processBatch(batchData, importId)).rejects.toThrow(
+        service['errors'].STORAGE_ERROR
+      );
     });
   });
 
@@ -480,40 +544,41 @@ describe('ImportExportService', () => {
     // parseExcel is tested via validateFile success/failure cases for XLSX.
     // Example: Deeper test for parseExcel's header and data extraction if needed
     it('parseExcel should correctly map headers and data', async () => {
-        const fileBuffer = Buffer.from('dummy excel content');
-        // Mock ExcelJS getWorksheet, getRow, getRows, getCell behavior
-        const headers = [null, 'Name', 'Age']; // Typical ExcelJS row values for headers
-        const dataRow1 = [null, 'Alice', 30];
-        const dataRow2 = [null, 'Bob', 24];
+      const fileBuffer = Buffer.from('dummy excel content');
+      // Mock ExcelJS getWorksheet, getRow, getRows, getCell behavior
+      const headers = [null, 'Name', 'Age']; // Typical ExcelJS row values for headers
+      const dataRow1 = [null, 'Alice', 30];
+      const dataRow2 = [null, 'Bob', 24];
 
-        // mockExcelWorksheetInstance.getWorksheet.mockReturnValue(mockExcelWorksheetInstance); // This line is incorrect and removed
-        // The global mock mockExcelWorkbookInstance.getWorksheet already returns mockExcelWorksheetInstance
-        mockExcelWorkbookInstance.getWorksheet.mockReturnValue(mockExcelWorksheetInstance); // Ensure workbook's getWorksheet is correctly mocked for this test too if needed, or rely on global
+      // mockExcelWorksheetInstance.getWorksheet.mockReturnValue(mockExcelWorksheetInstance); // This line is incorrect and removed
+      // The global mock mockExcelWorkbookInstance.getWorksheet already returns mockExcelWorksheetInstance
+      mockExcelWorkbookInstance.getWorksheet.mockReturnValue(mockExcelWorksheetInstance); // Ensure workbook's getWorksheet is correctly mocked for this test too if needed, or rely on global
 
-        mockExcelWorksheetInstance.getRow.mockImplementation((rowNum: number) => {
-            if (rowNum === 1) return { values: headers, getCell: jest.fn() } as any;
-            // This part is not directly used by the current parseExcel logic, which uses getRows
-            return { values: [], getCell: jest.fn() } as any;
-        });
-        mockExcelWorksheetInstance.getRows.mockImplementation((startRow, count) => {
-            if (startRow === 2) { // Data rows
-                return [
-                    { getCell: (idx: number) => ({ value: dataRow1[idx] }) },
-                    { getCell: (idx: number) => ({ value: dataRow2[idx] }) },
-                ] as any[];
-            }
-            return [];
-        });
-        mockExcelWorksheetInstance.rowCount = 3; // 1 header + 2 data rows
+      mockExcelWorksheetInstance.getRow.mockImplementation((rowNum: number) => {
+        if (rowNum === 1) return { values: headers, getCell: jest.fn() } as any;
+        // This part is not directly used by the current parseExcel logic, which uses getRows
+        return { values: [], getCell: jest.fn() } as any;
+      });
+      mockExcelWorksheetInstance.getRows.mockImplementation((startRow, count) => {
+        if (startRow === 2) {
+          // Data rows
+          return [
+            { getCell: (idx: number) => ({ value: dataRow1[idx] }) },
+            { getCell: (idx: number) => ({ value: dataRow2[idx] }) },
+          ] as any[];
+        }
+        return [];
+      });
+      mockExcelWorksheetInstance.rowCount = 3; // 1 header + 2 data rows
 
-        // service['parseExcel'] is private, so test through validateFile or make it protected/public for testing
-        // For this example, we assume it's callable for a focused test or test via validateFile
-        const parsedData = await service['parseExcel'](fileBuffer);
+      // service['parseExcel'] is private, so test through validateFile or make it protected/public for testing
+      // For this example, we assume it's callable for a focused test or test via validateFile
+      const parsedData = await service['parseExcel'](fileBuffer);
 
-        expect(parsedData).toEqual([
-            { Name: 'Alice', Age: 30 },
-            { Name: 'Bob', Age: 24 },
-        ]);
+      expect(parsedData).toEqual([
+        { Name: 'Alice', Age: 30 },
+        { Name: 'Bob', Age: 24 },
+      ]);
     });
   });
 });

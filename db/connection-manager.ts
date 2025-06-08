@@ -1,11 +1,12 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
+import { schema } from '@shared/schema';
 import { drizzle, type NeonDatabase } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import ws from 'ws';
+
 // Import the specific 'schema' object
-import { schema } from "@shared/schema"; 
 import { getLogger } from '../shared/logging.js';
 
-const logger = getLogger().child({ component: 'db-connection-manager' });
+const logger = getLogger('db-connection-manager').child({ component: 'db-connection-manager' });
 
 // Configure Neon client
 neonConfig.webSocketConstructor = ws;
@@ -34,7 +35,7 @@ class DbConnectionManager {
     queryTimes: [] as number[],
   };
   private slowQueryThreshold = 1000; // 1 second
-  
+
   private constructor() {
     this.initializePool();
   }
@@ -48,12 +49,12 @@ class DbConnectionManager {
 
   private initializePool(): void {
     if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL environment variable is required");
+      throw new Error('DATABASE_URL environment variable is required');
     }
 
     // Determine pool size based on environment
-    const poolSize = process.env.DB_POOL_SIZE 
-      ? parseInt(process.env.DB_POOL_SIZE, 10) 
+    const poolSize = process.env.DB_POOL_SIZE
+      ? parseInt(process.env.DB_POOL_SIZE, 10)
       : DEFAULT_POOL_SIZE;
 
     // Create connection pool with optimized settings
@@ -66,12 +67,12 @@ class DbConnectionManager {
     });
 
     // Set up event listeners for connection management
-    this.pool.on('connect', (client) => {
+    this.pool.on('connect', client => {
       this.connectionMetrics.totalConnections++;
       this.connectionMetrics.activeConnections++;
-      logger.debug('Database connection established', { 
+      logger.debug('Database connection established', {
         totalConnections: this.connectionMetrics.totalConnections,
-        activeConnections: this.connectionMetrics.activeConnections 
+        activeConnections: this.connectionMetrics.activeConnections,
       });
     });
 
@@ -86,7 +87,7 @@ class DbConnectionManager {
       this.connectionMetrics.activeConnections--;
     });
 
-    this.pool.on('error', (err) => {
+    this.pool.on('error', err => {
       logger.error('Database pool error', { error: err });
     });
 
@@ -94,9 +95,9 @@ class DbConnectionManager {
     this.drizzleDb = drizzle(this.pool, { schema }); // Pass pool directly
     this.isInitialized = true;
 
-    logger.info('Database connection pool initialized', { 
+    logger.info('Database connection pool initialized', {
       poolSize,
-      idleTimeoutMs: CONNECTION_IDLE_TIMEOUT_MS 
+      idleTimeoutMs: CONNECTION_IDLE_TIMEOUT_MS,
     });
   }
 
@@ -124,27 +125,27 @@ class DbConnectionManager {
       const result = await queryFn(this.drizzleDb);
       const endTime = performance.now();
       const duration = endTime - startTime;
-      
+
       // Track query time for metrics
       this.connectionMetrics.queryTimes.push(duration);
       if (this.connectionMetrics.queryTimes.length > 100) {
         // Keep only the most recent 100 queries for performance metrics
         this.connectionMetrics.queryTimes.shift();
       }
-      
+
       // Log slow queries
       if (duration > this.slowQueryThreshold) {
-        logger.warn('Slow query detected', { 
-          queryName, 
-          durationMs: duration 
+        logger.warn('Slow query detected', {
+          queryName,
+          durationMs: duration,
         });
       }
-      
+
       return result;
     } catch (error) {
-      logger.error('Query error', { 
-        queryName, 
-        error 
+      logger.error('Query error', {
+        queryName,
+        error,
       });
       throw error;
     }
@@ -163,10 +164,12 @@ class DbConnectionManager {
   }> {
     const poolStats = await this.pool.query('SELECT count(*) as total FROM pg_stat_activity');
     const waitingClients = this.pool.waitingCount;
-    
-    const avgQueryTime = this.connectionMetrics.queryTimes.length > 0
-      ? this.connectionMetrics.queryTimes.reduce((sum, time) => sum + time, 0) / this.connectionMetrics.queryTimes.length
-      : 0;
+
+    const avgQueryTime =
+      this.connectionMetrics.queryTimes.length > 0
+        ? this.connectionMetrics.queryTimes.reduce((sum, time) => sum + time, 0) /
+          this.connectionMetrics.queryTimes.length
+        : 0;
 
     return {
       totalConnections: this.connectionMetrics.totalConnections,

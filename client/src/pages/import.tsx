@@ -1,21 +1,45 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Loader2,
+  FileUp,
+  FileWarning,
+  FileCheck,
+  FileX,
+  Download,
+  AlertTriangle,
+  CheckCircle2,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { Link } from 'wouter';
-import { useAuth } from '@/providers/auth-provider';
+
 import { AppShell } from '@/components/layout/app-shell';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Loader2, FileUp, FileWarning, FileCheck, FileX, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/providers/auth-provider';
 
 interface ColumnMapping {
   source: string;
@@ -63,37 +87,39 @@ export default function ImportPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [dataType, setDataType] = useState<'loyalty' | 'inventory'>('loyalty');
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMapping, setIsMapping] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  
+
   const [originalData, setOriginalData] = useState<any[]>([]);
   const [sampleData, setSampleData] = useState<any[]>([]);
   const [suggestedMappings, setSuggestedMappings] = useState<ColumnMapping[]>([]);
   const [finalMappings, setFinalMappings] = useState<Record<string, string>>({});
-  
+
   const [validationResult, setValidationResult] = useState<ImportResult | null>(null);
   const [importResult, setImportResult] = useState<any | null>(null);
-  const [currentStep, setCurrentStep] = useState<'upload' | 'mapping' | 'validation' | 'import' | 'complete'>('upload');
+  const [currentStep, setCurrentStep] = useState<
+    'upload' | 'mapping' | 'validation' | 'import' | 'complete'
+  >('upload');
   const [selectedStore, setSelectedStore] = useState<string>('');
-  
+
   // Fetch available stores
   const { data: stores, isLoading: isLoadingStores } = useQuery<Store[]>({
     queryKey: ['/api/stores'],
     enabled: user?.role === 'admin' || currentStep === 'import', // Only fetch for admins or when needed
   });
-  
+
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
     }
   };
-  
+
   // Handle file upload and analysis
   const handleFileUpload = async () => {
     if (!file) {
@@ -104,26 +130,26 @@ export default function ImportPage() {
       });
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('dataType', dataType);
-    
+
     try {
       const response = await apiRequest('POST', '/api/import/analyze', formData);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to analyze file');
       }
-      
+
       const data = await response.json();
       setOriginalData(data.data);
       setSampleData(data.sampleData);
       setSuggestedMappings(data.columnSuggestions);
-      
+
       // Initialize mappings from suggestions with high confidence
       const initialMappings: Record<string, string> = {};
       data.columnSuggestions.forEach((mapping: ColumnMapping) => {
@@ -132,9 +158,9 @@ export default function ImportPage() {
         }
       });
       setFinalMappings(initialMappings);
-      
+
       setCurrentStep('mapping');
-      
+
       toast({
         title: 'File analyzed successfully',
         description: `Found ${data.data.length} rows of data`,
@@ -150,7 +176,7 @@ export default function ImportPage() {
       setIsLoading(false);
     }
   };
-  
+
   // Handle mapping change
   const handleMappingChange = (sourceColumn: string, targetColumn: string) => {
     setFinalMappings({
@@ -158,27 +184,27 @@ export default function ImportPage() {
       [sourceColumn]: targetColumn,
     });
   };
-  
+
   // Handle mapping completion and validation
   const handleValidateData = async () => {
     setIsValidating(true);
-    
+
     try {
       const response = await apiRequest('POST', '/api/import/validate', {
         data: originalData,
         mapping: finalMappings,
         dataType,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to validate data');
       }
-      
+
       const result = await response.json();
       setValidationResult(result);
       setCurrentStep('validation');
-      
+
       toast({
         title: 'Data validated',
         description: `${result.importedRows} of ${result.totalRows} rows are valid`,
@@ -195,7 +221,7 @@ export default function ImportPage() {
       setIsValidating(false);
     }
   };
-  
+
   // Handle final import
   const handleImportData = async () => {
     if (!selectedStore) {
@@ -206,25 +232,25 @@ export default function ImportPage() {
       });
       return;
     }
-    
+
     setIsImporting(true);
-    
+
     try {
       const response = await apiRequest('POST', '/api/import/process', {
         data: validationResult?.mappedData,
         dataType,
         storeId: selectedStore,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to import data');
       }
-      
+
       const result = await response.json();
       setImportResult(result);
       setCurrentStep('complete');
-      
+
       // Invalidate queries based on data type
       if (dataType === 'loyalty') {
         queryClient.invalidateQueries({ queryKey: ['/api/loyalty/members'] });
@@ -232,7 +258,7 @@ export default function ImportPage() {
         queryClient.invalidateQueries({ queryKey: ['/api/products'] });
         queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       }
-      
+
       toast({
         title: 'Import completed',
         description: `Successfully imported ${result.importedRows} of ${result.totalRows} rows`,
@@ -248,31 +274,31 @@ export default function ImportPage() {
       setIsImporting(false);
     }
   };
-  
+
   // Handle error report download
   const handleDownloadErrorReport = async () => {
     if (!validationResult) return;
-    
+
     try {
       const requestBody = { validationResult, dataType };
       const response = await fetch('/api/import/error-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'text/csv',
-          "Cache-Control": "no-cache, no-store",
-          "Pragma": "no-cache"
+          Accept: 'text/csv',
+          'Cache-Control': 'no-cache, no-store',
+          Pragma: 'no-cache',
         },
         body: JSON.stringify(requestBody),
-        credentials: "include",
-        cache: "no-store"
+        credentials: 'include',
+        cache: 'no-store',
       });
-      
+
       if (!response.ok) {
         const text = (await response.text()) || response.statusText;
         throw new Error(`${response.status}: ${text}`);
       }
-      
+
       // Create a download link and trigger the download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -284,7 +310,7 @@ export default function ImportPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: 'Error report downloaded',
         description: 'The error report has been downloaded as a CSV file',
@@ -298,7 +324,7 @@ export default function ImportPage() {
       });
     }
   };
-  
+
   // Reset the import process
   const handleReset = () => {
     setFile(null);
@@ -311,7 +337,7 @@ export default function ImportPage() {
     setCurrentStep('upload');
     setSelectedStore('');
   };
-  
+
   // Get target fields based on data type
   const getTargetFields = () => {
     if (dataType === 'loyalty') {
@@ -338,45 +364,50 @@ export default function ImportPage() {
       ];
     }
   };
-  
+
   // Calculate mapping completion percentage
   const getMappingCompletionPercentage = () => {
     const targetFields = getTargetFields();
     const requiredFields = targetFields.filter(field => field.required);
-    
+
     let mappedCount = 0;
     requiredFields.forEach(field => {
       if (Object.values(finalMappings).includes(field.name)) {
         mappedCount++;
       }
     });
-    
+
     return (mappedCount / requiredFields.length) * 100;
   };
-  
+
   // Get confidence color based on score
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return 'bg-green-500';
     if (confidence >= 0.6) return 'bg-amber-500';
     return 'bg-red-500';
   };
-  
+
   return (
     <AppShell>
       <div className="container py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Data Import</h1>
-            <p className="text-muted-foreground">Import customer loyalty and inventory data from CSV or Excel files</p>
+            <p className="text-muted-foreground">
+              Import customer loyalty and inventory data from CSV or Excel files
+            </p>
           </div>
         </div>
-        
-        <Tabs value={dataType} onValueChange={(value) => setDataType(value as 'loyalty' | 'inventory')}>
+
+        <Tabs
+          value={dataType}
+          onValueChange={value => setDataType(value as 'loyalty' | 'inventory')}
+        >
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="loyalty">Loyalty Data</TabsTrigger>
             <TabsTrigger value="inventory">Inventory Data</TabsTrigger>
           </TabsList>
-          
+
           <div className="mt-6">
             <Card>
               <CardHeader>
@@ -395,27 +426,49 @@ export default function ImportPage() {
                   {currentStep === 'complete' && 'Your data has been successfully imported'}
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent>
                 {/* Step indicators */}
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center flex-1">
-                    <div className={`rounded-full w-8 h-8 flex items-center justify-center ${currentStep === 'upload' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>1</div>
-                    <div className={`h-1 flex-1 mx-2 ${currentStep === 'upload' ? 'bg-primary/50' : 'bg-muted'}`}></div>
+                    <div
+                      className={`rounded-full w-8 h-8 flex items-center justify-center ${currentStep === 'upload' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      1
+                    </div>
+                    <div
+                      className={`h-1 flex-1 mx-2 ${currentStep === 'upload' ? 'bg-primary/50' : 'bg-muted'}`}
+                    ></div>
                   </div>
                   <div className="flex items-center flex-1">
-                    <div className={`rounded-full w-8 h-8 flex items-center justify-center ${currentStep === 'mapping' ? 'bg-primary text-primary-foreground' : currentStep === 'upload' ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'}`}>2</div>
-                    <div className={`h-1 flex-1 mx-2 ${currentStep === 'mapping' ? 'bg-primary/50' : 'bg-muted'}`}></div>
+                    <div
+                      className={`rounded-full w-8 h-8 flex items-center justify-center ${currentStep === 'mapping' ? 'bg-primary text-primary-foreground' : currentStep === 'upload' ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      2
+                    </div>
+                    <div
+                      className={`h-1 flex-1 mx-2 ${currentStep === 'mapping' ? 'bg-primary/50' : 'bg-muted'}`}
+                    ></div>
                   </div>
                   <div className="flex items-center flex-1">
-                    <div className={`rounded-full w-8 h-8 flex items-center justify-center ${currentStep === 'validation' ? 'bg-primary text-primary-foreground' : currentStep === 'upload' || currentStep === 'mapping' ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'}`}>3</div>
-                    <div className={`h-1 flex-1 mx-2 ${currentStep === 'validation' ? 'bg-primary/50' : 'bg-muted'}`}></div>
+                    <div
+                      className={`rounded-full w-8 h-8 flex items-center justify-center ${currentStep === 'validation' ? 'bg-primary text-primary-foreground' : currentStep === 'upload' || currentStep === 'mapping' ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      3
+                    </div>
+                    <div
+                      className={`h-1 flex-1 mx-2 ${currentStep === 'validation' ? 'bg-primary/50' : 'bg-muted'}`}
+                    ></div>
                   </div>
                   <div className="flex items-center flex-1">
-                    <div className={`rounded-full w-8 h-8 flex items-center justify-center ${currentStep === 'import' ? 'bg-primary text-primary-foreground' : currentStep === 'complete' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>4</div>
+                    <div
+                      className={`rounded-full w-8 h-8 flex items-center justify-center ${currentStep === 'import' ? 'bg-primary text-primary-foreground' : currentStep === 'complete' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      4
+                    </div>
                   </div>
                 </div>
-                
+
                 {/* File Upload Step */}
                 {currentStep === 'upload' && (
                   <div className="space-y-4">
@@ -423,7 +476,10 @@ export default function ImportPage() {
                       <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
                       <h3 className="mt-2 text-lg font-semibold">Upload your data file</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {dataType === 'loyalty' ? 'Upload customer loyalty data' : 'Upload inventory data'} in CSV or Excel format
+                        {dataType === 'loyalty'
+                          ? 'Upload customer loyalty data'
+                          : 'Upload inventory data'}{' '}
+                        in CSV or Excel format
                       </p>
                       <div className="mt-4">
                         <Input
@@ -435,13 +491,14 @@ export default function ImportPage() {
                       </div>
                       {file && (
                         <div className="mt-2 text-sm">
-                          Selected file: <span className="font-medium">{file.name}</span> ({(file.size / 1024).toFixed(2)} KB)
+                          Selected file: <span className="font-medium">{file.name}</span> (
+                          {(file.size / 1024).toFixed(2)} KB)
                         </div>
                       )}
                     </div>
                   </div>
                 )}
-                
+
                 {/* Mapping Step */}
                 {currentStep === 'mapping' && (
                   <div className="space-y-6">
@@ -450,10 +507,12 @@ export default function ImportPage() {
                       <div className="flex items-center gap-2">
                         <div className="text-sm">Mapping Progress:</div>
                         <Progress value={getMappingCompletionPercentage()} className="w-32 h-2" />
-                        <span className="text-sm">{Math.round(getMappingCompletionPercentage())}%</span>
+                        <span className="text-sm">
+                          {Math.round(getMappingCompletionPercentage())}%
+                        </span>
                       </div>
                     </div>
-                    
+
                     {suggestedMappings.length > 0 && (
                       <div>
                         <Table>
@@ -466,20 +525,22 @@ export default function ImportPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {suggestedMappings.map((mapping) => (
+                            {suggestedMappings.map(mapping => (
                               <TableRow key={mapping.source}>
                                 <TableCell className="font-medium">{mapping.source}</TableCell>
                                 <TableCell>
                                   <Select
                                     value={finalMappings[mapping.source] || ''}
-                                    onValueChange={(value) => handleMappingChange(mapping.source, value)}
+                                    onValueChange={value =>
+                                      handleMappingChange(mapping.source, value)
+                                    }
                                   >
                                     <SelectTrigger className="w-full">
                                       <SelectValue placeholder="Select a field" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="">Don't Import</SelectItem>
-                                      {getTargetFields().map((field) => (
+                                      {getTargetFields().map(field => (
                                         <SelectItem key={field.name} value={field.name}>
                                           {field.label} {field.required && '*'}
                                         </SelectItem>
@@ -489,15 +550,27 @@ export default function ImportPage() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
-                                    <div className={`w-3 h-3 rounded-full ${getConfidenceColor(mapping.confidence)}`}></div>
+                                    <div
+                                      className={`w-3 h-3 rounded-full ${getConfidenceColor(mapping.confidence)}`}
+                                    ></div>
                                     <span>{Math.round(mapping.confidence * 100)}%</span>
                                   </div>
                                 </TableCell>
                                 <TableCell>
                                   {mapping.required ? (
-                                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Required</Badge>
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-red-50 text-red-700 border-red-200"
+                                    >
+                                      Required
+                                    </Badge>
                                   ) : (
-                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Optional</Badge>
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-blue-50 text-blue-700 border-blue-200"
+                                    >
+                                      Optional
+                                    </Badge>
                                   )}
                                 </TableCell>
                               </TableRow>
@@ -506,7 +579,7 @@ export default function ImportPage() {
                         </Table>
                       </div>
                     )}
-                    
+
                     {sampleData.length > 0 && (
                       <div className="mt-8">
                         <h3 className="text-lg font-semibold mb-2">Sample Data Preview</h3>
@@ -515,7 +588,7 @@ export default function ImportPage() {
                             <TableHeader>
                               <TableRow>
                                 <TableHead>#</TableHead>
-                                {Object.keys(sampleData[0]).map((key) => (
+                                {Object.keys(sampleData[0]).map(key => (
                                   <TableHead key={key}>{key}</TableHead>
                                 ))}
                               </TableRow>
@@ -526,7 +599,9 @@ export default function ImportPage() {
                                   <TableCell>{index + 1}</TableCell>
                                   {Object.values(row).map((value: any, valueIndex) => (
                                     <TableCell key={valueIndex}>
-                                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                      {typeof value === 'object'
+                                        ? JSON.stringify(value)
+                                        : String(value)}
                                     </TableCell>
                                   ))}
                                 </TableRow>
@@ -538,7 +613,7 @@ export default function ImportPage() {
                     )}
                   </div>
                 )}
-                
+
                 {/* Validation Step */}
                 {currentStep === 'validation' && validationResult && (
                   <div className="space-y-6">
@@ -557,10 +632,12 @@ export default function ImportPage() {
                       </div>
                       <div className="bg-muted rounded-md p-4 flex-1">
                         <div className="text-sm text-muted-foreground">Missing Fields</div>
-                        <div className="text-2xl font-bold">{validationResult.missingFields.length}</div>
+                        <div className="text-2xl font-bold">
+                          {validationResult.missingFields.length}
+                        </div>
                       </div>
                     </div>
-                    
+
                     {validationResult.success ? (
                       <Alert className="bg-green-50 border-green-200">
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -574,11 +651,12 @@ export default function ImportPage() {
                         <AlertTriangle className="h-4 w-4 text-amber-600" />
                         <AlertTitle className="text-amber-800">Validation Issues Found</AlertTitle>
                         <AlertDescription className="text-amber-700">
-                          Some rows have errors or missing fields. You can proceed with importing the valid rows or go back to fix the issues.
+                          Some rows have errors or missing fields. You can proceed with importing
+                          the valid rows or go back to fix the issues.
                         </AlertDescription>
                       </Alert>
                     )}
-                    
+
                     {validationResult.errors.length > 0 && (
                       <div>
                         <h3 className="text-lg font-semibold mb-2">Validation Errors</h3>
@@ -619,7 +697,7 @@ export default function ImportPage() {
                         </div>
                       </div>
                     )}
-                    
+
                     {validationResult.missingFields.length > 0 && (
                       <div>
                         <h3 className="text-lg font-semibold mb-2">Missing Fields</h3>
@@ -639,9 +717,19 @@ export default function ImportPage() {
                                   <TableCell>{field.field}</TableCell>
                                   <TableCell>
                                     {field.isRequired ? (
-                                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Required</Badge>
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-red-50 text-red-700 border-red-200"
+                                      >
+                                        Required
+                                      </Badge>
                                     ) : (
-                                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Optional</Badge>
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-blue-50 text-blue-700 border-blue-200"
+                                      >
+                                        Optional
+                                      </Badge>
                                     )}
                                   </TableCell>
                                 </TableRow>
@@ -649,7 +737,8 @@ export default function ImportPage() {
                               {validationResult.missingFields.length > 10 && (
                                 <TableRow>
                                   <TableCell colSpan={3} className="text-center">
-                                    And {validationResult.missingFields.length - 10} more missing fields...
+                                    And {validationResult.missingFields.length - 10} more missing
+                                    fields...
                                   </TableCell>
                                 </TableRow>
                               )}
@@ -660,7 +749,7 @@ export default function ImportPage() {
                     )}
                   </div>
                 )}
-                
+
                 {/* Import Step */}
                 {currentStep === 'import' && (
                   <div className="space-y-6">
@@ -670,7 +759,7 @@ export default function ImportPage() {
                         Choose the store where you want to import this data.
                       </AlertDescription>
                     </Alert>
-                    
+
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="text-sm font-medium">Destination Store</label>
@@ -689,13 +778,15 @@ export default function ImportPage() {
                                   </SelectItem>
                                 ))
                               ) : (
-                                <SelectItem value="" disabled>No stores available</SelectItem>
+                                <SelectItem value="" disabled>
+                                  No stores available
+                                </SelectItem>
                               )}
                             </SelectContent>
                           </Select>
                         )}
                       </div>
-                      
+
                       <div>
                         <label className="text-sm font-medium">Import Summary</label>
                         <div className="p-3 border rounded-md mt-2">
@@ -716,7 +807,7 @@ export default function ImportPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Complete Step */}
                 {currentStep === 'complete' && importResult && (
                   <div className="space-y-6 text-center">
@@ -725,19 +816,23 @@ export default function ImportPage() {
                     </div>
                     <h2 className="text-2xl font-bold">Import Completed Successfully</h2>
                     <p className="text-muted-foreground">
-                      Successfully imported {importResult.importedRows} of {importResult.totalRows} rows.
+                      Successfully imported {importResult.importedRows} of {importResult.totalRows}{' '}
+                      rows.
                     </p>
-                    
+
                     <div className="bg-muted p-4 rounded-md max-w-md mx-auto">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="text-left">
                           <div className="text-sm text-muted-foreground">Data Type</div>
-                          <div className="font-medium">{dataType === 'loyalty' ? 'Customer Loyalty' : 'Inventory'}</div>
+                          <div className="font-medium">
+                            {dataType === 'loyalty' ? 'Customer Loyalty' : 'Inventory'}
+                          </div>
                         </div>
                         <div className="text-left">
                           <div className="text-sm text-muted-foreground">Store</div>
                           <div className="font-medium">
-                            {stores?.find(store => store.id === parseInt(selectedStore))?.name || `Store #${selectedStore}`}
+                            {stores?.find(store => store.id === parseInt(selectedStore))?.name ||
+                              `Store #${selectedStore}`}
                           </div>
                         </div>
                         <div className="text-left">
@@ -749,20 +844,22 @@ export default function ImportPage() {
                           <div className="font-medium">{importResult.importedRows}</div>
                         </div>
                         {importResult.lastUpdated && (
-                        <div className="text-left col-span-2">
-                          <div className="text-sm text-muted-foreground">Last Updated</div>
-                          <div className="font-medium">
-                            {new Date(importResult.lastUpdated).toLocaleString()}
+                          <div className="text-left col-span-2">
+                            <div className="text-sm text-muted-foreground">Last Updated</div>
+                            <div className="font-medium">
+                              {new Date(importResult.lastUpdated).toLocaleString()}
+                            </div>
                           </div>
-                        </div>
                         )}
                       </div>
                     </div>
-                    
+
                     {importResult.errors && importResult.errors.length > 0 && (
                       <Alert className="bg-amber-50 border-amber-200">
                         <AlertTriangle className="h-4 w-4 text-amber-600" />
-                        <AlertTitle className="text-amber-800">Some Rows Were Not Imported</AlertTitle>
+                        <AlertTitle className="text-amber-800">
+                          Some Rows Were Not Imported
+                        </AlertTitle>
                         <AlertDescription className="text-amber-700">
                           {importResult.errors.length} rows could not be imported due to errors.
                         </AlertDescription>
@@ -771,7 +868,7 @@ export default function ImportPage() {
                   </div>
                 )}
               </CardContent>
-              
+
               <CardFooter className="flex justify-between">
                 {currentStep !== 'upload' && (
                   <Button
@@ -786,7 +883,7 @@ export default function ImportPage() {
                     {currentStep === 'complete' ? 'Start New Import' : 'Back'}
                   </Button>
                 )}
-                
+
                 {currentStep === 'upload' && (
                   <Button
                     disabled={!file || isLoading}
@@ -797,7 +894,7 @@ export default function ImportPage() {
                     Analyze File
                   </Button>
                 )}
-                
+
                 {currentStep === 'mapping' && (
                   <Button
                     disabled={isValidating || getMappingCompletionPercentage() < 100}
@@ -807,7 +904,7 @@ export default function ImportPage() {
                     Validate Data
                   </Button>
                 )}
-                
+
                 {currentStep === 'validation' && (
                   <Button
                     disabled={!validationResult || validationResult.importedRows === 0}
@@ -816,17 +913,14 @@ export default function ImportPage() {
                     Continue to Import
                   </Button>
                 )}
-                
+
                 {currentStep === 'import' && (
-                  <Button
-                    disabled={!selectedStore || isImporting}
-                    onClick={handleImportData}
-                  >
+                  <Button disabled={!selectedStore || isImporting} onClick={handleImportData}>
                     {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Import Data
                   </Button>
                 )}
-                
+
                 {currentStep === 'complete' && (
                   <div className="flex gap-2">
                     <Button

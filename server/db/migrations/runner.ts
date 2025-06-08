@@ -1,11 +1,12 @@
 /**
  * Database Migration Runner
- * 
+ *
  * This module provides a framework for running and tracking database migrations.
  * It ensures schema consistency between code and the actual database.
  */
 
 import { sql } from 'drizzle-orm';
+
 import { db, dbManager } from '../../../db';
 import { getLogger } from '../../../src/logging';
 
@@ -46,14 +47,14 @@ async function ensureMigrationsTable(): Promise<void> {
  */
 async function getExecutedMigrations(): Promise<MigrationRecord[]> {
   await ensureMigrationsTable();
-  
+
   // Remove generic type argument, rely on type assertion for result.rows
   const result = await db.execute(sql`
     SELECT id, name, executed_at as "executedAt", success
     FROM migrations
     ORDER BY id ASC
   `);
-  
+
   // Convert query result to the expected array type
   // First cast to unknown to satisfy TypeScript when asserting to a more specific type
   return result.rows as unknown as MigrationRecord[];
@@ -74,26 +75,26 @@ async function recordMigration(name: string, success: boolean): Promise<void> {
  */
 export async function runMigrations(migrations: Record<string, Migration>): Promise<void> {
   logger.info('Starting migrations');
-  
+
   const executedMigrations = await getExecutedMigrations();
   const executedNames = new Set(executedMigrations.map(m => m.name));
-  
+
   // Get pending migrations
   const pendingMigrations = Object.entries(migrations)
     .filter(([name]) => !executedNames.has(name))
     .sort(([a], [b]) => a.localeCompare(b)); // Sort by name
-  
+
   if (pendingMigrations.length === 0) {
     logger.info('No pending migrations');
     return;
   }
-  
+
   logger.info(`Found ${pendingMigrations.length} pending migrations`);
-  
+
   // Run each pending migration
   for (const [name, migration] of pendingMigrations) {
     logger.info(`Running migration: ${name}`);
-    
+
     try {
       await migration.up();
       await recordMigration(name, true);
@@ -105,7 +106,7 @@ export async function runMigrations(migrations: Record<string, Migration>): Prom
       throw new Error(`Migration failed: ${name} - ${errorMessage}`);
     }
   }
-  
+
   logger.info('Migrations completed successfully');
 }
 
@@ -114,21 +115,21 @@ export async function runMigrations(migrations: Record<string, Migration>): Prom
  */
 export async function rollbackLastMigration(migrations: Record<string, Migration>): Promise<void> {
   const executedMigrations = await getExecutedMigrations();
-  
+
   if (executedMigrations.length === 0) {
     logger.info('No migrations to rollback');
     return;
   }
-  
+
   const lastMigration = executedMigrations[executedMigrations.length - 1];
   const migrationToRollback = migrations[lastMigration.name];
-  
+
   if (!migrationToRollback) {
     throw new Error(`Cannot find migration to rollback: ${lastMigration.name}`);
   }
-  
+
   logger.info(`Rolling back migration: ${lastMigration.name}`);
-  
+
   try {
     await migrationToRollback.down();
     await db.execute(sql`
@@ -148,7 +149,7 @@ export async function rollbackLastMigration(migrations: Record<string, Migration
  */
 export async function validateSchema(): Promise<{ valid: boolean; mismatches: string[] }> {
   logger.info('Validating database schema');
-  
+
   // Get current tables from the database
   const dbTables = await db.execute<{ table_name: string }>(sql`
     SELECT table_name
@@ -156,9 +157,9 @@ export async function validateSchema(): Promise<{ valid: boolean; mismatches: st
     WHERE table_schema = 'public'
     AND table_type = 'BASE TABLE'
   `);
-  
+
   const dbTableNames = new Set(dbTables.rows.map(t => t.table_name));
-  
+
   // Get table definitions from code
   // This is a simplified approach - in a real implementation, you would
   // introspect your Drizzle schema definitions to get the expected tables
@@ -174,26 +175,26 @@ export async function validateSchema(): Promise<{ valid: boolean; mismatches: st
     'customers',
     'products',
     'orders',
-    'order_items'
+    'order_items',
   ];
-  
+
   // Find missing tables
   const missingTables = expectedTables.filter(table => !dbTableNames.has(table));
-  
+
   // TODO: In a more comprehensive implementation, also check column definitions,
   // types, constraints, etc.
-  
+
   const valid = missingTables.length === 0;
-  
+
   if (valid) {
     logger.info('Schema validation successful');
   } else {
     logger.warn('Schema validation failed', { missingTables });
   }
-  
-  return { 
-    valid, 
-    mismatches: missingTables.map(table => `Missing table: ${table}`) 
+
+  return {
+    valid,
+    mismatches: missingTables.map(table => `Missing table: ${table}`),
   };
 }
 
@@ -203,11 +204,11 @@ export async function validateSchema(): Promise<{ valid: boolean; mismatches: st
 export async function generateMigration(name: string): Promise<string> {
   const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
   const fileName = `${timestamp}_${name}`;
-  
+
   logger.info(`Generating migration: ${fileName}`);
-  
+
   // TODO: In a real implementation, use Drizzle Kit to generate migration
   // This is a placeholder
-  
+
   return fileName;
 }

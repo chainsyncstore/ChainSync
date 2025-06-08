@@ -1,7 +1,9 @@
 // server/utils/auth.ts
-import { Request } from 'express';
 import crypto from 'crypto';
-import { getLogger } from '../../src/logging';
+
+import { Request } from 'express';
+
+import { getLogger } from '../../src/logging/index.js';
 
 // Get centralized logger for auth utilities
 const logger = getLogger().child({ component: 'auth-utils' });
@@ -18,11 +20,8 @@ export function validateApiKeySecurely(providedKey: string, validKeys: string[])
   }
 
   // Use constant-time comparison to prevent timing attacks
-  return validKeys.some(validKey => 
-    crypto.timingSafeEqual(
-      Buffer.from(providedKey),
-      Buffer.from(validKey)
-    )
+  return validKeys.some(validKey =>
+    crypto.timingSafeEqual(Buffer.from(providedKey), Buffer.from(validKey))
   );
 }
 
@@ -31,33 +30,33 @@ export function validateApiKeySecurely(providedKey: string, validKeys: string[])
  * @param req Express request object
  * @returns Object containing validation result and key info
  */
-export function extractAndValidateApiKey(req: Request): { 
-  isValid: boolean; 
-  keyPrefix?: string; 
+export function extractAndValidateApiKey(req: Request): {
+  isValid: boolean;
+  keyPrefix?: string;
   keySource?: string;
 } {
   // Try to find API key in various locations
-  const apiKey = req.headers['x-api-key'] as string || 
-                req.query.api_key as string ||
-                (req.body && req.body.api_key);
-  
+  const apiKey =
+    (req.headers['x-api-key'] as string) ||
+    (req.query.api_key as string) ||
+    (req.body && req.body.api_key);
+
   if (!apiKey) {
-    return { 
-      isValid: false 
+    return {
+      isValid: false,
     };
   }
 
   // Get valid API keys from environment
   const validApiKeys = process.env.API_KEYS ? process.env.API_KEYS.split(',') : [];
-  
+
   // In production, these would be stored securely and not in environment variables
   const isValid = validateApiKeySecurely(apiKey, validApiKeys);
-  
+
   return {
     isValid,
     keyPrefix: apiKey.substring(0, 8),
-    keySource: req.headers['x-api-key'] ? 'header' : 
-               req.query.api_key ? 'query' : 'body'
+    keySource: req.headers['x-api-key'] ? 'header' : req.query.api_key ? 'query' : 'body',
   };
 }
 
@@ -77,21 +76,21 @@ export function generateApiKey(prefix: string = 'csk'): string {
  */
 export function isOriginAllowed(origin: string): boolean {
   if (!origin) return false;
-  
-  const allowedOrigins = process.env.ALLOWED_ORIGINS ? 
-    process.env.ALLOWED_ORIGINS.split(',') : 
-    ['http://localhost:3000'];
-    
+
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:3000'];
+
   return allowedOrigins.some(allowedOrigin => {
     // Exact match
     if (allowedOrigin === origin) return true;
-    
+
     // Wildcard subdomain match (e.g., *.example.com)
     if (allowedOrigin.startsWith('*.')) {
       const domain = allowedOrigin.substring(2);
       return origin.endsWith(domain) && origin.lastIndexOf('.') > origin.indexOf('://') + 3;
     }
-    
+
     return false;
   });
 }

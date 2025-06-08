@@ -1,6 +1,14 @@
 // src/monitoring/sentryIntegration.ts
 import * as Sentry from '@sentry/node';
-import { Express, Request, Response, NextFunction, RequestHandler, ErrorRequestHandler } from 'express';
+import {
+  Express,
+  Request,
+  Response,
+  NextFunction,
+  RequestHandler,
+  ErrorRequestHandler,
+} from 'express';
+
 import { getLogger } from '../logging';
 
 const logger = getLogger().child({ component: 'sentry-integration' });
@@ -10,12 +18,12 @@ const logger = getLogger().child({ component: 'sentry-integration' });
  */
 export function initializeSentry(): void {
   const dsn = process.env.SENTRY_DSN;
-  
+
   if (!dsn) {
     logger.warn('Sentry DSN not configured, error reporting disabled');
     return;
   }
-  
+
   try {
     // Initialize Sentry with basic configuration
     Sentry.init({
@@ -27,17 +35,17 @@ export function initializeSentry(): void {
         if (process.env.NODE_ENV === 'development' && !process.env.FORCE_SENTRY) {
           return null;
         }
-        
+
         // Sanitize sensitive data
         if (event.request && event.request.headers) {
           delete event.request.headers.cookie;
           delete event.request.headers.authorization;
         }
-        
+
         return event;
-      }
+      },
     });
-    
+
     logger.info('Sentry monitoring initialized successfully');
   } catch (error: unknown) {
     logger.error('Failed to initialize Sentry', { error });
@@ -48,40 +56,41 @@ export function initializeSentry(): void {
  * Create Sentry request handler middleware
  */
 export function createRequestHandler(): RequestHandler {
-  return (req, res, next) => { // Let TypeScript infer types from RequestHandler
+  return (req, res, next) => {
+    // Let TypeScript infer types from RequestHandler
     try {
       // Set transaction name
       const transaction = `${req.method} ${req.path}`;
-      
+
       // Add user context if available
       if (req.session && req.session.userId) {
         Sentry.setUser({
           id: String(req.session.userId),
           username: req.session.fullName || 'unknown',
-          role: req.session.userRole || 'unknown'
+          role: req.session.userRole || 'unknown',
         });
       } else {
         Sentry.setUser(null);
       }
-      
+
       // Add request context
       Sentry.setContext('request', {
         url: req.url,
         method: req.method,
         query: req.query,
         ip: req.ip,
-        userAgent: req.headers['user-agent']
+        userAgent: req.headers['user-agent'],
       });
-      
+
       // Add transaction name as a tag
       Sentry.setTag('transaction', transaction);
-      
+
       // Add response status code when response completes
       res.on('finish', () => {
         try {
           // Add status code as a tag
           Sentry.setTag('http.status_code', String(res.statusCode));
-          
+
           // Add transaction outcome
           Sentry.setTag('transaction.outcome', res.statusCode < 500 ? 'success' : 'failure');
         } catch (err: unknown) {
@@ -91,7 +100,7 @@ export function createRequestHandler(): RequestHandler {
     } catch (error: unknown) {
       logger.error('Error in Sentry request handler', { error });
     }
-    
+
     next();
   };
 }
@@ -100,21 +109,22 @@ export function createRequestHandler(): RequestHandler {
  * Create Sentry error handler middleware
  */
 export function createErrorHandler(): ErrorRequestHandler {
-  return (err, req, res, next) => { // Let TypeScript infer types from ErrorRequestHandler
+  return (err, req, res, next) => {
+    // Let TypeScript infer types from ErrorRequestHandler
     try {
       // Only capture server errors (5xx)
       let statusCode = 500;
       if (err && typeof err === 'object') {
         statusCode = err.status || err.statusCode || 500; // Can access .status and .statusCode directly if err is any
       }
-      
+
       if (statusCode >= 500) {
         Sentry.captureException(err);
       }
     } catch (error: unknown) {
       logger.error('Error in Sentry error handler', { error });
     }
-    
+
     next(err);
   };
 }
@@ -126,17 +136,17 @@ export function configureSentry(app: Express): void {
   if (!process.env.SENTRY_DSN) {
     return;
   }
-  
+
   try {
     // Initialize Sentry
     initializeSentry();
-    
+
     // Add request handler
     app.use(createRequestHandler() as any); // Cast to any to bypass complex type mismatch
-    
+
     // Add error handler (should be used after routes and before custom error handlers)
     app.use(createErrorHandler() as any); // Cast to any to bypass complex type mismatch
-    
+
     logger.info('Sentry middleware configured successfully');
   } catch (error: unknown) {
     logger.error('Failed to configure Sentry middleware', { error });

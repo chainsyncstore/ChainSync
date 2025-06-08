@@ -1,11 +1,21 @@
-import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Search, RefreshCw, AlertCircle, Settings } from 'lucide-react';
+import React, { useState } from 'react';
+
+import { MinimumLevelDialog } from './minimum-level-dialog';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -14,27 +24,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/providers/auth-provider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDate, formatNumber } from '@/lib/utils';
-import { Search, RefreshCw, AlertCircle, Settings } from 'lucide-react';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { MinimumLevelDialog } from './minimum-level-dialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useAuth } from '@/providers/auth-provider';
 
 interface Product {
   id: number;
@@ -75,11 +67,9 @@ export function InventoryList() {
   const [categoryFilter, setCategoryFilter] = useState('all_categories');
   // Force store ID for manager/cashier roles, allow selection for admin
   const [storeId, setStoreId] = useState<string>(
-    user?.role !== 'admin' && user?.storeId 
-      ? user.storeId.toString() 
-      : ''
+    user?.role !== 'admin' && user?.storeId ? user.storeId.toString() : ''
   );
-  
+
   // State for minimum level dialog
   const [minLevelDialogOpen, setMinLevelDialogOpen] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<{
@@ -89,46 +79,55 @@ export function InventoryList() {
     currentQuantity: number;
     minimumLevel: number;
   } | null>(null);
-  
+
   // Fetch inventory data
-  const { data: inventoryData, isLoading: isLoadingInventory, refetch } = useQuery<InventoryItem[]>({
+  const {
+    data: inventoryData,
+    isLoading: isLoadingInventory,
+    refetch,
+  } = useQuery<InventoryItem[]>({
     queryKey: ['/api/inventory', { storeId: storeId ? parseInt(storeId) : undefined }],
   });
-  
+
   // Fetch all stores (for admin dropdown)
   const { data: storesData, isLoading: isLoadingStores } = useQuery<Store[]>({
     queryKey: ['/api/stores'],
     enabled: user?.role === 'admin',
   });
-  
+
   // Fetch all categories for filtering
   const { data: categoriesData, isLoading: isLoadingCategories } = useQuery<Category[]>({
     queryKey: ['/api/products/categories'],
   });
-  
+
   // Filter data based on search term and category
-  const filteredInventory = Array.isArray(inventoryData) 
+  const filteredInventory = Array.isArray(inventoryData)
     ? inventoryData.filter((item: InventoryItem) => {
         // Search filter
-        const matchesSearch = searchTerm === '' || 
+        const matchesSearch =
+          searchTerm === '' ||
           item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.product.barcode.toLowerCase().includes(searchTerm.toLowerCase());
-        
+
         // Category filter
-        const matchesCategory = categoryFilter === 'all_categories' || 
+        const matchesCategory =
+          categoryFilter === 'all_categories' ||
           item.product.category.id === parseInt(categoryFilter);
-        
+
         return matchesSearch && matchesCategory;
       })
     : [];
 
   // Get unique categories from inventory data if API categories not available
-  const uniqueCategories = Array.isArray(categoriesData) ? categoriesData : 
-    (Array.isArray(inventoryData) ? 
-      Array.from(new Map(
-        inventoryData.map(item => [item.product.category.id, item.product.category])
-      ).values()) 
-      : []);
+  const uniqueCategories = Array.isArray(categoriesData)
+    ? categoriesData
+    : Array.isArray(inventoryData)
+      ? Array.from(
+          new Map(
+            inventoryData.map(item => [item.product.category.id, item.product.category])
+          ).values()
+        )
+      : [];
 
   if (isLoadingInventory) {
     return (
@@ -143,7 +142,7 @@ export function InventoryList() {
             <Skeleton className="h-10 w-full md:w-48" />
             {user?.role === 'admin' && <Skeleton className="h-10 w-full md:w-48" />}
           </div>
-          
+
           <div className="border rounded-md">
             <div className="border-b bg-muted/40 p-2">
               <div className="grid grid-cols-12 gap-2">
@@ -178,14 +177,13 @@ export function InventoryList() {
       <CardHeader className="pb-2">
         <CardTitle>Inventory Management</CardTitle>
         <p className="text-sm text-muted-foreground">
-          {user?.role === 'admin' 
-            ? 'Manage your product inventory across all stores' 
+          {user?.role === 'admin'
+            ? 'Manage your product inventory across all stores'
             : `Manage inventory for ${
-                Array.isArray(storesData) 
-                  ? storesData.find((s) => s.id === parseInt(storeId))?.name || 'your store'
+                Array.isArray(storesData)
+                  ? storesData.find(s => s.id === parseInt(storeId))?.name || 'your store'
                   : 'your store'
-              }`
-          }
+              }`}
         </p>
       </CardHeader>
       <CardContent>
@@ -198,15 +196,12 @@ export function InventoryList() {
               placeholder="Search products..."
               className="pl-8"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           {/* Category filter */}
-          <Select
-            value={categoryFilter}
-            onValueChange={setCategoryFilter}
-          >
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
@@ -219,32 +214,30 @@ export function InventoryList() {
               ))}
             </SelectContent>
           </Select>
-          
+
           {/* Store selector (admin only) */}
           {user?.role === 'admin' && (
-            <Select
-              value={storeId}
-              onValueChange={setStoreId}
-            >
+            <Select value={storeId} onValueChange={setStoreId}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Select store" />
               </SelectTrigger>
               <SelectContent>
-                {Array.isArray(storesData) && storesData.map((store: Store) => (
-                  <SelectItem key={store.id} value={store.id.toString()}>
-                    {store.name}
-                  </SelectItem>
-                ))}
+                {Array.isArray(storesData) &&
+                  storesData.map((store: Store) => (
+                    <SelectItem key={store.id} value={store.id.toString()}>
+                      {store.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           )}
-          
+
           {/* Refresh button */}
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        
+
         {/* Inventory table */}
         <div className="border rounded-md">
           <Table>
@@ -261,7 +254,10 @@ export function InventoryList() {
             <TableBody>
               {filteredInventory?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={user?.role !== 'cashier' ? 6 : 5} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={user?.role !== 'cashier' ? 6 : 5}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     No inventory items found matching your filters
                   </TableCell>
                 </TableRow>
@@ -289,7 +285,10 @@ export function InventoryList() {
                       ) : item.quantity <= item.minimumLevel ? (
                         <Badge variant="destructive">Low Stock</Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                        <Badge
+                          variant="outline"
+                          className="bg-green-100 text-green-700 border-green-200"
+                        >
                           In Stock
                         </Badge>
                       )}
@@ -300,8 +299,8 @@ export function InventoryList() {
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => {
                                     setSelectedInventoryItem({
@@ -309,7 +308,7 @@ export function InventoryList() {
                                       productId: item.product.id,
                                       productName: item.product.name,
                                       currentQuantity: item.quantity,
-                                      minimumLevel: item.minimumLevel
+                                      minimumLevel: item.minimumLevel,
                                     });
                                     setMinLevelDialogOpen(true);
                                   }}
@@ -332,7 +331,7 @@ export function InventoryList() {
             </TableBody>
           </Table>
         </div>
-        
+
         {/* Visual indicator for stock level thresholds */}
         <div className="mt-4 flex flex-col sm:flex-row gap-3 items-start">
           <div className="text-sm font-medium">Stock Level Indicators:</div>
@@ -343,19 +342,25 @@ export function InventoryList() {
             </div>
             <div className="flex items-center">
               <Badge variant="destructive">Low Stock</Badge>
-              <span className="ml-2 text-sm text-muted-foreground">Quantity &le; Minimum Level</span>
+              <span className="ml-2 text-sm text-muted-foreground">
+                Quantity &le; Minimum Level
+              </span>
             </div>
             <div className="flex items-center">
-              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">In Stock</Badge>
-              <span className="ml-2 text-sm text-muted-foreground">Quantity &gt; Minimum Level</span>
+              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                In Stock
+              </Badge>
+              <span className="ml-2 text-sm text-muted-foreground">
+                Quantity &gt; Minimum Level
+              </span>
             </div>
           </div>
         </div>
       </CardContent>
-      
+
       {/* Minimum level dialog */}
-      <MinimumLevelDialog 
-        open={minLevelDialogOpen} 
+      <MinimumLevelDialog
+        open={minLevelDialogOpen}
         onOpenChange={setMinLevelDialogOpen}
         inventoryItem={selectedInventoryItem}
       />

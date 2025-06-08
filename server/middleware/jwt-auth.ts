@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
-import { AuthService, JWTPayload } from '../services/auth/auth-service.js'; // Assuming .js is intentional or types are provided
 import { Pool } from 'pg';
+
 import { getLogger } from '../../src/logging'; // Import application logger
+import { AuthService, JWTPayload } from '../services/auth/auth-service.js'; // Assuming .js is intentional or types are provided
 
 const logger = getLogger().child({ component: 'jwt-auth-middleware' }); // Initialize logger for this module
 
@@ -20,7 +21,7 @@ export class JWTAuthMiddleware {
   authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
-      
+
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         res.status(401).json({ error: 'Access token required' });
         return;
@@ -37,7 +38,10 @@ export class JWTAuthMiddleware {
       (req as any).jwtUser = payload;
       next();
     } catch (error: unknown) {
-      logger.error('Authentication error in JWTAuthMiddleware.authenticate', error instanceof Error ? error : new Error(String(error)));
+      logger.error(
+        'Authentication error in JWTAuthMiddleware.authenticate',
+        error instanceof Error ? error : new Error(String(error))
+      );
       res.status(500).json({ error: 'Authentication failed' });
     }
   };
@@ -46,18 +50,21 @@ export class JWTAuthMiddleware {
   optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
-      
+
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
         const payload = await this.authService.validateAccessToken(token);
         if (payload) {
-          (req as any).jwtUser = payload; 
+          (req as any).jwtUser = payload;
         }
       }
-      
+
       next();
     } catch (error: unknown) {
-      logger.error('Error in optionalAuth, continuing without authentication', error instanceof Error ? error : new Error(String(error)));
+      logger.error(
+        'Error in optionalAuth, continuing without authentication',
+        error instanceof Error ? error : new Error(String(error))
+      );
       // Continue without authentication
       next();
     }
@@ -65,17 +72,17 @@ export class JWTAuthMiddleware {
 
   // Role-based access control
   requireRole = (roles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction): void => { 
-      if (!(req as any).jwtUser) { 
+    return (req: Request, res: Response, next: NextFunction): void => {
+      if (!(req as any).jwtUser) {
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      if (!roles.includes((req as any).jwtUser.role)) { 
-        res.status(403).json({ 
+      if (!roles.includes((req as any).jwtUser.role)) {
+        res.status(403).json({
           error: 'Insufficient permissions',
           required: roles,
-          current: (req as any).jwtUser.role
+          current: (req as any).jwtUser.role,
         });
         return;
       }
@@ -86,16 +93,16 @@ export class JWTAuthMiddleware {
 
   // Permission-based access control
   requirePermission = (permission: string) => {
-    return (req: Request, res: Response, next: NextFunction): void => { 
-      if (!(req as any).jwtUser) { 
+    return (req: Request, res: Response, next: NextFunction): void => {
+      if (!(req as any).jwtUser) {
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      if (!this.authService.hasPermission((req as any).jwtUser, permission)) { 
-        res.status(403).json({ 
+      if (!this.authService.hasPermission((req as any).jwtUser, permission)) {
+        res.status(403).json({
           error: 'Insufficient permissions',
-          required: permission
+          required: permission,
         });
         return;
       }
@@ -106,16 +113,16 @@ export class JWTAuthMiddleware {
 
   // Resource-based access control
   requireResourceAccess = (resource: string, action: string) => {
-    return (req: Request, res: Response, next: NextFunction): void => { 
-      if (!(req as any).jwtUser) { 
+    return (req: Request, res: Response, next: NextFunction): void => {
+      if (!(req as any).jwtUser) {
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
 
-      if (!this.authService.canAccessResource((req as any).jwtUser, resource, action)) { 
-        res.status(403).json({ 
+      if (!this.authService.canAccessResource((req as any).jwtUser, resource, action)) {
+        res.status(403).json({
           error: 'Insufficient permissions',
-          required: `${resource}:${action}`
+          required: `${resource}:${action}`,
         });
         return;
       }
@@ -125,8 +132,8 @@ export class JWTAuthMiddleware {
   };
 
   // Admin only access
-  requireAdmin = (req: Request, res: Response, next: NextFunction): void => { 
-    if (!(req as any).jwtUser) { 
+  requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
+    if (!(req as any).jwtUser) {
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
@@ -146,7 +153,7 @@ export const authRateLimit = rateLimit({
   max: 5, // 5 attempts per window per IP
   message: {
     error: 'Too many authentication attempts',
-    retryAfter: '15 minutes'
+    retryAfter: '15 minutes',
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -154,9 +161,9 @@ export const authRateLimit = rateLimit({
     res.status(429).json({
       error: 'Too many authentication attempts',
       retryAfter: Math.ceil(15 * 60), // seconds
-      message: 'Please try again later'
+      message: 'Please try again later',
     });
-  }
+  },
 });
 
 // Rate limiting for password reset
@@ -165,10 +172,10 @@ export const passwordResetRateLimit = rateLimit({
   max: 3, // 3 attempts per hour per IP
   message: {
     error: 'Too many password reset attempts',
-    retryAfter: '1 hour'
+    retryAfter: '1 hour',
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // Rate limiting for general API endpoints
@@ -177,10 +184,10 @@ export const apiRateLimit = rateLimit({
   max: 100, // 100 requests per window per IP
   message: {
     error: 'Too many requests',
-    retryAfter: '15 minutes'
+    retryAfter: '15 minutes',
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // Rate limiting for admin endpoints
@@ -189,10 +196,10 @@ export const adminRateLimit = rateLimit({
   max: 20, // 20 requests per minute per IP
   message: {
     error: 'Too many admin requests',
-    retryAfter: '1 minute'
+    retryAfter: '1 minute',
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // Create auth middleware instance

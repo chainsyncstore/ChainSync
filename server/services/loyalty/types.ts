@@ -1,4 +1,5 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+
 import * as schema from '../../../shared/schema';
 
 // Define proper interfaces based on schema tables
@@ -88,11 +89,7 @@ export type LoyaltyProgramStatus = 'active' | 'inactive' | 'draft' | 'archived';
 
 export interface ILoyaltyService {
   generateLoyaltyId(userId: number, programId: number): Promise<string>; // Added parameters
-  enrollCustomer(
-    customerId: number,
-    storeId: number,
-    userId: number
-  ): Promise<LoyaltyMember>;
+  enrollCustomer(customerId: number, storeId: number, userId: number): Promise<LoyaltyMember>;
   calculatePointsForTransaction(
     subtotal: string | number,
     storeId: number,
@@ -136,9 +133,7 @@ export interface ILoyaltyService {
     programData: Partial<LoyaltyProgram>
   ): Promise<LoyaltyProgram>;
   createLoyaltyTier(tierData: Partial<LoyaltyTier>): Promise<LoyaltyTier>;
-  createLoyaltyReward(
-    rewardData: Partial<LoyaltyReward>
-  ): Promise<LoyaltyReward>;
+  createLoyaltyReward(rewardData: Partial<LoyaltyReward>): Promise<LoyaltyReward>;
   processExpiredPoints(userId: number): Promise<number>;
   checkAndUpdateMemberTier(memberId: number): Promise<boolean>;
   getLoyaltyAnalytics(storeId: number): Promise<{
@@ -156,12 +151,18 @@ export interface ILoyaltyService {
 }
 
 // Params types for service methods
-export type CreateLoyaltyProgramParams = Partial<Omit<LoyaltyProgram, 'id' | 'createdAt' | 'updatedAt'>> &
-  Pick<LoyaltyProgram, 'storeId' | 'name'> &
-  { description?: string; metadata?: Record<string, unknown>; status?: LoyaltyProgramStatus };
+export type CreateLoyaltyProgramParams = Partial<
+  Omit<LoyaltyProgram, 'id' | 'createdAt' | 'updatedAt'>
+> &
+  Pick<LoyaltyProgram, 'storeId' | 'name'> & {
+    description?: string;
+    metadata?: Record<string, unknown>;
+    status?: LoyaltyProgramStatus;
+  };
 
-export type UpdateLoyaltyProgramParams = Partial<Omit<LoyaltyProgram, 'id' | 'storeId' | 'createdAt' | 'updatedAt'>> &
-  { metadata?: Record<string, unknown>; status?: LoyaltyProgramStatus };
+export type UpdateLoyaltyProgramParams = Partial<
+  Omit<LoyaltyProgram, 'id' | 'storeId' | 'createdAt' | 'updatedAt'>
+> & { metadata?: Record<string, unknown>; status?: LoyaltyProgramStatus };
 
 // Align with memberCreateSchema from server/services/loyalty/schemas.ts
 // which is z.infer<typeof memberCreateSchema>
@@ -188,7 +189,12 @@ export type CreateLoyaltyMemberParams = {
 };
 
 // Omit points from LoyaltyMember to redefine it as number | string
-export type UpdateLoyaltyMemberParams = Partial<Omit<LoyaltyMember, 'id' | 'createdAt' | 'updatedAt' | 'loyaltyId' | 'customerId' | 'programId' | 'points'>> & {
+export type UpdateLoyaltyMemberParams = Partial<
+  Omit<
+    LoyaltyMember,
+    'id' | 'createdAt' | 'updatedAt' | 'loyaltyId' | 'customerId' | 'programId' | 'points'
+  >
+> & {
   points?: number | string; // Explicitly type points here to allow string or number for updates
   metadata?: Record<string, unknown>;
   lifetimePoints?: number; // Allow updating lifetimePoints
@@ -230,13 +236,15 @@ export type CreateLoyaltyRewardParams = Partial<LoyaltyReward>;
 //   }>;
 // };
 
-export type RecordPointsEarnedResult = { // This is an inline type in ILoyaltyService
+export type RecordPointsEarnedResult = {
+  // This is an inline type in ILoyaltyService
   success: boolean;
   transaction?: LoyaltyTransaction;
   message?: string; // Optional error message
 };
 
-export type ApplyRewardResult = { // This is an inline type in ILoyaltyService
+export type ApplyRewardResult = {
+  // This is an inline type in ILoyaltyService
   success: boolean;
   discountAmount?: string;
   pointsRedeemed?: string; // Kept as string to match ILoyaltyService, conversion happens elsewhere
@@ -249,7 +257,8 @@ export type ApplyRewardResult = { // This is an inline type in ILoyaltyService
 //   offset?: number;
 // };
 
-export type GetLoyaltyAnalyticsResult = { // This is used by ILoyaltyService
+export type GetLoyaltyAnalyticsResult = {
+  // This is used by ILoyaltyService
   memberCount: number;
   activeMembers: number;
   totalPointsEarned: string; // Should be number or string consistent with points
@@ -347,5 +356,5 @@ export const LoyaltyServiceErrors: ILoyaltyServiceErrors = {
     'Loyalty member not found',
     ErrorCode.RESOURCE_NOT_FOUND,
     ErrorCategory.RESOURCE
-  )
+  ),
 };

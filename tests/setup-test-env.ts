@@ -1,6 +1,6 @@
 /**
  * Test Environment Setup
- * 
+ *
  * This file sets up the testing environment with mocked dependencies
  * and test-specific configuration to ensure tests can run without
  * external dependencies like databases.
@@ -26,8 +26,7 @@ jest.mock('../server/database', () => {
         (
           onfulfilled?: ((value: any) => any | PromiseLike<any>) | null | undefined,
           onrejected?: ((reason: any) => any | PromiseLike<any>) | null | undefined
-        ): Promise<any> => 
-          Promise.resolve(undefined).then(onfulfilled, onrejected)
+        ): Promise<any> => Promise.resolve(undefined).then(onfulfilled, onrejected)
       ),
     })),
     findMany: jest.fn().mockImplementation((_args?: any) => ({
@@ -41,8 +40,7 @@ jest.mock('../server/database', () => {
         (
           onfulfilled?: ((value: any[]) => any | PromiseLike<any[]>) | null | undefined,
           onrejected?: ((reason: any) => any | PromiseLike<any>) | null | undefined
-        ): Promise<any> => 
-          Promise.resolve([]).then(onfulfilled, onrejected)
+        ): Promise<any> => Promise.resolve([]).then(onfulfilled, onrejected)
       ),
     })),
   });
@@ -65,7 +63,7 @@ jest.mock('../server/database', () => {
     };
     return self;
   };
-  
+
   const createSelectBuilderMock = () => ({
     from: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
@@ -75,25 +73,24 @@ jest.mock('../server/database', () => {
     execute: jest.fn().mockResolvedValue([] as any[]),
     then: jest.fn(
       (
-        onfulfilled?: ((value: any[]) => any | PromiseLike<any>),
+        onfulfilled?: (value: any[]) => any | PromiseLike<any>,
         onrejected?: (reason: any) => any | PromiseLike<any>
       ): Promise<any> => {
         return Promise.resolve([] as any[]).then(
-            onfulfilled ? (val) => onfulfilled(val) : undefined,
-            onrejected ? (err) => onrejected(err) : undefined
+          onfulfilled ? val => onfulfilled(val) : undefined,
+          onrejected ? err => onrejected(err) : undefined
         );
       }
     ),
   });
 
-
   const dbMockData = {
     execute: jest.fn(async (): Promise<{ rows: any[] }> => ({ rows: [] })),
     batch: jest.fn(async () => []),
-    session: { 
+    session: {
       query: jest.fn(async () => ({ rows: [] })),
       execute: jest.fn(async () => ({ rows: [] })),
-      client: { 
+      client: {
         query: jest.fn(async (_query: string, _params?: any[]) => ({ rows: [] })),
       },
     },
@@ -119,12 +116,12 @@ jest.mock('../server/database', () => {
     ...dbMockData,
     transaction: jest.fn(async (callback: (tx: any) => Promise<any>) => {
       const mockTx = {
-        ...dbMockData, 
+        ...dbMockData,
         insert: jest.fn().mockImplementation(createDrizzleBuilderMock),
         update: jest.fn().mockImplementation(createDrizzleBuilderMock),
         delete: jest.fn().mockImplementation(createDrizzleBuilderMock),
         select: jest.fn().mockImplementation(createSelectBuilderMock),
-        query: { 
+        query: {
           users: createTableQueryMocks(),
           products: createTableQueryMocks(),
           stores: createTableQueryMocks(),
@@ -142,14 +139,14 @@ jest.mock('../server/database', () => {
       } catch (error) {
         throw error;
       }
-    })
+    }),
   };
 
   return {
     db: dbMock,
     sql: {
-      raw: jest.fn((query: any) => query)
-    }
+      raw: jest.fn((query: any) => query),
+    },
   };
 });
 
@@ -158,12 +155,12 @@ const mockSqlObject = (strings: TemplateStringsArray, ...values: any[]) => ({
   _isMockSqlObject: true,
   strings,
   values,
-  getSQL: () => strings.reduce((acc, str, i) => acc + str + (values[i] || ''), '')
+  getSQL: () => strings.reduce((acc, str, i) => acc + str + (values[i] || ''), ''),
 });
 const mockSqlRaw = (query: string) => ({
   _isMockSqlRawObject: true,
   query,
-  getSQL: () => query
+  getSQL: () => query,
 });
 
 jest.mock('drizzle-orm', () => ({
@@ -175,32 +172,32 @@ jest.mock('drizzle-orm', () => ({
 jest.mock('../shared/schema-validation', () => ({
   userValidation: {
     insert: jest.fn().mockImplementation((data: any) => data),
-    update: jest.fn().mockImplementation((data: any) => data)
+    update: jest.fn().mockImplementation((data: any) => data),
   },
   productValidation: {
     insert: jest.fn().mockImplementation((data: any) => data),
-    update: jest.fn().mockImplementation((data: any) => data)
+    update: jest.fn().mockImplementation((data: any) => data),
   },
   storeValidation: {
     insert: jest.fn().mockImplementation((data: any) => data),
-    update: jest.fn().mockImplementation((data: any) => data)
+    update: jest.fn().mockImplementation((data: any) => data),
   },
   inventoryValidation: {
     insert: jest.fn().mockImplementation((data: any) => data),
-    update: jest.fn().mockImplementation((data: any) => data)
+    update: jest.fn().mockImplementation((data: any) => data),
   },
   subscriptionValidation: {
     insert: jest.fn().mockImplementation((data: any) => data),
-    update: jest.fn().mockImplementation((data: any) => data)
+    update: jest.fn().mockImplementation((data: any) => data),
   },
   loyaltyValidation: {
     insert: jest.fn().mockImplementation((data: any) => data),
-    update: jest.fn().mockImplementation((data: any) => data)
+    update: jest.fn().mockImplementation((data: any) => data),
   },
   transactionValidation: {
     insert: jest.fn().mockImplementation((data: any) => data),
-    update: jest.fn().mockImplementation((data: any) => data)
-  }
+    update: jest.fn().mockImplementation((data: any) => data),
+  },
 }));
 
 // Local definitions to avoid problematic imports in setupFilesAfterEnv for ESM
@@ -210,7 +207,13 @@ class MockAppError extends Error {
   public statusCode: number;
   public details?: any;
 
-  constructor(message: string, type: string, code: string, statusCode: number = 500, details?: any) {
+  constructor(
+    message: string,
+    type: string,
+    code: string,
+    statusCode: number = 500,
+    details?: any
+  ) {
     super(message);
     this.name = 'MockAppError';
     this.type = type;
@@ -258,7 +261,7 @@ jest.mock('../server/services/loyalty/types', () => {
         'VALIDATION',
         MockErrorCode.VALIDATION_ERROR,
         400
-      )
-    }
+      ),
+    },
   };
 });

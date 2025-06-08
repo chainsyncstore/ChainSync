@@ -1,12 +1,13 @@
 /**
  * Initial Schema Migration
- * 
+ *
  * Creates the core tables for the ChainSync application.
  */
 
 import { sql } from 'drizzle-orm';
-import { db } from '../../../db';
+
 import { Migration } from './runner';
+import { db } from '../../../db';
 
 export const up: Migration['up'] = async () => {
   // Create users table

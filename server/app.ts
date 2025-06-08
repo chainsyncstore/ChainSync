@@ -1,42 +1,53 @@
 // server/app.ts - Application entry point with integrated security, logging, and monitoring
-import express from 'express';
-import cors from 'cors';
-import session from 'express-session';
-import { Pool } from 'pg';
-import { createClient } from 'redis';
-import { RedisStore } from 'connect-redis';
 import path from 'path';
 
+import { RedisStore } from 'connect-redis';
+import cors from 'cors';
+import express from 'express';
+import session from 'express-session';
+import { createClient } from 'redis';
+
 // Import logging and error handling
-import { setupLogging, setupGlobalErrorHandlers } from '../src/logging/setup';
-import { getLogger } from '../src/logging';
-import { requestLogger, errorLogger } from '../src/logging/middleware';
+import { dbPool } from './db.js'; // Or adjust path as needed
+import { isAuthenticated, validateSession } from './middleware/auth.js';
+import {
+  rateLimitMiddleware,
+  authRateLimiter,
+  sensitiveOpRateLimiter,
+  applyRateLimiters,
+} from './middleware/rate-limiter.js';
+import {
+  securityHeaders,
+  csrfProtection,
+  generateCsrfToken,
+  validateContentType,
+} from './middleware/security.js';
+import { validateBody } from './middleware/validation.js';
+import adminDashboardRoutes from './routes/admin-dashboard.js';
+import healthRoutes from './routes/health.js';
+import monitoringRoutes from './routes/monitoring.js';
+import transactionRoutes from './routes/transactions.js';
+import setupSwagger from './swagger.js';
+import { initRedis, getRedisClient } from '../src/cache/redis.js';
+import { getLogger } from '../src/logging/index.js';
+import { requestLogger, errorLogger } from '../src/logging/middleware.js';
+import { setupLogging, setupGlobalErrorHandlers } from '../src/logging/setup.js';
 
 // Import security middleware
-import { securityHeaders, csrfProtection, generateCsrfToken, validateContentType } from './middleware/security';
-import { rateLimitMiddleware, authRateLimiter, sensitiveOpRateLimiter, applyRateLimiters } from './middleware/rate-limiter'; // Updated import
-import { isAuthenticated, validateSession } from './middleware/auth';
-import { validateBody } from './middleware/validation';
 
 // Import cache and job queue
-import { initRedis, getRedisClient } from '../src/cache/redis';
-import { initializeApp, registerHealthChecks } from '../src/startup';
+import { configureSentry } from '../src/monitoring/sentryIntegration.js';
+import { initializeHealthChecks, initializeTracing } from '../src/monitoring/setup.js';
+import { initializeApp, registerHealthChecks } from '../src/startup.js';
 
 // Import routes
-import healthRoutes from './routes/health';
-import transactionRoutes from './routes/transactions';
-import monitoringRoutes from './routes/monitoring';
-import adminDashboardRoutes from './routes/admin-dashboard';
 // Import your actual route files when they're ready
 // import authRoutes from './routes/auth';
 // import customerRoutes from './routes/customers';
 
 // Import Swagger documentation
-import setupSwagger from './swagger';
 
 // Import monitoring
-import { configureSentry } from '../src/monitoring/sentryIntegration';
-import { initializeHealthChecks, initializeTracing } from '../src/monitoring/setup';
 
 // Set up global error handlers
 setupGlobalErrorHandlers();
@@ -48,30 +59,17 @@ const app = express();
 setupLogging(app);
 
 // Get configured logger
-const logger = getLogger().child({ component: 'app' });
+const logger = getLogger().child({ component: 'app' }); // Ensure getLogger() returns a pino instance
 
-// Database connection pool
-const dbPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
-  idleTimeoutMillis: 30000
-});
-
-// Monitor database connection
-dbPool.on('error', (err) => {
-  logger.error('Unexpected database error', err);
-});
-
-// Register database with health checks
+// Import and register database pool for health checks
 registerHealthChecks(dbPool);
 
 // Initialize Redis for caching and session store
 const redisClient = initRedis();
-let sessionStore: any; // Changed from unknown to any
+let sessionStore: session.Store | undefined; // Explicit type
 
 if (redisClient) {
-  sessionStore = new RedisStore({ client: redisClient });
+  sessionStore = new RedisStore({ client: redisClient }) as session.Store;
   logger.info('Using Redis for session storage');
 } else {
   logger.warn('Redis not available, using in-memory session store (not suitable for production)');
@@ -81,12 +79,14 @@ if (redisClient) {
 app.use(securityHeaders);
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
-}));
+app.use(
+  cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  })
+);
 
 // Apply rate limiting
 app.use(rateLimitMiddleware);
@@ -96,21 +96,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session handling
-app.use(session({
-  store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'dev-secret-should-be-changed',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
-  }
-}));
+app.use(
+  session({
+    // Only spread/store if sessionStore is defined
+    ...(sessionStore ? { store: sessionStore } : {}),
+    secret: process.env.SESSION_SECRET || 'dev-secret-should-be-changed',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax',
+    },
+  })
+);
 
 // Generate CSRF token for all routes that need it
-app.use(generateCsrfToken as any); // Cast to any
+app.use(generateCsrfToken);
 
 // Health check routes (no auth required)
 app.use('/api/health', healthRoutes);
@@ -123,11 +126,11 @@ app.use('/readyz', healthRoutes);
 const apiRoutes = express.Router();
 
 // Apply validation and rate limiting to API routes
-apiRoutes.use(validateContentType() as any); // Cast to any
-apiRoutes.use(csrfProtection as any); // Cast to any
+apiRoutes.use(validateContentType());
+apiRoutes.use(csrfProtection);
 
 // Apply different rate limits to different types of endpoints
-apiRoutes.use('/auth', authRateLimiter as any); // Cast to any
+apiRoutes.use('/auth', authRateLimiter);
 apiRoutes.use(['/transactions', '/loyalty'], sensitiveOpRateLimiter);
 
 // Register API routes
@@ -145,7 +148,7 @@ app.use('/api/v1', apiRoutes);
 if (process.env.NODE_ENV === 'production') {
   const staticPath = path.join(__dirname, '../public');
   app.use(express.static(staticPath));
-  
+
   // Handle SPA routing - serve index.html for any non-API routes
   app.get('*', (req, res, next) => {
     if (!req.path.startsWith('/api/')) {
@@ -157,15 +160,15 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // 404 handler
-app.use((req, res, next) => {
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.warn('Route not found', {
     path: req.path,
     method: req.method,
-    ip: req.ip
+    ip: req.ip,
   });
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Route not found',
-    code: 'NOT_FOUND'
+    code: 'NOT_FOUND',
   });
 });
 
@@ -175,41 +178,58 @@ app.use((req, res, next) => {
 app.use(((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Error is already logged by the errorLogger middleware
   // Just send appropriate response to client
-  
+
   const statusCode = err.status || err.statusCode || 500;
   const errorResponse = {
     error: err.message || 'Internal Server Error',
-    code: err.code || 'UNKNOWN_ERROR'
+    code: err.code || 'UNKNOWN_ERROR',
   };
-  
+
   // Add stack trace in development
   if (process.env.NODE_ENV !== 'production' && err.stack) {
     (errorResponse as any).stack = err.stack;
   }
-  
+
   res.status(statusCode).json(errorResponse);
-}) as any); // Cast to any
+}) as express.ErrorRequestHandler); // Use correct type
 
 // Initialize application components (caching, job queues, etc.)
 if (process.env.NODE_ENV !== 'test') {
   // Initialize Swagger documentation
   setupSwagger(app);
-  
+
   // Initialize monitoring and Sentry integration
   configureSentry(app);
-  
+
   // Initialize distributed tracing with OpenTelemetry
   initializeTracing(app);
-  
+
   // Initialize health checks
   initializeHealthChecks(app, dbPool);
-  
+
   // Initialize caching, queues, etc.
   initializeApp(app, dbPool).catch(err => {
     logger.error('Failed to initialize application components', err);
     process.exit(1);
   });
 }
+
+// If you have test/mocks in this file or related files, ensure they are explicitly typed.
+// Example for a mock (if present in tests):
+// const mockDbPool: jest.Mocked<Pool> = { query: jest.fn() } as any;
+
+// Remove any unused @ts-expect-error comments in your test files (none present here).
+
+// Example: Ensure dbPool is properly typed and initialized
+// If using a specific ORM (e.g., Knex, Prisma), import and use the correct type
+// import { dbPool } from './db.js'; // Should be of type Pool from 'pg' or appropriate ORM type
+
+// When using dbPool in your code, ensure you use the correct API for your ORM/driver.
+// For example, if using pg.Pool:
+// await dbPool.query('SELECT * FROM users');
+
+// If you migrated from another ORM, update usages accordingly.
+// Example: If you previously used db.insert(...) and now should use dbPool.query(...), update all such calls in your codebase.
 
 export { app, dbPool };
 export default app;

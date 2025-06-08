@@ -1,7 +1,13 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { getLogger } from '../../src/logging';
-import { retry, RetryOptions } from './retry';
-import { CircuitBreaker, CircuitBreakerOptions, withFallback, FallbackOptions } from './fallback';
+
+import {
+  CircuitBreaker,
+  CircuitBreakerOptions,
+  withFallback,
+  FallbackOptions,
+} from './fallback.js';
+import { retry, RetryOptions } from './retry.js';
+import { getLogger } from '../../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'resilient-http-client' });
 
@@ -11,22 +17,22 @@ const logger = getLogger().child({ component: 'resilient-http-client' });
 export interface ResilientHttpClientOptions {
   /** Base URL for API requests */
   baseURL?: string;
-  
+
   /** Default timeout in milliseconds (default: 10000) */
   timeout?: number;
-  
+
   /** Retry configuration for failed requests */
   retry?: RetryOptions;
-  
+
   /** Circuit breaker configuration */
   circuitBreaker?: CircuitBreakerOptions;
-  
+
   /** Default headers to include with all requests */
   headers?: Record<string, string>;
-  
+
   /** Whether to automatically parse JSON responses (default: true) */
   parseJson?: boolean;
-  
+
   /** Fallback base URLs to try if the primary one fails */
   fallbackBaseURLs?: string[];
 }
@@ -41,7 +47,7 @@ export class ResilientHttpClient {
   private client: AxiosInstance;
   private options: Required<ResilientHttpClientOptions>;
   private circuitBreaker: CircuitBreaker;
-  
+
   constructor(options: ResilientHttpClientOptions = {}) {
     this.options = {
       baseURL: options.baseURL || '',
@@ -55,11 +61,17 @@ export class ResilientHttpClient {
         nonRetryableErrors: [
           // Don't retry client errors (4xx) except for specific ones
           (error: unknown) => {
-            const status = error.response?.status;
-            return status >= 400 && status < 500 && 
-                   status !== 408 && // Request Timeout
-                   status !== 429;   // Too Many Requests
-          }
+            if (axios.isAxiosError(error) && error.response) {
+              const status = error.response.status;
+              return (
+                status >= 400 &&
+                status < 500 &&
+                status !== 408 && // Request Timeout
+                status !== 429
+              ); // Too Many Requests
+            }
+            return false; // If not an Axios error with a response, or doesn't match, don't treat as non-retryable by this rule
+          },
         ],
       },
       circuitBreaker: options.circuitBreaker || {
@@ -71,27 +83,27 @@ export class ResilientHttpClient {
       parseJson: options.parseJson !== false,
       fallbackBaseURLs: options.fallbackBaseURLs || [],
     };
-    
+
     // Create Axios client instance
     this.client = axios.create({
       baseURL: this.options.baseURL,
       timeout: this.options.timeout,
       headers: this.options.headers,
     });
-    
+
     // Initialize circuit breaker
     this.circuitBreaker = new CircuitBreaker(this.options.circuitBreaker);
-    
+
     logger.info('Resilient HTTP client initialized', {
       baseURL: this.options.baseURL,
       fallbackCount: this.options.fallbackBaseURLs.length,
       maxRetries: this.options.retry.maxAttempts,
     });
   }
-  
+
   /**
    * Make a GET request with resilience features
-   * 
+   *
    * @param url Request URL (appended to baseURL)
    * @param config Additional Axios request configuration
    * @returns The response data
@@ -103,10 +115,10 @@ export class ResilientHttpClient {
       ...config,
     });
   }
-  
+
   /**
    * Make a POST request with resilience features
-   * 
+   *
    * @param url Request URL (appended to baseURL)
    * @param data Request body data
    * @param config Additional Axios request configuration
@@ -120,10 +132,10 @@ export class ResilientHttpClient {
       ...config,
     });
   }
-  
+
   /**
    * Make a PUT request with resilience features
-   * 
+   *
    * @param url Request URL (appended to baseURL)
    * @param data Request body data
    * @param config Additional Axios request configuration
@@ -137,10 +149,10 @@ export class ResilientHttpClient {
       ...config,
     });
   }
-  
+
   /**
    * Make a DELETE request with resilience features
-   * 
+   *
    * @param url Request URL (appended to baseURL)
    * @param config Additional Axios request configuration
    * @returns The response data
@@ -152,10 +164,10 @@ export class ResilientHttpClient {
       ...config,
     });
   }
-  
+
   /**
    * Make a PATCH request with resilience features
-   * 
+   *
    * @param url Request URL (appended to baseURL)
    * @param data Request body data
    * @param config Additional Axios request configuration
@@ -169,16 +181,16 @@ export class ResilientHttpClient {
       ...config,
     });
   }
-  
+
   /**
    * Make a generic HTTP request with resilience features
-   * 
+   *
    * @param config Axios request configuration
    * @returns The response data
    */
   async request<T = any>(config: AxiosRequestConfig): Promise<T> {
     const operationName = `${config.method?.toUpperCase() || 'REQUEST'} ${config.url}`;
-    
+
     // Handle fallback URLs if provided
     if (this.options.fallbackBaseURLs.length > 0) {
       // Prepare fallback functions
@@ -189,39 +201,36 @@ export class ResilientHttpClient {
             ...config,
             baseURL: fallbackBaseURL,
           };
-          
+
           // Execute the request with the circuit breaker and retry
           return this.executeRequest<T>(fallbackConfig, operationName);
         };
       });
-      
+
       // Set up fallback options
       const fallbackOptions: FallbackOptions<T> = {
         fallbacks,
         operationName,
         throwOnFailure: true,
       };
-      
+
       // Execute the primary request with fallbacks
       const result = await withFallback<T>(
         () => this.executeRequest<T>(config, operationName),
         fallbackOptions
       );
-      
+
       return result.result as T;
     }
-    
+
     // No fallbacks, just execute with circuit breaker and retry
     return this.executeRequest<T>(config, operationName);
   }
-  
+
   /**
    * Execute a request with circuit breaker and retry logic
    */
-  private async executeRequest<T>(
-    config: AxiosRequestConfig,
-    operationName: string
-  ): Promise<T> {
+  private async executeRequest<T>(config: AxiosRequestConfig, operationName: string): Promise<T> {
     // Execute the request with the circuit breaker
     return this.circuitBreaker.execute(async () => {
       // Execute the request with retry logic
@@ -229,35 +238,35 @@ export class ResilientHttpClient {
         ...this.options.retry,
         operationName,
       };
-      
+
       const result = await retry<AxiosResponse<T>>(
         () => this.client.request<T>(config),
         retryOptions
       );
-      
+
       if (!result.success) {
         throw result.error;
       }
-      
+
       // Return the response data
       return result.result.data;
     });
   }
-  
+
   /**
    * Get the circuit breaker instance
    */
   getCircuitBreaker(): CircuitBreaker {
     return this.circuitBreaker;
   }
-  
+
   /**
    * Reset the circuit breaker
    */
   resetCircuitBreaker(): void {
     this.circuitBreaker.reset();
   }
-  
+
   /**
    * Create a new instance of the client with different options
    */

@@ -1,13 +1,11 @@
 import { z } from 'zod';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { getLogger } from '../../shared/logging';
+
+import { AppError, ErrorCode, ErrorCategory } from '../../shared/types/errors.js';
+import { getLogger } from '../../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'validation' });
 
-export const validateRequest = <T extends z.ZodTypeAny>(
-  schema: T,
-  data: unknown
-): z.infer<T> => {
+export const validateRequest = <T extends z.ZodTypeAny>(schema: T, data: unknown): z.infer<T> => {
   try {
     return schema.parse(data);
   } catch (error: unknown) {
@@ -66,10 +64,10 @@ export const validateQuery = <T extends z.ZodTypeAny>(
 
 /**
  * Validate database operation results
- * 
+ *
  * Used to ensure type safety for database operations.
  * Provides robust runtime validation to prevent runtime type errors.
- * 
+ *
  * @param schema - Zod schema to validate against
  * @param data - Data to validate
  * @param context - Additional context for error reporting
@@ -84,10 +82,10 @@ export const validateDbResult = <T extends z.ZodTypeAny>(
     return schema.parse(data);
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      logger.error('Database result validation failed', { 
+      logger.error('Database result validation failed', {
         error: error.format(),
         context,
-        data
+        data,
       });
       throw new AppError(
         `Database operation failed: ${context.operation} on ${context.entity}`,
@@ -109,11 +107,11 @@ export const validateDbResult = <T extends z.ZodTypeAny>(
 
 /**
  * Validate and log - useful for non-critical validations
- * 
+ *
  * Instead of throwing on validation failure, this logs the error
  * and returns null. Useful for non-critical validations or
  * when you want to handle the error gracefully.
- * 
+ *
  * @param schema - Zod schema to validate against
  * @param data - Data to validate
  * @param context - Additional context for error reporting
@@ -131,14 +129,14 @@ export const validateAndLog = <T extends z.ZodTypeAny>(
       logger.warn('Data validation failed (non-critical)', {
         error: error.format(),
         context,
-        data
+        data,
       });
       return null;
     }
     logger.error('Unexpected validation error', {
       error,
       context,
-      data
+      data,
     });
     return null;
   }
@@ -146,10 +144,10 @@ export const validateAndLog = <T extends z.ZodTypeAny>(
 
 /**
  * Safely validate an array of items
- * 
+ *
  * Filters out invalid items rather than failing the entire array.
  * Useful for batch operations where some items might be invalid.
- * 
+ *
  * @param schema - Zod schema for individual items
  * @param data - Array of items to validate
  * @param context - Additional context for error reporting
@@ -163,7 +161,7 @@ export const validateArray = <T extends z.ZodTypeAny>(
   if (!Array.isArray(data)) {
     logger.warn('Expected array for validation, got:', {
       type: typeof data,
-      context
+      context,
     });
     return [];
   }
@@ -185,7 +183,7 @@ export const validateArray = <T extends z.ZodTypeAny>(
       validItems: validItems.length,
       invalidItems: invalidItems.length,
       firstInvalidItem: invalidItems[0],
-      context
+      context,
     });
   }
 
@@ -194,10 +192,10 @@ export const validateArray = <T extends z.ZodTypeAny>(
 
 /**
  * Validate service input/output
- * 
+ *
  * Used to ensure type safety for service operations.
  * Useful for validating inputs and outputs at service boundaries.
- * 
+ *
  * @param schema - Zod schema to validate against
  * @param data - Data to validate
  * @param context - Additional context for error reporting
@@ -212,10 +210,10 @@ export const validateServiceData = <T extends z.ZodTypeAny>(
     return schema.parse(data);
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      logger.error('Service data validation failed', { 
+      logger.error('Service data validation failed', {
         error: error.format(),
         context,
-        data
+        data,
       });
       throw new AppError(
         `${context.service}.${context.method} ${context.type} validation failed`,

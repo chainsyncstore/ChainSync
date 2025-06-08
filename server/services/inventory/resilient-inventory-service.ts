@@ -1,12 +1,17 @@
+import { and, eq, lessOrEqual, greaterThan } from 'drizzle-orm';
+
 import { db } from '../../../db';
 import { withTransaction } from '../../../db/transaction';
-import { getCachedOrFetch, generateEntityCacheKey, invalidateEntityCache } from '../../../src/cache/cache-strategy';
-import { retry } from '../../utils/retry';
+import { schema, inventory, inventoryBatches, reorderRequests } from '../../../shared/db';
+import {
+  getCachedOrFetch,
+  generateEntityCacheKey,
+  invalidateEntityCache,
+} from '../../../src/cache/cache-strategy';
+import { getLogger } from '../../../src/logging';
 import { CircuitBreaker } from '../../utils/fallback';
 import { ResilientHttpClient } from '../../utils/resilient-http-client';
-import { getLogger } from '../../../src/logging';
-import { schema, inventory, inventoryBatches, reorderRequests } from '../../../shared/db';
-import { and, eq, lessOrEqual, greaterThan } from 'drizzle-orm';
+import { retry } from '../../utils/retry';
 
 const logger = getLogger().child({ component: 'resilient-inventory-service' });
 
@@ -26,9 +31,7 @@ class SupplierApiService {
         maxAttempts: 3,
         initialDelayMs: 500,
       },
-      fallbackBaseURLs: [
-        process.env.SUPPLIER_API_FALLBACK_URL,
-      ].filter(Boolean) as string[],
+      fallbackBaseURLs: [process.env.SUPPLIER_API_FALLBACK_URL].filter(Boolean) as string[],
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': process.env.SUPPLIER_API_KEY || '',
@@ -103,7 +106,7 @@ export class ResilientInventoryService {
    */
   async getInventoryItem(inventoryId: number, storeId: number): Promise<any> {
     const cacheKey = generateEntityCacheKey('INVENTORY' as any, `${storeId}:${inventoryId}`);
-    
+
     return getCachedOrFetch(
       cacheKey,
       async () => {
@@ -111,19 +114,13 @@ export class ResilientInventoryService {
         return retry(
           async () => {
             const item = await db.query.inventory.findFirst({
-              where: and(
-                eq(inventory.id, inventoryId),
-                eq(inventory.storeId, storeId)
-              ),
+              where: and(eq(inventory.id, inventoryId), eq(inventory.storeId, storeId)),
               with: {
                 product: true,
                 batches: {
-                  orderBy: [
-                    { expiryDate: 'asc' },
-                    { createdAt: 'asc' }
-                  ]
-                }
-              }
+                  orderBy: [{ expiryDate: 'asc' }, { createdAt: 'asc' }],
+                },
+              },
             });
 
             if (!item) {
@@ -132,9 +129,9 @@ export class ResilientInventoryService {
 
             return item;
           },
-          { 
+          {
             maxAttempts: 3,
-            operationName: `getInventoryItem:${inventoryId}:${storeId}`
+            operationName: `getInventoryItem:${inventoryId}:${storeId}`,
           }
         );
       },
@@ -152,11 +149,11 @@ export class ResilientInventoryService {
     reason?: string
   ): Promise<any> {
     return withTransaction(
-      async (tx) => {
+      async tx => {
         // Lock the inventory record for update
         const inventoryItem = await tx.query.inventory.findFirst({
           where: eq(inventory.id, inventoryId),
-          for: 'update'
+          for: 'update',
         });
 
         if (!inventoryItem) {
@@ -165,16 +162,17 @@ export class ResilientInventoryService {
 
         // Calculate new quantity
         const newQuantity = inventoryItem.totalQuantity + quantityChange;
-        
+
         if (newQuantity < 0 && !process.env.ALLOW_NEGATIVE_INVENTORY) {
           throw new Error(`Cannot reduce inventory below zero: ${inventoryId}`);
         }
 
         // Update inventory record
-        await tx.update(inventory)
-          .set({ 
+        await tx
+          .update(inventory)
+          .set({
             totalQuantity: newQuantity,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(inventory.id, inventoryId));
 
@@ -182,7 +180,7 @@ export class ResilientInventoryService {
         if (batchId) {
           const batch = await tx.query.inventoryBatches.findFirst({
             where: eq(inventoryBatches.id, batchId),
-            for: 'update'
+            for: 'update',
           });
 
           if (!batch) {
@@ -190,29 +188,29 @@ export class ResilientInventoryService {
           }
 
           const newBatchQuantity = batch.quantity + quantityChange;
-          
+
           if (newBatchQuantity < 0) {
             throw new Error(`Cannot reduce batch quantity below zero: ${batchId}`);
           }
 
-          await tx.update(inventoryBatches)
-            .set({ 
+          await tx
+            .update(inventoryBatches)
+            .set({
               quantity: newBatchQuantity,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(inventoryBatches.id, batchId));
         }
 
         // Record inventory transaction
-        await tx.insert(schema.inventoryTransactions)
-          .values({
-            inventoryId,
-            batchId,
-            quantityChange,
-            reason: reason || 'manual-adjustment',
-            createdAt: new Date(),
-            newTotalQuantity: newQuantity
-          });
+        await tx.insert(schema.inventoryTransactions).values({
+          inventoryId,
+          batchId,
+          quantityChange,
+          reason: reason || 'manual-adjustment',
+          createdAt: new Date(),
+          newTotalQuantity: newQuantity,
+        });
 
         // Check if we need to trigger auto-ordering
         if (inventoryItem.reorderLevel && newQuantity <= inventoryItem.reorderLevel) {
@@ -222,9 +220,9 @@ export class ResilientInventoryService {
             productId: inventoryItem.productId,
             currentQuantity: newQuantity,
             reorderLevel: inventoryItem.reorderLevel,
-            minimumLevel: inventoryItem.minimumLevel
+            minimumLevel: inventoryItem.minimumLevel,
           });
-          
+
           // Queue auto-reorder if enabled
           if (inventoryItem.autoReorder) {
             await this.queueAutoReorder(tx, inventoryItem);
@@ -234,13 +232,13 @@ export class ResilientInventoryService {
         // Return updated inventory
         return {
           ...inventoryItem,
-          totalQuantity: newQuantity
+          totalQuantity: newQuantity,
         };
       },
       {
         maxRetries: 5,
         transactionName: `update-inventory-quantity:${inventoryId}:${quantityChange}`,
-        serializable: true
+        serializable: true,
       }
     ).then(result => {
       // Invalidate cache after successful update
@@ -260,7 +258,7 @@ export class ResilientInventoryService {
         where: and(
           eq(reorderRequests.inventoryId, inventory.id),
           eq(reorderRequests.status, 'pending')
-        )
+        ),
       });
 
       if (existingReorder) {
@@ -274,13 +272,13 @@ export class ResilientInventoryService {
         storeId: inventory.storeId,
         requestedQuantity: inventory.minimumLevel - inventory.totalQuantity,
         status: 'pending',
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     } catch (error: unknown) {
       // Log error but don't fail the transaction
       logger.error('Failed to queue auto-reorder', {
         inventoryId: inventory.id,
-        error
+        error,
       });
     }
   }
@@ -296,14 +294,11 @@ export class ResilientInventoryService {
   }> {
     // Find pending reorder requests
     const pendingReorders = await db.query.reorderRequests.findMany({
-      where: and(
-        eq(reorderRequests.storeId, storeId),
-        eq(reorderRequests.status, 'pending')
-      ),
+      where: and(eq(reorderRequests.storeId, storeId), eq(reorderRequests.status, 'pending')),
       with: {
         inventory: true,
-        product: true
-      }
+        product: true,
+      },
     });
 
     if (!pendingReorders.length) {
@@ -315,7 +310,7 @@ export class ResilientInventoryService {
     const results = {
       processed: 0,
       failed: 0,
-      details: [] as any[]
+      details: [] as any[],
     };
 
     // Process each reorder with retry logic
@@ -328,11 +323,12 @@ export class ResilientInventoryService {
 
         if (!availability.available) {
           // Update status to supplier-unavailable
-          await db.update(reorderRequests)
+          await db
+            .update(reorderRequests)
             .set({
               status: 'supplier-unavailable',
               notes: `Supplier reported product unavailable at ${new Date().toISOString()}`,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(reorderRequests.id, reorder.id));
 
@@ -340,7 +336,7 @@ export class ResilientInventoryService {
           results.details.push({
             reorderId: reorder.id,
             productId: reorder.productId,
-            status: 'supplier-unavailable'
+            status: 'supplier-unavailable',
           });
           continue;
         }
@@ -350,15 +346,16 @@ export class ResilientInventoryService {
           productId: reorder.product.supplierProductId || String(reorder.productId),
           quantity: reorder.requestedQuantity,
           storeId: String(storeId),
-          reference: `reorder-${reorder.id}`
+          reference: `reorder-${reorder.id}`,
         });
 
         // Update reorder status
-        await db.update(reorderRequests)
+        await db
+          .update(reorderRequests)
           .set({
             status: 'ordered',
             supplierOrderId: orderResult.orderId,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(reorderRequests.id, reorder.id));
 
@@ -367,21 +364,22 @@ export class ResilientInventoryService {
           reorderId: reorder.id,
           productId: reorder.productId,
           status: 'ordered',
-          orderId: orderResult.orderId
+          orderId: orderResult.orderId,
         });
       } catch (error: unknown) {
         logger.error('Failed to process reorder', {
           reorderId: reorder.id,
           productId: reorder.productId,
-          error
+          error,
         });
 
         // Update status to failed
-        await db.update(reorderRequests)
+        await db
+          .update(reorderRequests)
           .set({
             status: 'failed',
             notes: `Error: ${error instanceof Error ? error.message : String(error)}`,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(reorderRequests.id, reorder.id));
 
@@ -390,7 +388,7 @@ export class ResilientInventoryService {
           reorderId: reorder.id,
           productId: reorder.productId,
           status: 'failed',
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -402,16 +400,13 @@ export class ResilientInventoryService {
    * Check for inventory batches nearing expiry
    * Can be called by a scheduled job
    */
-  async checkExpiringBatches(
-    storeId: number,
-    daysUntilExpiry: number = 30
-  ): Promise<any[]> {
+  async checkExpiringBatches(storeId: number, daysUntilExpiry: number = 30): Promise<any[]> {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + daysUntilExpiry);
 
     // Query for batches expiring within the time window
     return withTransaction(
-      async (tx) => {
+      async tx => {
         const expiringBatches = await tx.query.inventoryBatches.findMany({
           where: and(
             eq(inventoryBatches.storeId, storeId),
@@ -424,22 +419,21 @@ export class ResilientInventoryService {
           with: {
             inventory: {
               with: {
-                product: true
-              }
-            }
+                product: true,
+              },
+            },
           },
-          orderBy: [
-            { expiryDate: 'asc' }
-          ]
+          orderBy: [{ expiryDate: 'asc' }],
         });
 
         // Mark batches as flagged for expiry
         for (const batch of expiringBatches) {
           if (!batch.expiryFlagged) {
-            await tx.update(schema.inventoryBatches)
+            await tx
+              .update(schema.inventoryBatches)
               .set({
                 expiryFlagged: true,
-                updatedAt: new Date()
+                updatedAt: new Date(),
               })
               .where(eq(schema.inventoryBatches.id, batch.id));
           }
@@ -449,7 +443,7 @@ export class ResilientInventoryService {
       },
       {
         transactionName: `check-expiring-batches:${storeId}:${daysUntilExpiry}`,
-        serializable: false
+        serializable: false,
       }
     );
   }

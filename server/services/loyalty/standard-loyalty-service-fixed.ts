@@ -1,5 +1,8 @@
-import { z } from 'zod';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 import { eq, and, sql } from 'drizzle-orm';
+import { z } from 'zod';
+
+import { LoyaltyMember, MemberWithDetails } from './types';
 import {
   loyaltyMembers,
   loyaltyPrograms,
@@ -10,8 +13,6 @@ import {
   customers,
 } from '../../../shared/db';
 import { BaseService, ServiceConfig } from '../base/standard-service';
-import { LoyaltyMember, MemberWithDetails } from './types';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 // --- Schemas ---
 export const memberCreateSchema = z.object({
@@ -49,7 +50,7 @@ export class LoyaltyService extends BaseService<
     TRANSACTION: 1800, // 30 minutes
     LIST: 300, // 5 minutes
   };
-  
+
   /**
    * Helper method to safely convert any value to a string for SQL
    * Uses the proper Drizzle pattern to avoid TypeScript errors
@@ -91,13 +92,10 @@ export class LoyaltyService extends BaseService<
         WHERE m.id = ${this.safeToString(id)}
         LIMIT 1
       `;
-      
-      const result = await this.executeQuery(
-        async (db) => {
-          return db.execute(query);
-        },
-        'loyalty.getMemberWithDetails'
-      );
+
+      const result = await this.executeQuery(async db => {
+        return db.execute(query);
+      }, 'loyalty.getMemberWithDetails');
 
       // Type-safe check for empty results
       const rows = result.rows || [];
@@ -106,7 +104,7 @@ export class LoyaltyService extends BaseService<
       }
 
       const row = rows[0] as Record<string, any>;
-      
+
       // Create properly structured MemberWithDetails object
       const memberWithDetails: MemberWithDetails = {
         id: Number(row.id),
@@ -127,10 +125,12 @@ export class LoyaltyService extends BaseService<
           id: Number(row.program_id),
           name: String(row.program_name),
         },
-        tier: row.tier_id ? {
-          id: Number(row.tier_id),
-          name: String(row.tier_name),
-        } : { id: 0, name: 'Default Tier' },
+        tier: row.tier_id
+          ? {
+              id: Number(row.tier_id),
+              name: String(row.tier_name),
+            }
+          : { id: 0, name: 'Default Tier' },
       };
 
       if (this.cache) {
@@ -140,7 +140,12 @@ export class LoyaltyService extends BaseService<
       return memberWithDetails;
     } catch (error) {
       this.logger.error(`Error fetching loyalty member with details for ID: ${id}`, { error });
-      throw new AppError(`Error fetching loyalty member with details`, ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error, id });
+      throw new AppError(
+        `Error fetching loyalty member with details`,
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error, id }
+      );
     }
   }
 
@@ -176,12 +181,9 @@ export class LoyaltyService extends BaseService<
         `;
       }
 
-      const result = await this.executeQuery(
-        async (db) => {
-          return db.execute(query);
-        },
-        'loyalty.getMemberByCustomerId'
-      );
+      const result = await this.executeQuery(async db => {
+        return db.execute(query);
+      }, 'loyalty.getMemberByCustomerId');
 
       // Ensure we have a properly structured LoyaltyMember
       let member: LoyaltyMember | null = null;
@@ -196,9 +198,9 @@ export class LoyaltyService extends BaseService<
           tierId: row.tier_id !== null ? Number(row.tier_id) : null,
           points: Number(row.points),
           createdAt: new Date(row.created_at),
-          updatedAt: new Date(row.updated_at)
+          updatedAt: new Date(row.updated_at),
         };
-        
+
         if (this.cache) {
           await this.cache.set(cacheKey, member, this.CACHE_TTL.MEMBER);
         }
@@ -207,7 +209,12 @@ export class LoyaltyService extends BaseService<
       return member;
     } catch (error) {
       this.logger.error(`Error fetching loyalty member by customer ID: ${customerId}`, { error });
-      throw new AppError(`Error fetching loyalty member by customer ID`, ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error, customerId });
+      throw new AppError(
+        `Error fetching loyalty member by customer ID`,
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error, customerId }
+      );
     }
   }
 
@@ -232,12 +239,9 @@ export class LoyaltyService extends BaseService<
         LIMIT 1
       `;
 
-      const result = await this.executeQuery(
-        async (db) => {
-          return db.execute(query);
-        },
-        'loyalty.getMemberByLoyaltyId'
-      );
+      const result = await this.executeQuery(async db => {
+        return db.execute(query);
+      }, 'loyalty.getMemberByLoyaltyId');
 
       // Ensure we have a properly structured LoyaltyMember
       let member: LoyaltyMember | null = null;
@@ -252,9 +256,9 @@ export class LoyaltyService extends BaseService<
           tierId: row.tier_id !== null ? Number(row.tier_id) : null,
           points: Number(row.points),
           createdAt: new Date(row.created_at),
-          updatedAt: new Date(row.updated_at)
+          updatedAt: new Date(row.updated_at),
         };
-        
+
         if (this.cache) {
           await this.cache.set(cacheKey, member, this.CACHE_TTL.MEMBER);
         }
@@ -263,7 +267,12 @@ export class LoyaltyService extends BaseService<
       return member;
     } catch (error) {
       this.logger.error(`Error fetching loyalty member by loyalty ID: ${loyaltyId}`, { error });
-      throw new AppError(`Error fetching loyalty member by loyalty ID`, ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error, loyaltyId });
+      throw new AppError(
+        `Error fetching loyalty member by loyalty ID`,
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error, loyaltyId }
+      );
     }
   }
 
@@ -281,7 +290,12 @@ export class LoyaltyService extends BaseService<
       return result as LoyaltyMember;
     } catch (error) {
       this.logger.error('Error creating loyalty member', { error, data });
-      throw new AppError('Failed to create loyalty member', ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error });
+      throw new AppError(
+        'Failed to create loyalty member',
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error }
+      );
     }
   }
 
@@ -294,7 +308,12 @@ export class LoyaltyService extends BaseService<
       return result as LoyaltyMember;
     } catch (error) {
       this.logger.error('Error updating loyalty member', { error, id, data });
-      throw new AppError('Failed to update loyalty member', ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error });
+      throw new AppError(
+        'Failed to update loyalty member',
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error }
+      );
     }
   }
 
@@ -318,12 +337,9 @@ export class LoyaltyService extends BaseService<
         WHERE program_id = ${this.safeToString(programId)}
       `;
 
-      const result = await this.executeQuery(
-        async (db) => {
-          return db.execute(query);
-        },
-        'loyalty.getMembersByProgramId'
-      );
+      const result = await this.executeQuery(async db => {
+        return db.execute(query);
+      }, 'loyalty.getMembersByProgramId');
 
       // Map DB results to properly structured LoyaltyMember objects
       const rows = result.rows || [];
@@ -337,7 +353,7 @@ export class LoyaltyService extends BaseService<
           tierId: typedRow.tier_id !== null ? Number(typedRow.tier_id) : null,
           points: Number(typedRow.points),
           createdAt: new Date(typedRow.created_at),
-          updatedAt: new Date(typedRow.updated_at)
+          updatedAt: new Date(typedRow.updated_at),
         };
       });
 
@@ -348,7 +364,12 @@ export class LoyaltyService extends BaseService<
       return members;
     } catch (error) {
       this.logger.error(`Error fetching loyalty members for program ID: ${programId}`, { error });
-      throw new AppError('Failed to get loyalty members for program', ErrorCategory.SERVICE, ErrorCode.INTERNAL_SERVER_ERROR, { error, programId });
+      throw new AppError(
+        'Failed to get loyalty members for program',
+        ErrorCategory.SERVICE,
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        { error, programId }
+      );
     }
   }
 }

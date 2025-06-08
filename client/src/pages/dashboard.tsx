@@ -1,17 +1,18 @@
-import React from 'react';
-import { AppShell } from '@/components/layout/app-shell';
-import { QuickStats } from '@/components/dashboard/quick-stats';
-import { StorePerformance } from '@/components/dashboard/store-performance';
-import { RecentTransactions } from '@/components/dashboard/recent-transactions';
-import { LowStockAlerts } from '@/components/inventory/low-stock-alerts';
-import { useAuth } from '@/providers/auth-provider';
-import { Button } from '@/components/ui/button';
 import { PlusIcon, PrinterIcon } from 'lucide-react';
+import React from 'react';
 import { Link } from 'wouter';
+
+import { QuickStats } from '@/components/dashboard/quick-stats';
+import { RecentTransactions } from '@/components/dashboard/recent-transactions';
+import { StorePerformance } from '@/components/dashboard/store-performance';
+import { LowStockAlerts } from '@/components/inventory/low-stock-alerts';
+import { AppShell } from '@/components/layout/app-shell';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  
+
   return (
     <AppShell>
       {/* Page Title */}
@@ -25,7 +26,7 @@ export default function DashboardPage() {
             <PrinterIcon className="w-4 h-4 mr-2" />
             Export Reports
           </Button>
-          
+
           {user?.role === 'admin' && (
             <Button asChild>
               <Link href="/stores">
@@ -46,7 +47,7 @@ export default function DashboardPage() {
         <div className="hidden md:block col-span-12 lg:col-span-8">
           <StorePerformance />
         </div>
-        
+
         {/* Low Stock Alerts */}
         <div className="col-span-12 md:col-span-4">
           <LowStockAlerts />

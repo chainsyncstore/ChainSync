@@ -159,15 +159,10 @@ export interface AIService {
   ): Promise<string>;
 
   // Error Handling
-  handleError(
-    error: Error,
-    context: string
-  ): never;
+  handleError(error: Error, context: string): never;
 
   // Usage Tracking
-  getUsageStats(
-    userId: string
-  ): Promise<{
+  getUsageStats(userId: string): Promise<{
     totalRequests: number;
     averageDuration: number;
     lastRequest: number;
@@ -179,16 +174,12 @@ export interface AIService {
   }>;
 
   // Cache Management
-  clearCache(
-    userId: string
-  ): Promise<void>;
+  clearCache(userId: string): Promise<void>;
 
   // Model Management
   listAvailableModels(): Promise<string[]>;
 
-  getModelCapabilities(
-    model: string
-  ): Promise<{
+  getModelCapabilities(model: string): Promise<{
     maxTokens: number;
     temperatureRange: [number, number];
     supportedFeatures: string[];

@@ -1,14 +1,16 @@
 /**
  * Test Utilities and Helpers
- * 
+ *
  * This file contains reusable test utilities and fixtures for writing
  * consistent, maintainable tests across the ChainSync application.
  */
 
+import { sql } from 'drizzle-orm';
+
 import { db } from '../../server/db/connection';
 import { insertOne, executeRawQuery } from '../../server/db/sqlHelpers';
 import { products, users, transactions as orders, stores, customers } from '../../shared/db';
-import { sql } from 'drizzle-orm';
+
 // Types are now inferred from the schema objects below
 export type Product = typeof products.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -40,7 +42,7 @@ export async function cleanupTestDatabase() {
   if (process.env.NODE_ENV !== 'test') {
     throw new Error('cleanupTestDatabase can only be used in test environment');
   }
-  
+
   const tables = [
     'order_items',
     'transactions', // Renamed from 'orders'
@@ -52,9 +54,9 @@ export async function cleanupTestDatabase() {
     'loyalty_rewards',
     'loyalty_members',
     'loyalty_tiers',
-    'loyalty_programs'
+    'loyalty_programs',
   ];
-  
+
   for (const table of tables) {
     await db.execute(sql`TRUNCATE TABLE ${sql.identifier(table)} CASCADE`);
   }
@@ -75,9 +77,9 @@ export async function createTestProduct(overrides: Partial<Product> = {}): Promi
     storeId: overrides.storeId || (await createTestStore()).id,
     categoryId: null,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
+
   const productData = { ...defaultProduct, ...overrides };
   const result = await insertOne<unknown, Product>(db, products, productData);
   return result;
@@ -93,9 +95,9 @@ export async function createTestUser(overrides: Partial<User> = {}): Promise<Use
     isActive: true,
     lastLogin: new Date(),
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
+
   const userData = { ...defaultUser, ...overrides };
   const result = await insertOne<unknown, User>(db, users, userData);
   return result;
@@ -112,9 +114,9 @@ export async function createTestStore(overrides: Partial<Store> = {}): Promise<S
     email: `store-${Date.now()}@example.com`,
     isActive: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
+
   const storeData = { ...defaultStore, ...overrides };
   const result = await insertOne<unknown, Store>(db, stores, storeData);
   return result;
@@ -131,9 +133,9 @@ export async function createTestCustomer(overrides: Partial<Customer> = {}): Pro
     state: 'CS',
     zipCode: '54321',
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
+
   const customerData = { ...defaultCustomer, ...overrides };
   const result = await insertOne<unknown, Customer>(db, customers, customerData);
   return result;
@@ -145,12 +147,12 @@ export async function createTestOrder(overrides: Partial<Order> = {}): Promise<O
     const customer = await createTestCustomer();
     overrides.customerId = customer.id;
   }
-  
+
   if (!overrides.storeId) {
     const store = await createTestStore();
     overrides.storeId = store.id;
   }
-  
+
   const defaultOrder = {
     status: 'pending',
     total: 99.99,
@@ -159,9 +161,9 @@ export async function createTestOrder(overrides: Partial<Order> = {}): Promise<O
     paymentMethod: 'credit_card',
     notes: 'Test order',
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
+
   const orderData = { ...defaultOrder, ...overrides };
   const result = await insertOne<unknown, Order>(db, orders, orderData);
   return result;
@@ -181,8 +183,8 @@ export function createMockLogger() {
       info: jest.fn(),
       error: jest.fn(),
       warn: jest.fn(),
-      debug: jest.fn()
-    })
+      debug: jest.fn(),
+    }),
   };
 }
 
@@ -190,13 +192,13 @@ export function createMockDb() {
   return {
     query: jest.fn(),
     execute: jest.fn(),
-    transaction: jest.fn().mockImplementation(async (cb) => {
+    transaction: jest.fn().mockImplementation(async cb => {
       const mockTxDb = {
         query: jest.fn(),
-        execute: jest.fn()
+        execute: jest.fn(),
       };
       return cb(mockTxDb);
-    })
+    }),
   };
 }
 
@@ -207,7 +209,7 @@ export function createMockDb() {
 export function expectValidationError(promise: Promise<any>, expectedMessage?: string) {
   return expect(promise).rejects.toMatchObject({
     name: 'ZodError',
-    ...(expectedMessage ? { message: expect.stringContaining(expectedMessage) } : {})
+    ...(expectedMessage ? { message: expect.stringContaining(expectedMessage) } : {}),
   });
 }
 
@@ -229,14 +231,12 @@ expect.extend({
     const pass = received >= floor && received <= ceiling;
     if (pass) {
       return {
-        message: () =>
-          `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
         pass: true,
       };
     } else {
       return {
-        message: () =>
-          `expected ${received} to be within range ${floor} - ${ceiling}`,
+        message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
         pass: false,
       };
     }

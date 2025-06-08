@@ -8,15 +8,13 @@ type TransactionType = typeof db;
 export abstract class BaseService {
   protected constructor(protected readonly logger: Logger) {}
 
-  protected async withTransaction<T>(
-    callback: (trx: TransactionType) => Promise<T>
-  ): Promise<T> {
+  protected async withTransaction<T>(callback: (trx: TransactionType) => Promise<T>): Promise<T> {
     // The 'trx' in db.transaction callback should be compatible with typeof db
-    return db.transaction(async (trx) => {
+    return db.transaction(async trx => {
       // The trx object from the transaction callback should be assignable to TransactionType (typeof db)
       // If there's still a slight mismatch, an explicit cast might be needed,
       // but ideally Drizzle's typings handle this.
-      return await callback(trx); 
+      return await callback(trx);
     });
   }
 }

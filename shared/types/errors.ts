@@ -26,7 +26,7 @@ export enum ErrorCategory {
   DATABASE_ERROR = 'DATABASE_ERROR',
   DATA_INTEGRITY = 'DATA_INTEGRITY',
   SERVICE = 'SERVICE',
-  PAYMENT = 'PAYMENT' // Added
+  PAYMENT = 'PAYMENT', // Added
   // Note: UPLOAD category could be added if distinct from IMPORT_EXPORT or BUSINESS
 }
 
@@ -37,7 +37,7 @@ export enum RetryableError {
   TIMEOUT = 'TIMEOUT',
   NETWORK_ERROR = 'NETWORK_ERROR',
   CONNECTION_LOST = 'CONNECTION_LOST',
-  LOCKED_RESOURCE = 'LOCKED_RESOURCE'
+  LOCKED_RESOURCE = 'LOCKED_RESOURCE',
 }
 
 export enum ErrorCode {
@@ -160,7 +160,7 @@ export enum ErrorCode {
   FOREIGN_KEY_CONSTRAINT_VIOLATION = 'FOREIGN_KEY_CONSTRAINT_VIOLATION', // Specific DB error
   DB_CHECK_VIOLATION = 'DB_CHECK_VIOLATION', // Added from middleware/types/error.ts
   DB_NOT_NULL_VIOLATION = 'DB_NOT_NULL_VIOLATION', // Added from middleware/types/error.ts
-  
+
   // File Upload Errors (from middleware/types/error.ts)
   UPLOAD_FAILED = 'UPLOAD_FAILED',
   UPLOAD_LIMIT_EXCEEDED = 'UPLOAD_LIMIT_EXCEEDED',
@@ -202,7 +202,7 @@ export enum ErrorCode {
   TEMPORARY_UNAVAILABLE = 'TEMPORARY_UNAVAILABLE',
   INSUFFICIENT_STOCK = 'INSUFFICIENT_STOCK',
   INSUFFICIENT_BALANCE = 'INSUFFICIENT_BALANCE',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR' // Added missing UNKNOWN_ERROR
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR', // Added missing UNKNOWN_ERROR
 }
 
 export interface BaseError {
@@ -243,18 +243,13 @@ export class AppError extends Error {
   }
 
   static fromZodError(error: ZodError): AppError {
-    return new AppError(
-      'Validation failed',
-      ErrorCategory.VALIDATION,
-      ErrorCode.VALIDATION_ERROR,
-      {
-        validationErrors: error.errors.map((issue: ZodIssue) => ({
-          path: issue.path,
-          message: issue.message,
-          type: issue.code
-        }))
-      }
-    );
+    return new AppError('Validation failed', ErrorCategory.VALIDATION, ErrorCode.VALIDATION_ERROR, {
+      validationErrors: error.errors.map((issue: ZodIssue) => ({
+        path: issue.path,
+        message: issue.message,
+        type: issue.code,
+      })),
+    });
   }
 
   static isValidationError(error: Error): error is ValidationError {
@@ -272,33 +267,23 @@ export class AppError extends Error {
         ErrorCategory.VALIDATION,
         ErrorCode.INVALID_FIELD_VALUE,
         {
-          errors: error.errors
+          errors: error.errors,
         }
       );
     }
 
     if (AppError.isMongoError(error)) {
       if (error.code === 11000) {
-        return new AppError(
-          'Duplicate entry',
-          ErrorCategory.DATABASE,
-          ErrorCode.DUPLICATE_ENTRY,
-          {
-            keyValue: error.keyValue
-          }
-        );
+        return new AppError('Duplicate entry', ErrorCategory.DATABASE, ErrorCode.DUPLICATE_ENTRY, {
+          keyValue: error.keyValue,
+        });
       }
 
       // Handle other MongoDB error codes
       if (error.code === 11001 || error.code === 11002) {
-        return new AppError(
-          'Duplicate entry',
-          ErrorCategory.DATABASE,
-          ErrorCode.DUPLICATE_ENTRY,
-          {
-            keyValue: error.keyValue
-          }
-        );
+        return new AppError('Duplicate entry', ErrorCategory.DATABASE, ErrorCode.DUPLICATE_ENTRY, {
+          keyValue: error.keyValue,
+        });
       }
 
       // Handle foreign key constraint violation
@@ -308,31 +293,21 @@ export class AppError extends Error {
           ErrorCategory.DATABASE,
           ErrorCode.FOREIGN_KEY_CONSTRAINT_VIOLATION,
           {
-            keyValue: error.keyValue
+            keyValue: error.keyValue,
           }
         );
       }
 
       // Handle other database errors
-      return new AppError(
-        'Database error',
-        ErrorCategory.DATABASE,
-        ErrorCode.DATABASE_ERROR,
-        {
-          message: error.message
-        }
-      );
+      return new AppError('Database error', ErrorCategory.DATABASE, ErrorCode.DATABASE_ERROR, {
+        message: error.message,
+      });
     }
 
     // Handle other database errors
-    return new AppError(
-      'Database error',
-      ErrorCategory.DATABASE,
-      ErrorCode.DATABASE_ERROR,
-      {
-        message: error.message
-      }
-    );
+    return new AppError('Database error', ErrorCategory.DATABASE, ErrorCode.DATABASE_ERROR, {
+      message: error.message,
+    });
   }
 
   static fromAuthenticationError(error: Error): AppError {
@@ -341,53 +316,33 @@ export class AppError extends Error {
       ErrorCategory.AUTHENTICATION,
       ErrorCode.UNAUTHORIZED,
       {
-        message: error.message
+        message: error.message,
       }
     );
   }
 
   static fromResourceError(error: Error): AppError {
-    return new AppError(
-      'Resource error',
-      ErrorCategory.RESOURCE,
-      ErrorCode.NOT_FOUND,
-      {
-        message: error.message
-      }
-    );
+    return new AppError('Resource error', ErrorCategory.RESOURCE, ErrorCode.NOT_FOUND, {
+      message: error.message,
+    });
   }
 
   static fromBusinessError(error: Error): AppError {
-    return new AppError(
-      'Business error',
-      ErrorCategory.BUSINESS,
-      ErrorCode.BAD_REQUEST,
-      {
-        message: error.message
-      }
-    );
+    return new AppError('Business error', ErrorCategory.BUSINESS, ErrorCode.BAD_REQUEST, {
+      message: error.message,
+    });
   }
 
   static fromSystemError(error: Error): AppError {
-    return new AppError(
-      'System error',
-      ErrorCategory.SYSTEM,
-      ErrorCode.INTERNAL_SERVER_ERROR,
-      {
-        message: error.message
-      }
-    );
+    return new AppError('System error', ErrorCategory.SYSTEM, ErrorCode.INTERNAL_SERVER_ERROR, {
+      message: error.message,
+    });
   }
 
   static fromImportExportError(error: Error): AppError {
-    return new AppError(
-      'Import/export error',
-      ErrorCategory.IMPORT_EXPORT,
-      ErrorCode.BAD_REQUEST,
-      {
-        message: error.message
-      }
-    );
+    return new AppError('Import/export error', ErrorCategory.IMPORT_EXPORT, ErrorCode.BAD_REQUEST, {
+      message: error.message,
+    });
   }
 
   static fromProcessingError(error: Error): AppError {
@@ -396,7 +351,7 @@ export class AppError extends Error {
       ErrorCategory.PROCESSING,
       ErrorCode.INTERNAL_SERVER_ERROR,
       {
-        message: error.message
+        message: error.message,
       }
     );
   }
@@ -407,7 +362,7 @@ export class AppError extends Error {
       ErrorCategory.INVALID_FORMAT,
       ErrorCode.BAD_REQUEST,
       {
-        message: error.message
+        message: error.message,
       }
     );
   }
@@ -418,20 +373,15 @@ export class AppError extends Error {
       ErrorCategory.EXPORT_ERROR,
       ErrorCode.INTERNAL_SERVER_ERROR,
       {
-        message: error.message
+        message: error.message,
       }
     );
   }
 
   static fromRetryableError(error: Error): AppError {
-    return new AppError(
-      'Retryable error',
-      ErrorCategory.SYSTEM,
-      ErrorCode.INTERNAL_SERVER_ERROR,
-      {
-        message: error.message
-      }
-    );
+    return new AppError('Retryable error', ErrorCategory.SYSTEM, ErrorCode.INTERNAL_SERVER_ERROR, {
+      message: error.message,
+    });
   }
 
   get status(): number {

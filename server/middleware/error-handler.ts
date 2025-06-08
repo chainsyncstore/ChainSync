@@ -3,12 +3,7 @@ import { logError } from '@shared/utils/error-logger';
 import { formatErrorForUser } from '@shared/utils/error-messages';
 import { NextFunction, Request, Response } from 'express';
 
-export const errorHandler = (
-  error: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const errorHandler = (error: Error, req: Request, res: Response, next: NextFunction) => {
   // Log error with request context
   logError(error, `Request: ${req.method} ${req.path}`);
 
@@ -19,7 +14,7 @@ export const errorHandler = (
   }
   if (error instanceof AppError) {
     const status = error.statusCode || 500;
-    
+
     // Define a type for the error response payload
     interface AppErrorResponsePayload {
       code: ErrorCode | string; // Assuming error.code can be string or from ErrorCode enum
@@ -92,12 +87,11 @@ export const errorHandler = (
 
   // Handle other errors
   // Don't log sensitive information in production
-  const errorDetails = process.env.NODE_ENV === 'development' 
-    ? error.message 
-    : 'An unexpected error occurred';
-  
+  const errorDetails =
+    process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred';
+
   logError(error, `Request: ${req.method} ${req.path}`);
-  
+
   return res.status(500).json({
     error: {
       code: ErrorCode.INTERNAL_SERVER_ERROR,

@@ -1,4 +1,4 @@
-import { initializeGlobals } from "@shared/db/types";
+import { initializeGlobals } from '@shared/db/types';
 
 interface InitializationResult {
   success: boolean;
@@ -13,26 +13,23 @@ export async function initializeApp(): Promise<InitializationResult> {
   try {
     // Initialize global database references
     await initializeGlobals();
-    
+
     // Add any other initialization logic here
     // For example:
     // - Initialize authentication
     // - Load user preferences
     // - Fetch initial data
-    
+
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : 'An unknown error occurred during initialization';
-      
+    const errorMessage =
+      error instanceof Error ? error.message : 'An unknown error occurred during initialization';
+
     console.error('Initialization error:', error);
-    
-    return { 
-      success: false, 
-      error: error instanceof Error 
-        ? error 
-        : new Error(String(error))
+
+    return {
+      success: false,
+      error: error instanceof Error ? error : new Error(String(error)),
     };
   }
 }
