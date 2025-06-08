@@ -39,8 +39,10 @@ export const users = mysqlTable('users', {
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   isActive: boolean('is_active').default(true).notNull(),
-  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: datetime('updated_at')
+  createdAt: datetime('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at'),
 });
 ```
 
@@ -49,6 +51,7 @@ export const users = mysqlTable('users', {
 #### Basic CRUD Operations
 
 **Select**:
+
 ```typescript
 import { db } from '../../db';
 import { users } from './schema';
@@ -63,39 +66,46 @@ const result = await db.select().from(users).where(eq(users.id, 123));
 ```
 
 **Insert**:
+
 ```typescript
 import { insertOne } from '../../server/db/sqlHelpers';
 
 // Using SQL helpers (recommended)
 const newUser = await insertOne(db, users, {
   name: 'John Doe',
-  email: 'john@example.com'
+  email: 'john@example.com',
 });
 
 // Using Drizzle directly
-const result = await db.insert(users).values({
-  name: 'John Doe',
-  email: 'john@example.com'
-}).returning();
+const result = await db
+  .insert(users)
+  .values({
+    name: 'John Doe',
+    email: 'john@example.com',
+  })
+  .returning();
 ```
 
 **Update**:
+
 ```typescript
 import { updateById } from '../../server/db/sqlHelpers';
 
 // Using SQL helpers (recommended)
 const updatedUser = await updateById(db, users, 'id', 123, {
-  name: 'Updated Name'
+  name: 'Updated Name',
 });
 
 // Using Drizzle directly
-const result = await db.update(users)
+const result = await db
+  .update(users)
   .set({ name: 'Updated Name' })
   .where(eq(users.id, 123))
   .returning();
 ```
 
 **Delete**:
+
 ```typescript
 import { deleteById } from '../../server/db/sqlHelpers';
 
@@ -103,92 +113,83 @@ import { deleteById } from '../../server/db/sqlHelpers';
 const deletedUser = await deleteById(db, users, 'id', 123);
 
 // Using Drizzle directly
-const result = await db.delete(users)
-  .where(eq(users.id, 123))
-  .returning();
+const result = await db.delete(users).where(eq(users.id, 123)).returning();
 ```
 
 #### Advanced Queries
 
 **Pagination**:
+
 ```typescript
 import { findMany, paginationClause } from '../../server/db/sqlHelpers';
 
 // Using SQL helpers (recommended)
 const usersPage = await findMany(db, users, eq(users.isActive, true), {
   page: 2,
-  limit: 10
+  limit: 10,
 });
 
 // Using Drizzle directly
-const result = await db.select()
-  .from(users)
-  .where(eq(users.isActive, true))
-  .limit(10)
-  .offset(10); // Page 2 with 10 items per page
+const result = await db.select().from(users).where(eq(users.isActive, true)).limit(10).offset(10); // Page 2 with 10 items per page
 ```
 
 **Joins**:
+
 ```typescript
 import { orders } from './schema';
 import { joinTables } from '../../server/db/sqlHelpers';
 
 // Using SQL helpers (recommended)
-const userOrders = await joinTables(
-  db,
-  users,
-  orders,
-  'id',
-  'userId',
-  eq(users.id, 123)
-);
+const userOrders = await joinTables(db, users, orders, 'id', 'userId', eq(users.id, 123));
 
 // Using Drizzle directly
-const result = await db.select()
+const result = await db
+  .select()
   .from(users)
   .innerJoin(orders, eq(users.id, orders.userId))
   .where(eq(users.id, 123));
 ```
 
 **Transactions**:
+
 ```typescript
 import { withTransaction } from '../../server/db/sqlHelpers';
 
 // Using SQL helpers (recommended)
-const result = await withTransaction(db, async (tx) => {
-  const user = await findById(tx, users, 'id', 123);
-  if (!user) throw new Error('User not found');
-  
-  const updatedUser = await updateById(tx, users, 'id', 123, {
-    name: 'Transaction Update'
-  });
-  
-  const newOrder = await insertOne(tx, orders, {
-    userId: 123,
-    amount: 100
-  });
-  
-  return { user: updatedUser, order: newOrder };
-}, 'createOrderForUser');
+const result = await withTransaction(
+  db,
+  async tx => {
+    const user = await findById(tx, users, 'id', 123);
+    if (!user) throw new Error('User not found');
+
+    const updatedUser = await updateById(tx, users, 'id', 123, {
+      name: 'Transaction Update',
+    });
+
+    const newOrder = await insertOne(tx, orders, {
+      userId: 123,
+      amount: 100,
+    });
+
+    return { user: updatedUser, order: newOrder };
+  },
+  'createOrderForUser'
+);
 
 // Using Drizzle directly
-const result = await db.transaction(async (tx) => {
-  const [user] = await tx.select()
-    .from(users)
-    .where(eq(users.id, 123))
-    .limit(1);
-  
+const result = await db.transaction(async tx => {
+  const [user] = await tx.select().from(users).where(eq(users.id, 123)).limit(1);
+
   if (!user) throw new Error('User not found');
-  
-  const [updatedUser] = await tx.update(users)
+
+  const [updatedUser] = await tx
+    .update(users)
     .set({ name: 'Transaction Update' })
     .where(eq(users.id, 123))
     .returning();
-  
-  const [newOrder] = await tx.insert(orders)
-    .values({ userId: 123, amount: 100 })
-    .returning();
-  
+
+  const [newOrder] = await tx.insert(orders).values({ userId: 123, amount: 100 }).returning();
+
   return { user: updatedUser, order: newOrder };
 });
 ```
@@ -226,8 +227,10 @@ export const users = mysqlTable('users', {
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   isActive: boolean('is_active').default(true).notNull(),
-  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: datetime('updated_at')
+  createdAt: datetime('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at'),
 });
 
 export const orders = mysqlTable('orders', {
@@ -235,8 +238,10 @@ export const orders = mysqlTable('orders', {
   userId: int('user_id').notNull(),
   amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
   status: varchar('status', { length: 50 }).notNull(),
-  createdAt: datetime('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: datetime('updated_at')
+  createdAt: datetime('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: datetime('updated_at'),
 });
 ```
 
@@ -286,7 +291,7 @@ import { withDbTryCatch } from '../../server/db/sqlHelpers';
 
 const result = await withDbTryCatch(
   db,
-  async (client) => {
+  async client => {
     return await client.select().from(users).where(eq(users.id, 123));
   },
   'getUserById'
@@ -294,6 +299,7 @@ const result = await withDbTryCatch(
 ```
 
 The `withDbTryCatch` function provides:
+
 - Standardized error handling
 - Automatic logging of errors
 - Performance metrics (query duration)
@@ -314,7 +320,7 @@ const userSchema = z.object({
   email: z.string().email(),
   isActive: z.boolean(),
   createdAt: z.date(),
-  updatedAt: z.date().nullable()
+  updatedAt: z.date().nullable(),
 });
 
 // Use the validation helper
@@ -358,10 +364,7 @@ export async function down() {
 import * as migration001 from './001_create_users';
 import * as migration002 from './002_add_orders';
 
-export const migrations = [
-  migration001,
-  migration002
-];
+export const migrations = [migration001, migration002];
 ```
 
 3. Run migrations using the migration utility:
@@ -376,7 +379,7 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Migration failed:', error);
   process.exit(1);
 });

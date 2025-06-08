@@ -1,11 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-import {
-  CircuitBreaker,
-  CircuitBreakerOptions,
-  withFallback,
-  FallbackOptions,
-} from './fallback';
+import { CircuitBreaker, CircuitBreakerOptions, withFallback, FallbackOptions } from './fallback';
 import { retry, RetryOptions } from './retry';
 import { getLogger } from '../../src/logging/index';
 

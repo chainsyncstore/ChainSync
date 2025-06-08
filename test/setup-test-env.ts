@@ -1,6 +1,6 @@
 /**
  * Test Environment Setup
- * 
+ *
  * This file is used to set up the test environment before running tests.
  * It is referenced in jest.config.cjs as setupFilesAfterEnv.
  */
@@ -25,7 +25,7 @@ beforeAll(async () => {
   if (!process.env.DATABASE_URL?.includes('test')) {
     throw new Error('Tests must use a test database! Check your .env.test file.');
   }
-  
+
   // Verify database connection
   try {
     const result = await db.execute(sql`SELECT 1 as test`);
@@ -55,14 +55,12 @@ expect.extend({
     const pass = received >= floor && received <= ceiling;
     if (pass) {
       return {
-        message: () =>
-          `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
         pass: true,
       };
     } else {
       return {
-        message: () =>
-          `expected ${received} to be within range ${floor} - ${ceiling}`,
+        message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
         pass: false,
       };
     }

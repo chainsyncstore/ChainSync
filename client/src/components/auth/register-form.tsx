@@ -3,18 +3,32 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocation } from 'wouter';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -23,20 +37,22 @@ import { useAuth } from '@/providers/auth-provider';
 import type { LoginCredentials } from '@/providers/auth-provider';
 
 // Form schema with validation
-const formSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Please provide a valid email address'),
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string(),
-  role: z.enum(['cashier', 'manager', 'admin'], {
-    required_error: 'Please select a role',
-  }),
-  storeId: z.number().optional(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+const formSchema = z
+  .object({
+    fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+    email: z.string().email('Please provide a valid email address'),
+    username: z.string().min(3, 'Username must be at least 3 characters'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string(),
+    role: z.enum(['cashier', 'manager', 'admin'], {
+      required_error: 'Please select a role',
+    }),
+    storeId: z.number().optional(),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 export type RegisterFormValues = z.infer<typeof formSchema>;
 
@@ -70,7 +86,7 @@ export function RegisterForm() {
         role: values.role,
         storeId: values.storeId || null,
       };
-      
+
       const response = await apiRequest('POST', '/api/auth/register', userData);
       if (!response.ok) {
         const errorData = await response.json();
@@ -83,14 +99,14 @@ export function RegisterForm() {
         title: 'Registration Successful',
         description: 'Your account has been created successfully.',
       });
-      
+
       // Try to log in automatically
       try {
         const credentials: LoginCredentials = {
           username: variables.username,
           password: variables.password,
         };
-        
+
         await login(credentials);
         navigate('/dashboard');
       } catch (err) {
@@ -100,7 +116,7 @@ export function RegisterForm() {
     },
     onError: (error: Error) => {
       setFormError(error.message);
-      
+
       toast({
         title: 'Registration Failed',
         description: error.message || 'Could not create your account. Please try again.',
@@ -140,11 +156,7 @@ export function RegisterForm() {
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="John Doe" 
-                      autoComplete="name"
-                      {...field} 
-                    />
+                    <Input placeholder="John Doe" autoComplete="name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -158,11 +170,11 @@ export function RegisterForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="email" 
+                    <Input
+                      type="email"
                       placeholder="john@example.com"
-                      autoComplete="email" 
-                      {...field} 
+                      autoComplete="email"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -177,11 +189,7 @@ export function RegisterForm() {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="johndoe" 
-                      autoComplete="username"
-                      {...field} 
-                    />
+                    <Input placeholder="johndoe" autoComplete="username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,11 +204,11 @@ export function RegisterForm() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="password" 
+                      <Input
+                        type="password"
                         placeholder="********"
-                        autoComplete="new-password" 
-                        {...field} 
+                        autoComplete="new-password"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -215,11 +223,11 @@ export function RegisterForm() {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="password" 
+                      <Input
+                        type="password"
                         placeholder="********"
-                        autoComplete="new-password" 
-                        {...field} 
+                        autoComplete="new-password"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -234,10 +242,7 @@ export function RegisterForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select your role" />
@@ -254,11 +259,7 @@ export function RegisterForm() {
               )}
             />
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={registerMutation.isPending}
-            >
+            <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
               {registerMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

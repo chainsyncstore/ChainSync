@@ -65,7 +65,10 @@ export abstract class ResultFormatter<T> {
    * @param dateFields Array of field names that should be converted to Date objects
    * @returns The same object with converted date fields
    */
-  protected formatDates(obj: Record<string, unknown>, dateFields: string[]): Record<string, unknown> {
+  protected formatDates(
+    obj: Record<string, unknown>,
+    dateFields: string[]
+  ): Record<string, unknown> {
     if (!obj) return {};
 
     dateFields.forEach(field => {

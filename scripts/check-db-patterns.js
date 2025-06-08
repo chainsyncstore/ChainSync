@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * Database Access Pattern Validator
- * 
+ *
  * This script checks TypeScript files to ensure they follow
  * the standardized database access patterns defined in our
  * architecture.
- * 
+ *
  * It checks for:
  * - Proper use of SQL helpers
  * - Type safety in database operations
@@ -21,18 +21,21 @@ const chalk = require('chalk');
 const patterns = {
   // Direct SQL query without using helpers
   directSqlQuery: /sql`[^`]+`(?!\s*as\s*const)/g,
-  
+
   // Missing type parameter in database operations
   missingTypeParameter: /(?:findById|findMany|insertOne|updateById|deleteById)\s*\([^<)]*\)/g,
-  
+
   // Missing validation for database responses
-  missingValidation: /const\s+\w+\s*=\s*await\s+(?:findById|findMany|insertOne|updateById)\s*[^;]+;(?!\s*(?:validate|z\.[^.]+\.parse|validateAndLog))/g,
-  
+  missingValidation:
+    /const\s+\w+\s*=\s*await\s+(?:findById|findMany|insertOne|updateById)\s*[^;]+;(?!\s*(?:validate|z\.[^.]+\.parse|validateAndLog))/g,
+
   // Not using withDbTryCatch for error handling
-  missingTryCatch: /async\s+\w+\s*\([^)]*\)\s*{[^}]*(?:db|database)\.[^}]*}(?!\s*\/\/\s*Error\s+handled\s+in\s+calling\s+function)/gi,
-  
+  missingTryCatch:
+    /async\s+\w+\s*\([^)]*\)\s*{[^}]*(?:db|database)\.[^}]*}(?!\s*\/\/\s*Error\s+handled\s+in\s+calling\s+function)/gi,
+
   // Type casting with "as" instead of proper validation
-  unsafeTypeCasting: /as\s+(?!const|unknown|any|number|string|boolean|void|never|readonly|Parameters|ReturnType)/g,
+  unsafeTypeCasting:
+    /as\s+(?!const|unknown|any|number|string|boolean|void|never|readonly|Parameters|ReturnType)/g,
 };
 
 // Files provided as command-line arguments
@@ -47,13 +50,13 @@ function checkFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     let fileHasIssues = false;
-    
+
     // Skip test files
     if (filePath.includes('.test.') || filePath.includes('.spec.')) {
       console.log(chalk.gray('Skipping test file'));
       return;
     }
-    
+
     // Check for direct SQL queries
     const directQueries = content.match(patterns.directSqlQuery);
     if (directQueries && directQueries.length > 0) {
@@ -65,11 +68,13 @@ function checkFile(filePath) {
       fileHasIssues = true;
       errorCount += directQueries.length;
     }
-    
+
     // Check for missing type parameters
     const missingTypes = content.match(patterns.missingTypeParameter);
     if (missingTypes && missingTypes.length > 0) {
-      console.log(chalk.red(`❌ Found ${missingTypes.length} database operations missing type parameters:`));
+      console.log(
+        chalk.red(`❌ Found ${missingTypes.length} database operations missing type parameters:`)
+      );
       missingTypes.forEach(match => {
         console.log(chalk.red(`   ${match.trim()}`));
       });
@@ -77,11 +82,15 @@ function checkFile(filePath) {
       fileHasIssues = true;
       errorCount += missingTypes.length;
     }
-    
+
     // Check for missing validation
     const missingValidations = content.match(patterns.missingValidation);
     if (missingValidations && missingValidations.length > 0) {
-      console.log(chalk.yellow(`⚠️ Found ${missingValidations.length} database operations without validation:`));
+      console.log(
+        chalk.yellow(
+          `⚠️ Found ${missingValidations.length} database operations without validation:`
+        )
+      );
       missingValidations.forEach(match => {
         console.log(chalk.yellow(`   ${match.trim().substring(0, 80)}...`));
       });
@@ -89,11 +98,15 @@ function checkFile(filePath) {
       fileHasIssues = true;
       warningCount += missingValidations.length;
     }
-    
+
     // Check for missing try-catch
     const missingTryCatches = content.match(patterns.missingTryCatch);
     if (missingTryCatches && missingTryCatches.length > 0) {
-      console.log(chalk.yellow(`⚠️ Found ${missingTryCatches.length} functions that might be missing error handling:`));
+      console.log(
+        chalk.yellow(
+          `⚠️ Found ${missingTryCatches.length} functions that might be missing error handling:`
+        )
+      );
       missingTryCatches.forEach(match => {
         // Display just the function signature for brevity
         const signature = match.split('{')[0].trim();
@@ -103,7 +116,7 @@ function checkFile(filePath) {
       fileHasIssues = true;
       warningCount += missingTryCatches.length;
     }
-    
+
     // Check for unsafe type casting
     const unsafeCasts = content.match(patterns.unsafeTypeCasting);
     if (unsafeCasts && unsafeCasts.length > 0) {
@@ -115,11 +128,10 @@ function checkFile(filePath) {
       fileHasIssues = true;
       errorCount += unsafeCasts.length;
     }
-    
+
     if (!fileHasIssues) {
       console.log(chalk.green('✅ No database pattern issues found'));
     }
-    
   } catch (error) {
     console.error(chalk.red(`Error checking file ${filePath}: ${error.message}`));
     errorCount++;
@@ -138,10 +150,14 @@ console.log(chalk.yellow(`Warnings: ${warningCount}`));
 
 // Exit with error code if errors found
 if (errorCount > 0) {
-  console.log(chalk.red('\n❌ Database pattern validation failed. Please fix the issues before committing.'));
+  console.log(
+    chalk.red('\n❌ Database pattern validation failed. Please fix the issues before committing.')
+  );
   process.exit(1);
 } else if (warningCount > 0) {
-  console.log(chalk.yellow('\n⚠️ Database pattern validation passed with warnings. Consider addressing them.'));
+  console.log(
+    chalk.yellow('\n⚠️ Database pattern validation passed with warnings. Consider addressing them.')
+  );
   process.exit(0);
 } else {
   console.log(chalk.green('\n✅ Database pattern validation passed successfully!'));

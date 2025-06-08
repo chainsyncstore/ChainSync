@@ -1,15 +1,44 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Info, AlertCircle, CheckCircle, Calendar, Package, Truck, BarChart4 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Loader2,
+  Info,
+  AlertCircle,
+  CheckCircle,
+  Calendar,
+  Package,
+  Truck,
+  BarChart4,
+} from 'lucide-react';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { format, isPast, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -29,11 +58,11 @@ const formatDate = (dateString: string | null | undefined) => {
 // Helper to determine expiry status
 const getExpiryStatus = (expiryDate: string | null | undefined) => {
   if (!expiryDate) return { status: 'no-expiry', label: 'No Expiry Date' };
-  
+
   const today = new Date();
   const expiry = new Date(expiryDate);
   const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays < 0) {
     return { status: 'expired', label: 'Expired' };
   } else if (diffDays <= 30) {
@@ -94,7 +123,7 @@ export default function BatchInventoryPage() {
     quantity: 0,
     expiryDate: '',
     manufacturingDate: '',
-    costPerUnit: ''
+    costPerUnit: '',
   });
 
   // Fetch stores
@@ -108,7 +137,11 @@ export default function BatchInventoryPage() {
   });
 
   // Fetch batches for a product
-  const { data: batches = [], isLoading: batchesLoading, refetch: refetchBatches } = useQuery<Batch[]>({
+  const {
+    data: batches = [],
+    isLoading: batchesLoading,
+    refetch: refetchBatches,
+  } = useQuery<Batch[]>({
     queryKey: ['/api/inventory/batches', selectedStore, selectedProduct],
     enabled: !!(selectedStore && selectedProduct),
   });
@@ -118,11 +151,11 @@ export default function BatchInventoryPage() {
     mutationFn: async (formData: FormData) => {
       const response = await fetch('/api/inventory/batches/import', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
-      return await response.json() as BatchImportResponse;
+      return (await response.json()) as BatchImportResponse;
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       if (data.success) {
         toast({
           title: 'Import Successful',
@@ -162,7 +195,7 @@ export default function BatchInventoryPage() {
         quantity: 0,
         expiryDate: '',
         manufacturingDate: '',
-        costPerUnit: ''
+        costPerUnit: '',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/inventory/batches'] });
       refetchBatches();
@@ -225,15 +258,16 @@ export default function BatchInventoryPage() {
       quantity: batchData.quantity,
       expiryDate: batchData.expiryDate || null,
       manufacturingDate: batchData.manufacturingDate || null,
-      costPerUnit: batchData.costPerUnit || null
+      costPerUnit: batchData.costPerUnit || null,
     });
   };
 
   const filteredProducts = productFilter
-    ? products.filter(p => 
-        p.name.toLowerCase().includes(productFilter.toLowerCase()) || 
-        p.sku.toLowerCase().includes(productFilter.toLowerCase()) ||
-        (p.barcode && p.barcode.toLowerCase().includes(productFilter.toLowerCase()))
+    ? products.filter(
+        p =>
+          p.name.toLowerCase().includes(productFilter.toLowerCase()) ||
+          p.sku.toLowerCase().includes(productFilter.toLowerCase()) ||
+          (p.barcode && p.barcode.toLowerCase().includes(productFilter.toLowerCase()))
       )
     : products;
 
@@ -241,7 +275,8 @@ export default function BatchInventoryPage() {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Batch Inventory Management</h1>
       <p className="text-gray-500 mb-8">
-        Track and manage batches of products with different expiry dates for optimal inventory control
+        Track and manage batches of products with different expiry dates for optimal inventory
+        control
       </p>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -264,21 +299,14 @@ export default function BatchInventoryPage() {
           <Card>
             <CardHeader>
               <CardTitle>Import Batch Inventory</CardTitle>
-              <CardDescription>
-                Upload a CSV file containing batch inventory data
-              </CardDescription>
+              <CardDescription>Upload a CSV file containing batch inventory data</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleImport}>
                 <div className="grid w-full items-center gap-6">
                   <div className="flex flex-col space-y-2">
                     <Label htmlFor="csvFile">CSV File</Label>
-                    <Input
-                      id="csvFile"
-                      type="file"
-                      accept=".csv"
-                      onChange={handleCsvChange}
-                    />
+                    <Input id="csvFile" type="file" accept=".csv" onChange={handleCsvChange} />
                     <p className="text-sm text-gray-500">
                       Please ensure your CSV file follows the required format:
                     </p>
@@ -286,7 +314,9 @@ export default function BatchInventoryPage() {
                       <Info className="h-4 w-4" />
                       <AlertTitle>CSV Format</AlertTitle>
                       <AlertDescription>
-                        <code>product_name,sku,category,batch_id,quantity,expiry_date,unit_price,store_id</code>
+                        <code>
+                          product_name,sku,category,batch_id,quantity,expiry_date,unit_price,store_id
+                        </code>
                       </AlertDescription>
                     </Alert>
                   </div>
@@ -318,9 +348,7 @@ export default function BatchInventoryPage() {
           <Card>
             <CardHeader>
               <CardTitle>Add Single Batch</CardTitle>
-              <CardDescription>
-                Manually add a batch for a specific product
-              </CardDescription>
+              <CardDescription>Manually add a batch for a specific product</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddBatch}>
@@ -332,7 +360,7 @@ export default function BatchInventoryPage() {
                         <SelectValue placeholder="Select store" />
                       </SelectTrigger>
                       <SelectContent>
-                        {stores.map((store) => (
+                        {stores.map(store => (
                           <SelectItem key={store.id} value={store.id.toString()}>
                             {store.name}
                           </SelectItem>
@@ -346,7 +374,7 @@ export default function BatchInventoryPage() {
                     <Input
                       id="productFilter"
                       value={productFilter}
-                      onChange={(e) => setProductFilter(e.target.value)}
+                      onChange={e => setProductFilter(e.target.value)}
                       placeholder="Search by name, SKU or barcode"
                     />
                   </div>
@@ -355,10 +383,12 @@ export default function BatchInventoryPage() {
                     <Label htmlFor="product">Product</Label>
                     <Select value={selectedProduct} onValueChange={setSelectedProduct}>
                       <SelectTrigger id="product">
-                        <SelectValue placeholder={productsLoading ? "Loading products..." : "Select product"} />
+                        <SelectValue
+                          placeholder={productsLoading ? 'Loading products...' : 'Select product'}
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {filteredProducts.map((product) => (
+                        {filteredProducts.map(product => (
                           <SelectItem key={product.id} value={product.id.toString()}>
                             {product.name} - {product.sku}
                           </SelectItem>
@@ -372,7 +402,7 @@ export default function BatchInventoryPage() {
                     <Input
                       id="batchNumber"
                       value={batchData.batchNumber}
-                      onChange={(e) => setBatchData({...batchData, batchNumber: e.target.value})}
+                      onChange={e => setBatchData({ ...batchData, batchNumber: e.target.value })}
                       placeholder="e.g., BATCH001"
                     />
                   </div>
@@ -384,7 +414,9 @@ export default function BatchInventoryPage() {
                       type="number"
                       min="1"
                       value={batchData.quantity}
-                      onChange={(e) => setBatchData({...batchData, quantity: parseInt(e.target.value)})}
+                      onChange={e =>
+                        setBatchData({ ...batchData, quantity: parseInt(e.target.value) })
+                      }
                     />
                   </div>
 
@@ -394,7 +426,7 @@ export default function BatchInventoryPage() {
                       id="expiryDate"
                       type="date"
                       value={batchData.expiryDate}
-                      onChange={(e) => setBatchData({...batchData, expiryDate: e.target.value})}
+                      onChange={e => setBatchData({ ...batchData, expiryDate: e.target.value })}
                     />
                   </div>
 
@@ -404,7 +436,9 @@ export default function BatchInventoryPage() {
                       id="manufacturingDate"
                       type="date"
                       value={batchData.manufacturingDate}
-                      onChange={(e) => setBatchData({...batchData, manufacturingDate: e.target.value})}
+                      onChange={e =>
+                        setBatchData({ ...batchData, manufacturingDate: e.target.value })
+                      }
                     />
                   </div>
 
@@ -415,20 +449,20 @@ export default function BatchInventoryPage() {
                       type="number"
                       step="0.01"
                       value={batchData.costPerUnit}
-                      onChange={(e) => setBatchData({...batchData, costPerUnit: e.target.value})}
+                      onChange={e => setBatchData({ ...batchData, costPerUnit: e.target.value })}
                       placeholder="0.00"
                     />
                   </div>
                 </div>
 
                 <div className="mt-6">
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={
-                      addBatchMutation.isPending || 
-                      !selectedStore || 
-                      !selectedProduct || 
-                      !batchData.batchNumber || 
+                      addBatchMutation.isPending ||
+                      !selectedStore ||
+                      !selectedProduct ||
+                      !batchData.batchNumber ||
                       batchData.quantity <= 0
                     }
                   >
@@ -451,9 +485,7 @@ export default function BatchInventoryPage() {
           <Card>
             <CardHeader>
               <CardTitle>View Batches</CardTitle>
-              <CardDescription>
-                View and manage existing batch inventory
-              </CardDescription>
+              <CardDescription>View and manage existing batch inventory</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -464,7 +496,7 @@ export default function BatchInventoryPage() {
                       <SelectValue placeholder="Select store" />
                     </SelectTrigger>
                     <SelectContent>
-                      {stores.map((store) => (
+                      {stores.map(store => (
                         <SelectItem key={store.id} value={store.id.toString()}>
                           {store.name}
                         </SelectItem>
@@ -477,10 +509,12 @@ export default function BatchInventoryPage() {
                   <Label htmlFor="viewProduct">Product</Label>
                   <Select value={selectedProduct} onValueChange={setSelectedProduct}>
                     <SelectTrigger id="viewProduct">
-                      <SelectValue placeholder={productsLoading ? "Loading products..." : "Select product"} />
+                      <SelectValue
+                        placeholder={productsLoading ? 'Loading products...' : 'Select product'}
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map((product) => (
+                      {products.map(product => (
                         <SelectItem key={product.id} value={product.id.toString()}>
                           {product.name} - {product.sku}
                         </SelectItem>
@@ -499,8 +533,12 @@ export default function BatchInventoryPage() {
                       <ul className="list-disc list-inside text-sm">
                         <li>Expired batches are highlighted in red</li>
                         <li>Batches expiring within 30 days are highlighted in amber</li>
-                        <li>Click on a batch card to view details, audit logs, or perform actions</li>
-                        <li>FIFO (First In, First Out) is automatically applied when selling products</li>
+                        <li>
+                          Click on a batch card to view details, audit logs, or perform actions
+                        </li>
+                        <li>
+                          FIFO (First In, First Out) is automatically applied when selling products
+                        </li>
                       </ul>
                     </AlertDescription>
                   </Alert>
@@ -514,15 +552,18 @@ export default function BatchInventoryPage() {
                   </div>
                 ) : batches.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {batches.map((batch) => {
+                    {batches.map(batch => {
                       // Find the associated product
                       const product = products.find(p => p.id === parseInt(selectedProduct));
                       if (!product) return null;
-                      
+
                       return (
-                        <div key={batch.id} className="transition-all duration-200 hover:scale-[1.01]">
-                          <BatchDetails 
-                            batch={batch} 
+                        <div
+                          key={batch.id}
+                          className="transition-all duration-200 hover:scale-[1.01]"
+                        >
+                          <BatchDetails
+                            batch={batch}
                             product={product}
                             onBatchUpdated={refetchBatches}
                             isManagerOrAdmin={true} // This should ideally be based on actual user role

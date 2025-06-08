@@ -21,9 +21,7 @@ describe('Production Readiness Tests', () => {
 
   describe('Security Headers', () => {
     test('should include security headers', async () => {
-      const response = await request(app)
-        .get('/api/health')
-        .expect(200);
+      const response = await request(app).get('/api/health').expect(200);
 
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(response.headers['x-frame-options']).toBe('DENY');
@@ -33,9 +31,7 @@ describe('Production Readiness Tests', () => {
     });
 
     test('should not expose server information', async () => {
-      const response = await request(app)
-        .get('/api/health')
-        .expect(200);
+      const response = await request(app).get('/api/health').expect(200);
 
       expect(response.headers['server']).toBeUndefined();
       expect(response.headers['x-powered-by']).toBeUndefined();
@@ -45,7 +41,7 @@ describe('Production Readiness Tests', () => {
   describe('Rate Limiting', () => {
     test('should enforce rate limits on auth endpoints', async () => {
       const requests = [];
-      
+
       // Make multiple requests quickly
       for (let i = 0; i < 10; i++) {
         requests.push(
@@ -56,7 +52,7 @@ describe('Production Readiness Tests', () => {
       }
 
       const responses = await Promise.all(requests);
-      
+
       // Should have some rate limited responses
       const rateLimited = responses.filter(r => r.status === 429);
       expect(rateLimited.length).toBeGreaterThan(0);
@@ -82,7 +78,7 @@ describe('Production Readiness Tests', () => {
       expect(response.body.error).toBe('Validation failed');
       expect(response.body.details).toContainEqual(
         expect.objectContaining({
-          msg: 'Valid email is required'
+          msg: 'Valid email is required',
         })
       );
     });
@@ -93,7 +89,7 @@ describe('Production Readiness Tests', () => {
         .send({
           currentPassword: 'oldpass',
           newPassword: 'weak',
-          confirmPassword: 'weak'
+          confirmPassword: 'weak',
         })
         .expect(400);
 
@@ -102,7 +98,7 @@ describe('Production Readiness Tests', () => {
 
     test('should sanitize input data', async () => {
       const maliciousInput = '<script>alert("xss")</script>';
-      
+
       const response = await request(app)
         .post('/api/auth/login')
         .send({ email: maliciousInput, password: 'password123' })
@@ -115,9 +111,7 @@ describe('Production Readiness Tests', () => {
 
   describe('Error Handling', () => {
     test('should not expose internal errors', async () => {
-      const response = await request(app)
-        .get('/api/nonexistent-endpoint')
-        .expect(404);
+      const response = await request(app).get('/api/nonexistent-endpoint').expect(404);
 
       expect(response.body.error).toBeDefined();
       expect(response.body.stack).toBeUndefined();
@@ -126,9 +120,7 @@ describe('Production Readiness Tests', () => {
 
     test('should handle database errors gracefully', async () => {
       // Simulate database error by using invalid connection
-      const response = await request(app)
-        .get('/api/health/database')
-        .expect(503);
+      const response = await request(app).get('/api/health/database').expect(503);
 
       expect(response.body.error).toBe('Database health check failed');
       expect(response.body.details).toBeUndefined();
@@ -137,9 +129,7 @@ describe('Production Readiness Tests', () => {
 
   describe('Authentication & Authorization', () => {
     test('should require authentication for protected routes', async () => {
-      const response = await request(app)
-        .get('/api/admin/dashboard')
-        .expect(401);
+      const response = await request(app).get('/api/admin/dashboard').expect(401);
 
       expect(response.body.error).toBe('Access token required');
     });
@@ -180,7 +170,7 @@ describe('Production Readiness Tests', () => {
       // Test that secrets manager is working
       secretsManager.setSecret('test-key', 'sensitive-value');
       const retrieved = secretsManager.getSecret('test-key');
-      
+
       expect(retrieved).toBe('sensitive-value');
     });
   });
@@ -197,7 +187,7 @@ describe('Production Readiness Tests', () => {
       expect(logSpy).toHaveBeenCalledWith(
         'Failed login attempt',
         expect.objectContaining({
-          email: 'test@example.com'
+          email: 'test@example.com',
         })
       );
 
@@ -205,9 +195,7 @@ describe('Production Readiness Tests', () => {
     });
 
     test('should provide health check endpoints', async () => {
-      const response = await request(app)
-        .get('/api/health')
-        .expect(200);
+      const response = await request(app).get('/api/health').expect(200);
 
       expect(response.body.status).toBe('healthy');
       expect(response.body.timestamp).toBeDefined();
@@ -218,30 +206,24 @@ describe('Production Readiness Tests', () => {
   describe('Performance & Scalability', () => {
     test('should handle concurrent requests', async () => {
       const requests = [];
-      
+
       for (let i = 0; i < 50; i++) {
-        requests.push(
-          request(app)
-            .get('/api/health')
-            .expect(200)
-        );
+        requests.push(request(app).get('/api/health').expect(200));
       }
 
       const responses = await Promise.all(requests);
-      
+
       // All requests should succeed
       expect(responses.every(r => r.status === 200)).toBe(true);
     });
 
     test('should respond within acceptable time limits', async () => {
       const start = Date.now();
-      
-      await request(app)
-        .get('/api/health')
-        .expect(200);
+
+      await request(app).get('/api/health').expect(200);
 
       const duration = Date.now() - start;
-      
+
       // Should respond within 1 second
       expect(duration).toBeLessThan(1000);
     });
@@ -251,7 +233,7 @@ describe('Production Readiness Tests', () => {
     test('should use parameterized queries', async () => {
       // Test SQL injection protection
       const maliciousInput = "'; DROP TABLE users; --";
-      
+
       const response = await request(app)
         .post('/api/auth/login')
         .send({ email: maliciousInput, password: 'password123' });
@@ -263,10 +245,10 @@ describe('Production Readiness Tests', () => {
     test('should validate database connection security', async () => {
       // Ensure database connection uses SSL in production
       const client = await db.connect();
-      
+
       try {
         const result = await client.query('SELECT current_setting($1)', ['ssl']);
-        
+
         if (process.env.NODE_ENV === 'production') {
           expect(result.rows[0].current_setting).toBe('on');
         }
@@ -283,7 +265,7 @@ describe('Production Readiness Tests', () => {
         'JWT_SECRET',
         'JWT_REFRESH_SECRET',
         'ENCRYPTION_KEY',
-        'SESSION_SECRET'
+        'SESSION_SECRET',
       ];
 
       for (const varName of requiredVars) {
@@ -293,12 +275,10 @@ describe('Production Readiness Tests', () => {
     });
 
     test('should not expose secrets in error messages', async () => {
-      const response = await request(app)
-        .get('/api/health/detailed')
-        .expect(200);
+      const response = await request(app).get('/api/health/detailed').expect(200);
 
       const responseText = JSON.stringify(response.body);
-      
+
       // Should not contain any secrets
       expect(responseText).not.toContain(process.env.JWT_SECRET);
       expect(responseText).not.toContain(process.env.DATABASE_URL);
@@ -321,7 +301,9 @@ describe('Production Readiness Tests', () => {
         .set('Origin', 'https://malicious-site.com');
 
       // Should either reject or not include CORS headers
-      expect(response.headers['access-control-allow-origin']).not.toBe('https://malicious-site.com');
+      expect(response.headers['access-control-allow-origin']).not.toBe(
+        'https://malicious-site.com'
+      );
     });
   });
 });

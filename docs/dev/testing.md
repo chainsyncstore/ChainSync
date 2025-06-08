@@ -37,11 +37,11 @@ describe('formatCurrency', () => {
   it('should format USD correctly', () => {
     expect(formatCurrency(1234.56, 'USD')).toBe('$1,234.56');
   });
-  
+
   it('should handle zero values', () => {
     expect(formatCurrency(0, 'USD')).toBe('$0.00');
   });
-  
+
   it('should handle negative values', () => {
     expect(formatCurrency(-99.99, 'USD')).toBe('-$99.99');
   });
@@ -61,26 +61,26 @@ describe('ProductService', () => {
     // Set up test database
     await setupTestDatabase();
   });
-  
+
   afterAll(async () => {
     // Clean up test database
     await cleanupTestDatabase();
   });
-  
+
   it('should retrieve a product by ID', async () => {
     // Create test data
     const testProduct = await createTestProduct();
-    
+
     // Test the service
     const productService = new ProductService();
     const result = await productService.getProductById(testProduct.id);
-    
+
     // Assertions
     expect(result).toBeDefined();
     expect(result.id).toBe(testProduct.id);
     expect(result.name).toBe(testProduct.name);
   });
-  
+
   it('should handle product not found', async () => {
     const productService = new ProductService();
     await expect(productService.getProductById('non-existent')).rejects.toThrow();
@@ -98,24 +98,24 @@ End-to-end tests validate complete user flows from UI to database and back.
 // Example E2E test using Playwright
 test('user can add a product to cart and checkout', async ({ page }) => {
   await page.goto('/products');
-  
+
   // Add product to cart
   await page.click('[data-testid="product-card"]');
   await page.click('[data-testid="add-to-cart"]');
-  
+
   // Go to cart and checkout
   await page.click('[data-testid="cart-icon"]');
   await expect(page.locator('[data-testid="cart-items"]')).toContainText('Product Name');
-  
+
   await page.click('[data-testid="checkout-button"]');
-  
+
   // Fill checkout form
   await page.fill('[data-testid="customer-name"]', 'Test User');
   await page.fill('[data-testid="customer-email"]', 'test@example.com');
   // ... more form filling
-  
+
   await page.click('[data-testid="submit-order"]');
-  
+
   // Verify success
   await expect(page.locator('[data-testid="order-confirmation"]')).toBeVisible();
 });
@@ -137,14 +137,14 @@ it('should calculate order total with discount', () => {
   const order = {
     items: [
       { price: 10, quantity: 2 },
-      { price: 15, quantity: 1 }
+      { price: 15, quantity: 1 },
     ],
-    discountPercent: 10
+    discountPercent: 10,
   };
-  
+
   // Act
   const total = calculateOrderTotal(order);
-  
+
   // Assert
   expect(total).toBe(31.5); // (10*2 + 15) * 0.9
 });
@@ -153,6 +153,7 @@ it('should calculate order total with discount', () => {
 ### Test Naming
 
 Use descriptive test names that clearly indicate:
+
 1. The unit being tested
 2. The scenario or condition
 3. The expected outcome
@@ -184,7 +185,7 @@ Each test should be independent and not rely on the state from other tests:
 // Original service with dependency
 class OrderService {
   constructor(private paymentGateway: PaymentGateway) {}
-  
+
   async processOrder(order: Order): Promise<OrderResult> {
     // ... processing logic
     const paymentResult = await this.paymentGateway.processPayment(order.payment);
@@ -197,16 +198,16 @@ class OrderService {
 it('should process order successfully', async () => {
   // Create mock payment gateway
   const mockPaymentGateway = {
-    processPayment: jest.fn().mockResolvedValue({ success: true, id: 'payment-123' })
+    processPayment: jest.fn().mockResolvedValue({ success: true, id: 'payment-123' }),
   };
-  
+
   // Use mock in service
   const orderService = new OrderService(mockPaymentGateway);
   const result = await orderService.processOrder(testOrder);
-  
+
   // Verify mock was called correctly
   expect(mockPaymentGateway.processPayment).toHaveBeenCalledWith(testOrder.payment);
-  
+
   // Verify result
   expect(result.success).toBe(true);
 });
@@ -219,8 +220,8 @@ it('should process order successfully', async () => {
 jest.mock('../db/connection', () => ({
   db: {
     query: jest.fn(),
-    execute: jest.fn()
-  }
+    execute: jest.fn(),
+  },
 }));
 
 // Import the mocked module
@@ -265,11 +266,11 @@ export async function createTestProduct(overrides = {}) {
     description: 'A product for testing',
     price: 9.99,
     sku: `TEST-${Date.now()}`,
-    isActive: true
+    isActive: true,
   };
-  
+
   const productData = { ...defaultProduct, ...overrides };
-  
+
   const result = await insertOne(db, products, productData);
   return result;
 }
@@ -283,12 +284,10 @@ export async function createTestProduct(overrides = {}) {
 it('should validate product input', async () => {
   const invalidProduct = {
     name: '', // Empty name should fail validation
-    price: -10 // Negative price should fail validation
+    price: -10, // Negative price should fail validation
   };
-  
-  await expect(productService.createProduct(invalidProduct))
-    .rejects
-    .toThrow(/validation/i);
+
+  await expect(productService.createProduct(invalidProduct)).rejects.toThrow(/validation/i);
 });
 ```
 
@@ -301,19 +300,17 @@ describe('UserService.getUser', () => {
   it('should return user when found', async () => {
     // Happy path test
   });
-  
+
   it('should throw NotFoundError when user does not exist', async () => {
     // Error case test
   });
-  
+
   it('should handle database errors gracefully', async () => {
     // Mock database to throw error
     (db.query as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
-    
+
     // Expect service to handle error properly
-    await expect(userService.getUser('123'))
-      .rejects
-      .toThrow('Unable to retrieve user');
+    await expect(userService.getUser('123')).rejects.toThrow('Unable to retrieve user');
   });
 });
 ```
@@ -352,12 +349,12 @@ it('should retrieve product by ID', async () => {
   // Insert test data using helpers
   const testProduct = await insertOne(db, products, {
     name: 'Test Product',
-    price: 9.99
+    price: 9.99,
   });
-  
+
   // Use helpers to query
   const result = await findById(db, products, testProduct.id);
-  
+
   expect(result).toEqual(testProduct);
 });
 ```

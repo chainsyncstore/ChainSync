@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Security Headers Verification Script
- * 
+ *
  * This script verifies that security headers are correctly set on various API endpoints.
  * It checks for essential security headers like Content-Security-Policy, X-Content-Type-Options, etc.
  */
@@ -16,21 +16,16 @@ const REQUIRED_HEADERS = [
   'x-content-type-options',
   'cache-control',
   'x-frame-options',
-  'strict-transport-security'
+  'strict-transport-security',
 ];
 
 // Endpoints to check (different types to ensure headers are set globally)
-const ENDPOINTS = [
-  '/api/health',
-  '/healthz',
-  '/readyz',
-  '/api/metrics'
-];
+const ENDPOINTS = ['/api/health', '/healthz', '/readyz', '/api/metrics'];
 
 // Configuration
 const config = {
   baseUrl: process.argv[2] || 'http://localhost:3000',
-  verbose: process.argv.includes('--verbose')
+  verbose: process.argv.includes('--verbose'),
 };
 
 /**
@@ -45,17 +40,17 @@ async function fetchEndpoint(endpoint) {
       path: urlObj.pathname,
       method: 'GET',
       headers: {
-        'User-Agent': 'ChainSync-Security-Header-Checker/1.0'
-      }
+        'User-Agent': 'ChainSync-Security-Header-Checker/1.0',
+      },
     };
 
     // Choose protocol
     const reqFn = urlObj.protocol === 'https:' ? https.request : http.request;
 
-    const req = reqFn(options, (res) => {
+    const req = reqFn(options, res => {
       let data = '';
 
-      res.on('data', (chunk) => {
+      res.on('data', chunk => {
         data += chunk;
       });
 
@@ -63,12 +58,12 @@ async function fetchEndpoint(endpoint) {
         resolve({
           statusCode: res.statusCode,
           headers: res.headers,
-          data
+          data,
         });
       });
     });
 
-    req.on('error', (error) => {
+    req.on('error', error => {
       reject(error);
     });
 
@@ -83,9 +78,9 @@ async function checkEndpoint(endpoint) {
   try {
     console.log(`\nChecking ${endpoint}...`);
     const response = await fetchEndpoint(endpoint);
-    
+
     console.log(`  Status: ${response.statusCode}`);
-    
+
     if (config.verbose) {
       console.log('  All Headers:');
       Object.entries(response.headers).forEach(([key, value]) => {
@@ -98,12 +93,14 @@ async function checkEndpoint(endpoint) {
     let missingHeaders = 0;
 
     REQUIRED_HEADERS.forEach(header => {
-      const hasHeader = Object.keys(response.headers)
-        .some(key => key.toLowerCase() === header.toLowerCase());
-      
+      const hasHeader = Object.keys(response.headers).some(
+        key => key.toLowerCase() === header.toLowerCase()
+      );
+
       if (hasHeader) {
-        const value = Object.entries(response.headers)
-          .find(([key]) => key.toLowerCase() === header.toLowerCase())[1];
+        const value = Object.entries(response.headers).find(
+          ([key]) => key.toLowerCase() === header.toLowerCase()
+        )[1];
         console.log(`    ✅ ${header}: ${value}`);
       } else {
         console.log(`    ❌ ${header}: MISSING`);
@@ -114,11 +111,11 @@ async function checkEndpoint(endpoint) {
     return {
       endpoint,
       status: response.statusCode,
-      securityScore: 100 - (missingHeaders / REQUIRED_HEADERS.length * 100),
-      missing: REQUIRED_HEADERS.filter(header => 
-        !Object.keys(response.headers).some(key => 
-          key.toLowerCase() === header.toLowerCase())
-      )
+      securityScore: 100 - (missingHeaders / REQUIRED_HEADERS.length) * 100,
+      missing: REQUIRED_HEADERS.filter(
+        header =>
+          !Object.keys(response.headers).some(key => key.toLowerCase() === header.toLowerCase())
+      ),
     };
   } catch (error) {
     console.error(`  Error checking ${endpoint}:`, error.message);
@@ -126,7 +123,7 @@ async function checkEndpoint(endpoint) {
       endpoint,
       status: 'ERROR',
       securityScore: 0,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -136,9 +133,9 @@ async function checkEndpoint(endpoint) {
  */
 async function main() {
   console.log(`🔒 Checking security headers on ${config.baseUrl}`);
-  
+
   const results = [];
-  
+
   for (const endpoint of ENDPOINTS) {
     const result = await checkEndpoint(endpoint);
     results.push(result);
@@ -147,14 +144,16 @@ async function main() {
   // Summary
   console.log('\n📊 Summary:');
   let totalScore = 0;
-  
+
   results.forEach(result => {
     if (result.status === 'ERROR') {
       console.log(`  ❌ ${result.endpoint}: Error - ${result.error}`);
     } else {
       totalScore += result.securityScore;
-      console.log(`  ${result.securityScore === 100 ? '✅' : '⚠️'} ${result.endpoint}: ${result.securityScore.toFixed(1)}% secure`);
-      
+      console.log(
+        `  ${result.securityScore === 100 ? '✅' : '⚠️'} ${result.endpoint}: ${result.securityScore.toFixed(1)}% secure`
+      );
+
       if (result.missing && result.missing.length > 0) {
         console.log(`     Missing: ${result.missing.join(', ')}`);
       }
@@ -163,7 +162,7 @@ async function main() {
 
   const averageScore = totalScore / results.length;
   console.log(`\n🔒 Overall Security Score: ${averageScore.toFixed(1)}%`);
-  
+
   if (averageScore < 100) {
     console.log('\n⚠️ Recommendations:');
     console.log('  - Ensure all security middleware is correctly configured');

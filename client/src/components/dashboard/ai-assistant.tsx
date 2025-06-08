@@ -24,12 +24,13 @@ export function AiAssistant() {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  
+
   // Fetch conversation history with default value
-  const { data: conversationData = { messages: [] }, isLoading: isLoadingConversation } = useQuery<ConversationData>({
-    queryKey: ['/api/ai/conversation'],
-  });
-  
+  const { data: conversationData = { messages: [] }, isLoading: isLoadingConversation } =
+    useQuery<ConversationData>({
+      queryKey: ['/api/ai/conversation'],
+    });
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -49,7 +50,7 @@ export function AiAssistant() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    
+
     sendMessageMutation.mutate(message);
     setMessage('');
   };
@@ -58,7 +59,9 @@ export function AiAssistant() {
     if (isLoadingConversation) {
       return [1, 2, 3].map((_, i) => (
         <div key={i} className={`flex items-start ${i % 2 === 0 ? '' : 'justify-end'}`}>
-          <Skeleton className={`w-8 h-8 rounded-full flex-shrink-0 ${i % 2 === 0 ? 'mr-3' : 'ml-3 order-2'}`} />
+          <Skeleton
+            className={`w-8 h-8 rounded-full flex-shrink-0 ${i % 2 === 0 ? 'mr-3' : 'ml-3 order-2'}`}
+          />
           <Skeleton className="h-24 w-4/5 rounded-lg" />
         </div>
       ));
@@ -66,15 +69,19 @@ export function AiAssistant() {
 
     // Ensure conversationData and messages exist with proper type checks
     const messages = Array.isArray(conversationData?.messages) ? conversationData.messages : [];
-    
+
     // The backend now always returns at least a welcome message
     // This is just a fallback in case no messages are returned
     if (messages.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-48 text-center p-4">
           <LightbulbIcon className="w-12 h-12 text-primary mb-4 opacity-20" />
-          <p className="text-neutral-500">Ask me about sales trends, inventory levels, or store performance.</p>
-          <p className="text-sm text-neutral-400 mt-2">Example: "Show sales for Downtown Store vs Westside Mall last month"</p>
+          <p className="text-neutral-500">
+            Ask me about sales trends, inventory levels, or store performance.
+          </p>
+          <p className="text-sm text-neutral-400 mt-2">
+            Example: "Show sales for Downtown Store vs Westside Mall last month"
+          </p>
         </div>
       );
     }
@@ -111,7 +118,12 @@ export function AiAssistant() {
             </div>
             <div className="flex-shrink-0 ml-3">
               <div className="w-8 h-8 rounded-full bg-neutral-300 flex items-center justify-center text-neutral-700">
-                <span className="text-sm font-medium">{user?.fullName.split(' ').map(n => n[0]).join('')}</span>
+                <span className="text-sm font-medium">
+                  {user?.fullName
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')}
+                </span>
               </div>
             </div>
           </div>
@@ -139,7 +151,14 @@ export function AiAssistant() {
           </div>
         </div>
         <div className="mt-2 text-xs text-neutral-500 bg-white p-2 rounded border border-neutral-200">
-          <p>This assistant is running in demo mode with mock responses. For full functionality, add <span className="font-mono bg-neutral-100 px-1 rounded">GOOGLE_APPLICATION_CREDENTIALS</span> and <span className="font-mono bg-neutral-100 px-1 rounded">DIALOGFLOW_PROJECT_ID</span> to your environment.</p>
+          <p>
+            This assistant is running in demo mode with mock responses. For full functionality, add{' '}
+            <span className="font-mono bg-neutral-100 px-1 rounded">
+              GOOGLE_APPLICATION_CREDENTIALS
+            </span>{' '}
+            and <span className="font-mono bg-neutral-100 px-1 rounded">DIALOGFLOW_PROJECT_ID</span>{' '}
+            to your environment.
+          </p>
         </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto p-4 bg-neutral-50">
@@ -154,13 +173,13 @@ export function AiAssistant() {
             type="text"
             placeholder="Ask anything about your stores..."
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={e => setMessage(e.target.value)}
             className="flex-1 rounded-l-md"
             disabled={sendMessageMutation.isPending}
           />
-          <Button 
-            type="submit" 
-            className="bg-primary text-white rounded-r-md hover:bg-primary-600" 
+          <Button
+            type="submit"
+            className="bg-primary text-white rounded-r-md hover:bg-primary-600"
             disabled={sendMessageMutation.isPending || !message.trim()}
           >
             {sendMessageMutation.isPending ? (

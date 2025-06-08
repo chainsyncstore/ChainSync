@@ -43,11 +43,13 @@ The implementation includes the following key patterns:
 ### 1. Database Storage (PostgreSQL)
 
 **Pros**:
+
 - Consistent storage with other application data
 - Strong ACID guarantees
 - Familiar query patterns
 
 **Cons**:
+
 - Higher latency than Redis
 - No built-in TTL mechanism
 - More complex query patterns for token validation
@@ -56,11 +58,13 @@ The implementation includes the following key patterns:
 ### 2. Distributed Cache (Memcached)
 
 **Pros**:
+
 - High performance
 - Distributed architecture
 - Low latency
 
 **Cons**:
+
 - Less feature-rich than Redis (no built-in data structures)
 - Less persistent than Redis
 - No transaction support
@@ -69,11 +73,13 @@ The implementation includes the following key patterns:
 ### 3. JWT Without Storage
 
 **Pros**:
+
 - Truly stateless
 - No storage requirements
 - Simpler implementation
 
 **Cons**:
+
 - Cannot revoke tokens before expiration
 - No session tracking capabilities
 - Security limitations for sensitive operations
@@ -84,16 +90,19 @@ The implementation includes the following key patterns:
 ### Positive
 
 1. **Improved User Experience**:
+
    - Sessions persist across application restarts
    - Users don't need to re-authenticate unnecessarily
    - Better multi-device session management
 
 2. **Enhanced Scalability**:
+
    - Multiple application instances can share authentication state
    - Horizontal scaling is now possible for the API layer
    - Token validation performance is improved
 
 3. **Better Security**:
+
    - Tokens can be explicitly revoked when needed
    - Security events can trigger token/session invalidation
    - More detailed tracking of session activity
@@ -106,11 +115,13 @@ The implementation includes the following key patterns:
 ### Negative
 
 1. **Additional Dependency**:
+
    - Redis becomes a critical infrastructure component
    - Redis failures can impact authentication
    - Requires Redis monitoring and management
 
 2. **Implementation Complexity**:
+
    - More complex code for token and session management
    - Need for fallback mechanisms
    - Additional configuration requirements
@@ -125,21 +136,25 @@ The implementation includes the following key patterns:
 The migration to Redis for token storage has been implemented through the following steps:
 
 1. **Redis Integration**:
+
    - Added Redis client configuration
    - Implemented connection pooling and error handling
    - Added health checks for Redis connectivity
 
 2. **Token Storage**:
+
    - Implemented token storage with Redis SET operations
    - Added TTL-based expiration matching token lifetimes
    - Created token revocation capabilities
 
 3. **Session Management**:
+
    - Enhanced session data with metadata
    - Implemented session tracking with last activity updates
    - Added session enumeration and management features
 
 4. **Resilience Patterns**:
+
    - Added fallback for Redis unavailability
    - Implemented connection retry logic
    - Added logging for Redis failures

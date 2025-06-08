@@ -26,15 +26,18 @@ export interface FileUploadProgress {
   uploaded: number;
   startTime: number;
   lastUpdate: number;
-  files: Record<string, {
-    name: string;
-    size: number;
-    status: 'pending' | 'in_progress' | 'completed' | 'failed';
-    progress: number;
-    uploaded: number;
-    error?: string;
-    path?: string;
-  }>;
+  files: Record<
+    string,
+    {
+      name: string;
+      size: number;
+      status: 'pending' | 'in_progress' | 'completed' | 'failed';
+      progress: number;
+      uploaded: number;
+      error?: string;
+      path?: string;
+    }
+  >;
 }
 
 export interface FileUploadConfig {
@@ -80,8 +83,8 @@ export interface FileValidationCache {
 // }
 
 // Removed MulterRequest as Express.Request is globally augmented sufficiently
-// export interface MulterRequest extends Request { 
-//   files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[] | Express.Multer.File; 
+// export interface MulterRequest extends Request {
+//   files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[] | Express.Multer.File;
 // }
 
 export type MulterInstance = MulterInstanceType;

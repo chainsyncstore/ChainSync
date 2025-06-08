@@ -3,6 +3,7 @@
 This document provides an overview of the observability and monitoring features implemented in the ChainSync application. These features are designed to improve system reliability, facilitate debugging, and enable proactive issue detection.
 
 ## Table of Contents
+
 1. [Health Checks](#health-checks)
 2. [Metrics Collection](#metrics-collection)
 3. [Alerting System](#alerting-system)
@@ -21,11 +22,11 @@ Health check endpoints provide real-time status of system components:
 
 Each health check monitors critical dependencies:
 
-| Component | Description | Failure Impact |
-|-----------|-------------|----------------|
-| Database  | Verifies PostgreSQL connectivity | Critical - Application cannot function without database |
-| Redis     | Checks Redis server connection | High - Caching and session management affected |
-| Message Queue | Validates job queue health | Medium - Background processing delayed |
+| Component     | Description                      | Failure Impact                                          |
+| ------------- | -------------------------------- | ------------------------------------------------------- |
+| Database      | Verifies PostgreSQL connectivity | Critical - Application cannot function without database |
+| Redis         | Checks Redis server connection   | High - Caching and session management affected          |
+| Message Queue | Validates job queue health       | Medium - Background processing delayed                  |
 
 ## Metrics Collection
 
@@ -49,12 +50,12 @@ The alerting system monitors metrics and health checks to detect issues:
 
 Alert thresholds include:
 
-| Metric | Warning | Critical |
-|--------|---------|----------|
-| CPU Usage | 70% | 90% |
-| Memory Usage | 80% | 90% |
-| DB Response Time | 500ms | 2000ms |
-| HTTP Error Rate | 5% | 15% |
+| Metric           | Warning | Critical |
+| ---------------- | ------- | -------- |
+| CPU Usage        | 70%     | 90%      |
+| Memory Usage     | 80%     | 90%      |
+| DB Response Time | 500ms   | 2000ms   |
+| HTTP Error Rate  | 5%      | 15%      |
 
 ## Distributed Tracing
 
@@ -127,11 +128,13 @@ OTEL_TRACE_SAMPLER_ARG=1.0     # Sampling rate (0.0-1.0, 1.0 = 100% of traces)
 The repository includes several monitoring scripts:
 
 1. **Health Check Script**: `scripts/health-check.js` - Performs one-time health check
+
    ```
    node scripts/health-check.js --endpoint=http://localhost:3000/health
    ```
 
 2. **Monitor Health Script**: `scripts/monitor-health.js` - Continuous monitoring with alerts
+
    ```
    node scripts/monitor-health.js --interval=60 --notify=slack,email
    ```

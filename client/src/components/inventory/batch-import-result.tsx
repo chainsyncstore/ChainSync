@@ -6,11 +6,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
+} from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 export interface ImportError {
   row: number;
@@ -35,17 +35,22 @@ export function BatchImportResult({ result }: { result: BatchImportResult }) {
 
   return (
     <div className="space-y-4">
-      <Alert variant={result.success ? "default" : "destructive"} className={result.success ? "bg-green-50 border-green-200" : undefined}>
+      <Alert
+        variant={result.success ? 'default' : 'destructive'}
+        className={result.success ? 'bg-green-50 border-green-200' : undefined}
+      >
         {result.success ? (
           <CheckCircle className="h-4 w-4 text-green-500" />
         ) : (
           <AlertCircle className="h-4 w-4" />
         )}
-        <AlertTitle>{result.success ? "Import Successful" : "Import Failed"}</AlertTitle>
+        <AlertTitle>{result.success ? 'Import Successful' : 'Import Failed'}</AlertTitle>
         <AlertDescription>{result.message}</AlertDescription>
       </Alert>
 
-      {(result.processedRows !== undefined || result.successfulRows !== undefined || result.failedRows !== undefined) && (
+      {(result.processedRows !== undefined ||
+        result.successfulRows !== undefined ||
+        result.failedRows !== undefined) && (
         <div className="grid grid-cols-3 gap-4 mb-4">
           {result.processedRows !== undefined && (
             <div className="bg-secondary/30 p-3 rounded-md">

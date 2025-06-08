@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Health Check Script for ChainSync
- * 
+ *
  * This script performs a comprehensive health check of the ChainSync application.
  * It verifies that all required services are available and responsive.
- * 
+ *
  * Usage:
  *   node health-check.js [--url=<base-url>] [--timeout=<ms>] [--exit]
- * 
+ *
  * Options:
  *   --url=<base-url>  Base URL of the application (default: http://localhost:3000)
  *   --timeout=<ms>    Request timeout in milliseconds (default: 5000)
@@ -29,7 +29,7 @@ const config = {
   baseUrl: 'http://localhost:3000',
   timeout: 5000,
   exitOnFailure: false,
-  jsonOutput: false
+  jsonOutput: false,
 };
 
 // Parse command line arguments
@@ -57,10 +57,10 @@ const endpoints = [
   { path: '/api/health/details', name: 'Detailed Health Check', critical: true },
   { path: '/api/metrics', name: 'Metrics Endpoint', critical: false },
   { path: '/api/v1/status', name: 'API Status', critical: false },
-  
+
   // Kubernetes-style health check endpoints
   { path: '/healthz', name: 'Kubernetes Liveness Probe', critical: true },
-  { path: '/readyz', name: 'Kubernetes Readiness Probe', critical: true }
+  { path: '/readyz', name: 'Kubernetes Readiness Probe', critical: true },
 ];
 
 // Results tracker
@@ -70,18 +70,18 @@ const results = {
   timeout: config.timeout,
   endpoints: [],
   system: {},
-  overall: 'UNKNOWN'
+  overall: 'UNKNOWN',
 };
 
 /**
  * Make a HTTP/HTTPS request to the specified endpoint
  */
 function makeRequest(endpoint) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const startTime = Date.now();
     const endpointUrl = config.baseUrl + endpoint.path;
     const parsedUrl = new URL(endpointUrl);
-    
+
     const options = {
       hostname: parsedUrl.hostname,
       port: parsedUrl.port,
@@ -89,26 +89,26 @@ function makeRequest(endpoint) {
       method: 'GET',
       timeout: config.timeout,
       headers: {
-        'User-Agent': 'ChainSync-Health-Check/1.0'
-      }
+        'User-Agent': 'ChainSync-Health-Check/1.0',
+      },
     };
-    
+
     // Determine if HTTP or HTTPS
     const client = parsedUrl.protocol === 'https:' ? https : http;
-    
-    const req = client.request(options, (res) => {
+
+    const req = client.request(options, res => {
       const duration = Date.now() - startTime;
       let data = '';
-      
-      res.on('data', (chunk) => {
+
+      res.on('data', chunk => {
         data += chunk;
       });
-      
+
       res.on('end', () => {
         try {
           const statusOk = res.statusCode >= 200 && res.statusCode < 300;
           const jsonData = data ? JSON.parse(data) : {};
-          
+
           resolve({
             endpoint: endpoint.path,
             name: endpoint.name,
@@ -116,7 +116,7 @@ function makeRequest(endpoint) {
             statusCode: res.statusCode,
             responseTime: duration,
             data: jsonData,
-            error: null
+            error: null,
           });
         } catch (error) {
           resolve({
@@ -126,13 +126,13 @@ function makeRequest(endpoint) {
             statusCode: res.statusCode,
             responseTime: duration,
             data: null,
-            error: `Failed to parse response: ${error.message}`
+            error: `Failed to parse response: ${error.message}`,
           });
         }
       });
     });
-    
-    req.on('error', (error) => {
+
+    req.on('error', error => {
       const duration = Date.now() - startTime;
       resolve({
         endpoint: endpoint.path,
@@ -141,10 +141,10 @@ function makeRequest(endpoint) {
         statusCode: 0,
         responseTime: duration,
         data: null,
-        error: error.message
+        error: error.message,
       });
     });
-    
+
     req.on('timeout', () => {
       req.abort();
       resolve({
@@ -154,10 +154,10 @@ function makeRequest(endpoint) {
         statusCode: 0,
         responseTime: config.timeout,
         data: null,
-        error: 'Request timed out'
+        error: 'Request timed out',
       });
     });
-    
+
     req.end();
   });
 }
@@ -169,7 +169,7 @@ async function checkSystemHealth() {
   try {
     // Get Node.js version
     const nodeVersion = process.version;
-    
+
     // Get free disk space
     let diskSpace = 'Unknown';
     try {
@@ -184,22 +184,22 @@ async function checkSystemHealth() {
     } catch (error) {
       diskSpace = 'Error getting disk space';
     }
-    
+
     // Get memory usage
     const memoryUsage = process.memoryUsage();
-    
+
     results.system = {
       nodeVersion,
       diskSpace,
       memoryUsage: {
         rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
         heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`
-      }
+        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+      },
     };
   } catch (error) {
     results.system = {
-      error: `Failed to check system health: ${error.message}`
+      error: `Failed to check system health: ${error.message}`,
     };
   }
 }
@@ -209,40 +209,40 @@ async function checkSystemHealth() {
  */
 async function runHealthChecks() {
   console.log(`Running health checks against ${config.baseUrl} with timeout ${config.timeout}ms\n`);
-  
+
   // Check system health
   await checkSystemHealth();
-  
+
   // Check all endpoints
   for (const endpoint of endpoints) {
     const result = await makeRequest(endpoint);
     results.endpoints.push({
       ...result,
-      critical: endpoint.critical
+      critical: endpoint.critical,
     });
-    
+
     // Print result to console if not in JSON mode
     if (!config.jsonOutput) {
       const statusSymbol = result.status === 'UP' ? '✅' : result.status === 'DOWN' ? '❌' : '⚠️';
       const criticalText = endpoint.critical ? ' (CRITICAL)' : '';
-      
+
       console.log(`${statusSymbol} ${result.name}${criticalText}: ${result.status}`);
       console.log(`  URL: ${config.baseUrl}${endpoint.path}`);
       console.log(`  Response: ${result.statusCode} (${result.responseTime}ms)`);
-      
+
       if (result.error) {
         console.log(`  Error: ${result.error}`);
       }
-      
+
       console.log('');
     }
   }
-  
+
   // Determine overall status
   const criticalEndpoints = results.endpoints.filter(e => e.critical);
   const allCriticalUp = criticalEndpoints.every(e => e.status === 'UP');
   const anyCriticalDown = criticalEndpoints.some(e => e.status === 'DOWN');
-  
+
   if (anyCriticalDown) {
     results.overall = 'DOWN';
   } else if (allCriticalUp) {
@@ -251,19 +251,20 @@ async function runHealthChecks() {
   } else {
     results.overall = 'DEGRADED';
   }
-  
+
   // Output final result
   if (config.jsonOutput) {
     console.log(JSON.stringify(results, null, 2));
   } else {
-    const overallSymbol = results.overall === 'UP' ? '✅' : results.overall === 'DOWN' ? '❌' : '⚠️';
+    const overallSymbol =
+      results.overall === 'UP' ? '✅' : results.overall === 'DOWN' ? '❌' : '⚠️';
     console.log(`${overallSymbol} Overall Status: ${results.overall}`);
-    
+
     // Summary
     const upCount = results.endpoints.filter(e => e.status === 'UP').length;
     console.log(`\nSummary: ${upCount}/${results.endpoints.length} endpoints are healthy`);
   }
-  
+
   // Exit with appropriate code if requested
   if (config.exitOnFailure && results.overall !== 'UP') {
     process.exit(1);

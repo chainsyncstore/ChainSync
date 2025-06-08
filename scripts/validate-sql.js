@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * SQL Validation Script
- * 
+ *
  * This script validates SQL files and SQL usage in TypeScript files
  * to ensure they follow security best practices.
- * 
+ *
  * It checks for:
  * - SQL injection vulnerabilities (unparameterized variables)
  * - Direct SQL usage without helper functions
@@ -36,19 +36,25 @@ function checkFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     let fileHasIssues = false;
-    
+
     // Check for unsafe SQL template literals
     const unsafeVariables = content.match(patterns.unsafeVariableInSql);
     if (unsafeVariables && unsafeVariables.length > 0) {
-      console.log(chalk.red(`❌ Found ${unsafeVariables.length} potential SQL injection vulnerabilities:`));
+      console.log(
+        chalk.red(`❌ Found ${unsafeVariables.length} potential SQL injection vulnerabilities:`)
+      );
       unsafeVariables.forEach(match => {
         console.log(chalk.red(`   ${match.trim()}`));
       });
-      console.log(chalk.yellow(`   Use 'safeToString()' or 'sql.identifier()' for variables in SQL template literals`));
+      console.log(
+        chalk.yellow(
+          `   Use 'safeToString()' or 'sql.identifier()' for variables in SQL template literals`
+        )
+      );
       fileHasIssues = true;
       errorCount += unsafeVariables.length;
     }
-    
+
     // Check for unsafe query execution without parameters
     const unsafeQueries = content.match(patterns.unsafeQueryExecution);
     if (unsafeQueries && unsafeQueries.length > 0) {
@@ -56,23 +62,31 @@ function checkFile(filePath) {
       unsafeQueries.forEach(match => {
         console.log(chalk.red(`   ${match.trim()}`));
       });
-      console.log(chalk.yellow(`   Always use parameterized queries with the second parameter array`));
+      console.log(
+        chalk.yellow(`   Always use parameterized queries with the second parameter array`)
+      );
       fileHasIssues = true;
       errorCount += unsafeQueries.length;
     }
-    
+
     // Check for missing error handling
     const missingHandling = content.match(patterns.missingErrorHandling);
     if (missingHandling && missingHandling.length > 0) {
-      console.log(chalk.yellow(`⚠️ Found ${missingHandling.length} database operations without explicit error handling:`));
+      console.log(
+        chalk.yellow(
+          `⚠️ Found ${missingHandling.length} database operations without explicit error handling:`
+        )
+      );
       missingHandling.forEach(match => {
         console.log(chalk.yellow(`   ${match.trim()}`));
       });
-      console.log(chalk.yellow(`   Consider using try/catch or .catch() for proper error handling`));
+      console.log(
+        chalk.yellow(`   Consider using try/catch or .catch() for proper error handling`)
+      );
       fileHasIssues = true;
       warningCount += missingHandling.length;
     }
-    
+
     // Check for direct SQL usage
     const directSql = content.match(patterns.directSqlUsage);
     if (directSql && directSql.length > 0) {
@@ -84,11 +98,10 @@ function checkFile(filePath) {
       fileHasIssues = true;
       errorCount += directSql.length;
     }
-    
+
     if (!fileHasIssues) {
       console.log(chalk.green('✅ No SQL security issues found'));
     }
-    
   } catch (error) {
     console.error(chalk.red(`Error checking file ${filePath}: ${error.message}`));
     errorCount++;

@@ -17,23 +17,23 @@ export const TEST_USERS: Record<UserRole, TestUser> = {
   admin: {
     email: 'admin@chainsync.test',
     password: 'Test@123456',
-    role: 'admin'
+    role: 'admin',
   },
   manager: {
     email: 'manager@chainsync.test',
     password: 'Test@123456',
-    role: 'manager'
+    role: 'manager',
   },
   cashier: {
     email: 'cashier@chainsync.test',
     password: 'Test@123456',
-    role: 'cashier'
+    role: 'cashier',
   },
   customer: {
     email: 'customer@chainsync.test',
     password: 'Test@123456',
-    role: 'customer'
-  }
+    role: 'customer',
+  },
 };
 
 /**
@@ -41,17 +41,17 @@ export const TEST_USERS: Record<UserRole, TestUser> = {
  */
 export async function loginAs(page: Page, role: UserRole): Promise<void> {
   const user = TEST_USERS[role];
-  
+
   await page.goto('/login');
   await page.waitForLoadState('networkidle');
-  
+
   // Fill the login form
   await page.fill('input[name="email"]', user.email);
   await page.fill('input[name="password"]', user.password);
-  
+
   // Click login button
   await page.click('button[type="submit"]');
-  
+
   // Wait for navigation to complete
   await page.waitForURL('**/dashboard');
 }
@@ -62,10 +62,10 @@ export async function loginAs(page: Page, role: UserRole): Promise<void> {
 export async function logout(page: Page): Promise<void> {
   // Click on user menu
   await page.click('[data-testid="user-menu"]');
-  
+
   // Click logout
   await page.click('[data-testid="logout"]');
-  
+
   // Wait for navigation to login page
   await page.waitForURL('**/login');
 }

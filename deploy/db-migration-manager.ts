@@ -10,7 +10,7 @@ const execAsync = promisify(exec);
 
 /**
  * Database Migration Manager for Blue-Green Deployments
- * 
+ *
  * This utility ensures safe database migrations during blue-green deployments
  * by managing schema changes in a backward-compatible way.
  */
@@ -32,11 +32,11 @@ class DbMigrationManager {
   async checkMigrationsNeeded(): Promise<boolean> {
     const appliedMigrations = await this.getAppliedMigrations();
     const availableMigrations = await this.getAvailableMigrations();
-    
+
     const pendingMigrations = availableMigrations.filter(
       migration => !appliedMigrations.includes(migration)
     );
-    
+
     return pendingMigrations.length > 0;
   }
 
@@ -47,17 +47,17 @@ class DbMigrationManager {
     try {
       // Check if migration table exists
       const tableExists = await this.adapter.tableExists(this.migrationTableName);
-      
+
       if (!tableExists) {
         console.log(`Migration table '${this.migrationTableName}' does not exist yet`);
         return [];
       }
-      
+
       // Specify the expected row type for the query result
       const result = await db.execute<{ migration_name: string }>(
         sql`SELECT migration_name FROM ${sql.raw(this.migrationTableName)} ORDER BY executed_at ASC`
       );
-      
+
       return result.rows.map(row => row.migration_name);
     } catch (error) {
       console.error('Error fetching applied migrations:', error);
@@ -94,7 +94,7 @@ class DbMigrationManager {
         ON CONFLICT (key) DO NOTHING
         RETURNING key
       `);
-      
+
       return result.rows.length > 0;
     } catch (error) {
       console.error('Error acquiring migration lock:', error);
@@ -123,42 +123,42 @@ class DbMigrationManager {
    */
   async migrateDatabase(): Promise<boolean> {
     console.log('Checking if migrations are needed...');
-    
-    if (!await this.checkMigrationsNeeded()) {
+
+    if (!(await this.checkMigrationsNeeded())) {
       console.log('No migrations needed');
       return true;
     }
-    
+
     console.log('Migrations needed. Acquiring lock...');
-    
-    if (!await this.acquireLock()) {
+
+    if (!(await this.acquireLock())) {
       console.error('Could not acquire migration lock. Another process may be migrating.');
       return false;
     }
-    
+
     try {
       console.log('Running migrations...');
-      
+
       // Create migration table if it doesn't exist
       await this.ensureMigrationTableExists();
-      
+
       const appliedMigrations = await this.getAppliedMigrations();
       const availableMigrations = await this.getAvailableMigrations();
-      
+
       for (const migration of availableMigrations) {
         if (!appliedMigrations.includes(migration)) {
           try {
             console.log(`Applying migration: ${migration}`);
-            
+
             // Execute migration
             await this.executeMigration(migration);
-            
+
             // Record migration
             await db.execute(sql`
               INSERT INTO ${sql.raw(this.migrationTableName)} (migration_name, executed_at) 
               VALUES (${migration}, NOW())
             `);
-            
+
             console.log(`Migration ${migration} applied successfully`);
           } catch (error) {
             console.error(`Error applying migration ${migration}:`, error);
@@ -166,7 +166,7 @@ class DbMigrationManager {
           }
         }
       }
-      
+
       console.log('All migrations applied successfully');
       return true;
     } catch (error) {
@@ -204,7 +204,7 @@ class DbMigrationManager {
    */
   private async executeMigration(migrationName: string): Promise<void> {
     const migrationPath = path.join(this.migrationDir, `${migrationName}`);
-    
+
     try {
       // For TypeScript migrations, we need to compile and then execute
       if (migrationName.endsWith('.ts')) {
@@ -212,13 +212,15 @@ class DbMigrationManager {
       } else {
         // For JavaScript migrations, we can require directly
         const migration = require(migrationPath);
-        
+
         if (typeof migration.up === 'function') {
           await migration.up(db);
         } else if (typeof migration.default === 'function') {
           await migration.default(db);
         } else {
-          throw new Error(`Migration ${migrationName} does not export an 'up' or 'default' function`);
+          throw new Error(
+            `Migration ${migrationName} does not export an 'up' or 'default' function`
+          );
         }
       }
     } catch (error) {
@@ -226,19 +228,19 @@ class DbMigrationManager {
       throw error;
     }
   }
-  
+
   /**
    * Validates migration backward compatibility
    * This checks for potentially breaking schema changes
    */
-  async validateMigrationCompatibility(): Promise<{valid: boolean, issues: string[]}> {
+  async validateMigrationCompatibility(): Promise<{ valid: boolean; issues: string[] }> {
     const issues: string[] = [];
     const availableMigrations = await this.getAvailableMigrations();
-    
+
     for (const migration of availableMigrations) {
       const migrationPath = path.join(this.migrationDir, `${migration}`);
       let migrationContent: string;
-      
+
       try {
         migrationContent = await fs.readFile(`${migrationPath}.ts`, 'utf8');
       } catch (error) {
@@ -249,20 +251,22 @@ class DbMigrationManager {
           continue;
         }
       }
-      
+
       // Check for potentially breaking changes
       // This is a simplified check - in a real scenario, you'd want a more comprehensive analysis
-      if (migrationContent.includes('DROP TABLE') || 
-          migrationContent.includes('DROP COLUMN') ||
-          migrationContent.includes('ALTER COLUMN') && 
-          (migrationContent.includes('TYPE') || migrationContent.includes('NOT NULL'))) {
+      if (
+        migrationContent.includes('DROP TABLE') ||
+        migrationContent.includes('DROP COLUMN') ||
+        (migrationContent.includes('ALTER COLUMN') &&
+          (migrationContent.includes('TYPE') || migrationContent.includes('NOT NULL')))
+      ) {
         issues.push(`Migration ${migration} contains potentially breaking changes`);
       }
     }
-    
+
     return {
       valid: issues.length === 0,
-      issues
+      issues,
     };
   }
 }
@@ -272,7 +276,7 @@ export const migrationManager = new DbMigrationManager();
 // CLI interface for running from command line
 if (require.main === module) {
   const command = process.argv[2] || 'migrate';
-  
+
   async function main() {
     switch (command) {
       case 'check':
@@ -280,7 +284,7 @@ if (require.main === module) {
         console.log(needed ? 'Migrations needed' : 'No migrations needed');
         process.exit(needed ? 1 : 0);
         break;
-        
+
       case 'validate':
         const validation = await migrationManager.validateMigrationCompatibility();
         if (validation.valid) {
@@ -292,18 +296,18 @@ if (require.main === module) {
           process.exit(1);
         }
         break;
-        
+
       case 'migrate':
         const success = await migrationManager.migrateDatabase();
         process.exit(success ? 0 : 1);
         break;
-        
+
       default:
         console.error('Unknown command. Use: check, validate, or migrate');
         process.exit(1);
     }
   }
-  
+
   main().catch(error => {
     console.error('Error:', error);
     process.exit(1);

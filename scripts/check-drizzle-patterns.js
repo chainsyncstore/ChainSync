@@ -2,7 +2,7 @@
 
 /**
  * Drizzle ORM Pattern Check
- * 
+ *
  * This script checks for common issues with Drizzle ORM usage based on
  * the patterns established in the ChainSync project:
  * - Ensures proper field mapping between camelCase and snake_case
@@ -24,30 +24,30 @@ const filePaths = process.argv.slice(2);
 // Patterns to check in Drizzle ORM files
 const drizzlePatterns = [
   // Check direct value insertion without safeToString
-  { 
+  {
     pattern: /sql`.*\${(?!.*safeToString\()(?!.*sql\.identifier\()(?!this\.safeToString\()/,
-    message: 'Direct value insertion in SQL template without safeToString'
+    message: 'Direct value insertion in SQL template without safeToString',
   },
-  
+
   // Check field mapping between camelCase and snake_case
   {
     pattern: /camelToSnake|snakeToCamel/,
     present: true,
-    message: 'Missing field mapping between camelCase and snake_case'
+    message: 'Missing field mapping between camelCase and snake_case',
   },
-  
+
   // Check for proper error handling with Drizzle
   {
     pattern: /(catch.*\(error)(?!.*: unknown)/,
-    message: 'Untyped error catching - use "error: unknown" for better type safety'
+    message: 'Untyped error catching - use "error: unknown" for better type safety',
   },
-  
+
   // Check for proper transaction handling
   {
     pattern: /beginTransaction|tx\(/,
     context: /try\s*{[\s\S]*?}\s*catch\s*\(.*\)\s*{[\s\S]*?}/,
-    message: 'Transaction without proper try/catch error handling'
-  }
+    message: 'Transaction without proper try/catch error handling',
+  },
 ];
 
 let exitCode = 0;
@@ -61,7 +61,7 @@ filePaths.forEach(filePath => {
     // Check for Drizzle ORM patterns
     drizzlePatterns.forEach(({ pattern, present, message, context }) => {
       const matches = pattern.test(content);
-      
+
       if (present && !matches) {
         // Should be present but isn't
         fileIssues.push(`⚠️ ${message}`);

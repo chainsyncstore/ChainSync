@@ -7,7 +7,11 @@ export interface FileUploadConfig {
   allowedMimeTypes: string[];
   maxFiles: number;
   destination: string;
-  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => void;
+  filename: (
+    req: Request,
+    file: Express.Multer.File,
+    cb: (error: Error | null, filename: string) => void
+  ) => void;
   allowedFileExtensions: string[];
   cleanupInterval: number;
   cacheTTL: number;
@@ -57,7 +61,11 @@ export interface FileUploadMiddleware {
   // or more specifically, the result of calling multer(options).
   // For simplicity, if it's just storing the multer instance:
   upload: import('multer').Multer; // Use the actual Multer type from the library
-  validateUploadedFiles(req: Request, res: Response, next: (error?: Error | null) => void): Promise<void>;
+  validateUploadedFiles(
+    req: Request,
+    res: Response,
+    next: (error?: Error | null) => void
+  ): Promise<void>;
   updateProgress(req: Request, file: Express.Multer.File, progress: number): void; // Use Express.Multer.File
   cleanupResources(): void;
   startPeriodicCleanup(): void;

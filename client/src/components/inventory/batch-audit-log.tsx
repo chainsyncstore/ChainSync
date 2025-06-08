@@ -8,16 +8,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Info } from "lucide-react";
+} from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, Info } from 'lucide-react';
 
 interface BatchAuditLog {
   id: number;
@@ -40,7 +35,11 @@ interface BatchAuditLogProps {
 }
 
 export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
-  const { data: logs, isLoading, error } = useQuery<BatchAuditLog[]>({
+  const {
+    data: logs,
+    isLoading,
+    error,
+  } = useQuery<BatchAuditLog[]>({
     queryKey: [`/api/inventory/batches/${batchId}/audit-logs`],
     enabled: !!batchId,
   });
@@ -90,16 +89,23 @@ export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
         <div key={index} className="text-sm mb-1">
           <span className="font-medium">{change.field}:</span>{' '}
           <span className="line-through text-muted-foreground">{formatValue(change.oldValue)}</span>{' '}
-          <span className="text-primary">→</span>{' '}
-          <span>{formatValue(change.newValue)}</span>
+          <span className="text-primary">→</span> <span>{formatValue(change.newValue)}</span>
         </div>
       ));
     }
-    
+
     return (
       <div className="text-sm">
-        {details.batchNumber && <div><span className="font-medium">Batch:</span> {details.batchNumber}</div>}
-        {details.productName && <div><span className="font-medium">Product:</span> {details.productName}</div>}
+        {details.batchNumber && (
+          <div>
+            <span className="font-medium">Batch:</span> {details.batchNumber}
+          </div>
+        )}
+        {details.productName && (
+          <div>
+            <span className="font-medium">Product:</span> {details.productName}
+          </div>
+        )}
         {details.wasForceDeleted !== undefined && (
           <div className="text-amber-500">
             {details.wasForceDeleted ? 'Force deleted' : 'Normal deletion'}
@@ -131,7 +137,7 @@ export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {logs.map((log) => (
+          {logs.map(log => (
             <TableRow key={log.id}>
               <TableCell className="whitespace-nowrap">
                 {format(new Date(log.createdAt), 'PPp')}
@@ -145,8 +151,15 @@ export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center">
-                          <span className={`${log.quantityAfter > log.quantityBefore ? 'text-green-500' : 
-                                           log.quantityAfter < log.quantityBefore ? 'text-red-500' : ''}`}>
+                          <span
+                            className={`${
+                              log.quantityAfter > log.quantityBefore
+                                ? 'text-green-500'
+                                : log.quantityAfter < log.quantityBefore
+                                  ? 'text-red-500'
+                                  : ''
+                            }`}
+                          >
                             {log.quantityBefore} → {log.quantityAfter}
                           </span>
                           {log.quantityBefore !== log.quantityAfter && (
@@ -159,8 +172,8 @@ export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
                           {log.quantityAfter > log.quantityBefore
                             ? `Added ${log.quantityAfter - log.quantityBefore} units`
                             : log.quantityAfter < log.quantityBefore
-                            ? `Removed ${log.quantityBefore - log.quantityAfter} units`
-                            : 'No quantity change'}
+                              ? `Removed ${log.quantityBefore - log.quantityAfter} units`
+                              : 'No quantity change'}
                         </p>
                       </TooltipContent>
                     </Tooltip>

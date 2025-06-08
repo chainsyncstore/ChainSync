@@ -16,14 +16,14 @@ rules:
       category: security
       subcategory: sql-injection
       confidence: MEDIUM
-      cwe: "CWE-89: SQL Injection"
-      owasp: "A1:2017-Injection"
+      cwe: 'CWE-89: SQL Injection'
+      owasp: 'A1:2017-Injection'
       remediation: |
         Use the safeToString() helper method when inserting variables into SQL template literals:
         ```typescript
         sql`SELECT * FROM users WHERE id = ${this.safeToString(userId)}`
         ```
-    
+
   - id: jwt-weak-secret
     patterns:
       - pattern: |
@@ -39,9 +39,9 @@ rules:
       category: security
       subcategory: crypto
       confidence: HIGH
-      cwe: "CWE-798: Use of Hard-coded Credentials"
-      owasp: "A2:2017-Broken Authentication"
-  
+      cwe: 'CWE-798: Use of Hard-coded Credentials'
+      owasp: 'A2:2017-Broken Authentication'
+
   - id: insecure-redis-connection
     pattern: |
       new Redis($...)
@@ -56,8 +56,8 @@ rules:
       category: security
       subcategory: insecure-configuration
       confidence: MEDIUM
-      cwe: "CWE-319: Cleartext Transmission of Sensitive Information"
-  
+      cwe: 'CWE-319: Cleartext Transmission of Sensitive Information'
+
   - id: missing-helmet
     patterns:
       - pattern-not: |
@@ -75,9 +75,9 @@ rules:
       category: security
       subcategory: missing-security-header
       confidence: MEDIUM
-      cwe: "CWE-693: Protection Mechanism Failure"
-      owasp: "A6:2017-Security Misconfiguration"
-  
+      cwe: 'CWE-693: Protection Mechanism Failure'
+      owasp: 'A6:2017-Security Misconfiguration'
+
   - id: path-traversal
     patterns:
       - pattern: |
@@ -93,9 +93,9 @@ rules:
       category: security
       subcategory: path-traversal
       confidence: MEDIUM
-      cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory"
-      owasp: "A5:2017-Broken Access Control"
-  
+      cwe: 'CWE-22: Improper Limitation of a Pathname to a Restricted Directory'
+      owasp: 'A5:2017-Broken Access Control'
+
   - id: missing-auth-check
     patterns:
       - pattern: |
@@ -107,10 +107,10 @@ rules:
       - pattern-either:
           - metavariable-regex:
               metavariable: $ROUTE
-              regex: "(users|accounts|admin|settings|stores|inventory|transactions)"
+              regex: '(users|accounts|admin|settings|stores|inventory|transactions)'
           - metavariable-regex:
               metavariable: $METHOD
-              regex: "(put|post|delete|patch)"
+              regex: '(put|post|delete|patch)'
     message: >-
       Potential missing authentication middleware. Routes that modify data or 
       access sensitive information should be protected with authentication.
@@ -120,9 +120,9 @@ rules:
       category: security
       subcategory: authentication
       confidence: MEDIUM
-      cwe: "CWE-306: Missing Authentication for Critical Function"
-      owasp: "A2:2017-Broken Authentication"
-  
+      cwe: 'CWE-306: Missing Authentication for Critical Function'
+      owasp: 'A2:2017-Broken Authentication'
+
   - id: weak-crypto
     patterns:
       - pattern-either:
@@ -142,9 +142,9 @@ rules:
       category: security
       subcategory: crypto
       confidence: HIGH
-      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
-      owasp: "A3:2017-Sensitive Data Exposure"
-  
+      cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+      owasp: 'A3:2017-Sensitive Data Exposure'
+
   - id: possible-nosql-injection
     patterns:
       - pattern-either:
@@ -165,8 +165,8 @@ rules:
       category: security
       subcategory: injection
       confidence: MEDIUM
-      cwe: "CWE-943: Improper Neutralization of Special Elements in Data Query Logic"
-      owasp: "A1:2017-Injection"
+      cwe: 'CWE-943: Improper Neutralization of Special Elements in Data Query Logic'
+      owasp: 'A1:2017-Injection'
 
   - id: react-xss
     patterns:
@@ -183,8 +183,8 @@ rules:
       category: security
       subcategory: xss
       confidence: HIGH
-      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"
-      owasp: "A7:2017-Cross-Site Scripting (XSS)"
+      cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation'
+      owasp: 'A7:2017-Cross-Site Scripting (XSS)'
 
   - id: env-exposure
     pattern: |
@@ -200,8 +200,8 @@ rules:
       category: security
       subcategory: information-disclosure
       confidence: MEDIUM
-      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
-      owasp: "A3:2017-Sensitive Data Exposure"
+      cwe: 'CWE-200: Exposure of Sensitive Information to an Unauthorized Actor'
+      owasp: 'A3:2017-Sensitive Data Exposure'
 
   - id: mass-assignment
     patterns:
@@ -221,5 +221,5 @@ rules:
       category: security
       subcategory: mass-assignment
       confidence: MEDIUM
-      cwe: "CWE-915: Improperly Controlled Modification of Dynamically-Determined Object Attributes"
-      owasp: "A5:2017-Broken Access Control"
+      cwe: 'CWE-915: Improperly Controlled Modification of Dynamically-Determined Object Attributes'
+      owasp: 'A5:2017-Broken Access Control'

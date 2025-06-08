@@ -46,34 +46,29 @@ export interface Entity {
 }
 
 // 3. Create the service class
-export class EntityService extends BaseService<Entity, 
-  z.infer<typeof entityCreateSchema>, 
-  z.infer<typeof entityUpdateSchema>> {
-  
+export class EntityService extends BaseService<
+  Entity,
+  z.infer<typeof entityCreateSchema>,
+  z.infer<typeof entityUpdateSchema>
+> {
   // Required abstract properties
   protected readonly entityName = 'entity';
   protected readonly tableName = entities; // Import from db schema
   protected readonly primaryKeyField = 'id';
   protected readonly createSchema = entityCreateSchema;
   protected readonly updateSchema = entityUpdateSchema;
-  
+
   constructor(config: ServiceConfig) {
     super(config);
     this.logger.info('EntityService initialized');
   }
-  
+
   // 4. Add custom service methods
   async getActiveEntities(): Promise<Entity[]> {
     try {
-      return await this.executeQuery(
-        async (db) => {
-          return db
-            .select()
-            .from(this.tableName)
-            .where(eq(this.tableName.isActive, true));
-        },
-        'entity.getActive'
-      );
+      return await this.executeQuery(async db => {
+        return db.select().from(this.tableName).where(eq(this.tableName.isActive, true));
+      }, 'entity.getActive');
     } catch (error) {
       return this.handleError(error, 'Error fetching active entities');
     }
@@ -122,17 +117,12 @@ try {
 Use transactions for operations that require data consistency:
 
 ```typescript
-await entityService.withTransaction(async (trx) => {
+await entityService.withTransaction(async trx => {
   // Perform multiple operations within a transaction
-  const entity = await trx
-    .insert(entities)
-    .values(data)
-    .returning();
-    
-  await trx
-    .insert(relatedTable)
-    .values({ entityId: entity[0].id, ...otherData });
-    
+  const entity = await trx.insert(entities).values(data).returning();
+
+  await trx.insert(relatedTable).values({ entityId: entity[0].id, ...otherData });
+
   return entity[0];
 });
 ```
@@ -161,14 +151,11 @@ protected async invalidateListCache(): Promise<void> {
 Use retry mechanisms for operations that may fail transiently:
 
 ```typescript
-await this.withRetry(
-  async () => this.someOperationThatMightFail(),
-  {
-    maxRetries: 3,
-    baseDelayMs: 1000,
-    retryableErrors: [ErrorCode.TEMPORARY_UNAVAILABLE, ErrorCode.EXTERNAL_SERVICE_ERROR]
-  }
-);
+await this.withRetry(async () => this.someOperationThatMightFail(), {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  retryableErrors: [ErrorCode.TEMPORARY_UNAVAILABLE, ErrorCode.EXTERNAL_SERVICE_ERROR],
+});
 ```
 
 ## Migration Checklist

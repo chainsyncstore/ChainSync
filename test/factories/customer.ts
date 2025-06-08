@@ -3,7 +3,9 @@
 import type { InferModel } from 'drizzle-orm';
 import { customers } from '../../shared/db';
 
-export function makeMockCustomer(overrides: Partial<InferModel<typeof customers>> = {}): InferModel<typeof customers> {
+export function makeMockCustomer(
+  overrides: Partial<InferModel<typeof customers>> = {}
+): InferModel<typeof customers> {
   return {
     id: 1,
     name: 'Test Customer',

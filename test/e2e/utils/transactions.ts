@@ -61,36 +61,41 @@ export async function createTransaction(page: Page, data: TransactionData): Prom
 
   // Complete transaction
   await page.click('[data-testid="complete-transaction"]');
-  
+
   // Wait for confirmation and extract transaction ID
   await page.waitForSelector('[data-testid="transaction-success"]');
-  
+
   // Extract transaction ID from the success message or UI
   const transactionId = await page.getAttribute('[data-testid="transaction-id"]', 'data-id');
-  
+
   return transactionId || '';
 }
 
 /**
  * Process a refund for a transaction
  */
-export async function refundTransaction(page: Page, transactionId: string, fullRefund: boolean = true, amount?: number): Promise<void> {
+export async function refundTransaction(
+  page: Page,
+  transactionId: string,
+  fullRefund: boolean = true,
+  amount?: number
+): Promise<void> {
   // Navigate to transaction details
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
-  
+
   // Click refund button
   await page.click('[data-testid="refund-transaction"]');
-  
+
   if (!fullRefund && amount) {
     // Select partial refund
     await page.click('[data-testid="partial-refund"]');
     await page.fill('[data-testid="refund-amount"]', amount.toString());
   }
-  
+
   // Confirm refund
   await page.click('[data-testid="confirm-refund"]');
-  
+
   // Wait for refund confirmation
   await page.waitForSelector('[data-testid="refund-success"]');
 }
@@ -101,7 +106,7 @@ export async function refundTransaction(page: Page, transactionId: string, fullR
 export async function getTransactionStatus(page: Page, transactionId: string): Promise<string> {
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
-  
+
   const statusElement = await page.locator('[data-testid="transaction-status"]');
   return statusElement.textContent() || '';
 }
@@ -109,12 +114,15 @@ export async function getTransactionStatus(page: Page, transactionId: string): P
 /**
  * Verify loyalty points for a transaction
  */
-export async function getLoyaltyPointsForTransaction(page: Page, transactionId: string): Promise<number> {
+export async function getLoyaltyPointsForTransaction(
+  page: Page,
+  transactionId: string
+): Promise<number> {
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
-  
+
   const pointsElement = await page.locator('[data-testid="loyalty-points"]');
-  const pointsText = await pointsElement.textContent() || '0';
-  
+  const pointsText = (await pointsElement.textContent()) || '0';
+
   return parseInt(pointsText.replace(/[^0-9]/g, ''), 10);
 }

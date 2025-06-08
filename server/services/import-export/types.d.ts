@@ -1,13 +1,13 @@
 declare module 'csv-parser' {
-  export default function(): unknown;
+  export default function (): unknown;
 }
 
 declare module 'json2csv' {
-  export default function(): unknown;
+  export default function (): unknown;
 }
 
 import { Request, Response, NextFunction } from 'express';
-// Removed: import * as multer from 'multer'; 
+// Removed: import * as multer from 'multer';
 // Removed: import { MulterFile } from '../types/multer';
 // Removed: import type { File as MulterFileOriginal } from 'multer';
 // Removed: import type { File as MulterDotFile } from 'multer';
@@ -81,10 +81,18 @@ export interface ValidationOptions {
 }
 
 export interface ImportExportService {
-  importProducts(userId: number, file: Express.Multer.File, options?: ValidationOptions): Promise<ImportExportResult>;
+  importProducts(
+    userId: number,
+    file: Express.Multer.File,
+    options?: ValidationOptions
+  ): Promise<ImportExportResult>;
   getImportProgress(importId: string): Promise<ImportExportProgress>;
   cancelImport(importId: string): Promise<void>;
   clearImport(importId: string): Promise<void>;
-  validateData(data: unknown[], type: 'products' | 'users' | 'transactions', options?: ValidationOptions): Promise<{ valid: unknown[]; invalid: { index: number; errors: string[] }[] }>;
+  validateData(
+    data: unknown[],
+    type: 'products' | 'users' | 'transactions',
+    options?: ValidationOptions
+  ): Promise<{ valid: unknown[]; invalid: { index: number; errors: string[] }[] }>;
   exportProducts(userId: number, options?: { format?: 'csv' | 'xlsx' | 'json' }): Promise<Buffer>;
 }

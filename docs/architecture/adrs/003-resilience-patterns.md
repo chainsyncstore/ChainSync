@@ -27,12 +27,14 @@ We needed a comprehensive approach to resilience that would allow the system to 
 We have decided to implement a suite of resilience patterns across the ChainSync system, including:
 
 1. **Retry Utility**: A comprehensive retry system with:
+
    - Exponential backoff to prevent overwhelming recovering services
    - Jitter to prevent thundering herd problems
    - Configurable retry policies based on error types
    - Maximum retry limits and timeout parameters
 
 2. **Circuit Breaker Pattern**: Circuit breakers that:
+
    - Track failure rates of dependent services
    - Automatically "trip" when failure thresholds are exceeded
    - Prevent unnecessary calls to failing services
@@ -40,12 +42,14 @@ We have decided to implement a suite of resilience patterns across the ChainSync
    - Provide monitoring and manual reset capabilities
 
 3. **Fallback Strategies**: Fallback mechanisms that:
+
    - Provide alternative functionality when primary functions fail
    - Utilize cached data when live data is unavailable
    - Implement graceful degradation of features
    - Enable offline operation for critical functions
 
 4. **Resilient HTTP Client**: A resilient HTTP client that:
+
    - Combines retry logic and circuit breaking
    - Handles common HTTP failure modes appropriately
    - Supports failover to alternate endpoints
@@ -64,11 +68,13 @@ These patterns are implemented as reusable components and integrated into the st
 ### 1. Third-Party Resilience Libraries
 
 **Pros**:
+
 - Pre-built implementations of resilience patterns
 - Community support and maintenance
 - Potentially more feature-complete
 
 **Cons**:
+
 - Additional dependencies
 - May not integrate well with our specific needs
 - Learning curve for the team
@@ -77,11 +83,13 @@ These patterns are implemented as reusable components and integrated into the st
 ### 2. Service Mesh Architecture
 
 **Pros**:
+
 - Resilience handled at infrastructure level
 - Consistent application across all services
 - Separation of concerns between business logic and resilience
 
 **Cons**:
+
 - Significant infrastructure complexity
 - Operational overhead
 - Overkill for our current application architecture
@@ -90,11 +98,13 @@ These patterns are implemented as reusable components and integrated into the st
 ### 3. Status Quo with Improved Error Handling
 
 **Pros**:
+
 - Simpler implementation
 - Lower development effort
 - Fewer moving parts
 
 **Cons**:
+
 - Limited resilience capabilities
 - No automatic recovery from failures
 - Continued risk of cascading failures
@@ -105,16 +115,19 @@ These patterns are implemented as reusable components and integrated into the st
 ### Positive
 
 1. **Improved System Reliability**:
+
    - Better handling of transient failures
    - Automatic recovery from many failure modes
    - Prevention of cascading failures
 
 2. **Enhanced User Experience**:
+
    - Fewer service disruptions
    - More consistent application behavior
    - Reduced error states visible to users
 
 3. **Operational Benefits**:
+
    - Reduced incident frequency
    - Faster recovery from failures
    - Better visibility into system health
@@ -128,11 +141,13 @@ These patterns are implemented as reusable components and integrated into the st
 ### Negative
 
 1. **Implementation Complexity**:
+
    - More complex service implementations
    - Additional testing requirements
    - Learning curve for developers
 
 2. **Performance Overhead**:
+
    - Small overhead for retry and circuit breaking logic
    - Additional monitoring and state tracking
    - Potential latency from retry attempts
@@ -147,24 +162,28 @@ These patterns are implemented as reusable components and integrated into the st
 The resilience patterns have been implemented through the following components:
 
 1. **Retry Utility**:
+
    - Configurable retry policies
    - Support for different backoff strategies
    - Error categorization for retry decisions
    - Monitoring and logging integration
 
 2. **Circuit Breaker**:
+
    - State machine implementation (closed, open, half-open)
    - Failure counting and threshold configuration
    - Automatic testing and reset logic
    - Manual override capabilities
 
 3. **Fallback Manager**:
+
    - Strategy pattern for fallback options
    - Cache integration for data fallbacks
    - Degraded mode operations
    - Clear feedback on fallback usage
 
 4. **Resilient HTTP Client**:
+
    - Built on standard HTTP client
    - Integration with retry and circuit breaker
    - Timeout management
@@ -176,6 +195,7 @@ The resilience patterns have been implemented through the following components:
    - Integration with service standard
 
 Implementation has prioritized:
+
 - Ease of use for developers
 - Minimal performance overhead
 - Comprehensive monitoring

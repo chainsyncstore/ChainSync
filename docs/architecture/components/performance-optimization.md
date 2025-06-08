@@ -19,19 +19,19 @@ The Performance Optimization component provides tools, patterns, and infrastruct
 graph TD
     API[API Layer] --> Services[Core Services]
     Services --> PerfOpt[Performance Optimization Layer]
-    
+
     subgraph "Performance Optimization Components"
         DbConnMgr[Database Connection Manager]
         CacheSystem[Caching System]
         QueryOpt[Query Optimization]
         PerfMon[Performance Monitoring]
     end
-    
+
     PerfOpt --> DbConnMgr
     PerfOpt --> CacheSystem
     PerfOpt --> QueryOpt
     PerfOpt --> PerfMon
-    
+
     DbConnMgr --> DB[(PostgreSQL)]
     CacheSystem --> Redis[(Redis)]
     PerfMon --> Telemetry[OpenTelemetry]
@@ -39,15 +39,15 @@ graph TD
 
 ## Key Interfaces
 
-| Interface | Description | Consumers |
-|-----------|-------------|-----------|
-| `getConnection()` | Get a database connection from the pool | All database-accessing services |
-| `executeQuery(query, params)` | Execute a query with performance tracking | Services, DAOs |
-| `withTransaction(callback)` | Execute a callback within a transaction | Services requiring transactions |
-| `cacheGet(key)` | Retrieve data from cache | Services with caching needs |
-| `cacheSet(key, value, ttl)` | Store data in cache with TTL | Services with caching needs |
-| `cacheInvalidate(pattern)` | Invalidate cache entries by pattern | Services after data mutations |
-| `recordMetric(name, value)` | Record a custom performance metric | Any component tracking performance |
+| Interface                     | Description                               | Consumers                          |
+| ----------------------------- | ----------------------------------------- | ---------------------------------- |
+| `getConnection()`             | Get a database connection from the pool   | All database-accessing services    |
+| `executeQuery(query, params)` | Execute a query with performance tracking | Services, DAOs                     |
+| `withTransaction(callback)`   | Execute a callback within a transaction   | Services requiring transactions    |
+| `cacheGet(key)`               | Retrieve data from cache                  | Services with caching needs        |
+| `cacheSet(key, value, ttl)`   | Store data in cache with TTL              | Services with caching needs        |
+| `cacheInvalidate(pattern)`    | Invalidate cache entries by pattern       | Services after data mutations      |
+| `recordMetric(name, value)`   | Record a custom performance metric        | Any component tracking performance |
 
 ## Database Connection Management
 
@@ -58,25 +58,25 @@ graph TD
     Service[Service] -->|getConnection| ConnMgr[Connection Manager]
     Service -->|executeQuery| ConnMgr
     Service -->|withTransaction| ConnMgr
-    
+
     ConnMgr -->|acquire| Pool[Connection Pool]
     ConnMgr -->|release| Pool
     ConnMgr -->|healthCheck| Pool
-    
+
     Pool -->|connect| DB[(PostgreSQL)]
-    
+
     ConnMgr -->|metrics| Monitoring[Monitoring]
 ```
 
 ### Connection Pooling Strategy
 
-| Parameter | Description | Default Value | Environment Variable |
-|-----------|-------------|---------------|---------------------|
-| Min Connections | Minimum connections in pool | 5 | `DB_POOL_MIN` |
-| Max Connections | Maximum connections in pool | 20 | `DB_POOL_MAX` |
-| Idle Timeout | Time after which idle connections are closed | 30s | `DB_POOL_IDLE_TIMEOUT` |
-| Connection Timeout | Max time to wait for connection | 5s | `DB_POOL_CONN_TIMEOUT` |
-| Validation Query | Query to validate connections | `SELECT 1` | `DB_POOL_VALIDATION_QUERY` |
+| Parameter          | Description                                  | Default Value | Environment Variable       |
+| ------------------ | -------------------------------------------- | ------------- | -------------------------- |
+| Min Connections    | Minimum connections in pool                  | 5             | `DB_POOL_MIN`              |
+| Max Connections    | Maximum connections in pool                  | 20            | `DB_POOL_MAX`              |
+| Idle Timeout       | Time after which idle connections are closed | 30s           | `DB_POOL_IDLE_TIMEOUT`     |
+| Connection Timeout | Max time to wait for connection              | 5s            | `DB_POOL_CONN_TIMEOUT`     |
+| Validation Query   | Query to validate connections                | `SELECT 1`    | `DB_POOL_VALIDATION_QUERY` |
 
 ### Query Performance Tracking
 
@@ -95,16 +95,16 @@ The caching system uses Redis to store frequently accessed data with appropriate
 ```mermaid
 graph TD
     Service[Service] -->|cacheGet/cacheSet| CacheMgr[Cache Manager]
-    
+
     CacheMgr -->|get/set/del| Redis[(Redis)]
-    
+
     subgraph "Cache Strategies"
         LookupCache[Lookup Data]
         QueryCache[Query Results]
         AggregateCache[Aggregated Data]
         SessionCache[Session Data]
     end
-    
+
     CacheMgr --> LookupCache
     CacheMgr --> QueryCache
     CacheMgr --> AggregateCache
@@ -113,15 +113,15 @@ graph TD
 
 ### Cache Key Strategies
 
-| Entity Type | Key Pattern | TTL | Invalidation Strategy |
-|-------------|-------------|-----|------------------------|
-| Product Data | `product:{id}` | 1 hour | On product update |
-| Category Data | `category:{id}` | 2 hours | On category update |
-| Inventory Levels | `inventory:{storeId}:{productId}` | 5 minutes | On inventory change |
-| User Profiles | `user:{id}` | 30 minutes | On profile update |
-| Query Results | `query:{hash}` | 15 minutes | Time-based or explicit |
-| Lookup Data | `lookup:{type}` | 24 hours | On reference data update |
-| Aggregated Metrics | `metrics:{type}:{timeframe}` | Varies | Time-based or recalculation |
+| Entity Type        | Key Pattern                       | TTL        | Invalidation Strategy       |
+| ------------------ | --------------------------------- | ---------- | --------------------------- |
+| Product Data       | `product:{id}`                    | 1 hour     | On product update           |
+| Category Data      | `category:{id}`                   | 2 hours    | On category update          |
+| Inventory Levels   | `inventory:{storeId}:{productId}` | 5 minutes  | On inventory change         |
+| User Profiles      | `user:{id}`                       | 30 minutes | On profile update           |
+| Query Results      | `query:{hash}`                    | 15 minutes | Time-based or explicit      |
+| Lookup Data        | `lookup:{type}`                   | 24 hours   | On reference data update    |
+| Aggregated Metrics | `metrics:{type}:{timeframe}`      | Varies     | Time-based or recalculation |
 
 ### Cache Invalidation Patterns
 
@@ -138,14 +138,14 @@ The system uses the following cache invalidation strategies:
 
 The system implements strategic database indexes for frequently accessed tables:
 
-| Table | Index | Type | Purpose |
-|-------|-------|------|---------|
-| products | idx_products_category | B-tree | Product listing by category |
+| Table            | Index                       | Type   | Purpose                               |
+| ---------------- | --------------------------- | ------ | ------------------------------------- |
+| products         | idx_products_category       | B-tree | Product listing by category           |
 | inventory_levels | idx_inventory_store_product | B-tree | Inventory lookup by store and product |
-| transactions | idx_transactions_store_date | B-tree | Transaction queries by store and date |
-| loyalty_members | idx_loyalty_customer | B-tree | Loyalty lookup by customer |
-| users | idx_users_email | B-tree | User lookup by email |
-| stock_movements | idx_movements_product_date | B-tree | Stock movement history by product |
+| transactions     | idx_transactions_store_date | B-tree | Transaction queries by store and date |
+| loyalty_members  | idx_loyalty_customer        | B-tree | Loyalty lookup by customer            |
+| users            | idx_users_email             | B-tree | User lookup by email                  |
+| stock_movements  | idx_movements_product_date  | B-tree | Stock movement history by product     |
 
 ### Query Optimization Techniques
 
@@ -170,15 +170,15 @@ graph TD
 
 ### Key Performance Metrics
 
-| Metric | Description | Alert Threshold |
-|--------|-------------|----------------|
-| API Response Time | Average response time for API endpoints | > 500ms |
-| Database Query Time | Average database query execution time | > 100ms |
-| Slow Query Count | Number of queries exceeding threshold | > 10 per minute |
-| Cache Hit Rate | Percentage of cache hits vs. misses | < 80% |
-| Connection Pool Utilization | Percentage of pool in use | > 90% |
-| API Error Rate | Percentage of API calls resulting in errors | > 1% |
-| Database Connection Errors | Count of database connection failures | > 0 |
+| Metric                      | Description                                 | Alert Threshold |
+| --------------------------- | ------------------------------------------- | --------------- |
+| API Response Time           | Average response time for API endpoints     | > 500ms         |
+| Database Query Time         | Average database query execution time       | > 100ms         |
+| Slow Query Count            | Number of queries exceeding threshold       | > 10 per minute |
+| Cache Hit Rate              | Percentage of cache hits vs. misses         | < 80%           |
+| Connection Pool Utilization | Percentage of pool in use                   | > 90%           |
+| API Error Rate              | Percentage of API calls resulting in errors | > 1%            |
+| Database Connection Errors  | Count of database connection failures       | > 0             |
 
 ## Optimized Service Implementation
 
@@ -199,7 +199,7 @@ classDiagram
         -invalidateProductCache(id)
         -optimizeQuery(filters)
     }
-    
+
     OptimizedProductService --> DbConnectionManager
     OptimizedProductService --> CacheManager
     OptimizedProductService --> Logger
@@ -228,25 +228,25 @@ The system implements graceful shutdown procedures to ensure in-flight operation
 
 ## Dependencies
 
-| Dependency | Purpose | Type |
-|------------|---------|------|
-| PostgreSQL | Primary data storage | External |
-| Drizzle ORM | Database access layer | Library |
-| Redis | Caching infrastructure | External |
-| OpenTelemetry | Performance monitoring | Library |
-| Prometheus | Metrics storage | External |
-| Grafana | Metrics visualization | External |
+| Dependency    | Purpose                | Type     |
+| ------------- | ---------------------- | -------- |
+| PostgreSQL    | Primary data storage   | External |
+| Drizzle ORM   | Database access layer  | Library  |
+| Redis         | Caching infrastructure | External |
+| OpenTelemetry | Performance monitoring | Library  |
+| Prometheus    | Metrics storage        | External |
+| Grafana       | Metrics visualization  | External |
 
 ## Configuration
 
-| Configuration | Description | Default | Environment Variable |
-|---------------|-------------|---------|---------------------|
-| DB Pool Size | Database connection pool size | 20 | `DB_POOL_SIZE` |
-| Query Timeout | Maximum query execution time | 30s | `DB_QUERY_TIMEOUT` |
-| Slow Query Threshold | Threshold for slow query logging | 1000ms | `SLOW_QUERY_THRESHOLD` |
-| Cache TTL Default | Default TTL for cached items | 3600s | `CACHE_DEFAULT_TTL` |
-| Redis Connection | Redis connection string | N/A | `REDIS_URL` |
-| Telemetry Enabled | Whether telemetry is enabled | true | `TELEMETRY_ENABLED` |
+| Configuration        | Description                      | Default | Environment Variable   |
+| -------------------- | -------------------------------- | ------- | ---------------------- |
+| DB Pool Size         | Database connection pool size    | 20      | `DB_POOL_SIZE`         |
+| Query Timeout        | Maximum query execution time     | 30s     | `DB_QUERY_TIMEOUT`     |
+| Slow Query Threshold | Threshold for slow query logging | 1000ms  | `SLOW_QUERY_THRESHOLD` |
+| Cache TTL Default    | Default TTL for cached items     | 3600s   | `CACHE_DEFAULT_TTL`    |
+| Redis Connection     | Redis connection string          | N/A     | `REDIS_URL`            |
+| Telemetry Enabled    | Whether telemetry is enabled     | true    | `TELEMETRY_ENABLED`    |
 
 ## Error Handling
 
@@ -261,11 +261,13 @@ The performance optimization component handles errors gracefully:
 ## Performance Considerations
 
 1. **Connection Pool Sizing**:
+
    - Size based on expected concurrent users
    - Monitor for pool exhaustion events
    - Adjust based on actual usage patterns
 
 2. **Cache Size and Eviction**:
+
    - Monitor cache memory usage
    - Implement appropriate eviction policies
    - Balance between cache size and hit rate
@@ -278,11 +280,13 @@ The performance optimization component handles errors gracefully:
 ## Testing Strategy
 
 1. **Load Testing**:
+
    - Simulated production load patterns
    - Concurrent user simulation
    - Benchmark against performance targets
 
 2. **Performance Profiling**:
+
    - CPU and memory profiling
    - Database query analysis
    - I/O and network bottleneck identification

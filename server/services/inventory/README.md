@@ -15,6 +15,7 @@ This service implements the standard service pattern for inventory management in
 This service was migrated from the existing resilient-inventory-service.ts implementation to follow the standardized service pattern.
 
 Key improvements:
+
 - Proper dependency injection using the ServiceFactory
 - Consistent error handling with ServiceError class
 - Improved caching strategies
@@ -33,6 +34,6 @@ const inventoryItem = await inventoryService.getById('123');
 // Update inventory quantity
 await inventoryService.updateQuantity('123', 10, 'add', {
   batchId: 'batch-456',
-  reason: 'stock-adjustment'
+  reason: 'stock-adjustment',
 });
 ```

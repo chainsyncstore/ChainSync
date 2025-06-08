@@ -2,14 +2,14 @@ name: ChainSync Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     services:
       # Set up PostgreSQL service for testing
       postgres:
@@ -28,16 +28,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Set up environment variables
         run: |
           echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/chaintest" >> .env.test
@@ -45,25 +45,25 @@ jobs:
           echo "JWT_SECRET=test-secret-key" >> .env.test
           echo "API_URL=http://localhost:3000" >> .env.test
           echo "CLIENT_URL=http://localhost:5173" >> .env.test
-      
+
       - name: Run TypeScript type checking
         run: npm run type-check
-      
+
       - name: Run linting
         run: npm run lint
-      
+
       - name: Run utility tests
         run: npm run test:utils
         env:
           NODE_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/chaintest
-      
+
       - name: Run server tests
         run: npm run test:server
         env:
           NODE_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/chaintest
-      
+
       - name: Generate coverage report
         if: success() && github.ref == 'refs/heads/main'
         run: npx codecov

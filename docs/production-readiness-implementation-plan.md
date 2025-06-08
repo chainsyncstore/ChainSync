@@ -9,6 +9,7 @@ This document provides a detailed, actionable implementation plan to take ChainS
 ### Week 1: Security Foundation
 
 #### Day 1-2: Authentication & Authorization System
+
 ```typescript
 // server/middleware/auth-enhanced.ts
 import jwt from 'jsonwebtoken';
@@ -24,26 +25,24 @@ interface JWTPayload {
 
 class AuthenticationService {
   private refreshTokens = new Map<string, string>();
-  
-  async generateTokenPair(user: User): Promise<{accessToken: string, refreshToken: string}> {
+
+  async generateTokenPair(user: User): Promise<{ accessToken: string; refreshToken: string }> {
     const sessionId = crypto.randomUUID();
-    
+
     const accessToken = jwt.sign(
       { userId: user.id, role: user.role, permissions: user.permissions, sessionId },
       process.env.JWT_SECRET!,
       { expiresIn: '15m' }
     );
-    
-    const refreshToken = jwt.sign(
-      { userId: user.id, sessionId },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: '7d' }
-    );
-    
+
+    const refreshToken = jwt.sign({ userId: user.id, sessionId }, process.env.JWT_REFRESH_SECRET!, {
+      expiresIn: '7d',
+    });
+
     this.refreshTokens.set(sessionId, refreshToken);
     return { accessToken, refreshToken };
   }
-  
+
   async validateToken(token: string): Promise<JWTPayload | null> {
     try {
       return jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
@@ -75,6 +74,7 @@ export const authRateLimit = rateLimit({
 ```
 
 #### Day 3-4: Input Validation & Sanitization
+
 ```typescript
 // server/middleware/validation-enhanced.ts
 import { body, param, query, validationResult } from 'express-validator';
@@ -85,20 +85,20 @@ export class InputValidator {
   static sanitizeString(input: string): string {
     return DOMPurify.sanitize(validator.escape(input));
   }
-  
+
   static validateEmail(email: string): boolean {
     return validator.isEmail(email) && !this.containsSQLInjection(email);
   }
-  
+
   static containsSQLInjection(input: string): boolean {
     const sqlPatterns = [
       /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
       /(--|\/\*|\*\/|;|'|"|`)/,
-      /(\bOR\b|\bAND\b).*?[=<>]/i
+      /(\bOR\b|\bAND\b).*?[=<>]/i,
     ];
     return sqlPatterns.some(pattern => pattern.test(input));
   }
-  
+
   static validateTransaction() {
     return [
       body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be positive'),
@@ -106,16 +106,16 @@ export class InputValidator {
       body('items').isArray({ min: 1 }).withMessage('Items array required'),
       body('items.*.productId').isUUID().withMessage('Invalid product ID'),
       body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be positive'),
-      this.handleValidationErrors
+      this.handleValidationErrors,
     ];
   }
-  
+
   static handleValidationErrors(req: Request, res: Response, next: NextFunction) {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: errors.array()
+        details: errors.array(),
       });
     }
     next();
@@ -123,24 +123,25 @@ export class InputValidator {
 }
 
 // SQL injection prevention for raw queries
-export const sanitizeQuery = (query: string, params: any[]): { query: string, params: any[] } => {
+export const sanitizeQuery = (query: string, params: any[]): { query: string; params: any[] } => {
   // Use parameterized queries only
   if (InputValidator.containsSQLInjection(query)) {
     throw new Error('Potential SQL injection detected');
   }
-  
+
   const sanitizedParams = params.map(param => {
     if (typeof param === 'string') {
       return InputValidator.sanitizeString(param);
     }
     return param;
   });
-  
+
   return { query, params: sanitizedParams };
 };
 ```
 
 #### Day 5: Security Headers & CSRF Protection
+
 ```typescript
 // server/middleware/security-enhanced.ts
 import helmet from 'helmet';
@@ -154,7 +155,7 @@ export const securityMiddleware = [
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
+        imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'"],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
@@ -165,24 +166,24 @@ export const securityMiddleware = [
     hsts: {
       maxAge: 31536000,
       includeSubDomains: true,
-      preload: true
-    }
+      preload: true,
+    },
   }),
-  
+
   cors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   }),
-  
+
   csrf({
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
-    }
-  })
+      sameSite: 'strict',
+    },
+  }),
 ];
 
 // Rate limiting by endpoint type
@@ -195,23 +196,24 @@ export const createRateLimit = (windowMs: number, max: number) => {
     handler: (req, res) => {
       res.status(429).json({
         error: 'Too many requests',
-        retryAfter: Math.ceil(windowMs / 1000)
+        retryAfter: Math.ceil(windowMs / 1000),
       });
-    }
+    },
   });
 };
 
 export const rateLimits = {
   general: createRateLimit(15 * 60 * 1000, 100), // 100 requests per 15 minutes
-  auth: createRateLimit(15 * 60 * 1000, 5),      // 5 auth attempts per 15 minutes
-  api: createRateLimit(60 * 1000, 60),           // 60 API calls per minute
-  admin: createRateLimit(60 * 1000, 20)          // 20 admin actions per minute
+  auth: createRateLimit(15 * 60 * 1000, 5), // 5 auth attempts per 15 minutes
+  api: createRateLimit(60 * 1000, 60), // 60 API calls per minute
+  admin: createRateLimit(60 * 1000, 20), // 20 admin actions per minute
 };
 ```
 
 ### Week 2: Infrastructure & Monitoring
 
 #### Day 1-2: Health Check System
+
 ```typescript
 // server/routes/health-enhanced.ts
 import { Router } from 'express';
@@ -231,7 +233,7 @@ class HealthMonitor {
     private redis: Redis,
     private dependencies: Map<string, () => Promise<boolean>>
   ) {}
-  
+
   async checkDatabase(): Promise<HealthCheck> {
     const start = Date.now();
     try {
@@ -239,18 +241,18 @@ class HealthMonitor {
       return {
         service: 'database',
         status: 'healthy',
-        responseTime: Date.now() - start
+        responseTime: Date.now() - start,
       };
     } catch (error) {
       return {
         service: 'database',
         status: 'unhealthy',
         responseTime: Date.now() - start,
-        details: error.message
+        details: error.message,
       };
     }
   }
-  
+
   async checkRedis(): Promise<HealthCheck> {
     const start = Date.now();
     try {
@@ -258,21 +260,21 @@ class HealthMonitor {
       return {
         service: 'redis',
         status: 'healthy',
-        responseTime: Date.now() - start
+        responseTime: Date.now() - start,
       };
     } catch (error) {
       return {
         service: 'redis',
         status: 'unhealthy',
         responseTime: Date.now() - start,
-        details: error.message
+        details: error.message,
       };
     }
   }
-  
+
   async checkExternalDependencies(): Promise<HealthCheck[]> {
     const checks: HealthCheck[] = [];
-    
+
     for (const [name, checkFn] of this.dependencies) {
       const start = Date.now();
       try {
@@ -280,21 +282,21 @@ class HealthMonitor {
         checks.push({
           service: name,
           status: isHealthy ? 'healthy' : 'unhealthy',
-          responseTime: Date.now() - start
+          responseTime: Date.now() - start,
         });
       } catch (error) {
         checks.push({
           service: name,
           status: 'unhealthy',
           responseTime: Date.now() - start,
-          details: error.message
+          details: error.message,
         });
       }
     }
-    
+
     return checks;
   }
-  
+
   async getOverallHealth(): Promise<{
     status: 'healthy' | 'unhealthy' | 'degraded';
     checks: HealthCheck[];
@@ -303,12 +305,12 @@ class HealthMonitor {
     const checks = [
       await this.checkDatabase(),
       await this.checkRedis(),
-      ...(await this.checkExternalDependencies())
+      ...(await this.checkExternalDependencies()),
     ];
-    
+
     const unhealthyCount = checks.filter(c => c.status === 'unhealthy').length;
     const degradedCount = checks.filter(c => c.status === 'degraded').length;
-    
+
     let overallStatus: 'healthy' | 'unhealthy' | 'degraded';
     if (unhealthyCount > 0) {
       overallStatus = 'unhealthy';
@@ -317,41 +319,42 @@ class HealthMonitor {
     } else {
       overallStatus = 'healthy';
     }
-    
+
     return {
       status: overallStatus,
       checks,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }
 
 export const createHealthRouter = (healthMonitor: HealthMonitor) => {
   const router = Router();
-  
+
   // Liveness probe - basic server health
   router.get('/live', (req, res) => {
     res.status(200).json({ status: 'alive', timestamp: new Date().toISOString() });
   });
-  
+
   // Readiness probe - ready to serve traffic
   router.get('/ready', async (req, res) => {
     const health = await healthMonitor.getOverallHealth();
     const statusCode = health.status === 'healthy' ? 200 : 503;
     res.status(statusCode).json(health);
   });
-  
+
   // Detailed health check
   router.get('/health', async (req, res) => {
     const health = await healthMonitor.getOverallHealth();
     res.json(health);
   });
-  
+
   return router;
 };
 ```
 
 #### Day 3-4: Secrets Management & Environment Configuration
+
 ```typescript
 // server/config/secrets-manager.ts
 import { SecretsManager } from 'aws-sdk';
@@ -366,34 +369,36 @@ interface SecretConfig {
 class SecretsService {
   private secrets = new Map<string, string>();
   private secretsManager?: SecretsManager;
-  
+
   constructor() {
     if (process.env.AWS_REGION) {
       this.secretsManager = new SecretsManager({
-        region: process.env.AWS_REGION
+        region: process.env.AWS_REGION,
       });
     }
   }
-  
+
   async loadSecrets(configs: SecretConfig[]): Promise<void> {
     for (const config of configs) {
       let value: string | undefined;
-      
+
       // Try environment variable first
       value = process.env[config.name];
-      
+
       // Try AWS Secrets Manager
       if (!value && this.secretsManager) {
         try {
-          const result = await this.secretsManager.getSecretValue({
-            SecretId: config.name
-          }).promise();
+          const result = await this.secretsManager
+            .getSecretValue({
+              SecretId: config.name,
+            })
+            .promise();
           value = result.SecretString;
         } catch (error) {
           console.warn(`Failed to load secret ${config.name} from AWS:`, error.message);
         }
       }
-      
+
       // Try local file (for development)
       if (!value && process.env.NODE_ENV === 'development') {
         try {
@@ -402,27 +407,27 @@ class SecretsService {
           // File doesn't exist, continue
         }
       }
-      
+
       // Use default value
       if (!value) {
         value = config.defaultValue;
       }
-      
+
       // Check if required secret is missing
       if (!value && config.required) {
         throw new Error(`Required secret ${config.name} is not available`);
       }
-      
+
       if (value) {
         this.secrets.set(config.name, value);
       }
     }
   }
-  
+
   get(name: string): string | undefined {
     return this.secrets.get(name);
   }
-  
+
   getRequired(name: string): string {
     const value = this.secrets.get(name);
     if (!value) {
@@ -441,13 +446,14 @@ export const secretConfigs: SecretConfig[] = [
   { name: 'ENCRYPTION_KEY', required: true },
   { name: 'SENTRY_DSN', required: false },
   { name: 'STRIPE_SECRET_KEY', required: false },
-  { name: 'SENDGRID_API_KEY', required: false }
+  { name: 'SENDGRID_API_KEY', required: false },
 ];
 
 export const secretsService = new SecretsService();
 ```
 
 #### Day 5: Audit Logging System
+
 ```typescript
 // server/utils/audit-logger.ts
 import { Pool } from 'pg';
@@ -467,37 +473,40 @@ interface AuditEvent {
 
 class AuditLogger {
   constructor(private db: Pool) {}
-  
+
   async log(event: Omit<AuditEvent, 'timestamp'>): Promise<void> {
     const auditEvent: AuditEvent = {
       ...event,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-    
+
     try {
-      await this.db.query(`
+      await this.db.query(
+        `
         INSERT INTO audit_logs (
           user_id, action, resource, resource_id, details,
           ip_address, user_agent, timestamp, success, error_message
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      `, [
-        auditEvent.userId,
-        auditEvent.action,
-        auditEvent.resource,
-        auditEvent.resourceId,
-        JSON.stringify(auditEvent.details),
-        auditEvent.ipAddress,
-        auditEvent.userAgent,
-        auditEvent.timestamp,
-        auditEvent.success,
-        auditEvent.errorMessage
-      ]);
+      `,
+        [
+          auditEvent.userId,
+          auditEvent.action,
+          auditEvent.resource,
+          auditEvent.resourceId,
+          JSON.stringify(auditEvent.details),
+          auditEvent.ipAddress,
+          auditEvent.userAgent,
+          auditEvent.timestamp,
+          auditEvent.success,
+          auditEvent.errorMessage,
+        ]
+      );
     } catch (error) {
       console.error('Failed to write audit log:', error);
       // Don't throw - audit logging shouldn't break the main flow
     }
   }
-  
+
   async logTransaction(
     userId: string,
     action: 'CREATE' | 'UPDATE' | 'DELETE',
@@ -513,10 +522,10 @@ class AuditLogger {
       details,
       ipAddress: req.ip,
       userAgent: req.get('User-Agent'),
-      success: true
+      success: true,
     });
   }
-  
+
   async logAuthEvent(
     action: 'LOGIN' | 'LOGOUT' | 'LOGIN_FAILED',
     userId?: string,
@@ -530,7 +539,7 @@ class AuditLogger {
       ipAddress: req?.ip,
       userAgent: req?.get('User-Agent'),
       success: !error,
-      errorMessage: error
+      errorMessage: error,
     });
   }
 }
@@ -539,8 +548,8 @@ class AuditLogger {
 export const auditMiddleware = (auditLogger: AuditLogger) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const originalSend = res.send;
-    
-    res.send = function(data) {
+
+    res.send = function (data) {
       // Log the API call after response
       setImmediate(() => {
         auditLogger.log({
@@ -551,17 +560,17 @@ export const auditMiddleware = (auditLogger: AuditLogger) => {
             method: req.method,
             path: req.path,
             query: req.query,
-            statusCode: res.statusCode
+            statusCode: res.statusCode,
           },
           ipAddress: req.ip,
           userAgent: req.get('User-Agent'),
-          success: res.statusCode < 400
+          success: res.statusCode < 400,
         });
       });
-      
+
       return originalSend.call(this, data);
     };
-    
+
     next();
   };
 };
@@ -574,6 +583,7 @@ export const auditLogger = new AuditLogger(/* db pool */);
 ### Week 3: Caching & Database Optimization
 
 #### Day 1-2: Redis Caching Implementation
+
 ```typescript
 // server/cache/redis-enhanced.ts
 import Redis from 'ioredis';
@@ -588,54 +598,52 @@ interface CacheOptions {
 class CacheService {
   private redis: Redis;
   private defaultTTL = 3600; // 1 hour
-  
+
   constructor(redisUrl: string) {
     this.redis = new Redis(redisUrl, {
       retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
-      lazyConnect: true
+      lazyConnect: true,
     });
-    
-    this.redis.on('error', (error) => {
+
+    this.redis.on('error', error => {
       console.error('Redis error:', error);
     });
   }
-  
+
   async get<T>(key: string): Promise<T | null> {
     try {
       const value = await this.redis.get(key);
       if (!value) return null;
-      
+
       const parsed = JSON.parse(value);
-      return parsed.compressed 
-        ? JSON.parse(await this.decompress(parsed.data))
-        : parsed.data;
+      return parsed.compressed ? JSON.parse(await this.decompress(parsed.data)) : parsed.data;
     } catch (error) {
       console.error('Cache get error:', error);
       return null;
     }
   }
-  
+
   async set(key: string, value: any, options: CacheOptions = {}): Promise<void> {
     try {
       const ttl = options.ttl || this.defaultTTL;
       const serialized = JSON.stringify(value);
-      
+
       let cacheValue: any;
       if (options.compress && serialized.length > 1024) {
         cacheValue = {
           compressed: true,
-          data: await this.compress(serialized)
+          data: await this.compress(serialized),
         };
       } else {
         cacheValue = {
           compressed: false,
-          data: value
+          data: value,
         };
       }
-      
+
       await this.redis.setex(key, ttl, JSON.stringify(cacheValue));
-      
+
       // Add to tag sets for invalidation
       if (options.tags) {
         for (const tag of options.tags) {
@@ -647,7 +655,7 @@ class CacheService {
       console.error('Cache set error:', error);
     }
   }
-  
+
   async invalidateByTag(tag: string): Promise<void> {
     try {
       const keys = await this.redis.smembers(`tag:${tag}`);
@@ -659,7 +667,7 @@ class CacheService {
       console.error('Cache invalidation error:', error);
     }
   }
-  
+
   async invalidatePattern(pattern: string): Promise<void> {
     try {
       const keys = await this.redis.keys(pattern);
@@ -670,7 +678,7 @@ class CacheService {
       console.error('Cache pattern invalidation error:', error);
     }
   }
-  
+
   // Cache-aside pattern helper
   async getOrSet<T>(
     key: string,
@@ -678,22 +686,22 @@ class CacheService {
     options: CacheOptions = {}
   ): Promise<T> {
     let value = await this.get<T>(key);
-    
+
     if (value === null) {
       value = await fetchFn();
       await this.set(key, value, options);
     }
-    
+
     return value;
   }
-  
+
   private async compress(data: string): Promise<string> {
     const zlib = await import('zlib');
     const gzip = promisify(zlib.gzip);
     const compressed = await gzip(Buffer.from(data));
     return compressed.toString('base64');
   }
-  
+
   private async decompress(data: string): Promise<string> {
     const zlib = await import('zlib');
     const gunzip = promisify(zlib.gunzip);
@@ -706,12 +714,12 @@ class CacheService {
 export const cached = (options: CacheOptions & { keyGenerator?: (...args: any[]) => string }) => {
   return (target: any, propertyName: string, descriptor: PropertyDescriptor) => {
     const method = descriptor.value;
-    
-    descriptor.value = async function(...args: any[]) {
-      const cacheKey = options.keyGenerator 
+
+    descriptor.value = async function (...args: any[]) {
+      const cacheKey = options.keyGenerator
         ? options.keyGenerator(...args)
         : `${target.constructor.name}:${propertyName}:${JSON.stringify(args)}`;
-      
+
       return cacheService.getOrSet(cacheKey, () => method.apply(this, args), options);
     };
   };
@@ -721,6 +729,7 @@ export const cacheService = new CacheService(process.env.REDIS_URL!);
 ```
 
 #### Day 3-4: Database Query Optimization
+
 ```typescript
 // server/utils/query-optimizer.ts
 import { Pool } from 'pg';
@@ -728,98 +737,99 @@ import { queryMonitor } from './database-optimization';
 
 class QueryOptimizer {
   constructor(private db: Pool) {}
-  
+
   // Analyze and optimize common queries
-  async analyzeSlowQueries(): Promise<{
-    query: string;
-    avgDuration: number;
-    callCount: number;
-    optimization: string;
-  }[]> {
+  async analyzeSlowQueries(): Promise<
+    {
+      query: string;
+      avgDuration: number;
+      callCount: number;
+      optimization: string;
+    }[]
+  > {
     const slowQueries = queryMonitor.getSlowQueries(20);
     const analysis = [];
-    
+
     for (const query of slowQueries) {
       const optimization = await this.suggestOptimization(query.query);
       analysis.push({
         query: query.query,
         avgDuration: query.duration,
         callCount: 1, // Would need to aggregate in real implementation
-        optimization
+        optimization,
       });
     }
-    
+
     return analysis;
   }
-  
+
   private async suggestOptimization(query: string): Promise<string> {
     // Analyze query patterns and suggest optimizations
     const suggestions = [];
-    
+
     if (query.includes('SELECT *')) {
       suggestions.push('Use specific column names instead of SELECT *');
     }
-    
+
     if (query.includes('WHERE') && !query.includes('INDEX')) {
       suggestions.push('Consider adding indexes on WHERE clause columns');
     }
-    
+
     if (query.includes('ORDER BY') && !query.includes('LIMIT')) {
       suggestions.push('Consider adding LIMIT to ORDER BY queries');
     }
-    
+
     if (query.includes('JOIN') && query.split('JOIN').length > 3) {
       suggestions.push('Consider breaking complex JOINs into smaller queries');
     }
-    
+
     return suggestions.join('; ') || 'No specific optimizations suggested';
   }
-  
+
   // Batch operations for better performance
   async batchInsert(table: string, records: any[], batchSize = 1000): Promise<void> {
     const batches = [];
     for (let i = 0; i < records.length; i += batchSize) {
       batches.push(records.slice(i, i + batchSize));
     }
-    
+
     for (const batch of batches) {
       const columns = Object.keys(batch[0]);
-      const values = batch.map(record => 
-        columns.map(col => record[col])
-      );
-      
-      const placeholders = values.map((_, i) => 
-        `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`
-      ).join(', ');
-      
+      const values = batch.map(record => columns.map(col => record[col]));
+
+      const placeholders = values
+        .map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`)
+        .join(', ');
+
       const query = `
         INSERT INTO ${table} (${columns.join(', ')})
         VALUES ${placeholders}
       `;
-      
+
       await this.db.query(query, values.flat());
     }
   }
-  
+
   // Connection pool optimization
   async optimizeConnectionPool(): Promise<void> {
     const stats = await this.getPoolStats();
-    
-    if (stats.avgWaitTime > 100) { // ms
+
+    if (stats.avgWaitTime > 100) {
+      // ms
       console.warn('High connection wait time detected. Consider increasing pool size.');
     }
-    
+
     if (stats.idleConnections / stats.totalConnections > 0.8) {
       console.warn('High idle connection ratio. Consider decreasing pool size.');
     }
   }
-  
+
   private async getPoolStats() {
     return {
       totalConnections: this.db.totalCount,
       idleConnections: this.db.idleCount,
       waitingClients: this.db.waitingCount,
-      avgWaitTime: 0 // Would need to track this
+      avgWaitTime: 0, // Would need to track this
     };
   }
 }
@@ -830,6 +840,7 @@ export const queryOptimizer = new QueryOptimizer(/* db pool */);
 ### Week 4: Application Performance Monitoring
 
 #### Day 1-2: APM Integration
+
 ```typescript
 // server/monitoring/apm.ts
 import * as Sentry from '@sentry/node';
@@ -839,7 +850,7 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 
 class APMService {
   private sdk?: NodeSDK;
-  
+
   initialize(): void {
     // Initialize Sentry for error tracking
     Sentry.init({
@@ -852,7 +863,7 @@ class APMService {
         new Sentry.Integrations.Postgres()
       ]
     });
-    
+
     // Initialize OpenTelemetry
     this.sdk = new NodeSDK({
       resource: new Resource({
@@ -864,16 +875,16 @@ class APMService {
         // Auto-instrumentation for common libraries
       ]
     });
-    
+
     this.sdk.start();
   }
-  
+
   // Custom metrics
   recordMetric(name: string, value: number, tags: Record<string, string> = {}): void {
     // Implementation depends on your metrics backend (Prometheus, DataDog, etc.)
     console.log(`Metric: ${name} = ${value}`, tags);
   }
-  
+
   // Performance tracking
   async trackPerformance<T>(
     operation: string,
@@ -882,34 +893,34 @@ class APMService {
   ): Promise<T> {
     const start = Date.now();
     const span = Sentry.startTransaction({ name: operation, ...tags });
-    
+
     try {
       const result = await fn();
       const duration = Date.now() - start;
-      
+
       this.recordMetric(`operation.duration`, duration, { operation, ...tags });
       span.setStatus({ code: 1 }); // OK
-      
+
       return result;
     } catch (error) {
       const duration = Date.now() - start;
-      
+
       this.recordMetric(`operation.error`, 1, { operation, ...tags });
       this.recordMetric(`operation.duration`, duration, { operation, status: 'error', ...tags });
-      
+
       span.setStatus({ code: 2, message: error.message }); // ERROR
       Sentry.captureException(error);
-      
+
       throw error;
     } finally {
       span.finish();
     }
   }
-  
+
   // Business metrics
   recordBusinessMetric(metric: string, value: number, metadata?: any): void {
     this.recordMetric(`business.${metric}`, value, metadata);
-    
+
     // Also log to audit trail for important business events
     if (['transaction.created', 'payment.processed', 'inventory.updated'].includes(metric)) {
       console.log(`Business Event: ${metric}`, { value, metadata, timestamp: new Date() });
@@ -930,12 +941,12 @@ export const apmMiddleware = (req: Request, res: Response, next: NextFunction) =
       headers: req.headers
     }
   });
-  
+
   res.on('finish', () => {
     transaction.setHttpStatus(res.statusCode);
     transaction.finish();
   });
-  
+
   next();
 };
 ```
@@ -945,9 +956,11 @@ export const apmMiddleware = (req: Request, res: Response, next: NextFunction) =
 ### Week 5: Data Encryption & Security
 
 #### Day 1-2: Data Encryption Implementation
+
 ```typescript
 // server/utils/encryption.ts
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 
 class Encrypt
+```

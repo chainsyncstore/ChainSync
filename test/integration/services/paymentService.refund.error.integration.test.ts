@@ -3,8 +3,6 @@
 import { makeMockPaymentProvider } from '../../mocks/externalApis';
 import { test, describe } from '../../testTags';
 
-
-
 type PaymentProvider = ReturnType<typeof makeMockPaymentProvider>;
 class PaymentService {
   constructor(private paymentProvider: PaymentProvider) {}
@@ -12,13 +10,15 @@ class PaymentService {
     try {
       await this.paymentProvider.refund(transactionId, amount);
       // If successful, save refund record (for demo, just create a record)
-      await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */refund.create({ data: {
-        transactionId,
-        amount: amount ?? 0,
-        status: 'COMPLETED',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }});
+      await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */ refund.create({
+        data: {
+          transactionId,
+          amount: amount ?? 0,
+          status: 'COMPLETED',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
       return { success: true };
     } catch (err) {
       // Rollback logic: do not save refund
@@ -30,9 +30,15 @@ class PaymentService {
 }
 
 describe.integration('PaymentService Refund Error Handling', () => {
-  beforeAll(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */$connect(); });
-  afterAll(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */$disconnect(); });
-  beforeEach(async () => { await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */refund.deleteMany(); });
+  beforeAll(async () => {
+    await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */ $connect();
+  });
+  afterAll(async () => {
+    await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */ $disconnect();
+  });
+  beforeEach(async () => {
+    await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */ refund.deleteMany();
+  });
 
   test.integration('should handle refund provider failure and not save refund record', async () => {
     // Arrange: mock payment provider to fail on refund
@@ -42,10 +48,15 @@ describe.integration('PaymentService Refund Error Handling', () => {
     const service = new PaymentService(mockProvider);
 
     // Act & Assert
-    await expect(service.processRefund('txn_abc_123', 50)).rejects.toThrow('Refund gateway timeout');
+    await expect(service.processRefund('txn_abc_123', 50)).rejects.toThrow(
+      'Refund gateway timeout'
+    );
 
     // Assert: no refund saved
-    const refunds = await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */refund.findMany({ where: { transactionId: 'txn_abc_123' } });
+    const refunds =
+      await /* REPLACE_PRISMA: Replace this logic with Drizzle ORM or test double */ refund.findMany(
+        { where: { transactionId: 'txn_abc_123' } }
+      );
     expect(refunds.length).toBe(0);
     // Optionally check logging (would use spy in real test)
   });

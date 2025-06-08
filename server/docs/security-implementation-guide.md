@@ -16,23 +16,23 @@ const authService = new UnifiedAuthService();
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   const metadata = { ipAddress: req.ip, userAgent: req.headers['user-agent'] };
-  
+
   const result = await authService.login(email, password, metadata);
-  
+
   if (!result) {
     return res.status(401).json({
       success: false,
-      message: 'Invalid credentials'
+      message: 'Invalid credentials',
     });
   }
-  
+
   // Return tokens and user data
   res.json({
     success: true,
     data: {
       user: result.user,
-      token: result.tokens.accessToken
-    }
+      token: result.tokens.accessToken,
+    },
   });
 });
 ```
@@ -56,15 +56,10 @@ When working with database queries, always use parameterized queries:
 
 ```typescript
 // BAD - Vulnerable to SQL injection
-const result = await db.execute(
-  'SELECT * FROM users WHERE id = ' + userId
-);
+const result = await db.execute('SELECT * FROM users WHERE id = ' + userId);
 
 // GOOD - Safe from SQL injection
-const result = await db.query(
-  'SELECT * FROM users WHERE id = $1',
-  [userId]
-);
+const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
 ```
 
 If the database library doesn't support parameterized queries, sanitize inputs:
@@ -74,15 +69,13 @@ function sanitizeSqlInput(input: string): string {
   if (typeof input !== 'string') {
     return '';
   }
-  
+
   // Escape single quotes
   return input.replace(/'/g, "''");
 }
 
 const safeUserId = sanitizeSqlInput(userId);
-const result = await db.execute(
-  `SELECT * FROM users WHERE id = '${safeUserId}'`
-);
+const result = await db.execute(`SELECT * FROM users WHERE id = '${safeUserId}'`);
 ```
 
 ## 4. Using SecureXlsx for File Processing
@@ -100,16 +93,16 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
       maxSize: 5 * 1024 * 1024, // 5MB limit
       maxSheets: 10,
       maxRows: 1000,
-      trustLevel: 'low' // Only allow basic data
+      trustLevel: 'low', // Only allow basic data
     });
-    
+
     // Process the data...
-    
+
     res.json({ success: true });
   } catch (error) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 });
@@ -128,9 +121,9 @@ app.use((err, req, res, next) => {
     stack: err.stack,
     path: req.path,
     method: req.method,
-    ip: req.ip
+    ip: req.ip,
   });
-  
+
   // Return sanitized error to client
   if (err instanceof AppError) {
     return res.status(err.statusCode || 400).json({
@@ -138,18 +131,18 @@ app.use((err, req, res, next) => {
       error: {
         code: err.code,
         message: err.message,
-        details: err.details // Only include safe details
-      }
+        details: err.details, // Only include safe details
+      },
     });
   }
-  
+
   // For all other errors, return a generic message
   return res.status(500).json({
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
-      message: 'An unexpected error occurred'
-    }
+      message: 'An unexpected error occurred',
+    },
   });
 });
 ```
@@ -186,21 +179,21 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       req.file.mimetype,
       'high' // Trust level
     );
-    
+
     if (!validationResult.valid) {
       return res.status(400).json({
         success: false,
-        message: validationResult.message
+        message: validationResult.message,
       });
     }
-    
+
     // Process the file...
-    
+
     res.json({ success: true });
   } catch (error) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 });

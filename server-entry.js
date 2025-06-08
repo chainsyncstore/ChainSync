@@ -21,7 +21,7 @@ try {
       .then(() => {
         console.log('Server started successfully');
       })
-      .catch((err) => {
+      .catch(err => {
         console.error('Error starting server from compiled entry point:', err);
         // If import fails, try to run with direct ts-node
         tryDirectStart();
@@ -38,12 +38,12 @@ try {
 // Fallback to running with ts-node directly if compiled version isn't available
 function tryDirectStart() {
   console.log('Attempting to start server directly with ts-node...');
-  
+
   const serverSourcePath = join(__dirname, 'server', 'index.ts');
-  
+
   if (fs.existsSync(serverSourcePath)) {
     console.log('✅ Found source server entry point:', serverSourcePath);
-    
+
     try {
       // Use dynamic import with ts-node
       import('ts-node/register')
@@ -54,7 +54,7 @@ function tryDirectStart() {
         .then(() => {
           console.log('Server started successfully using ts-node');
         })
-        .catch((err) => {
+        .catch(err => {
           console.error('Failed to start server with ts-node:', err);
           process.exit(1);
         });

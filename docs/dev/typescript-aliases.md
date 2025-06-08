@@ -6,23 +6,25 @@ This document outlines the standardized path aliases used throughout the ChainSy
 
 The following path aliases are configured in the project:
 
-| Alias | Path | Description |
-|-------|------|-------------|
-| `@src/*` | `server/*` | Server-side code |
-| `@shared/*` | `shared/*` | Shared utilities and types |
-| `@db/*` | `server/db/*` | Database-related code |
-| `@services/*` | `server/services/*` | Service implementations |
-| `@utils/*` | `server/utils/*` | Utility functions |
+| Alias         | Path                | Description                |
+| ------------- | ------------------- | -------------------------- |
+| `@src/*`      | `server/*`          | Server-side code           |
+| `@shared/*`   | `shared/*`          | Shared utilities and types |
+| `@db/*`       | `server/db/*`       | Database-related code      |
+| `@services/*` | `server/services/*` | Service implementations    |
+| `@utils/*`    | `server/utils/*`    | Utility functions          |
 
 ## Usage Examples
 
 Before:
+
 ```typescript
 import { UserService } from '../../services/user/user-service';
 import { DbClient } from '../../../db/client';
 ```
 
 After:
+
 ```typescript
 import { UserService } from '@services/user/user-service';
 import { DbClient } from '@db/client';

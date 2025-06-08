@@ -80,7 +80,10 @@ export async function createStore(storeData: any) {
     return findStoreById(insertResult.insertId);
   }
   if (storeData.email) {
-    const [store] = await drizzleTestDb.select().from(testStores).where(eq(testStores.email, storeData.email));
+    const [store] = await drizzleTestDb
+      .select()
+      .from(testStores)
+      .where(eq(testStores.email, storeData.email));
     return store;
   }
   return null;
@@ -100,13 +103,19 @@ export async function createCustomer(customerData: any) {
     return findCustomerById(insertResult.insertId);
   }
   if (customerData.email) {
-    const [customer] = await drizzleTestDb.select().from(testCustomers).where(eq(testCustomers.email, customerData.email));
+    const [customer] = await drizzleTestDb
+      .select()
+      .from(testCustomers)
+      .where(eq(testCustomers.email, customerData.email));
     return customer;
   }
   return null;
 }
 export async function findCustomerById(id: number) {
-  const [customer] = await drizzleTestDb.select().from(testCustomers).where(eq(testCustomers.id, id));
+  const [customer] = await drizzleTestDb
+    .select()
+    .from(testCustomers)
+    .where(eq(testCustomers.id, id));
   return customer;
 }
 
@@ -120,7 +129,10 @@ export async function createProduct(productData: any) {
     return findProductById(insertResult.insertId);
   }
   if (productData.name) {
-    const [product] = await drizzleTestDb.select().from(testProducts).where(eq(testProducts.name, productData.name));
+    const [product] = await drizzleTestDb
+      .select()
+      .from(testProducts)
+      .where(eq(testProducts.name, productData.name));
     return product;
   }
   return null;
@@ -142,7 +154,10 @@ export async function createTransaction(txData: any) {
   return null;
 }
 export async function findTransactionById(id: number) {
-  const [tx] = await drizzleTestDb.select().from(testTransactions).where(eq(testTransactions.id, id));
+  const [tx] = await drizzleTestDb
+    .select()
+    .from(testTransactions)
+    .where(eq(testTransactions.id, id));
   return tx;
 }
 

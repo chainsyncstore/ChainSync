@@ -23,23 +23,26 @@ Thank you for your interest in contributing to ChainSync! This document provides
 1. Create feature branches from `develop` using naming convention: `feature/your-feature-name`
 2. Create bugfix branches using: `bugfix/issue-description`
 3. Keep commits small and focused
-4. Write meaningful commit messages that explain *why* not just *what*
+4. Write meaningful commit messages that explain _why_ not just _what_
 
 ## CI/CD Pipeline
 
 ChainSync uses GitHub Actions for CI/CD. When you submit a PR, these workflows will run:
 
 ### 1. Tests Workflow (`tests.yml`)
+
 - Runs unit and integration tests
 - Performs type checking
 - Runs ESLint for code quality
 
 ### 2. Security Scan Workflow (`security-scan.yml`)
+
 - Scans dependencies for vulnerabilities
 - Performs static code analysis
 - Checks for secrets accidentally committed
 
 ### 3. Workflow Validation (`validate-workflows.yml`)
+
 - Validates all GitHub Actions workflow files
 - Ensures no deprecated actions are used
 - Checks for configuration errors

@@ -41,20 +41,23 @@ module.exports = {
   settings: {
     'import/resolver': {
       typescript: {
-        project: './tsconfig.json'
-      }
-    }
+        project: './tsconfig.json',
+      },
+    },
   },
   rules: {
     // Core ESLint rules
     'no-unused-vars': 'off', // Using TypeScript version instead
-    '@typescript-eslint/no-unused-vars': ['error', {
-      'argsIgnorePattern': '^_',
-      'varsIgnorePattern': '^_',
-      'caughtErrorsIgnorePattern': '^_'
-    }],
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      },
+    ],
     'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
-    
+
     // TypeScript specific rules
     '@typescript-eslint/explicit-function-return-type': 'off', // Too restrictive
     '@typescript-eslint/no-explicit-any': 'error', // Stricter enforcement to prevent type issues
@@ -62,62 +65,60 @@ module.exports = {
     '@typescript-eslint/no-unsafe-member-access': 'error',
     '@typescript-eslint/no-unsafe-call': 'error',
     '@typescript-eslint/no-unsafe-return': 'error',
-    '@typescript-eslint/ban-ts-comment': ['warn', { 
-      'ts-ignore': 'allow-with-description',
-      minimumDescriptionLength: 10
-    }],
+    '@typescript-eslint/ban-ts-comment': [
+      'warn',
+      {
+        'ts-ignore': 'allow-with-description',
+        minimumDescriptionLength: 10,
+      },
+    ],
     '@typescript-eslint/no-floating-promises': 'warn',
     '@typescript-eslint/no-misused-promises': 'error',
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-    
+
     // React rules
     'react/prop-types': 'off', // Not needed with TypeScript
     'react/react-in-jsx-scope': 'off', // Not needed with React 17+
     'react/display-name': 'off',
-    'react/jsx-curly-brace-presence': ['error', { 'props': 'never', 'children': 'never' }],
-    
+    'react/jsx-curly-brace-presence': ['error', { props: 'never', children: 'never' }],
+
     // React Hooks rules
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',
-    
+
     // Import rules
     'import/order': [
       'error',
       {
-        'groups': [
-          'builtin',
-          'external',
-          'internal',
-          ['parent', 'sibling', 'index']
-        ],
+        groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
         'newlines-between': 'always',
-        'alphabetize': {
-          'order': 'asc',
-          'caseInsensitive': true
-        }
-      }
+        alphabetize: {
+          order: 'asc',
+          caseInsensitive: true,
+        },
+      },
     ],
     'import/no-unresolved': 'error',
     'import/no-cycle': 'error',
     'import/no-useless-path-segments': 'error',
     'import/no-duplicates': 'error',
-    
+
     // Accessibility rules
     'jsx-a11y/anchor-is-valid': [
       'error',
       {
-        'components': ['Link'],
-        'specialLink': ['to', 'href']
-      }
+        components: ['Link'],
+        specialLink: ['to', 'href'],
+      },
     ],
-    
+
     // Prettier
     'prettier/prettier': 'warn',
-    
+
     // Custom ChainSync rules
     // 'no-restricted-imports' rule temporarily removed due to config errors
-    
+
     // Security rules
     'security/detect-object-injection': 'warn',
     'security/detect-non-literal-regexp': 'warn',
@@ -126,7 +127,7 @@ module.exports = {
     'security/detect-eval-with-expression': 'error',
     'security/detect-no-csrf-before-method-override': 'error',
     'security/detect-non-literal-fs-filename': 'warn',
-    'security/detect-sql-literal-injection': 'error'
+    'security/detect-sql-literal-injection': 'error',
   },
   overrides: [
     // Override for test files

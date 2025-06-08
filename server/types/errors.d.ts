@@ -3,10 +3,10 @@
 
 // Re-exporting from the shared location for any legacy imports.
 // It's recommended to update imports directly to 'shared/types/errors'.
-export { 
-    AppError, 
-    ErrorCode, 
-    ErrorCategory, 
-    BaseError, 
-    RetryableError 
+export {
+  AppError,
+  ErrorCode,
+  ErrorCategory,
+  BaseError,
+  RetryableError,
 } from '../../shared/types/errors';

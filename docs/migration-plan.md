@@ -9,11 +9,13 @@ This document outlines the strategy for migrating existing ChainSync services to
 ### Tasks
 
 1. **Code Review**
+
    - Review all existing services to identify common patterns and potential issues
    - Categorize services by complexity and dependency relationships
    - Identify high-priority services with known TypeScript errors
 
 2. **Setup Testing Infrastructure**
+
    - Ensure test coverage reports are available
    - Create test fixtures for the new abstractions
    - Establish baseline performance metrics
@@ -24,6 +26,7 @@ This document outlines the strategy for migrating existing ChainSync services to
    - Establish code review guidelines for migrated services
 
 ### Success Criteria
+
 - All team members understand the migration approach
 - Test infrastructure is ready
 - Services are prioritized for migration
@@ -35,13 +38,16 @@ Migrate high-priority services first to validate the approach and provide exampl
 ### Priority Order
 
 1. **Subscription Service** (✓ Completed)
+
    - Already migrated as proof of concept
 
 2. **Loyalty Service** (Week 2)
+
    - High business value
    - Similar structure to Subscription
 
 3. **Inventory Service** (Week 2)
+
    - Critical for system operation
    - Complex field mappings
 
@@ -59,6 +65,7 @@ Migrate high-priority services first to validate the approach and provide exampl
 6. Deploy to staging environment
 
 ### Rollback Strategy
+
 - Keep original service implementations in separate files (e.g., `old-service.ts`)
 - Implement feature flags to switch between implementations if needed
 - Monitor error rates after deployment
@@ -86,10 +93,12 @@ Migrate remaining services in order of priority.
 ### Tasks
 
 1. **Performance Testing**
+
    - Compare performance before and after migration
    - Identify and resolve any performance regressions
 
 2. **Integration Testing**
+
    - Comprehensive end-to-end tests
    - API contract validation
 
@@ -102,12 +111,12 @@ Migrate remaining services in order of priority.
 
 ### Identified Risks
 
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| Type errors during migration | High | Medium | Thorough unit testing, incremental migration |
-| Performance regression | Medium | Low | Performance testing before and after migration |
-| API contract changes | High | Low | Maintain backward compatibility, extensive testing |
-| Development delays | Medium | Medium | Prioritize critical services, consider phased rollout |
+| Risk                         | Impact | Likelihood | Mitigation                                            |
+| ---------------------------- | ------ | ---------- | ----------------------------------------------------- |
+| Type errors during migration | High   | Medium     | Thorough unit testing, incremental migration          |
+| Performance regression       | Medium | Low        | Performance testing before and after migration        |
+| API contract changes         | High   | Low        | Maintain backward compatibility, extensive testing    |
+| Development delays           | Medium | Medium     | Prioritize critical services, consider phased rollout |
 
 ### Monitoring Strategy
 
@@ -125,9 +134,9 @@ Migrate remaining services in order of priority.
 
 ## Timeline Summary
 
-| Phase | Duration | Key Milestones |
-|-------|----------|----------------|
-| Preparation | Week 1 | Training completed, priority list established |
-| Core Services | Weeks 2-3 | Loyalty, Inventory, Transaction services migrated |
-| Supporting Services | Weeks 4-5 | Remaining services migrated |
-| Validation | Week 6 | All services migrated, performance validated |
+| Phase               | Duration  | Key Milestones                                    |
+| ------------------- | --------- | ------------------------------------------------- |
+| Preparation         | Week 1    | Training completed, priority list established     |
+| Core Services       | Weeks 2-3 | Loyalty, Inventory, Transaction services migrated |
+| Supporting Services | Weeks 4-5 | Remaining services migrated                       |
+| Validation          | Week 6    | All services migrated, performance validated      |

@@ -28,6 +28,7 @@ npm run test:e2e:report
 For these tests to run successfully, the following test data should exist in the system:
 
 1. User accounts with the following roles:
+
    - `admin@chainsync.test` (Admin role)
    - `manager@chainsync.test` (Manager role)
    - `cashier@chainsync.test` (Cashier role)
@@ -46,12 +47,14 @@ These tests are configured to run in CI environments. The Playwright configurati
 Current E2E test coverage includes:
 
 - **Purchase + Loyalty Accrual Flow**
+
   - Transaction creation
   - Loyalty point accrual verification
   - Loyalty calculation validation
   - Loyalty history
 
 - **Refund + Loyalty Reversal Flow**
+
   - Full refund with loyalty reversal
   - Partial refund with partial loyalty reversal
   - Access control for refund operations

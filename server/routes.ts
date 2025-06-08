@@ -10,7 +10,7 @@ import { ZodError } from 'zod-validation-error';
 import { db } from '../db';
 import { env } from './config/env';
 // SessionOptions is imported again later, remove one instance
-// import { SessionOptions } from 'express-session'; 
+// import { SessionOptions } from 'express-session';
 // import { Pool } from 'pg'; // Removed duplicate
 import { logger } from './services/logger';
 import { FileUploadMiddleware } from './middleware/file-upload';

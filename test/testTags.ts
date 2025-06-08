@@ -47,18 +47,21 @@ interface TaggedDescribe extends TaggedDescribeRunner {
 function createSpecificTaggedTest(tag: string, base: typeof global.test): TaggedTestRunner {
   const runner: TaggedTestRunner = ((name: string, fn: jest.ProvidesCallback, timeout?: number) =>
     base(`[${tag}] ${name}`, fn, timeout)) as TaggedTestRunner;
-  
+
   runner.only = ((name: string, fn: jest.ProvidesCallback, timeout?: number) =>
     base.only(`[${tag}] ${name}`, fn, timeout)) as TaggedTestRunner;
   runner.skip = ((name: string, fn: jest.ProvidesCallback, timeout?: number) =>
     base.skip(`[${tag}] ${name}`, fn, timeout)) as TaggedTestRunner;
   runner.todo = (name: string) => base.todo(`[${tag}] ${name}`);
-  
+
   return runner;
 }
 
 // Helper to create a *specific* tagged describe function with .only, .skip
-function createSpecificTaggedDescribe(tag: string, base: typeof global.describe): TaggedDescribeRunner {
+function createSpecificTaggedDescribe(
+  tag: string,
+  base: typeof global.describe
+): TaggedDescribeRunner {
   const runner: TaggedDescribeRunner = ((name: string, fn: jest.EmptyFunction) =>
     base(`[${tag}] ${name}`, fn)) as TaggedDescribeRunner;
 
@@ -66,7 +69,7 @@ function createSpecificTaggedDescribe(tag: string, base: typeof global.describe)
     base.only(`[${tag}] ${name}`, fn)) as TaggedDescribeRunner;
   runner.skip = ((name: string, fn: jest.EmptyFunction) =>
     base.skip(`[${tag}] ${name}`, fn)) as TaggedDescribeRunner;
-    
+
   return runner;
 }
 

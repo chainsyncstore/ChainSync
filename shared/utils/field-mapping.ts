@@ -24,7 +24,9 @@ type SnakeToCamel<S extends string> = S extends `${infer T}_${infer U}`
  * @param data The data object with camelCase keys
  * @returns A new object with snake_case keys
  */
-export function toDatabaseFields<T extends Record<string, unknown>>(data: T): Record<string, unknown> {
+export function toDatabaseFields<T extends Record<string, unknown>>(
+  data: T
+): Record<string, unknown> {
   if (!data) return {};
 
   return Object.entries(data).reduce(
@@ -43,7 +45,9 @@ export function toDatabaseFields<T extends Record<string, unknown>>(data: T): Re
  * @param data The data object with snake_case keys
  * @returns A new object with camelCase keys
  */
-export function fromDatabaseFields<T extends Record<string, unknown>>(data: T): Record<string, unknown> {
+export function fromDatabaseFields<T extends Record<string, unknown>>(
+  data: T
+): Record<string, unknown> {
   if (!data) return {};
 
   return Object.entries(data).reduce(

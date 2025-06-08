@@ -1,7 +1,12 @@
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useQueryClient } from '@tanstack/react-query';
-import { generateTransactionId, calculateSubtotal, calculateTax, calculateTotal } from '@/lib/utils';
+import {
+  generateTransactionId,
+  calculateSubtotal,
+  calculateTax,
+  calculateTotal,
+} from '@/lib/utils';
 import { useMutation } from '@tanstack/react-query';
 import { AlertCircle, Wifi, WifiOff, XCircle } from 'lucide-react';
 import React, { useState, useEffect } from 'react';

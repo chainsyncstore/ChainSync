@@ -6,9 +6,7 @@ module.exports = {
     '^.+\\.(ts|tsx)$': 'ts-jest',
     '^.+\\.(js|jsx)$': 'babel-jest',
   },
-  transformIgnorePatterns: [
-    '/node_modules/(?!wouter/)',
-  ],
+  transformIgnorePatterns: ['/node_modules/(?!wouter/)'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   moduleNameMapper: {
     '^react$': '<rootDir>/node_modules/react',

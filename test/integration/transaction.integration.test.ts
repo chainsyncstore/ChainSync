@@ -4,8 +4,6 @@
 import { makeMockProduct } from '../factories/product';
 import { makeMockTransaction } from '../factories/transaction';
 
-
-
 beforeAll(async () => {
   // await drizzleDb.connect(); // Replace with Drizzle ORM connect if needed
   // Ensure schema is up-to-date (run this in your test runner setup or CI for best results)

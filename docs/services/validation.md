@@ -22,7 +22,7 @@ export const userCreateSchema = z.object({
   email: CommonSchemas.email,
   role: z.enum(['admin', 'user', 'guest']),
   status: CommonSchemas.status.default('active'),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const userUpdateSchema = userCreateSchema.partial();
@@ -34,13 +34,17 @@ export const userUpdateSchema = userCreateSchema.partial();
 import { BaseService } from '../base/standard-service';
 import { userCreateSchema, userUpdateSchema } from './schemas';
 
-class UserService extends BaseService<User, z.infer<typeof userCreateSchema>, z.infer<typeof userUpdateSchema>> {
+class UserService extends BaseService<
+  User,
+  z.infer<typeof userCreateSchema>,
+  z.infer<typeof userUpdateSchema>
+> {
   protected readonly entityName = 'user';
   protected readonly tableName = 'users';
   protected readonly primaryKeyField = 'id';
   protected readonly createSchema = userCreateSchema;
   protected readonly updateSchema = userUpdateSchema;
-  
+
   // Service implementation...
 }
 ```
@@ -65,7 +69,7 @@ try {
 
 ```typescript
 const schema = z.object({
-  name: z.string().min(1, { message: 'Name is required' })
+  name: z.string().min(1, { message: 'Name is required' }),
 });
 ```
 
@@ -74,7 +78,7 @@ const schema = z.object({
 ```typescript
 const schema = z.object({
   name: z.string().min(1),
-  description: z.string().optional()
+  description: z.string().optional(),
 });
 ```
 
@@ -82,7 +86,7 @@ const schema = z.object({
 
 ```typescript
 const schema = z.object({
-  status: z.enum(['active', 'inactive']).default('active')
+  status: z.enum(['active', 'inactive']).default('active'),
 });
 ```
 
@@ -91,20 +95,22 @@ const schema = z.object({
 ```typescript
 const schema = z.object({
   id: z.string().uuid().or(z.number().int().positive()).transform(String),
-  isActive: z.boolean().or(z.enum(['true', 'false']).transform(v => v === 'true'))
+  isActive: z.boolean().or(z.enum(['true', 'false']).transform(v => v === 'true')),
 });
 ```
 
 ### Complex Validation
 
 ```typescript
-const schema = z.object({
-  startDate: z.date(),
-  endDate: z.date()
-}).refine(data => data.endDate > data.startDate, {
-  message: 'End date must be after start date',
-  path: ['endDate']
-});
+const schema = z
+  .object({
+    startDate: z.date(),
+    endDate: z.date(),
+  })
+  .refine(data => data.endDate > data.startDate, {
+    message: 'End date must be after start date',
+    path: ['endDate'],
+  });
 ```
 
 ## Common Schemas
@@ -130,7 +136,7 @@ Zod provides powerful data transformation capabilities:
 const schema = z.object({
   email: z.string().email().toLowerCase(),
   name: z.string().trim(),
-  tags: z.array(z.string()).transform(tags => tags.map(tag => tag.trim().toLowerCase()))
+  tags: z.array(z.string()).transform(tags => tags.map(tag => tag.trim().toLowerCase())),
 });
 ```
 
@@ -172,67 +178,76 @@ export const productCreateSchema = z.object({
   stock: CommonSchemas.nonNegativeNumber.default(0),
   categories: z.array(z.string()).min(1, { message: 'At least one category is required' }),
   isActive: CommonSchemas.boolean.default(true),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const productUpdateSchema = productCreateSchema.partial();
 
-export const productSearchSchema = z.object({
-  query: z.string().optional(),
-  minPrice: CommonSchemas.nonNegativeNumber.optional(),
-  maxPrice: CommonSchemas.positiveNumber.optional(),
-  categories: z.array(z.string()).optional(),
-  ...CommonSchemas.pagination
-}).refine(data => {
-  if (data.minPrice && data.maxPrice) {
-    return data.maxPrice > data.minPrice;
-  }
-  return true;
-}, {
-  message: 'Maximum price must be greater than minimum price',
-  path: ['maxPrice']
-});
+export const productSearchSchema = z
+  .object({
+    query: z.string().optional(),
+    minPrice: CommonSchemas.nonNegativeNumber.optional(),
+    maxPrice: CommonSchemas.positiveNumber.optional(),
+    categories: z.array(z.string()).optional(),
+    ...CommonSchemas.pagination,
+  })
+  .refine(
+    data => {
+      if (data.minPrice && data.maxPrice) {
+        return data.maxPrice > data.minPrice;
+      }
+      return true;
+    },
+    {
+      message: 'Maximum price must be greater than minimum price',
+      path: ['maxPrice'],
+    }
+  );
 
 // Service implementation
-class ProductService extends BaseService<Product, z.infer<typeof productCreateSchema>, z.infer<typeof productUpdateSchema>> {
+class ProductService extends BaseService<
+  Product,
+  z.infer<typeof productCreateSchema>,
+  z.infer<typeof productUpdateSchema>
+> {
   protected readonly entityName = 'product';
   protected readonly tableName = 'products';
   protected readonly primaryKeyField = 'id';
   protected readonly createSchema = productCreateSchema;
   protected readonly updateSchema = productUpdateSchema;
-  
+
   async search(params: z.infer<typeof productSearchSchema>): Promise<ListResponse<Product>> {
     try {
       // Validate input
       const validatedParams = this.validateInput(params, productSearchSchema);
-      
+
       // Build filters
       const filters: Record<string, unknown> = {};
-      
+
       if (validatedParams.query) {
         // Use SQL LIKE for text search
         filters.name = sql`LIKE ${`%${validatedParams.query}%`}`;
       }
-      
+
       if (validatedParams.categories?.length) {
         // Using array intersection in PostgreSQL
         filters.categories = sql`&& ${sql.array(validatedParams.categories)}`;
       }
-      
+
       if (validatedParams.minPrice !== undefined) {
         filters.price = sql`>= ${validatedParams.minPrice}`;
       }
-      
+
       if (validatedParams.maxPrice !== undefined) {
         filters.price = sql`<= ${validatedParams.maxPrice}`;
       }
-      
+
       // Use the standard list method with our filters and pagination
       return this.list(filters, {
         page: validatedParams.page,
         limit: validatedParams.limit,
         sortBy: validatedParams.sortBy,
-        sortDirection: validatedParams.sortDirection
+        sortDirection: validatedParams.sortDirection,
       });
     } catch (error) {
       return this.handleError(error, 'Error searching products');

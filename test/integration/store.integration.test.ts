@@ -4,8 +4,6 @@ import { makeMockStore } from '../factories/store';
 import { test, describe } from '../testTags';
 import { clearStores, createStore, findStoreById } from './drizzleTestDb';
 
-
-
 describe.integration('Store Integration', () => {
   beforeAll(async () => {
     // await drizzleDb.connect(); // Replace with Drizzle ORM connect if needed

@@ -8,13 +8,13 @@ This document outlines the security review process for the ChainSync retail chai
 
 ### Regular Reviews
 
-| Review Type | Frequency | Timing | Scope |
-|------------|-----------|--------|-------|
-| Static Analysis | Continuous | Every PR | All changed code |
-| Full Static Analysis | Weekly | Sunday at 00:00 UTC | Entire codebase |
-| Manual Code Review | Bi-weekly | Sprint planning | High-risk changes from previous sprint |
-| Penetration Testing | Quarterly | First month of each quarter | Critical paths and new features |
-| Comprehensive Security Audit | Bi-annually | January and July | Entire application |
+| Review Type                  | Frequency   | Timing                      | Scope                                  |
+| ---------------------------- | ----------- | --------------------------- | -------------------------------------- |
+| Static Analysis              | Continuous  | Every PR                    | All changed code                       |
+| Full Static Analysis         | Weekly      | Sunday at 00:00 UTC         | Entire codebase                        |
+| Manual Code Review           | Bi-weekly   | Sprint planning             | High-risk changes from previous sprint |
+| Penetration Testing          | Quarterly   | First month of each quarter | Critical paths and new features        |
+| Comprehensive Security Audit | Bi-annually | January and July            | Entire application                     |
 
 ### Event-Driven Reviews
 
@@ -136,16 +136,19 @@ These areas follow standard security practices:
 ### Static Analysis
 
 1. **Configuration Setup**:
+
    - Tools configured in repository
    - Baseline established for existing codebase
    - Severity thresholds defined for CI/CD integration
 
 2. **Continuous Scanning**:
+
    - Automated scans on every PR
    - Developer notified of issues in their changes
    - PR blocked for high-severity issues
 
 3. **Weekly Full Scan**:
+
    - Complete codebase scan
    - Results compared to previous baseline
    - New issues assigned to respective teams
@@ -158,11 +161,13 @@ These areas follow standard security practices:
 ### Manual Code Review
 
 1. **Preparation**:
+
    - Identification of high-risk changes
    - Reviewer assignment based on expertise
    - Review checklist preparation
 
 2. **Review Process**:
+
    - Reviewers examine code against checklist
    - Pair review for critical components
    - Documentation of findings
@@ -175,16 +180,19 @@ These areas follow standard security practices:
 ### Penetration Testing
 
 1. **Planning**:
+
    - Define test scope and objectives
    - Prepare test environment
    - Establish rules of engagement
 
 2. **Execution**:
+
    - Conduct black/gray/white box testing
    - Document vulnerabilities found
    - Regular status updates
 
 3. **Reporting**:
+
    - Detailed vulnerability report
    - Severity classification
    - Exploitation proof of concept (where applicable)
@@ -200,13 +208,13 @@ These areas follow standard security practices:
 
 Vulnerabilities are classified according to the following severity levels:
 
-| Severity | Description | SLA |
-|----------|-------------|-----|
-| Critical | Immediate threat to confidentiality, integrity, or availability of critical data or services | Fix within 24 hours |
-| High | Significant risk to security or compliance, potential for data exposure | Fix within 1 week |
-| Medium | Moderate risk, requires multiple conditions or has limited impact | Fix within 2 weeks |
-| Low | Minor issues, limited impact, or difficult to exploit | Fix within 1 month |
-| Informational | Best practice recommendations | No fixed timeline |
+| Severity      | Description                                                                                  | SLA                 |
+| ------------- | -------------------------------------------------------------------------------------------- | ------------------- |
+| Critical      | Immediate threat to confidentiality, integrity, or availability of critical data or services | Fix within 24 hours |
+| High          | Significant risk to security or compliance, potential for data exposure                      | Fix within 1 week   |
+| Medium        | Moderate risk, requires multiple conditions or has limited impact                            | Fix within 2 weeks  |
+| Low           | Minor issues, limited impact, or difficult to exploit                                        | Fix within 1 month  |
+| Informational | Best practice recommendations                                                                | No fixed timeline   |
 
 ### Tracking
 
@@ -218,21 +226,25 @@ Vulnerabilities are classified according to the following severity levels:
 ### Remediation Process
 
 1. **Triage**:
+
    - Validate vulnerability
    - Assign severity and priority
    - Determine responsible team/individual
 
 2. **Planning**:
+
    - Develop remediation approach
    - Estimate effort and timeline
    - Create issues with appropriate SLA
 
 3. **Implementation**:
+
    - Develop and test fix
    - Peer review of security fixes
    - Verify fix addresses root cause
 
 4. **Validation**:
+
    - Security team verification
    - Regression testing
    - Update vulnerability status

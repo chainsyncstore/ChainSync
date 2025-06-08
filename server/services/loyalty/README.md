@@ -15,6 +15,7 @@ This service implements the standard service pattern for loyalty program managem
 This service was migrated from the original service.ts implementation to follow the standardized service pattern.
 
 Key improvements:
+
 - Proper dependency injection using the ServiceFactory
 - Consistent error handling with ServiceError class
 - Schema validation using Zod
@@ -35,6 +36,6 @@ await loyaltyService.addPoints({
   memberId: '123',
   points: 100,
   reason: 'purchase',
-  transactionId: 'txn-456'
+  transactionId: 'txn-456',
 });
 ```

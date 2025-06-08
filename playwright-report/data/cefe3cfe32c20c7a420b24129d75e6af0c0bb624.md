@@ -73,18 +73,18 @@ Call log:
   41 |  */
   42 | export async function loginAs(page: Page, role: UserRole): Promise<void> {
   43 |   const user = TEST_USERS[role];
-  44 |   
+  44 |
   45 |   await page.goto('/login');
   46 |   await page.waitForLoadState('networkidle');
-  47 |   
+  47 |
   48 |   // Fill the login form
 > 49 |   await page.fill('input[name="email"]', user.email);
      |              ^ Error: page.fill: Test timeout of 30000ms exceeded.
   50 |   await page.fill('input[name="password"]', user.password);
-  51 |   
+  51 |
   52 |   // Click login button
   53 |   await page.click('button[type="submit"]');
-  54 |   
+  54 |
   55 |   // Wait for navigation to complete
   56 |   await page.waitForURL('**/dashboard');
   57 | }
@@ -95,10 +95,10 @@ Call log:
   62 | export async function logout(page: Page): Promise<void> {
   63 |   // Click on user menu
   64 |   await page.click('[data-testid="user-menu"]');
-  65 |   
+  65 |
   66 |   // Click logout
   67 |   await page.click('[data-testid="logout"]');
-  68 |   
+  68 |
   69 |   // Wait for navigation to login page
   70 |   await page.waitForURL('**/login');
   71 | }

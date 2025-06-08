@@ -27,17 +27,16 @@ For the CI/CD pipeline to function correctly, the following secrets must be conf
 1. **SNYK_TOKEN** - API token for Snyk vulnerability scanning
    - Sign up at [Snyk.io](https://snyk.io/)
    - Get your API token from Account Settings > API Token
-   
 2. **SEMGREP_APP_TOKEN** - API token for Semgrep scanning
    - Sign up at [Semgrep.dev](https://semgrep.dev/)
    - Get your API token from Settings > API Token
-   
 3. **SLACK_WEBHOOK** - Webhook URL for Slack notifications
    - Create a Slack app in your workspace
    - Enable Incoming Webhooks
    - Create a webhook for the desired channel
 
 To add these secrets:
+
 1. Go to your GitHub repository
 2. Navigate to Settings > Secrets and variables > Actions
 3. Click "New repository secret"

@@ -2,7 +2,7 @@
 
 /**
  * SQL Security Check
- * 
+ *
  * This script checks SQL files for potential security issues:
  * - Prevents direct string concatenation in SQL queries
  * - Flags sensitive data patterns
@@ -29,7 +29,10 @@ const dangerousPatterns = [
   { pattern: /;\s*DELETE\s+FROM/i, message: 'Potentially dangerous DELETE pattern' },
   { pattern: /;\s*UPDATE\s+.*\s*SET/i, message: 'Potentially dangerous UPDATE pattern' },
   // Direct use of user input
-  { pattern: /req\.(body|params|query).*\$\{/i, message: 'Direct use of request parameters in SQL query' },
+  {
+    pattern: /req\.(body|params|query).*\$\{/i,
+    message: 'Direct use of request parameters in SQL query',
+  },
 ];
 
 // Patterns to ensure proper parameterized queries with Drizzle
@@ -37,7 +40,11 @@ const bestPracticePatterns = [
   // Check for use of sql template tag
   { pattern: /sql`/, present: true, message: 'Missing sql template tag from drizzle-orm' },
   // Ensure using safeToString for string values
-  { pattern: /safeToString/, present: true, message: 'Missing safeToString helper for string values' },
+  {
+    pattern: /safeToString/,
+    present: true,
+    message: 'Missing safeToString helper for string values',
+  },
 ];
 
 let exitCode = 0;

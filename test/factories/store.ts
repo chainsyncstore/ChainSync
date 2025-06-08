@@ -16,4 +16,3 @@ export function makeMockStore(overrides: Partial<NewStore> = {}): NewStore {
     ...overrides,
   };
 }
-

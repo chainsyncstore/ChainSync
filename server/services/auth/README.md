@@ -15,6 +15,7 @@ This service implements the standard service pattern for authentication function
 This service was migrated from the legacy auth-service.ts implementation to follow the standardized service pattern.
 
 Key improvements:
+
 - Proper dependency injection
 - Consistent error handling with ServiceError class
 - Redis integration with proper key prefixing
@@ -30,7 +31,7 @@ const authService = serviceFactory.getService(AuthService);
 // Authenticate a user
 const result = await authService.authenticate({
   email: 'user@example.com',
-  password: 'password123'
+  password: 'password123',
 });
 
 // Validate a token

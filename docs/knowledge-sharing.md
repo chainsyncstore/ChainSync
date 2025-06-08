@@ -7,27 +7,32 @@ This document outlines the key topics for a knowledge sharing session on the new
 ## Session Agenda
 
 1. **Introduction (10 minutes)**
+
    - Problem statement: TypeScript errors, code duplication, inconsistent patterns
    - Solution overview: Field mapping, SQL helpers, formatters, and enhanced base service
 
 2. **Core Utilities (20 minutes)**
+
    - Field mapping utilities
    - SQL helpers
    - Service helpers for result formatting and error handling
    - Live code examples and usage patterns
 
 3. **Enhanced Base Service (15 minutes)**
+
    - Architecture and design decisions
    - Extension points and inheritance pattern
    - How it combines the utilities for a comprehensive solution
 
 4. **Implementation Examples (20 minutes)**
+
    - Subscription service refactoring
    - Loyalty service migration
    - Before/after code comparison
    - TypeScript error resolution
 
 5. **Migration Strategy (10 minutes)**
+
    - Phased approach
    - Testing strategy
    - Recommended sequence
@@ -50,7 +55,7 @@ Please review the following documentation before the session:
 const dbData = {
   user_id: userData.userId,
   first_name: userData.firstName,
-  is_active: userData.isActive
+  is_active: userData.isActive,
 };
 
 // After: Automated conversion
@@ -103,14 +108,14 @@ class UserFormatter extends ResultFormatter<User> {
 ```typescript
 // Before: Repetitive database interaction code
 try {
-  const result = await db.insert(table)
-    .values(data)
-    .returning();
+  const result = await db.insert(table).values(data).returning();
   return result[0];
 } catch (error) {
   console.error(`Error creating ${entityName}:`, error);
-  throw new AppError(ErrorCode.INTERNAL_SERVER_ERROR, 
-    `Error creating ${entityName}: ${error.message}`);
+  throw new AppError(
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    `Error creating ${entityName}: ${error.message}`
+  );
 }
 
 // After: Standardized approach

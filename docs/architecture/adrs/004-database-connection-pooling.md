@@ -26,18 +26,21 @@ The application uses PostgreSQL with Drizzle ORM for data access. Initial load t
 We have decided to implement a centralized Database Connection Manager with connection pooling and performance monitoring capabilities. The implementation includes:
 
 1. **Connection Pool Management**:
+
    - Configurable connection pools
    - Automatic connection lifecycle management
    - Health checks and connection validation
    - Graceful handling of connection errors
 
 2. **Query Tracking and Metrics**:
+
    - Tracking of query execution time
    - Identification of slow queries
    - Per-query and aggregate performance metrics
    - Integration with OpenTelemetry for monitoring
 
 3. **Resource Optimization**:
+
    - Connection reuse across services
    - Proper connection release
    - Transaction boundary management
@@ -55,11 +58,13 @@ The `DbConnectionManager` is implemented as a singleton that services access thr
 ### 1. ORM-level Connection Management
 
 **Pros**:
+
 - Simpler implementation
 - Built into Drizzle ORM
 - Less custom code to maintain
 
 **Cons**:
+
 - Limited customization options
 - Less visibility into connection behavior
 - Fewer performance optimization opportunities
@@ -68,11 +73,13 @@ The `DbConnectionManager` is implemented as a singleton that services access thr
 ### 2. Third-Party Connection Pool Libraries
 
 **Pros**:
+
 - Pre-built solutions with proven reliability
 - Feature-rich implementations
 - Community support
 
 **Cons**:
+
 - Additional dependencies
 - Integration challenges with our architecture
 - Potential mismatch with our specific needs
@@ -81,11 +88,13 @@ The `DbConnectionManager` is implemented as a singleton that services access thr
 ### 3. Microservice Database Pattern
 
 **Pros**:
+
 - Database isolation per service
 - Simplified connection management
 - Independent scaling
 
 **Cons**:
+
 - Data duplication and synchronization challenges
 - Much higher operational complexity
 - Transaction management across services
@@ -96,16 +105,19 @@ The `DbConnectionManager` is implemented as a singleton that services access thr
 ### Positive
 
 1. **Improved Performance**:
+
    - More efficient use of database connections
    - Reduced connection establishment overhead
    - Better handling of connection peaks
 
 2. **Enhanced Reliability**:
+
    - Proper handling of connection failures
    - Connection validation before use
    - Automatic recovery from transient issues
 
 3. **Better Visibility**:
+
    - Comprehensive metrics on database performance
    - Identification of problematic queries
    - Integration with monitoring systems
@@ -118,11 +130,13 @@ The `DbConnectionManager` is implemented as a singleton that services access thr
 ### Negative
 
 1. **Implementation Complexity**:
+
    - More complex connection management code
    - Need for careful transaction handling
    - Additional configuration requirements
 
 2. **Migration Effort**:
+
    - Updating existing services to use the connection manager
    - Testing to ensure no regressions
    - Potential for subtle bugs during transition
@@ -137,18 +151,21 @@ The `DbConnectionManager` is implemented as a singleton that services access thr
 The Database Connection Manager has been implemented with the following components:
 
 1. **Connection Pool**:
+
    - Configurable min/max connections
    - Connection timeout and idle timeout settings
    - Connection validation before use
    - Automatic connection replacement
 
 2. **Query Wrapper**:
+
    - Timing of query execution
    - Logging of slow queries
    - Error categorization and handling
    - Performance metrics collection
 
 3. **Metrics Integration**:
+
    - OpenTelemetry integration for tracing
    - Prometheus metrics for monitoring
    - Query performance histograms

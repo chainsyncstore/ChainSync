@@ -26,21 +26,24 @@ export default [
     },
     plugins: {
       '@typescript-eslint': ts,
-      'react': react,
+      react: react,
       'react-hooks': reactHooks,
-      'import': importPlugin,
+      import: importPlugin,
       'jsx-a11y': jsxA11y,
-      'prettier': prettier,
-      'security': security,
+      prettier: prettier,
+      security: security,
     },
     rules: {
       // Core ESLint rules
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', {
-        'argsIgnorePattern': '^_',
-        'varsIgnorePattern': '^_',
-        'caughtErrorsIgnorePattern': '^_'
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'error',
@@ -48,10 +51,13 @@ export default [
       '@typescript-eslint/no-unsafe-member-access': 'error',
       '@typescript-eslint/no-unsafe-call': 'error',
       '@typescript-eslint/no-unsafe-return': 'error',
-      '@typescript-eslint/ban-ts-comment': ['warn', { 
-        'ts-ignore': 'allow-with-description',
-        minimumDescriptionLength: 10
-      }],
+      '@typescript-eslint/ban-ts-comment': [
+        'warn',
+        {
+          'ts-ignore': 'allow-with-description',
+          minimumDescriptionLength: 10,
+        },
+      ],
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/await-thenable': 'error',
@@ -59,21 +65,16 @@ export default [
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/display-name': 'off',
-      'react/jsx-curly-brace-presence': ['error', { 'props': 'never', 'children': 'never' }],
+      'react/jsx-curly-brace-presence': ['error', { props: 'never', children: 'never' }],
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'import/order': [
         'error',
         {
-          'groups': [
-            'builtin',
-            'external',
-            'internal',
-            ['parent', 'sibling', 'index']
-          ],
+          groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
           'newlines-between': 'always',
-          'alphabetize': { 'order': 'asc', 'caseInsensitive': true }
-        }
+          alphabetize: { order: 'asc', caseInsensitive: true },
+        },
       ],
       'import/no-unresolved': 'error',
       'import/no-cycle': 'error',
@@ -82,9 +83,9 @@ export default [
       'jsx-a11y/anchor-is-valid': [
         'error',
         {
-          'components': ['Link'],
-          'specialLink': ['to', 'href']
-        }
+          components: ['Link'],
+          specialLink: ['to', 'href'],
+        },
       ],
       'prettier/prettier': 'warn',
       'security/detect-object-injection': 'warn',
@@ -94,7 +95,6 @@ export default [
       'security/detect-eval-with-expression': 'error',
       'security/detect-no-csrf-before-method-override': 'error',
       'security/detect-non-literal-fs-filename': 'warn',
-      
     },
   },
   {

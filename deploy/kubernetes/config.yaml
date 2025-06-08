@@ -4,26 +4,26 @@ metadata:
   name: chainsync-config
 data:
   # API configuration
-  api-version: "1.0.0"
-  api-timeout: "30000"
-  
+  api-version: '1.0.0'
+  api-timeout: '30000'
+
   # Supplier API configuration (non-sensitive)
-  supplier-api-url: "https://api.supplier.example.com"
-  supplier-api-fallback-url: "https://api-backup.supplier.example.com"
-  
+  supplier-api-url: 'https://api.supplier.example.com'
+  supplier-api-fallback-url: 'https://api-backup.supplier.example.com'
+
   # Performance tuning
-  request-timeout: "30000"
-  connection-timeout: "5000"
-  
+  request-timeout: '30000'
+  connection-timeout: '5000'
+
   # Feature flags
-  enable-rate-limiting: "true"
-  enable-advanced-security: "true"
-  enable-monitoring: "true"
-  
+  enable-rate-limiting: 'true'
+  enable-advanced-security: 'true'
+  enable-monitoring: 'true'
+
   # Monitoring and metrics configuration
-  metrics-interval: "30000"
-  alert-min-severity: "warning"
-  
+  metrics-interval: '30000'
+  alert-min-severity: 'warning'
+
   # Caching configuration leveraging the Redis cache system from Phase 2
   cache-strategy: |
     {
@@ -44,7 +44,7 @@ data:
         "invalidateOnUpdate": false
       }
     }
-  
+
   # Retry strategy configuration leveraging the retry utility from Phase 2
   retry-strategy: |
     {
@@ -70,7 +70,7 @@ data:
         "jitterFactor": 0.1
       }
     }
-  
+
   # Circuit breaker configuration leveraging the fallback utility from Phase 2
   circuit-breaker-strategy: |
     {
@@ -90,7 +90,7 @@ data:
         "halfOpenMaxCalls": 3
       }
     }
-  
+
   # Log configuration
   logging-config: |
     {
@@ -115,33 +115,33 @@ metadata:
 type: Opaque
 stringData:
   # Database credentials
-  db-host: "DB_HOST"
-  db-port: "5432"
-  db-user: "DB_USER"
-  db-password: "DB_PASSWORD"
-  db-name: "chainsync"
-  
+  db-host: 'DB_HOST'
+  db-port: '5432'
+  db-user: 'DB_USER'
+  db-password: 'DB_PASSWORD'
+  db-name: 'chainsync'
+
   # Redis connection
-  redis-url: "redis://redis:6379"
-  
+  redis-url: 'redis://redis:6379'
+
   # JWT authentication secrets
-  jwt-secret: "JWT_SECRET"
-  refresh-token-secret: "REFRESH_TOKEN_SECRET"
-  
+  jwt-secret: 'JWT_SECRET'
+  refresh-token-secret: 'REFRESH_TOKEN_SECRET'
+
   # API keys
-  supplier-api-key: "SUPPLIER_API_KEY"
-  
+  supplier-api-key: 'SUPPLIER_API_KEY'
+
   # External service credentials
-  payment-gateway-key: "PAYMENT_GATEWAY_KEY"
-  payment-gateway-secret: "PAYMENT_GATEWAY_SECRET"
-  
+  payment-gateway-key: 'PAYMENT_GATEWAY_KEY'
+  payment-gateway-secret: 'PAYMENT_GATEWAY_SECRET'
+
   # Email service
-  smtp-host: "SMTP_HOST"
-  smtp-port: "587"
-  smtp-user: "SMTP_USER"
-  smtp-password: "SMTP_PASSWORD"
-  
+  smtp-host: 'SMTP_HOST'
+  smtp-port: '587'
+  smtp-user: 'SMTP_USER'
+  smtp-password: 'SMTP_PASSWORD'
+
   # Monitoring and alerting
-  alert-webhook-url: "ALERT_WEBHOOK_URL"
-  alert-slack-webhook-url: "ALERT_SLACK_WEBHOOK_URL"
-  alert-email-recipients: "alerts@example.com"
+  alert-webhook-url: 'ALERT_WEBHOOK_URL'
+  alert-slack-webhook-url: 'ALERT_SLACK_WEBHOOK_URL'
+  alert-email-recipients: 'alerts@example.com'

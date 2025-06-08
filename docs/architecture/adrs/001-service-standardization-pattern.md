@@ -20,6 +20,7 @@ As the ChainSync application grew, we observed inconsistent service implementati
 6. **Type Safety Issues**: Inconsistent typing led to TypeScript errors, particularly with Drizzle ORM
 
 We conducted an inventory of existing service patterns and identified several different approaches:
+
 - Base Service Pattern
 - Enhanced Service Pattern
 - Singleton Pattern
@@ -33,28 +34,34 @@ The variety of patterns created unnecessary cognitive load and inconsistent qual
 We have decided to implement a standardized service pattern across all services in the ChainSync application. The standard pattern includes:
 
 1. **Consistent Interface and Base Classes**:
+
    - All services extend from either `BaseService` or `EnhancedService`
    - Services implement standardized interfaces for their domain
 
 2. **Dependency Injection Strategy**:
+
    - Services receive dependencies through a `ServiceConfig` object in constructors
    - A `ServiceFactory` manages service instantiation and dependency injection
 
 3. **Error Handling**:
+
    - Standardized `ServiceError` class with consistent error codes
    - Consistent error propagation and translation
    - Proper logging of errors with context
 
 4. **Transaction Management**:
+
    - Consistent transaction handling for database operations
    - Appropriate isolation levels for different operation types
 
 5. **Resilience Patterns**:
+
    - Retry mechanisms for transient failures
    - Circuit breakers for external dependencies
    - Fallback strategies for degraded operation
 
 6. **Type Safety**:
+
    - Consistent use of TypeScript interfaces and types
    - Standardized handling of Drizzle ORM SQL template literals
 
@@ -67,10 +74,12 @@ We have decided to implement a standardized service pattern across all services 
 ### 1. Maintain Status Quo
 
 **Pros**:
+
 - No migration effort required
 - No immediate risk of regressions
 
 **Cons**:
+
 - Continued maintenance challenges
 - Increasing technical debt
 - Inconsistent reliability and performance
@@ -78,10 +87,12 @@ We have decided to implement a standardized service pattern across all services 
 ### 2. Service Class Composition
 
 **Pros**:
+
 - More flexible than inheritance
 - Could mix and match service capabilities
 
 **Cons**:
+
 - More complex implementation
 - Potentially higher runtime overhead
 - More difficult to enforce standards
@@ -89,11 +100,13 @@ We have decided to implement a standardized service pattern across all services 
 ### 3. Microservice Architecture
 
 **Pros**:
+
 - Strong service boundaries
 - Independent deployment and scaling
 - Technology diversity possible
 
 **Cons**:
+
 - Significantly higher operational complexity
 - More complex testing and deployment
 - Overkill for current application size and requirements
@@ -103,16 +116,19 @@ We have decided to implement a standardized service pattern across all services 
 ### Positive
 
 1. **Improved Developer Experience**:
+
    - Faster onboarding through consistent patterns
    - Reduced cognitive load when working across services
    - Better IDE support through consistent typing
 
 2. **Enhanced Reliability**:
+
    - Consistent error handling and recovery
    - Resilience patterns applied uniformly
    - Better monitoring and observability
 
 3. **Maintainability**:
+
    - Easier to maintain and extend services
    - Common patterns for common problems
    - More consistent code quality
@@ -125,11 +141,13 @@ We have decided to implement a standardized service pattern across all services 
 ### Negative
 
 1. **Migration Effort**:
+
    - Significant effort to migrate existing services
    - Potential for regressions during migration
    - Need for comprehensive testing
 
 2. **Learning Curve**:
+
    - Developers need to learn the new pattern
    - Some teams may resist the change
 
@@ -142,18 +160,22 @@ We have decided to implement a standardized service pattern across all services 
 The standard service pattern has been implemented through the following steps:
 
 1. **Base Classes Creation**:
+
    - Created `BaseService` with core functionality
    - Extended with `EnhancedService` for database operations
 
 2. **Service Factory**:
+
    - Implemented `ServiceFactory` for service instantiation
    - Configured with dependency injection
 
 3. **Error Handling**:
+
    - Standardized `ServiceError` class
    - Defined consistent error codes and formats
 
 4. **Migration Strategy**:
+
    - Created migration priority matrix
    - Migrated critical services first:
      - Authentication Service
@@ -161,6 +183,7 @@ The standard service pattern has been implemented through the following steps:
      - Loyalty Service
 
 5. **Documentation**:
+
    - Created comprehensive service standard guide
    - Added inline documentation with examples
 

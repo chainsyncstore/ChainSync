@@ -19,7 +19,9 @@ let serviceId = args[0];
 if (!serviceId) {
   console.error('Usage: node deploy-to-render.js <service-id>');
   console.error('You need to provide your Render service ID as an argument');
-  console.error('To find your service ID, go to your Render dashboard, select your service, and look for the ID in the URL');
+  console.error(
+    'To find your service ID, go to your Render dashboard, select your service, and look for the ID in the URL'
+  );
   process.exit(1);
 }
 
@@ -30,9 +32,9 @@ async function triggerDeploy() {
     const response = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RENDER_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${RENDER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
     });
 
     if (!response.ok) {
@@ -57,13 +59,13 @@ async function triggerDeploy() {
 async function checkServiceExists() {
   try {
     console.log(`Checking service ID: ${serviceId}`);
-    
+
     const response = await fetch(`https://api.render.com/v1/services/${serviceId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${RENDER_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${RENDER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
     });
 
     if (!response.ok) {
@@ -80,7 +82,7 @@ async function checkServiceExists() {
 
     const service = await response.json();
     console.log(`Service found: ${service.name} (${service.type})`);
-    
+
     // Proceed with deployment
     await triggerDeploy();
   } catch (error) {

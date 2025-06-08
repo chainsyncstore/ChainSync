@@ -72,7 +72,7 @@ class UserFormatter extends ResultFormatter<User> {
     // Convert database fields to domain object
     return {
       ...this.baseFormat(dbResult),
-      metadata: this.handleMetadata(dbResult.metadata)
+      metadata: this.handleMetadata(dbResult.metadata),
     };
   }
 }
@@ -102,7 +102,7 @@ class UserService extends EnhancedBaseService {
         preparedData,
         this.formatter.formatResult.bind(this.formatter)
       );
-      
+
       return this.ensureExists(user, 'User');
     } catch (error) {
       return this.handleError(error, 'creating user');
@@ -120,23 +120,20 @@ class SubscriptionFormatter extends ResultFormatter<Subscription> {
   formatResult(dbResult: Record<string, any>): Subscription {
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
-    const withDates = this.formatDates(
-      base, 
-      ['createdAt', 'updatedAt', 'startDate', 'endDate']
-    );
-    
+    const withDates = this.formatDates(base, ['createdAt', 'updatedAt', 'startDate', 'endDate']);
+
     // Return the formatted subscription
     return {
       ...withDates,
       id: Number(withDates.id),
       userId: Number(withDates.userId),
       // ... other fields with specific formatting
-      metadata: metadata
+      metadata: metadata,
     };
   }
 }
@@ -168,12 +165,12 @@ interface IUserService {
 // 3. Implement the service
 class UserService extends EnhancedBaseService implements IUserService {
   private formatter: UserFormatter;
-  
+
   constructor() {
     super();
     this.formatter = new UserFormatter();
   }
-  
+
   // Implement the interface methods
 }
 ```
@@ -258,6 +255,7 @@ Unit tests for each utility and service should cover:
 4. Result formatting
 
 Use the provided test files as examples:
+
 - `tests/utils/field-mapping.test.ts`
 - `tests/utils/sql-helpers.test.ts`
 - `tests/utils/service-helpers.test.ts`

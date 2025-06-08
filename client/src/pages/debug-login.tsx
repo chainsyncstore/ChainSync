@@ -19,15 +19,15 @@ export default function DebugLoginPage() {
     try {
       setStatus('loading');
       setError(null);
-      
+
       // Use regular login function with hardcoded admin credentials
       await login({
         username: 'admin',
-        password: 'admin123'
+        password: 'admin123',
       });
-      
+
       setStatus('success');
-      
+
       // Use a timeout to ensure state has time to update before redirecting
       setTimeout(() => {
         window.location.href = '/dashboard';
@@ -38,21 +38,21 @@ export default function DebugLoginPage() {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     }
   };
-  
+
   // Manual login with form data
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setStatus('loading');
       setError(null);
-      
+
       await login({
         username,
-        password
+        password,
       });
-      
+
       setStatus('success');
-      
+
       // Use a timeout to ensure state has time to update before redirecting
       setTimeout(() => {
         window.location.href = '/dashboard';
@@ -66,9 +66,9 @@ export default function DebugLoginPage() {
 
   // Handle page content
   document.body.style.overflow = 'hidden'; // Prevent background scrolling
-  
+
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0,
@@ -81,16 +81,16 @@ export default function DebugLoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflowY: 'auto'
+        overflowY: 'auto',
       }}
     >
-      <Card 
-        className="w-full max-w-md" 
-        style={{ 
+      <Card
+        className="w-full max-w-md"
+        style={{
           position: 'relative',
           zIndex: 100000,
           margin: '0 auto',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
         }}
       >
         <CardHeader className="space-y-1">
@@ -114,8 +114,8 @@ export default function DebugLoginPage() {
                   Logged in as <strong>{user?.username}</strong> ({user?.role})
                 </AlertDescription>
               </Alert>
-              <Button 
-                onClick={() => window.location.href = '/dashboard'} 
+              <Button
+                onClick={() => (window.location.href = '/dashboard')}
                 className="w-full bg-green-500 hover:bg-green-600"
               >
                 Go to Dashboard
@@ -126,7 +126,7 @@ export default function DebugLoginPage() {
               <div className="text-center text-sm text-gray-500 mb-2">
                 For quick testing, use the admin login button
               </div>
-              
+
               <Button
                 onClick={handleDirectDebugLogin}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
@@ -134,25 +134,23 @@ export default function DebugLoginPage() {
               >
                 {status === 'loading' ? 'Logging in...' : 'One-Click Admin Login'}
               </Button>
-              
+
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">
-                    Or Enter Credentials
-                  </span>
+                  <span className="bg-white px-2 text-gray-500">Or Enter Credentials</span>
                 </div>
               </div>
-              
+
               <form onSubmit={handleManualLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={e => setUsername(e.target.value)}
                     required
                     autoComplete="username"
                     className="h-10" // Taller input for easier mobile tapping
@@ -164,21 +162,21 @@ export default function DebugLoginPage() {
                     id="password"
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     required
                     autoComplete="current-password"
                     className="h-10" // Taller input for easier mobile tapping
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full h-10 mt-2" // Taller button for easier mobile tapping
                   disabled={status === 'loading'}
                 >
                   {status === 'loading' ? 'Logging in...' : 'Login'}
                 </Button>
               </form>
-              
+
               <div className="text-center text-xs text-gray-500 mt-4">
                 Default accounts: admin/admin123, manager/manager123, cashier/cashier123
               </div>

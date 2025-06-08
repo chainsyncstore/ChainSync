@@ -8,19 +8,19 @@ This document outlines the comprehensive penetration testing strategy for the Ch
 
 ### In-Scope Systems and Components
 
-| Component | Description | Priority |
-|-----------|-------------|----------|
+| Component              | Description                                            | Priority |
+| ---------------------- | ------------------------------------------------------ | -------- |
 | Authentication Service | JWT implementation, token management, session handling | Critical |
-| API Gateway | Input validation, authorization checks, rate limiting | Critical |
-| Payment Processing | Payment gateway integrations, transaction security | Critical |
-| User Management | Account creation, password reset, profile management | High |
-| Store Management | Store creation, access controls, configuration | High |
-| Inventory Management | Stock adjustments, transfers, audit trails | High |
-| Loyalty Program | Points accrual, redemption, tier management | Medium |
-| Subscription Service | Billing operations, lifecycle management | High |
-| Admin Dashboard | Administrative functions, privilege management | Critical |
-| Mobile API Endpoints | Endpoints used by mobile applications | High |
-| Redis Token Storage | Token persistence, session management | Critical |
+| API Gateway            | Input validation, authorization checks, rate limiting  | Critical |
+| Payment Processing     | Payment gateway integrations, transaction security     | Critical |
+| User Management        | Account creation, password reset, profile management   | High     |
+| Store Management       | Store creation, access controls, configuration         | High     |
+| Inventory Management   | Stock adjustments, transfers, audit trails             | High     |
+| Loyalty Program        | Points accrual, redemption, tier management            | Medium   |
+| Subscription Service   | Billing operations, lifecycle management               | High     |
+| Admin Dashboard        | Administrative functions, privilege management         | Critical |
+| Mobile API Endpoints   | Endpoints used by mobile applications                  | High     |
+| Redis Token Storage    | Token persistence, session management                  | Critical |
 
 ### Out-of-Scope Systems
 
@@ -58,12 +58,12 @@ No active exploitation or disruptive testing will be performed in production.
 
 Penetration testing will be conducted on the following schedule:
 
-| Testing Phase | Frequency | Duration | Timing |
-|---------------|-----------|----------|--------|
-| Comprehensive Assessment | Quarterly | 2 weeks | First month of each quarter |
-| Focused Service Testing | Monthly | 2-3 days | Last week of each month |
-| Critical Path Testing | Per Release | 1 day | Pre-release |
-| Continuous Automated Scanning | Weekly | Automated | Sunday 00:00 UTC |
+| Testing Phase                 | Frequency   | Duration  | Timing                      |
+| ----------------------------- | ----------- | --------- | --------------------------- |
+| Comprehensive Assessment      | Quarterly   | 2 weeks   | First month of each quarter |
+| Focused Service Testing       | Monthly     | 2-3 days  | Last week of each month     |
+| Critical Path Testing         | Per Release | 1 day     | Pre-release                 |
+| Continuous Automated Scanning | Weekly      | Automated | Sunday 00:00 UTC            |
 
 ### Event-Driven Testing
 
@@ -92,42 +92,44 @@ The penetration testing will follow a multi-phase approach:
 
 Various testing methodologies will be employed:
 
-| Test Type | Description | Components |
-|-----------|-------------|------------|
-| Black Box | Testing without prior knowledge | External APIs, Public Endpoints |
-| Gray Box | Testing with limited knowledge | Internal APIs, Service Integrations |
-| White Box | Testing with full system knowledge | Authentication, Payment Processing |
-| DAST | Dynamic Application Security Testing | All Web Components |
-| API Security Testing | Testing API endpoints | All API Endpoints |
-| JWT Security Testing | Testing JWT implementation | Authentication Service |
-| Session Management | Testing session handling | Authentication, Redis Token Storage |
+| Test Type            | Description                          | Components                          |
+| -------------------- | ------------------------------------ | ----------------------------------- |
+| Black Box            | Testing without prior knowledge      | External APIs, Public Endpoints     |
+| Gray Box             | Testing with limited knowledge       | Internal APIs, Service Integrations |
+| White Box            | Testing with full system knowledge   | Authentication, Payment Processing  |
+| DAST                 | Dynamic Application Security Testing | All Web Components                  |
+| API Security Testing | Testing API endpoints                | All API Endpoints                   |
+| JWT Security Testing | Testing JWT implementation           | Authentication Service              |
+| Session Management   | Testing session handling             | Authentication, Redis Token Storage |
 
 ### Testing Tools
 
 The following tools will be used during penetration testing:
 
-| Tool | Purpose |
-|------|---------|
-| OWASP ZAP | Web application vulnerability scanning |
-| Burp Suite | Web application security testing |
-| Postman | API testing |
-| JWTTool | JWT token analysis and exploitation |
-| SQLMap | SQL injection testing |
-| Nmap | Network scanning |
-| Metasploit | Exploitation framework |
-| Custom Scripts | Specialized testing scenarios |
+| Tool           | Purpose                                |
+| -------------- | -------------------------------------- |
+| OWASP ZAP      | Web application vulnerability scanning |
+| Burp Suite     | Web application security testing       |
+| Postman        | API testing                            |
+| JWTTool        | JWT token analysis and exploitation    |
+| SQLMap         | SQL injection testing                  |
+| Nmap           | Network scanning                       |
+| Metasploit     | Exploitation framework                 |
+| Custom Scripts | Specialized testing scenarios          |
 
 ## Test Scenarios
 
 ### Authentication Service Testing
 
 1. **JWT Implementation**
+
    - Test for algorithm confusion attacks
    - Verify token signature validation
    - Test expiration and refresh logic
    - Attempt token manipulation
 
 2. **Session Management**
+
    - Test session fixation vulnerabilities
    - Verify session invalidation on logout
    - Test concurrent session handling
@@ -142,12 +144,14 @@ The following tools will be used during penetration testing:
 ### API Security Testing
 
 1. **Input Validation**
+
    - Test for SQL injection using direct input
    - Test for NoSQL injection in MongoDB operations
    - Test for command injection
    - Test for XSS in responses
 
 2. **Authorization**
+
    - Test vertical privilege escalation
    - Test horizontal privilege escalation
    - Test insecure direct object references
@@ -162,6 +166,7 @@ The following tools will be used during penetration testing:
 ### Payment Processing Testing
 
 1. **Transaction Security**
+
    - Test for payment manipulation
    - Verify secure communication with payment gateways
    - Test transaction replay protection
@@ -176,6 +181,7 @@ The following tools will be used during penetration testing:
 ### Data Protection Testing
 
 1. **Data Access Controls**
+
    - Test data segregation between tenants
    - Verify access controls on sensitive data
    - Test for data leakage in API responses
@@ -232,32 +238,36 @@ Penetration test findings will be documented in a standardized format:
 
 Vulnerabilities will be classified according to the following severity levels:
 
-| Severity | Description | Examples |
-|----------|-------------|----------|
-| Critical | Immediate threat to confidentiality, integrity, or availability of critical data or services | Remote code execution, authentication bypass, direct access to sensitive data |
-| High | Significant risk to security or compliance, potential for data exposure | SQL injection, broken authentication, insecure direct object references |
-| Medium | Moderate risk, requires multiple conditions or has limited impact | XSS, CSRF, information disclosure, weak encryption |
-| Low | Minor issues, limited impact, or difficult to exploit | Security misconfigurations, missing headers, information leakage |
-| Informational | Best practice recommendations | Outdated libraries, verbose error messages |
+| Severity      | Description                                                                                  | Examples                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Critical      | Immediate threat to confidentiality, integrity, or availability of critical data or services | Remote code execution, authentication bypass, direct access to sensitive data |
+| High          | Significant risk to security or compliance, potential for data exposure                      | SQL injection, broken authentication, insecure direct object references       |
+| Medium        | Moderate risk, requires multiple conditions or has limited impact                            | XSS, CSRF, information disclosure, weak encryption                            |
+| Low           | Minor issues, limited impact, or difficult to exploit                                        | Security misconfigurations, missing headers, information leakage              |
+| Informational | Best practice recommendations                                                                | Outdated libraries, verbose error messages                                    |
 
 ### Remediation Process
 
 1. **Triage**:
+
    - Security team validates findings
    - Assigns severity and priority
    - Determines responsible team/individual
 
 2. **Remediation Planning**:
+
    - Security and development teams plan fixes
    - Estimate effort and timeline
    - Create issues with appropriate SLA
 
 3. **Implementation**:
+
    - Develop and test fixes
    - Security team reviews fixes
    - Deploy to staging environment
 
 4. **Verification**:
+
    - Retest to verify fixes
    - Update vulnerability status
    - Document lessons learned
@@ -269,12 +279,12 @@ Vulnerabilities will be classified according to the following severity levels:
 
 ### Remediation SLAs
 
-| Severity | Time to Fix | Time to Verify |
-|----------|-------------|----------------|
-| Critical | 24 hours | 24 hours |
-| High | 1 week | 48 hours |
-| Medium | 2 weeks | 1 week |
-| Low | 1 month | 2 weeks |
+| Severity      | Time to Fix  | Time to Verify  |
+| ------------- | ------------ | --------------- |
+| Critical      | 24 hours     | 24 hours        |
+| High          | 1 week       | 48 hours        |
+| Medium        | 2 weeks      | 1 week          |
+| Low           | 1 month      | 2 weeks         |
 | Informational | Next release | No verification |
 
 ## Continuous Improvement

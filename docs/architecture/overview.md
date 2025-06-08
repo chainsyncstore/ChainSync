@@ -102,18 +102,18 @@ graph TD
 
 ## Technology Stack
 
-| Component | Technology |
-|-----------|------------|
-| Frontend | React, TypeScript, Tailwind CSS |
-| API | Express.js, TypeScript |
-| Database | PostgreSQL, Drizzle ORM |
-| Caching | Redis |
-| Authentication | JWT, Redis for session storage |
-| Messaging | WebSocket |
-| Testing | Jest, Playwright |
-| CI/CD | GitHub Actions |
-| Hosting | Render |
-| Monitoring | OpenTelemetry, Prometheus, Grafana |
+| Component      | Technology                         |
+| -------------- | ---------------------------------- |
+| Frontend       | React, TypeScript, Tailwind CSS    |
+| API            | Express.js, TypeScript             |
+| Database       | PostgreSQL, Drizzle ORM            |
+| Caching        | Redis                              |
+| Authentication | JWT, Redis for session storage     |
+| Messaging      | WebSocket                          |
+| Testing        | Jest, Playwright                   |
+| CI/CD          | GitHub Actions                     |
+| Hosting        | Render                             |
+| Monitoring     | OpenTelemetry, Prometheus, Grafana |
 
 ## Key Architectural Principles
 
@@ -192,27 +192,27 @@ ChainSync is deployed on Render using a containerized architecture:
 ```mermaid
 graph TD
     Client[Client Browsers/Apps]
-    
+
     subgraph "Render Platform"
         LB[Load Balancer]
         WebService[Web Service]
-        
+
         subgraph "Services"
             API[API Service]
             Worker[Background Workers]
         end
-        
+
         subgraph "Databases"
             PostgreSQL[(PostgreSQL)]
             Redis[(Redis)]
         end
     end
-    
+
     subgraph "External Services"
         PaymentAPI[Payment APIs]
         Storage[File Storage]
     end
-    
+
     Client --> LB
     LB --> WebService
     WebService --> API

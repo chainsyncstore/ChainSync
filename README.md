@@ -11,33 +11,39 @@ A modern inventory and store management system built with React, TypeScript, Nod
 ## Getting Started
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/chainsync-manager.git
    cd chainsync-manager
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env
    ```
+
    Update the `.env` file with your configuration.
 
 4. **Set up the database**
+
    ```bash
    npm run db:push
    npm run db:seed
    ```
 
 5. **Start the development server**
+
    ```bash
    # Start the frontend
    npm run dev
-   
+
    # In a separate terminal, start the backend
    npm run dev:server
    ```
@@ -111,6 +117,7 @@ pre-commit install
 ```
 
 This installs the following hooks:
+
 - actionlint - Validates GitHub Actions workflow files
 - trailing-whitespace - Removes trailing whitespace
 - end-of-file-fixer - Ensures files end with a newline

@@ -6,17 +6,17 @@ This document presents the results of a security audit conducted on the ChainSyn
 
 **Audit Date:** May 29, 2025  
 **Audited Version:** Current main branch  
-**Audit Team:** Security Engineering Team  
+**Audit Team:** Security Engineering Team
 
 ### Key Findings Summary
 
-| Severity | Count | Description |
-|----------|-------|-------------|
-| Critical | 1 | Redis token storage without proper fallback |
-| High | 2 | Inadequate JWT configuration, Missing rate limiting |
-| Medium | 3 | Improper error handling, Insufficient logging, Token validation issues |
-| Low | 2 | Hardcoded configuration values, Inconsistent Redis key prefixing |
-| Informational | 3 | Best practice suggestions |
+| Severity      | Count | Description                                                            |
+| ------------- | ----- | ---------------------------------------------------------------------- |
+| Critical      | 1     | Redis token storage without proper fallback                            |
+| High          | 2     | Inadequate JWT configuration, Missing rate limiting                    |
+| Medium        | 3     | Improper error handling, Insufficient logging, Token validation issues |
+| Low           | 2     | Hardcoded configuration values, Inconsistent Redis key prefixing       |
+| Informational | 3     | Best practice suggestions                                              |
 
 ## Detailed Findings
 
@@ -28,6 +28,7 @@ This document presents the results of a security audit conducted on the ChainSyn
 **Description:** The Redis token storage implementation lacks proper fallback mechanisms for scenarios where Redis is temporarily unavailable. This could result in authentication failures for all users during Redis outages.
 
 **Evidence:**
+
 ```typescript
 // Current implementation lacks fallback when Redis fails
 public async validateToken(token: string): Promise<ServiceResult<TokenValidationResult>> {
@@ -88,6 +89,7 @@ public async validateToken(token: string): Promise<ServiceResult<TokenValidation
 **Description:** The JWT configuration does not explicitly specify the algorithm used for signing, which could lead to algorithm confusion attacks. Additionally, tokens lack important claims like 'nbf' (not before) and 'aud' (audience).
 
 **Evidence:**
+
 ```typescript
 private generateTokens(userId: string, roles: string[]): { accessToken: string, refreshToken: string } {
   const accessToken = jwt.sign(
@@ -95,13 +97,13 @@ private generateTokens(userId: string, roles: string[]): { accessToken: string, 
     this.jwtSecret,
     { expiresIn: this.accessTokenTTL }
   );
-  
+
   const refreshToken = jwt.sign(
     { sub: userId },
     this.jwtRefreshSecret,
     { expiresIn: this.refreshTokenTTL }
   );
-  
+
   return { accessToken, refreshToken };
 }
 ```
@@ -114,7 +116,7 @@ private generateTokens(userId: string, roles: string[]): { accessToken: string, 
 private generateTokens(userId: string, roles: string[]): { accessToken: string, refreshToken: string } {
   const now = Math.floor(Date.now() / 1000);
   const jti = crypto.randomUUID(); // Unique token ID
-  
+
   const accessToken = jwt.sign(
     {
       sub: userId,
@@ -130,7 +132,7 @@ private generateTokens(userId: string, roles: string[]): { accessToken: string, 
       algorithm: 'HS256' // Explicitly specify algorithm
     }
   );
-  
+
   const refreshJti = crypto.randomUUID();
   const refreshToken = jwt.sign(
     {
@@ -146,7 +148,7 @@ private generateTokens(userId: string, roles: string[]): { accessToken: string, 
       algorithm: 'HS256'
     }
   );
-  
+
   return { accessToken, refreshToken };
 }
 ```
@@ -170,12 +172,12 @@ const loginLimiter = rateLimit({
   max: 10, // 10 attempts per window
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip + ':' + (req.body.email || ''),
+  keyGenerator: req => req.ip + ':' + (req.body.email || ''),
   handler: (req, res) => {
     res.status(429).json({
-      error: 'Too many login attempts, please try again later'
+      error: 'Too many login attempts, please try again later',
     });
-  }
+  },
 });
 
 router.post('/login', loginLimiter, authController.login);
@@ -189,20 +191,21 @@ router.post('/login', loginLimiter, authController.login);
 **Description:** Error messages from authentication failures provide different responses based on whether the user exists or the password is incorrect, which can be used for user enumeration.
 
 **Evidence:**
+
 ```typescript
 public async login(email: string, password: string): Promise<ServiceResult<AuthResponse>> {
   try {
     const user = await this.db.query(sql`SELECT * FROM users WHERE email = ${this.safeToString(email)} LIMIT 1`);
-    
+
     if (!user) {
       return { success: false, error: new ServiceError(ErrorCode.AUTH_USER_NOT_FOUND, 'User not found') };
     }
-    
+
     const passwordValid = await bcrypt.compare(password, user.passwordHash);
     if (!passwordValid) {
       return { success: false, error: new ServiceError(ErrorCode.AUTH_INVALID_PASSWORD, 'Invalid password') };
     }
-    
+
     // Login logic...
   } catch (error) {
     // Error handling...
@@ -218,13 +221,13 @@ public async login(email: string, password: string): Promise<ServiceResult<AuthR
 public async login(email: string, password: string): Promise<ServiceResult<AuthResponse>> {
   try {
     const user = await this.db.query(sql`SELECT * FROM users WHERE email = ${this.safeToString(email)} LIMIT 1`);
-    
+
     if (!user || !await bcrypt.compare(password, user.passwordHash)) {
       // Log the actual reason internally, but return a generic message
       this.logger.info('Login failed', { reason: user ? 'invalid_password' : 'user_not_found', email });
       return { success: false, error: new ServiceError(ErrorCode.AUTH_INVALID_CREDENTIALS, 'Invalid credentials') };
     }
-    
+
     // Login logic...
   } catch (error) {
     // Error handling...
@@ -247,7 +250,7 @@ public async login(email: string, password: string): Promise<ServiceResult<AuthR
 public async login(email: string, password: string): Promise<ServiceResult<AuthResponse>> {
   try {
     // Existing login logic...
-    
+
     // Add detailed security logging
     this.logger.info('User login successful', {
       userId: user.id,
@@ -257,7 +260,7 @@ public async login(email: string, password: string): Promise<ServiceResult<AuthR
       loginTime: new Date().toISOString(),
       sessionId: sessionId
     });
-    
+
     // Return result...
   } catch (error) {
     // Error handling with enhanced logging...
