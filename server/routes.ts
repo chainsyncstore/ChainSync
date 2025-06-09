@@ -5,15 +5,15 @@ import multer from 'multer';
 import { Pool } from 'pg'; // Keep one import of Pool
 import { Server } from 'socket.io';
 import { z } from 'zod';
-
 import { ZodError } from 'zod-validation-error';
+
 import { db } from '../db';
 import { env } from './config/env';
 // SessionOptions is imported again later, remove one instance
 // import { SessionOptions } from 'express-session';
 // import { Pool } from 'pg'; // Removed duplicate
-import { logger } from './services/logger';
 import { FileUploadMiddleware } from './middleware/file-upload';
+import { logger } from './services/logger';
 // AuthMiddleware import needs review based on actual exports from './middleware/auth'
 // import { AuthMiddleware } from './middleware/auth';
 const fileUploadInstance = FileUploadMiddleware.getInstance(); // Get instance

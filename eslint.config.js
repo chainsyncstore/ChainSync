@@ -17,7 +17,7 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: ['./tsconfig.json', './tsconfig.server.json'],
+        project: ['./tsconfig.eslint.json'],
         tsconfigRootDir: process.cwd(),
         ecmaVersion: 'latest',
         sourceType: 'module',

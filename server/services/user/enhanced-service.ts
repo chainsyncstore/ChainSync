@@ -1,5 +1,5 @@
-import { userValidation, SchemaValidationError } from '@shared/schema-validation';
 import * as schema from '@shared/schema';
+import { userValidation, SchemaValidationError } from '@shared/schema-validation';
 import { ServiceErrorHandler } from '@shared/utils/service-helpers';
 import * as bcrypt from 'bcrypt';
 import { eq, and } from 'drizzle-orm';

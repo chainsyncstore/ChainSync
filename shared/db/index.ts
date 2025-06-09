@@ -1,26 +1,26 @@
 // Additional tables referenced in storage.ts
-import { returns } from './returns';
-import { refunds } from './refunds';
-import { passwordResetTokens } from './passwordResetTokens';
 import { affiliates } from './affiliates';
-import { referrals } from './referrals';
-import { referralPayments } from './referralPayments';
 import { batchAuditLogs } from './batchAuditLogs';
 import { cashierSessions } from './cashierSessions';
 import { customers } from './customers';
 import { inventory, inventoryBatches } from './inventory';
 
 // Loyalty tables
-import { loyaltyTiers } from './loyaltyTiers';
-import { loyaltyRewards } from './loyaltyRewards';
-import { loyaltyTransactions as loyaltyTransactionsTable } from './loyaltyTransactions'; // Alias to avoid conflict if re-exporting type
 import { inventoryTransactions } from './inventoryTransactions'; // Import new table
 import { loyaltyMembers } from './loyaltyMembers';
 import { loyaltyPrograms } from './loyaltyPrograms';
+import { loyaltyRewards } from './loyaltyRewards';
+import { loyaltyTiers } from './loyaltyTiers';
+import { loyaltyTransactions as loyaltyTransactionsTable } from './loyaltyTransactions'; // Alias to avoid conflict if re-exporting type
 import { notifications } from './notifications';
+import { passwordResetTokens } from './passwordResetTokens';
 import { products, categories } from './products';
+import { referralPayments } from './referralPayments';
+import { referrals } from './referrals';
+import { refunds } from './refunds';
 import { returnItems } from './returnItems';
 import { returnReasons } from './returnReasons';
+import { returns } from './returns';
 import { stores } from './stores';
 import { subscriptions } from './subscriptions';
 import { transactions, transactionItems } from './transactions';

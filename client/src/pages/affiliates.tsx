@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { AffiliateDashboard } from '@/components/affiliate/affiliate-dashboard';
 import { AppShell } from '@/components/layout/app-shell';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -17,10 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/providers/auth-provider';
-
 import {
   Form,
   FormControl,
@@ -32,7 +29,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/providers/auth-provider';
 
 // Form schemas
 const loginSchema = z.object({

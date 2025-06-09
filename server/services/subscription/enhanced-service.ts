@@ -5,9 +5,9 @@
  * and utility abstractions to reduce code duplication and improve type safety.
  */
 import { EnhancedBaseService } from '@server/services/base/enhanced-service';
+import * as schema from '@shared/schema';
 import { prepareSubscriptionData } from '@shared/schema-helpers';
 import { subscriptionValidation, SchemaValidationError } from '@shared/schema-validation';
-import * as schema from '@shared/schema';
 import type { ServiceConfig } from '@shared/types/common'; // Correct import for ServiceConfig
 import { ErrorCode } from '@shared/types/errors';
 import { eq, and, or, like, gte, lte, desc, asc, sql } from 'drizzle-orm';

@@ -1,15 +1,7 @@
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { useQueryClient } from '@tanstack/react-query';
-import {
-  generateTransactionId,
-  calculateSubtotal,
-  calculateTax,
-  calculateTotal,
-} from '@/lib/utils';
-import { useMutation } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { AlertCircle, Wifi, WifiOff, XCircle } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+
 import { Cart } from './cart';
 import { Numpad } from './numpad';
 import { PaymentModal } from './payment-modal';
@@ -23,6 +15,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOfflineMode } from '@/hooks/use-offline-mode';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import {
+  generateTransactionId,
+  calculateSubtotal,
+  calculateTax,
+  calculateTotal,
+} from '@/lib/utils';
 import { useAuth } from '@/providers/auth-provider';
 
 type CartItem = {

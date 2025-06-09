@@ -1,14 +1,14 @@
 import crypto from 'crypto';
 
-import { prepareSubscriptionData } from '@shared/schema-helpers';
 import * as schema from '@shared/schema';
 import { NewSubscription } from '@shared/schema'; // Import NewSubscription
+import { prepareSubscriptionData } from '@shared/schema-helpers';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod'; // Import Zod
 
 import { db } from '../db';
-import { AffiliateService } from './affiliate/service';
 import { applyReferralDiscount, processAffiliateCommission } from './affiliate';
+import { AffiliateService } from './affiliate/service';
 import { PaymentService } from './payment/payment-service';
 
 // Zod Schemas for Paystack Payloads

@@ -8,8 +8,8 @@
 import * as crypto from 'crypto';
 
 import { db } from '@db/index';
-import { userValidation, SchemaValidationError } from '@shared/schema-validation';
 import * as schema from '@shared/schema';
+import { userValidation, SchemaValidationError } from '@shared/schema-validation';
 import * as bcrypt from 'bcrypt';
 import { eq, and } from 'drizzle-orm';
 

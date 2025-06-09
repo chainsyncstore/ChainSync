@@ -6,8 +6,8 @@
  */
 
 import { db } from '@db';
-import { productValidation, SchemaValidationError } from '@shared/schema-validation';
 import * as schema from '@shared/schema';
+import { productValidation, SchemaValidationError } from '@shared/schema-validation';
 import { eq, and, or, like, gte, lte, desc, sql } from 'drizzle-orm';
 
 import {
