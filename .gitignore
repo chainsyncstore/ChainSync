@@ -129,3 +129,8 @@ server/public
 # Compressed files
 *.tar.gz
 *.zip
+
+# Backup and temporary files
+dist.bak/
+lint-errors.txt
+package-lock.json.bak
