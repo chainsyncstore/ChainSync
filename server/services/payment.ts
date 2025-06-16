@@ -11,8 +11,8 @@ interface ErrorWithMessage {
 
 // Type declaration for modules without types
 // This is a simpler approach that avoids augmentation issues
-type PaystackClient = any;
-type FlutterwaveClient = any;
+type PaystackClient = Paystack;
+type FlutterwaveClient = Flutterwave;
 
 // Initialize payment providers
 const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;

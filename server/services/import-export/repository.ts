@@ -1,8 +1,9 @@
 import { ImportExportResult } from './types';
 import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
+import crypto from 'crypto';
 
 export class ImportExportRepository {
-  async createImport(userId: number, entityType: string, options?: any): Promise<string> {
+  async createImport(userId: number, entityType: string, options?: Record<string, unknown>): Promise<string> {
     try {
       // Implementation for creating import record
       // This is a placeholder and should be implemented based on your database
@@ -12,7 +13,7 @@ export class ImportExportRepository {
     }
   }
 
-  async getExportData(userId: number, entityType: string, options?: any): Promise<any[]> {
+  async getExportData(userId: number, entityType: string, options?: Record<string, unknown>): Promise<unknown[]> {
     try {
       // Implementation for getting export data
       // This is a placeholder and should be implemented based on your database
@@ -22,7 +23,7 @@ export class ImportExportRepository {
     }
   }
 
-  async processBatch(data: any[], importId: string): Promise<{ errors: any[] }> {
+  async processBatch(data: unknown[], importId: string): Promise<{ errors: unknown[] }> {
     try {
       // Implementation for processing batch
       // This is a placeholder and should be implemented based on your database

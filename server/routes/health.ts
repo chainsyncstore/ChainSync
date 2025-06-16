@@ -389,7 +389,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
  */
 router.get('/debug', async (req: Request, res: Response) => {
   // Check if user is admin
-  if (!(req as any).user?.isAdmin) {
+  if (!req.user?.role || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Unauthorized access' });
   }
   

@@ -50,7 +50,7 @@ jest.mock('@shared/schema-validation', () => ({
     webhook: jest.fn(data => data)
   },
   SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: any) {
+    constructor(message: string, options?: Record<string, unknown>) {
       super(message);
       this.name = 'SchemaValidationError';
     }
@@ -133,7 +133,7 @@ describe('SubscriptionService', () => {
         userId: 1,
         plan: SubscriptionPlan.BASIC,
         status: SubscriptionStatus.ACTIVE
-      } as any);
+      } as schema.Subscription);
       
       await expect(subscriptionService.createSubscription(validSubscriptionData))
         .rejects.toThrow(SubscriptionServiceErrors.DUPLICATE_SUBSCRIPTION.message);
@@ -267,7 +267,7 @@ describe('SubscriptionService', () => {
         id: subscriptionId,
         status: SubscriptionStatus.ACTIVE,
         metadata: JSON.stringify({ test: 'data' })
-      } as any);
+      } as schema.Subscription);
       
       // Mock returning to return the cancelled subscription
       (db.update().set().where().returning as jest.Mock).mockResolvedValue([
@@ -304,7 +304,7 @@ describe('SubscriptionService', () => {
         id: subscriptionId,
         status: SubscriptionStatus.CANCELLED,
         metadata: null
-      } as any);
+      } as schema.Subscription);
       
       await expect(subscriptionService.cancelSubscription(subscriptionId, reason))
         .rejects.toThrow(SubscriptionServiceErrors.INVALID_CANCELLATION.message);
@@ -388,7 +388,7 @@ describe('SubscriptionService', () => {
         userId,
         plan: SubscriptionPlan.PREMIUM,
         status: SubscriptionStatus.ACTIVE
-      } as any);
+      } as schema.Subscription);
       
       // Check access for basic plan (which is lower than premium)
       const result = await subscriptionService.validateSubscriptionAccess(userId, SubscriptionPlan.BASIC);
@@ -403,7 +403,7 @@ describe('SubscriptionService', () => {
         userId,
         plan: SubscriptionPlan.BASIC,
         status: SubscriptionStatus.ACTIVE
-      } as any);
+      } as schema.Subscription);
       
       // Check access for premium plan (which is higher than basic)
       const result = await subscriptionService.validateSubscriptionAccess(userId, SubscriptionPlan.PREMIUM);
@@ -427,7 +427,7 @@ describe('SubscriptionService', () => {
         userId,
         plan: SubscriptionPlan.BASIC,
         status: SubscriptionStatus.ACTIVE
-      } as any);
+      } as schema.Subscription);
       
       // Check access without specifying required plan
       const result = await subscriptionService.validateSubscriptionAccess(userId);

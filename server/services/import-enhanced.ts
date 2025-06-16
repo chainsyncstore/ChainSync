@@ -14,7 +14,7 @@ export interface ImportResult {
   totalRows: number;
   importedRows: number;
   errors: ImportError[];
-  mappedData: any[];
+  mappedData: Record<string, unknown>[];
   missingFields: MissingField[];
   lastUpdated?: Date;
 }
@@ -46,7 +46,7 @@ export const expectedSchemas = {
     barcode: { required: true, type: 'string', description: 'Product barcode or SKU' },
     description: { required: false, type: 'string', description: 'Product description' },
     price: { required: true, type: 'number', description: 'Product price' },
-    categoryId: { required: true, type: 'any', description: 'Category ID or name' },
+    categoryId: { required: true, type: 'string', description: 'Category ID or name' }, // Changed type to string, as it can be name
     quantity: { required: true, type: 'number', description: 'Current stock quantity' },
     minStockLevel: { required: false, type: 'number', description: 'Minimum stock level for alerts' },
     isPerishable: { required: false, type: 'boolean', description: 'Whether product is perishable' },
@@ -63,7 +63,7 @@ export const expectedSchemas = {
 };
 
 // Validate a data value against expected type
-export function validateDataType(value: any, expectedType: string): boolean {
+export function validateDataType(value: unknown, expectedType: string): boolean {
   if (value === null || value === undefined) return false;
   
   switch (expectedType) {
@@ -90,8 +90,8 @@ export function validateDataType(value: any, expectedType: string): boolean {
         return !isNaN(date.getTime());
       }
       return false;
-    case 'any':
-      return value !== null && value !== undefined;
+    // case 'any': // 'any' type is too broad, replaced with specific checks or removed
+    //   return value !== null && value !== undefined;
     default:
       return false;
   }
@@ -103,9 +103,9 @@ export async function processImportFile(
   fileType: string,
   dataType: 'loyalty' | 'inventory'
 ): Promise<{ 
-  data: any[]; 
+  data: Record<string, unknown>[];
   columnSuggestions: ColumnMapping[];
-  sampleData: any[];
+  sampleData: Record<string, unknown>[];
   headerValidation: {
     missingRequired: string[];
     foundHeaders: string[];
@@ -113,7 +113,7 @@ export async function processImportFile(
   }
 }> {
   // Parse file based on type
-  let parsedData: any[] = [];
+  let parsedData: Record<string, unknown>[] = [];
   let originalHeaders: string[] = [];
   
   try {
@@ -149,8 +149,8 @@ export async function processImportFile(
       originalHeaders = [];
       for (let col = range.s.c; col <= range.e.c; col++) {
         const cellAddress = xlsx.utils.encode_cell({ r: range.s.r, c: col });
-        if (worksheet[cellAddress]) {
-          originalHeaders.push(worksheet[cellAddress].v);
+        if (worksheet[cellAddress] && worksheet[cellAddress].v !== undefined) {
+          originalHeaders.push(String(worksheet[cellAddress].v));
         }
       }
       
@@ -202,11 +202,11 @@ export async function processImportFile(
 
 // Apply column mapping to raw data
 export function applyColumnMapping(
-  data: any[],
+  data: Record<string, unknown>[],
   mapping: Record<string, string>
-): any[] {
+): Record<string, unknown>[] {
   return data.map(row => {
-    const mappedRow: Record<string, any> = {};
+    const mappedRow: Record<string, unknown> = {};
     
     // Process each field using the provided mapping
     Object.entries(mapping).forEach(([source, target]) => {
@@ -221,7 +221,7 @@ export function applyColumnMapping(
 
 // Validate and clean inventory data
 export async function validateInventoryData(
-  data: any[]
+  data: Record<string, unknown>[]
 ): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
@@ -255,7 +255,7 @@ export async function validateInventoryData(
  * @returns Updated import result
  */
 export function basicValidateInventoryData(
-  data: any[],
+  data: Record<string, unknown>[],
   result: ImportResult
 ): ImportResult {
   const processedBarcodes = new Set<string>();
@@ -470,7 +470,7 @@ export function basicValidateInventoryData(
 
 // Validate and clean loyalty data
 export async function validateLoyaltyData(
-  data: any[]
+  data: Record<string, unknown>[]
 ): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
@@ -497,7 +497,7 @@ export async function validateLoyaltyData(
 
 // Basic loyalty data validation
 export function basicValidateLoyaltyData(
-  data: any[],
+  data: Record<string, unknown>[],
   result: ImportResult
 ): ImportResult {
   const processedLoyaltyIds = new Set<string>();
@@ -693,7 +693,7 @@ export function basicValidateLoyaltyData(
 }
 
 // Import validated inventory data to database
-export async function importInventoryData(data: any[], storeId: number): Promise<ImportResult> {
+export async function importInventoryData(data: Record<string, unknown>[], storeId: number): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -781,12 +781,12 @@ export async function importInventoryData(data: any[], storeId: number): Promise
       }
       
       result.importedRows++;
-    } catch (error: any) {
+    } catch (error) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
         value: JSON.stringify(row),
-        reason: error.message || 'Unknown error during import'
+        reason: error instanceof Error ? error.message : 'Unknown error during import'
       });
     }
   }
@@ -796,7 +796,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
 }
 
 // Import validated loyalty data to database
-export async function importLoyaltyData(data: any[], storeId: number): Promise<ImportResult> {
+export async function importLoyaltyData(data: Record<string, unknown>[], storeId: number): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -858,12 +858,12 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
       }
       
       result.importedRows++;
-    } catch (error: any) {
+    } catch (error) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
         value: JSON.stringify(row),
-        reason: error.message || 'Unknown error during import'
+        reason: error instanceof Error ? error.message : 'Unknown error during import'
       });
     }
   }
@@ -910,7 +910,7 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
   
   // Sort data rows by row number (preserve header rows)
   const headerRows = rows.slice(0, 7); // First 7 rows are header info
-  const dataRows = rows.slice(7).sort((a: any[], b: any[]) => {
+  const dataRows = rows.slice(7).sort((a: string[], b: string[]) => {
     // Check if the values are parseable numbers
     const numA = !isNaN(parseInt(a[0])) ? parseInt(a[0]) : 0;
     const numB = !isNaN(parseInt(b[0])) ? parseInt(b[0]) : 0;
@@ -926,7 +926,7 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
 
 // This function analyzes the headers and suggests mappings
 async function getColumnMappingSuggestions(
-  sampleRow: Record<string, any>,
+  sampleRow: Record<string, unknown>,
   dataType: 'loyalty' | 'inventory'
 ): Promise<ColumnMapping[]> {
   const sourceColumns = Object.keys(sampleRow);

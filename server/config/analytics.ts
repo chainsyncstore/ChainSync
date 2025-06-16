@@ -21,7 +21,7 @@ export interface AnalyticsError extends AppError {
   category: ErrorCategory;
   retryable?: boolean;
   retryDelay?: number;
-  context?: any;
+  context?: Record<string, unknown>;
 }
 
 export const AnalyticsServiceErrors = {

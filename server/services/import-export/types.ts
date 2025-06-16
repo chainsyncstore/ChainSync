@@ -12,12 +12,12 @@ declare global {
 }
 
 export interface IES {
-  validateData(data: any[], options?: ValidationOptions): Promise<ImportExportResult>;
-  importData(userId: number, data: any[], entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
+  validateData(data: Record<string, unknown>[], options?: ValidationOptions): Promise<ImportExportResult>;
+  importData(userId: number, data: Record<string, unknown>[], entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
   exportData(userId: number, entityType: string, options?: ExportOptions): Promise<Buffer>;
-  validateFile(file: File): Promise<{ type: string; data: any[] }>;
-  processImport(data: any[], options: ImportExportOptions, importId: string): Promise<ImportExportResult>;
-  processBatch(data: any[], importId: string): Promise<ImportExportResult>;
+  validateFile(file: File): Promise<{ type: string; data: Record<string, unknown>[] }>;
+  processImport(data: Record<string, unknown>[], options: ImportExportOptions, importId: string): Promise<ImportExportResult>;
+  processBatch(data: Record<string, unknown>[], importId: string): Promise<ImportExportResult>;
 }
 
 export interface ImportExportConfig {
@@ -43,14 +43,14 @@ export interface ImportExportProgress {
 
 export interface ValidationOptions {
   requiredFields?: string[];
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 export interface ImportExportResult {
   success: boolean;
   message: string;
-  data?: any[];
-  errors?: any[];
+  data?: Record<string, unknown>[];
+  errors?: Record<string, unknown>[];
   validCount: number;
   invalidCount: number;
   totalProcessed: number;
@@ -63,7 +63,7 @@ export interface ImportExportOptions {
   delimiter?: string;
   includeHeaders?: boolean;
   format?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 export interface ExportOptions {

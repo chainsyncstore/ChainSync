@@ -11,7 +11,7 @@ export class AnalyticsService extends BaseService {
   private redis: Redis;
   private cache: CacheService;
   private config: AnalyticsConfig;
-  private aggregationQueue: Array<any>;
+  private aggregationQueue: Array<Record<string, unknown>>;
 
   constructor(config: Partial<AnalyticsConfig> = {}) {
     super();
@@ -28,11 +28,11 @@ export class AnalyticsService extends BaseService {
     setInterval(() => this.processAggregationQueue(), this.config.aggregation.window * 1000);
   }
 
-  private generateCacheKey(query: string, params: any): string {
+  private generateCacheKey(query: string, params: Record<string, unknown>): string {
     return `analytics:${query}:${JSON.stringify(params)}`;
   }
 
-  private async validateQuery(query: string, params: any): Promise<void> {
+  private async validateQuery(query: string, params: Record<string, unknown>): Promise<void> {
     if (!query) {
       throw AnalyticsServiceErrors.INVALID_QUERY;
     }
@@ -56,7 +56,7 @@ export class AnalyticsService extends BaseService {
       // Process in batches
       for (let i = 0; i < this.aggregationQueue.length; i += this.config.aggregation.batchSize) {
         const batch = this.aggregationQueue.slice(i, i + this.config.aggregation.batchSize);
-        await Promise.all(batch.map(async (item: any) => {
+        await Promise.all(batch.map(async (item: Record<string, unknown>) => {
           try {
             await this.processAggregation(item);
           } catch (error) {
@@ -71,7 +71,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  private async processAggregation(item: any): Promise<void> {
+  private async processAggregation(item: Record<string, unknown>): Promise<void> {
     try {
       // Implement specific aggregation logic based on item type
       switch (item.type) {
@@ -96,7 +96,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  private async aggregateTransaction(data: any): Promise<void> {
+  private async aggregateTransaction(data: Record<string, unknown>): Promise<void> {
     try {
       // Aggregate transaction metrics
       const metrics = {
@@ -118,7 +118,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  private async aggregateUser(data: any): Promise<void> {
+  private async aggregateUser(data: Record<string, unknown>): Promise<void> {
     try {
       // Aggregate user metrics
       const metrics = {
@@ -142,7 +142,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  private async aggregateProduct(data: any): Promise<void> {
+  private async aggregateProduct(data: Record<string, unknown>): Promise<void> {
     try {
       // Aggregate product metrics
       const metrics = {
@@ -172,7 +172,7 @@ export class AnalyticsService extends BaseService {
     startDate: Date,
     endDate: Date,
     interval: 'day' | 'week' | 'month' = 'day'
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     try {
       // Validate query
       await this.validateQuery('store_metrics', { storeId, startDate, endDate, interval });
@@ -229,7 +229,7 @@ export class AnalyticsService extends BaseService {
     startDate: Date,
     endDate: Date,
     interval: 'day' | 'week' | 'month' = 'day'
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     try {
       // Validate query
       await this.validateQuery('user_metrics', { storeId, startDate, endDate, interval });
@@ -288,7 +288,7 @@ export class AnalyticsService extends BaseService {
     startDate: Date,
     endDate: Date,
     interval: 'day' | 'week' | 'month' = 'day'
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     try {
       // Validate query
       await this.validateQuery('product_metrics', { storeId, startDate, endDate, interval });
@@ -346,7 +346,7 @@ export class AnalyticsService extends BaseService {
     startDate: Date,
     endDate: Date,
     interval: 'day' | 'week' | 'month' = 'day'
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     try {
       // Validate query
       await this.validateQuery('loyalty_metrics', { storeId, startDate, endDate, interval });
@@ -401,7 +401,7 @@ export class AnalyticsService extends BaseService {
 
   async addAggregationToQueue(
     type: string,
-    data: any
+    data: Record<string, unknown>
   ): Promise<void> {
     try {
       this.aggregationQueue.push({ type, data });
@@ -421,7 +421,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  async getCacheStats(): Promise<any> {
+  async getCacheStats(): Promise<Record<string, unknown>> {
     try {
       return await this.cache.getStats();
     } catch (error) {

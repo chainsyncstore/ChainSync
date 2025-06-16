@@ -14,7 +14,7 @@ export interface ImportResult {
   totalRows: number;
   importedRows: number;
   errors: ImportError[];
-  mappedData: any[];
+  mappedData: Record<string, unknown>[];
   missingFields: MissingField[];
 }
 
@@ -45,7 +45,7 @@ export const expectedSchemas = {
     barcode: { required: true, type: 'string', description: 'Product barcode or SKU' },
     description: { required: false, type: 'string', description: 'Product description' },
     price: { required: true, type: 'number', description: 'Product price' },
-    categoryId: { required: true, type: 'any', description: 'Category ID or name' },
+    categoryId: { required: true, type: 'string', description: 'Category ID or name' }, // Changed type to string
     quantity: { required: true, type: 'number', description: 'Current stock quantity' },
     minStockLevel: { required: false, type: 'number', description: 'Minimum stock level for alerts' },
     isPerishable: { required: false, type: 'boolean', description: 'Whether product is perishable' },
@@ -62,7 +62,7 @@ export const expectedSchemas = {
 };
 
 // Validate a data value against expected type
-export function validateDataType(value: any, expectedType: string): boolean {
+export function validateDataType(value: unknown, expectedType: string): boolean {
   if (value === null || value === undefined) return false;
   
   switch (expectedType) {
@@ -78,7 +78,7 @@ export function validateDataType(value: any, expectedType: string): boolean {
     case 'boolean':
       if (typeof value === 'boolean') return true;
       if (typeof value === 'string') {
-        const lowered = value.toLowerCase();
+        const lowered = String(value).toLowerCase();
         return ['true', 'false', 'yes', 'no', '1', '0'].includes(lowered);
       }
       return false;
@@ -89,8 +89,6 @@ export function validateDataType(value: any, expectedType: string): boolean {
         return !isNaN(date.getTime());
       }
       return false;
-    case 'any':
-      return value !== null && value !== undefined;
     default:
       return false;
   }
@@ -102,9 +100,9 @@ export async function processImportFile(
   fileType: string,
   dataType: 'loyalty' | 'inventory'
 ): Promise<{ 
-  data: any[]; 
+  data: Record<string, unknown>[];
   columnSuggestions: ColumnMapping[];
-  sampleData: any[];
+  sampleData: Record<string, unknown>[];
   headerValidation: {
     missingRequired: string[];
     foundHeaders: string[];
@@ -112,7 +110,7 @@ export async function processImportFile(
   }
 }> {
   // Parse file based on type
-  let parsedData: any[] = [];
+  let parsedData: Record<string, unknown>[] = [];
   let originalHeaders: string[] = [];
   
   try {
@@ -148,18 +146,18 @@ export async function processImportFile(
       originalHeaders = [];
       for (let col = range.s.c; col <= range.e.c; col++) {
         const cellAddress = xlsx.utils.encode_cell({ r: range.s.r, c: col });
-        if (worksheet[cellAddress]) {
-          originalHeaders.push(worksheet[cellAddress].v);
+        if (worksheet[cellAddress] && worksheet[cellAddress].v !== undefined) {
+          originalHeaders.push(String(worksheet[cellAddress].v));
         }
       }
       
-      parsedData = xlsx.utils.sheet_to_json(worksheet);
+      parsedData = xlsx.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
     } else {
       throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error parsing file:', error);
-    throw new Error(`Failed to parse file: ${error.message || 'Unknown error'}`);
+    throw new Error(`Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
   if (parsedData.length === 0) {
@@ -201,7 +199,7 @@ export async function processImportFile(
 
 // This function analyzes the headers and suggests mappings
 async function getColumnMappingSuggestions(
-  sampleRow: Record<string, any>,
+  sampleRow: Record<string, unknown>,
   dataType: 'loyalty' | 'inventory'
 ): Promise<ColumnMapping[]> {
   const sourceColumns = Object.keys(sampleRow);
@@ -224,7 +222,7 @@ async function getColumnMappingSuggestions(
   try {
     const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
     return enhancedSuggestions;
-  } catch (error: any) {
+  } catch (error) {
     console.log("Error enhancing mappings with AI:", error);
     // If AI enhancement fails, return the basic pattern matching results
     return suggestions;
@@ -296,7 +294,7 @@ async function enhanceMappingsWithAI(
     const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
     
     return improvedMappings;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error using Dialogflow for column mapping:", error);
     return initialSuggestions;
   }
@@ -451,11 +449,11 @@ function findBestMatch(
 
 // Apply column mapping to transform imported data
 export function applyColumnMapping(
-  data: any[],
+  data: Record<string, unknown>[],
   mapping: Record<string, string>
-): any[] {
+): Record<string, unknown>[] {
   return data.map(row => {
-    const transformedRow: Record<string, any> = {};
+    const transformedRow: Record<string, unknown> = {};
     
     for (const [source, target] of Object.entries(mapping)) {
       if (target && row[source] !== undefined) {
@@ -469,7 +467,7 @@ export function applyColumnMapping(
 
 // Validate and clean loyalty data with AI enhancement
 export async function validateLoyaltyData(
-  data: any[]
+  data: Record<string, unknown>[]
 ): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
@@ -486,7 +484,7 @@ export async function validateLoyaltyData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'loyalty');
-  } catch (error: any) {
+  } catch (error) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -503,7 +501,7 @@ export async function validateLoyaltyData(
  * @returns Updated import result
  */
 function validateLoyaltyRow(
-  cleanedRow: any,
+  cleanedRow: Record<string, unknown>,
   rowNumber: number,
   result: ImportResult,
   processedEmails: Set<string>
@@ -511,7 +509,7 @@ function validateLoyaltyRow(
   let hasErrors = false;
 
   // Full name validation
-  if (!cleanedRow.fullName || cleanedRow.fullName.trim().length < 3) {
+  if (!cleanedRow.fullName || String(cleanedRow.fullName).trim().length < 3) {
     result.missingFields.push({
       row: rowNumber,
       field: 'fullName',
@@ -523,24 +521,24 @@ function validateLoyaltyRow(
   // Email validation
   if (cleanedRow.email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanedRow.email)) {
+    if (!emailRegex.test(String(cleanedRow.email))) {
       result.errors.push({
         row: rowNumber,
         field: 'email',
-        value: cleanedRow.email,
+        value: String(cleanedRow.email),
         reason: 'Invalid email format'
       });
       hasErrors = true;
-    } else if (processedEmails.has(cleanedRow.email.toLowerCase())) {
+    } else if (processedEmails.has(String(cleanedRow.email).toLowerCase())) {
       result.errors.push({
         row: rowNumber,
         field: 'email',
-        value: cleanedRow.email,
+        value: String(cleanedRow.email),
         reason: 'Duplicate email found'
       });
       hasErrors = true;
     } else {
-      processedEmails.add(cleanedRow.email.toLowerCase());
+      processedEmails.add(String(cleanedRow.email).toLowerCase());
     }
   } else {
     result.missingFields.push({
@@ -553,12 +551,12 @@ function validateLoyaltyRow(
 
   // Phone validation (optional but example shown)
   if (cleanedRow.phone) {
-    const cleanPhone = cleanedRow.phone.toString().replace(/\D/g, '');
+    const cleanPhone = String(cleanedRow.phone).replace(/\D/g, '');
     if (cleanPhone.length < 7) {
       result.errors.push({
         row: rowNumber,
         field: 'phone',
-        value: cleanedRow.phone,
+        value: String(cleanedRow.phone),
         reason: 'Phone number must be at least 7 digits'
       });
       hasErrors = true;
@@ -571,13 +569,13 @@ function validateLoyaltyRow(
 }
 
 export function basicValidateLoyaltyData(
-  data: any[],
+  data: Record<string, unknown>[],
   result: ImportResult
 ): ImportResult {
   const processedEmails = new Set<string>();
   data.forEach((row, idx) => {
     const rowNumber = idx + 2; // +2 if header is row 1
-    const cleanedRow = { ...row };
+    const cleanedRow: Record<string, unknown> = { ...row };
     const hasErrors = validateLoyaltyRow(cleanedRow, rowNumber, result, processedEmails);
     if (!hasErrors) {
       result.mappedData.push(cleanedRow);
@@ -590,7 +588,7 @@ export function basicValidateLoyaltyData(
 
 // Validate and clean inventory data
 export async function validateInventoryData(
-  data: any[]
+  data: Record<string, unknown>[]
 ): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
@@ -607,7 +605,7 @@ export async function validateInventoryData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'inventory');
-  } catch (error: any) {
+  } catch (error) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -624,7 +622,7 @@ export async function validateInventoryData(
  * @returns Updated import result
  */
 export function basicValidateInventoryData(
-  data: any[],
+  data: Record<string, unknown>[],
   result: ImportResult
 ): ImportResult {
   const processedBarcodes = new Set<string>();
@@ -632,7 +630,7 @@ export function basicValidateInventoryData(
   
   data.forEach((row, index) => {
     const rowNumber = index + 1;
-    const cleanedRow = { ...row };
+    const cleanedRow: Record<string, unknown> = { ...row };
     let hasErrors = false;
     
     // Validate each field against the expected schema
@@ -640,7 +638,7 @@ export function basicValidateInventoryData(
       const value = cleanedRow[field];
       
       // Check required fields
-      if (definition.required && (value === null || value === undefined || value === '')) {
+      if (definition.required && (value === null || value === undefined || String(value).trim() === '')) {
         result.missingFields.push({
           row: rowNumber,
           field,
@@ -651,7 +649,7 @@ export function basicValidateInventoryData(
       }
       
       // Skip validation for optional empty fields
-      if (!definition.required && (value === null || value === undefined || value === '')) {
+      if (!definition.required && (value === null || value === undefined || String(value).trim() === '')) {
         return;
       }
       
@@ -694,10 +692,10 @@ export function basicValidateInventoryData(
       hasErrors = true;
     } else {
       // Try to match category by name if it's not a number
-      if (isNaN(parseInt(cleanedRow.categoryId, 10))) {
+      if (isNaN(parseInt(String(cleanedRow.categoryId), 10))) {
         // We'll let the import process handle category name matching
       } else {
-        cleanedRow.categoryId = parseInt(cleanedRow.categoryId, 10);
+        cleanedRow.categoryId = parseInt(String(cleanedRow.categoryId), 10);
       }
     }
 
@@ -711,15 +709,15 @@ export function basicValidateInventoryData(
     } else {
       // Ensure quantity is a valid number
       try {
-        cleanedRow.quantity = parseInt(cleanedRow.quantity, 10);
-        if (isNaN(cleanedRow.quantity) || cleanedRow.quantity < 0) {
+        cleanedRow.quantity = parseInt(String(cleanedRow.quantity), 10);
+        if (isNaN(cleanedRow.quantity as number) || (cleanedRow.quantity as number) < 0) {
           throw new Error('Invalid quantity');
         }
-      } catch (error: any) {
+      } catch (error) {
         result.errors.push({
           row: rowNumber,
           field: 'quantity',
-          value: row.quantity,
+          value: String(row.quantity),
           reason: 'Quantity must be a valid positive number'
         });
         hasErrors = true;
@@ -727,17 +725,17 @@ export function basicValidateInventoryData(
     }
     
     // Validate reorderLevel field if present
-    if (cleanedRow.reorderLevel !== undefined && cleanedRow.reorderLevel !== null && cleanedRow.reorderLevel !== '') {
+    if (cleanedRow.reorderLevel !== undefined && cleanedRow.reorderLevel !== null && String(cleanedRow.reorderLevel).trim() !== '') {
       try {
-        cleanedRow.reorderLevel = parseInt(cleanedRow.reorderLevel, 10);
-        if (isNaN(cleanedRow.reorderLevel) || cleanedRow.reorderLevel < 0) {
+        cleanedRow.reorderLevel = parseInt(String(cleanedRow.reorderLevel), 10);
+        if (isNaN(cleanedRow.reorderLevel as number) || (cleanedRow.reorderLevel as number) < 0) {
           throw new Error('Invalid reorder level');
         }
-      } catch (error: any) {
+      } catch (error) {
         result.errors.push({
           row: rowNumber,
           field: 'reorderLevel',
-          value: row.reorderLevel,
+          value: String(row.reorderLevel),
           reason: 'Reorder level must be a valid positive number'
         });
         hasErrors = true;
@@ -745,17 +743,17 @@ export function basicValidateInventoryData(
     }
     
     // Validate reorderQuantity field if present
-    if (cleanedRow.reorderQuantity !== undefined && cleanedRow.reorderQuantity !== null && cleanedRow.reorderQuantity !== '') {
+    if (cleanedRow.reorderQuantity !== undefined && cleanedRow.reorderQuantity !== null && String(cleanedRow.reorderQuantity).trim() !== '') {
       try {
-        cleanedRow.reorderQuantity = parseInt(cleanedRow.reorderQuantity, 10);
-        if (isNaN(cleanedRow.reorderQuantity) || cleanedRow.reorderQuantity < 0) {
+        cleanedRow.reorderQuantity = parseInt(String(cleanedRow.reorderQuantity), 10);
+        if (isNaN(cleanedRow.reorderQuantity as number) || (cleanedRow.reorderQuantity as number) < 0) {
           throw new Error('Invalid reorder quantity');
         }
-      } catch (error: any) {
+      } catch (error) {
         result.errors.push({
           row: rowNumber,
           field: 'reorderQuantity',
-          value: row.reorderQuantity,
+          value: String(row.reorderQuantity),
           reason: 'Reorder quantity must be a valid positive number'
         });
         hasErrors = true;
@@ -772,13 +770,13 @@ export function basicValidateInventoryData(
     } else {
       // Ensure storeId is a number
       try {
-        cleanedRow.storeId = parseInt(cleanedRow.storeId, 10);
-        if (isNaN(cleanedRow.storeId)) throw new Error('Invalid store ID');
-      } catch (error: any) {
+        cleanedRow.storeId = parseInt(String(cleanedRow.storeId), 10);
+        if (isNaN(cleanedRow.storeId as number)) throw new Error('Invalid store ID');
+      } catch (error) {
         result.errors.push({
           row: rowNumber,
           field: 'storeId',
-          value: row.storeId,
+          value: String(row.storeId),
           reason: 'Store ID must be a valid number'
         });
         hasErrors = true;
@@ -798,7 +796,7 @@ export function basicValidateInventoryData(
           result.errors.push({
             row: rowNumber,
             field: 'isPerishable',
-            value: row.isPerishable,
+            value: String(row.isPerishable),
             reason: 'Invalid value for perishable flag. Use Yes/No, True/False, 1/0, etc.'
           });
           hasErrors = true;
@@ -819,9 +817,9 @@ export function basicValidateInventoryData(
     }
     
     // Validate expiry date if present
-    if (cleanedRow.expiryDate !== undefined && cleanedRow.expiryDate !== null && cleanedRow.expiryDate !== '') {
+    if (cleanedRow.expiryDate !== undefined && cleanedRow.expiryDate !== null && String(cleanedRow.expiryDate).trim() !== '') {
       try {
-        const date = new Date(cleanedRow.expiryDate);
+        const date = new Date(String(cleanedRow.expiryDate));
         if (isNaN(date.getTime())) {
           throw new Error('Invalid date format');
         }
@@ -831,18 +829,18 @@ export function basicValidateInventoryData(
           result.errors.push({
             row: rowNumber,
             field: 'expiryDate',
-            value: cleanedRow.expiryDate,
+            value: String(cleanedRow.expiryDate),
             reason: 'Expiry date must be in the future for perishable items'
           });
           hasErrors = true;
         } else {
           cleanedRow.expiryDate = date.toISOString().split('T')[0]; // Store as YYYY-MM-DD
         }
-      } catch (error: any) {
+      } catch (error) {
         result.errors.push({
           row: rowNumber,
           field: 'expiryDate',
-          value: cleanedRow.expiryDate,
+          value: String(cleanedRow.expiryDate),
           reason: 'Invalid date format. Use YYYY-MM-DD'
         });
         hasErrors = true;
@@ -867,7 +865,7 @@ export function basicValidateInventoryData(
 } // Closes basicValidateInventoryData function
 
 // Import validated loyalty data to database
-export async function importLoyaltyData(data: any[], storeId: number): Promise<ImportResult> {
+export async function importLoyaltyData(data: Record<string, unknown>[], storeId: number): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -889,19 +887,19 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
 
     try {
       // Check if loyalty ID already exists
-      const existingMember = await storage.getLoyaltyMemberByLoyaltyId(row.loyaltyId);
+      const existingMember = await storage.getLoyaltyMemberByLoyaltyId(String(row.loyaltyId));
       
       if (existingMember) {
         // Update existing member with valid fields
         const updatePayload: Partial<schema.LoyaltyMember> = {};
         if (row.points !== undefined) {
-          updatePayload.currentPoints = row.points.toString();
+          updatePayload.currentPoints = String(row.points);
         }
         if (row.tierId !== undefined) { // Use tierId from row if present
-          updatePayload.tierId = row.tierId;
+          updatePayload.tierId = row.tierId as number | null;
         }
         if (row.enrollmentDate !== undefined) {
-          updatePayload.enrollmentDate = new Date(row.enrollmentDate);
+          updatePayload.enrollmentDate = new Date(String(row.enrollmentDate));
         }
         updatePayload.lastActivity = new Date(); // Corrected property name
 
@@ -909,9 +907,9 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
       } else {
         // Create new user (customer) first
         const userData: schema.UserInsert = {
-          fullName: row.fullName,
-          email: row.email || null,
-          // phone: row.phone || null, // Removed as 'phone' is not in UserInsert schema
+          fullName: String(row.fullName),
+          email: String(row.email) || null,
+          // phone: String(row.phone) || null, // Removed as 'phone' is not in UserInsert schema
           // storeId: storeId // Removed as UserInsert schema does not currently accept it
           // Add other relevant fields for user creation if necessary
         };
@@ -920,12 +918,12 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
         
         // Create new loyalty member linked to user
         const memberData: schema.LoyaltyMemberInsert = {
-          loyaltyId: row.loyaltyId,
+          loyaltyId: String(row.loyaltyId),
           userId: user.id, // Link to user.id, assuming LoyaltyMember links to User now
           loyaltyProgramId: loyaltyProgram.id, // Link to the loyalty program
-          tierId: row.tierId || null, // Default tier or from row
-          currentPoints: row.points ? row.points.toString() : "0",
-          enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : new Date(),
+          tierId: row.tierId as number | null || null, // Default tier or from row
+          currentPoints: row.points ? String(row.points) : "0",
+          enrollmentDate: row.enrollmentDate ? new Date(String(row.enrollmentDate)) : new Date(),
           lastActivity: new Date() // Corrected property name here too
         };
         
@@ -933,12 +931,12 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
       }
       
       result.importedRows++;
-    } catch (error: any) {
+    } catch (error) {
       result.errors.push({
         row: rowNumber, // Ensure rowNumber is defined in this scope
         field: 'general',
         value: JSON.stringify(row), // Ensure row is defined in this scope
-        reason: error.message || 'Unknown error during import'
+        reason: error instanceof Error ? error.message : 'Unknown error during import'
       });
     }
   }
@@ -948,7 +946,7 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
 }
 
 // Import validated inventory data to database
-export async function importInventoryData(data: any[], storeId: number): Promise<ImportResult> {
+export async function importInventoryData(data: Record<string, unknown>[], storeId: number): Promise<ImportResult> {
   const result: ImportResult = {
     success: true,
     totalRows: data.length,
@@ -971,7 +969,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
     
     try {
       // Resolve category ID if it's a name
-      let categoryId = row.categoryId;
+      let categoryId = row.categoryId as string | number;
       if (typeof categoryId === 'string' && isNaN(parseInt(categoryId, 10))) {
         const matchedCategoryId = categoryMap.get(categoryId.toLowerCase());
         if (!matchedCategoryId) {
@@ -981,48 +979,48 @@ export async function importInventoryData(data: any[], storeId: number): Promise
       }
       
       // Check if product already exists by barcode
-      const existingProduct = await storage.getProductByBarcode(row.barcode);
+      const existingProduct = await storage.getProductByBarcode(String(row.barcode));
       
       if (existingProduct) {
         // Update existing product
         await storage.updateProduct(existingProduct.id, {
-          name: row.name,
+          name: String(row.name),
           // TODO: Add 'description' to ProductUpdate schema if it's a valid updatable field
-          // description: row.description || existingProduct.description,
-          price: row.price.toString(),
+          // description: String(row.description) || existingProduct.description,
+          price: String(row.price),
           // TODO: Add 'categoryId' to ProductUpdate schema if it's a valid updatable field
-          // categoryId: categoryId,
-          isPerishable: row.isPerishable !== undefined ? row.isPerishable : existingProduct.isPerishable,
+          // categoryId: categoryId as number,
+          isPerishable: row.isPerishable !== undefined ? Boolean(row.isPerishable) : existingProduct.isPerishable,
         });
         
         // Update inventory quantity
         const inventory = await storage.getStoreProductInventory(storeId, existingProduct.id);
         if (inventory) {
           await storage.updateInventory(inventory.id, {
-            totalQuantity: row.quantity
+            totalQuantity: Number(row.quantity)
           });
         } else {
           // Create inventory record if it doesn't exist
           await db.insert(schema.inventory).values({
             storeId: storeId,
             productId: existingProduct.id,
-            totalQuantity: row.quantity,
-            minimumLevel: row.minimumLevel || 10,
-            batchNumber: row.batchNumber || null,
-            expiryDate: row.expiryDate ? new Date(row.expiryDate) : null,
+            totalQuantity: Number(row.quantity),
+            minimumLevel: Number(row.minimumLevel) || 10,
+            batchNumber: String(row.batchNumber) || null,
+            expiryDate: row.expiryDate ? new Date(String(row.expiryDate)) : null,
             lastStockUpdate: new Date()
           });
         }
       } else {
         // Create new product
         const productData: schema.ProductInsert = {
-          name: row.name,
-          description: row.description || '',
-          barcode: row.barcode,
-          price: row.price.toString(),
-          cost: row.cost ? row.cost.toString() : '0',
-          categoryId: categoryId,
-          isPerishable: row.isPerishable || false,
+          name: String(row.name),
+          description: String(row.description) || '',
+          barcode: String(row.barcode),
+          price: String(row.price),
+          cost: row.cost ? String(row.cost) : '0',
+          categoryId: categoryId as number,
+          isPerishable: Boolean(row.isPerishable) || false,
         };
         
         const newProduct = await storage.createProduct(productData);
@@ -1031,21 +1029,21 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         await db.insert(schema.inventory).values({
           storeId: storeId,
           productId: newProduct.id,
-          totalQuantity: row.quantity,
-          minimumLevel: row.minimumLevel || 10,
-          batchNumber: row.batchNumber || null,
-          expiryDate: row.expiryDate ? new Date(row.expiryDate) : null,
+          totalQuantity: Number(row.quantity),
+          minimumLevel: Number(row.minimumLevel) || 10,
+          batchNumber: String(row.batchNumber) || null,
+          expiryDate: row.expiryDate ? new Date(String(row.expiryDate)) : null,
           lastStockUpdate: new Date()
         } as typeof schema.inventory.$inferInsert); // Added explicit cast
       }
       
       result.importedRows++;
-    } catch (error: any) {
+    } catch (error) {
       result.errors.push({
         row: rowNumber,
         field: 'general',
         value: JSON.stringify(row),
-        reason: error.message || 'Unknown error during import'
+        reason: error instanceof Error ? error.message : 'Unknown error during import'
       });
     }
   }

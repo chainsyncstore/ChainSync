@@ -127,7 +127,7 @@ export async function handleFlutterwaveWebhook(signature: string, rawPayload: st
 /**
  * Handle Paystack subscription create event
  */
-async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
+async function handlePaystackSubscriptionCreate(data: Record<string, unknown>): Promise<boolean> {
   try {
     // Extract user and subscription details
     const userId = data.customer.metadata.user_id;
@@ -199,7 +199,7 @@ async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
 /**
  * Handle Paystack charge success event
  */
-async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
+async function handlePaystackChargeSuccess(data: Record<string, unknown>): Promise<boolean> {
   try {
     // This handles one-time payments and subscription renewals
     const metadata = data.metadata || {};
@@ -259,7 +259,7 @@ async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
 /**
  * Handle Paystack subscription disable event
  */
-async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
+async function handlePaystackSubscriptionDisable(data: Record<string, unknown>): Promise<boolean> {
   try {
     // Find the subscription
     const [subscription] = await db.select()
@@ -291,7 +291,7 @@ async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
 /**
  * Handle Flutterwave subscription create event
  */
-async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> {
+async function handleFlutterwaveSubscriptionCreate(data: Record<string, unknown>): Promise<boolean> {
   try {
     // Extract user and subscription details
     const userId = data.customer?.meta?.user_id;
@@ -362,7 +362,7 @@ async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> 
 /**
  * Handle Flutterwave charge completed event
  */
-async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
+async function handleFlutterwaveChargeCompleted(data: Record<string, unknown>): Promise<boolean> {
   try {
     // Extract metadata
     const meta = data.meta || {};
@@ -422,7 +422,7 @@ async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
 /**
  * Handle Flutterwave subscription cancelled event
  */
-async function handleFlutterwaveSubscriptionCancelled(data: any): Promise<boolean> {
+async function handleFlutterwaveSubscriptionCancelled(data: Record<string, unknown>): Promise<boolean> {
   try {
     // Find the subscription
     const [subscription] = await db.select()

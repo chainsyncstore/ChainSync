@@ -66,11 +66,11 @@ export class ImportExportService {
     this.validationService = new ValidationServiceImpl();
   }
 
-  async validateData(data: any[], options?: ValidationOptions): Promise<{
+  async validateData(data: Record<string, unknown>[], options?: ValidationOptions): Promise<{
     success: boolean;
     message: string;
-    data?: any[];
-    errors?: { record: any; errors: string[] }[];
+    data?: Record<string, unknown>[];
+    errors?: { record: Record<string, unknown>; errors: string[] }[];
     validCount: number;
     invalidCount: number;
     totalProcessed: number;
@@ -98,17 +98,17 @@ export class ImportExportService {
     }
   }
 
-  async importData(userId: number, data: any[], entityType: string, options?: {
+  async importData(userId: number, data: Record<string, unknown>[], entityType: string, options?: {
     batchSize?: number;
     delimiter?: string;
     includeHeaders?: boolean;
     format?: string;
-    filters?: Record<string, any>;
+    filters?: Record<string, unknown>;
   }): Promise<{
     success: boolean;
     message: string;
-    data?: any[];
-    errors?: any[];
+    data?: Record<string, unknown>[];
+    errors?: Record<string, unknown>[];
     validCount: number;
     invalidCount: number;
     totalProcessed: number;
@@ -143,7 +143,7 @@ export class ImportExportService {
     }
   }
 
-  async validateFile(file: Express.Multer.File): Promise<{ type: string; data: any[] }> {
+  async validateFile(file: Express.Multer.File): Promise<{ type: string; data: Record<string, unknown>[] }> {
     try {
       // Check file size
       if (file.size > 50 * 1024 * 1024) { // 50MB
@@ -157,7 +157,7 @@ export class ImportExportService {
         throw this.errors.INVALID_FILE_FORMAT;
       }
 
-      let parsedData: any[] = [];
+      let parsedData: Record<string, unknown>[] = [];
 
       switch (extension) {
         case 'csv':
@@ -182,12 +182,12 @@ export class ImportExportService {
     }
   }
 
-  async processImport(data: any[], options: {
+  async processImport(data: Record<string, unknown>[], options: {
     batchSize?: number;
     delimiter?: string;
     includeHeaders?: boolean;
     format?: string;
-    filters?: Record<string, any>;
+    filters?: Record<string, unknown>;
   }, importId: string): Promise<{
     success: boolean;
     message: string;
@@ -228,7 +228,7 @@ export class ImportExportService {
     }
   }
 
-  async processBatch(data: any[], importId: string): Promise<{
+  async processBatch(data: Record<string, unknown>[], importId: string): Promise<{
     success: boolean;
     message: string;
     validCount: number;
@@ -254,7 +254,7 @@ export class ImportExportService {
     }
   }
 
-  private async generateCSV(data: any[], options: {
+  private async generateCSV(data: Record<string, unknown>[], options: {
     format: string;
     includeHeaders: boolean;
     delimiter?: string;
@@ -274,7 +274,7 @@ export class ImportExportService {
     }
   }
 
-  private async generateJSON(data: any[]): Promise<Buffer> {
+  private async generateJSON(data: Record<string, unknown>[]): Promise<Buffer> {
     try {
       return Buffer.from(JSON.stringify(data, null, 2));
     } catch (error) {
@@ -282,7 +282,7 @@ export class ImportExportService {
     }
   }
 
-  private async generateExcel(data: any[], options: {
+  private async generateExcel(data: Record<string, unknown>[], options: {
     format: string;
     includeHeaders: boolean;
     delimiter?: string;
@@ -305,7 +305,7 @@ export class ImportExportService {
     }
   }
 
-  private async parseCSV(buffer: Buffer): Promise<any[]> {
+  private async parseCSV(buffer: Buffer): Promise<Record<string, unknown>[]> {
     try {
       const parser = parse({
         columns: true,
@@ -313,7 +313,7 @@ export class ImportExportService {
       });
 
       return new Promise((resolve, reject) => {
-        const results: any[] = [];
+        const results: Record<string, unknown>[] = [];
         parser.on('data', (row) => {
           results.push(row);
         });
@@ -331,7 +331,7 @@ export class ImportExportService {
     }
   }
 
-  private async parseJSON(buffer: Buffer): Promise<any[]> {
+  private async parseJSON(buffer: Buffer): Promise<Record<string, unknown>[]> {
     try {
       return JSON.parse(buffer.toString());
     } catch (error) {
@@ -339,21 +339,21 @@ export class ImportExportService {
     }
   }
 
-  private async parseExcel(buffer: Buffer): Promise<any[]> {
+  private async parseExcel(buffer: Buffer): Promise<Record<string, unknown>[]> {
     try {
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
       const worksheet = workbook.getWorksheet(1);
       const row1 = worksheet.getRow(1).values;
-const headers = Array.isArray(row1) ? row1.slice(1) : [];
+      const headers = Array.isArray(row1) ? row1.slice(1).map(String) : [];
        
-      const results: any[] = [];
+      const results: Record<string, unknown>[] = [];
       worksheet.getRows(2, worksheet.rowCount).forEach(row => {
-        const rowData: any = {};
-        headers.forEach((header: any, index: number) => {
+        const rowData: Record<string, unknown> = {};
+        headers.forEach((header: string, index: number) => {
           if (header) {
             const cell = row.getCell(index + 1);
-            rowData[String(header)] = cell?.value;
+            rowData[header] = cell?.value;
           }
         });
         results.push(rowData);
@@ -363,7 +363,7 @@ const headers = Array.isArray(row1) ? row1.slice(1) : [];
       throw this.errors.INVALID_DATA;
     }
   }
-  private generatePrettyJSON(data: any[]): Buffer {
+  private generatePrettyJSON(data: Record<string, unknown>[]): Buffer {
     try {
       return Buffer.from(JSON.stringify(data, null, 2));
     } catch (error) {

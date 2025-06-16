@@ -10,7 +10,15 @@ const logger = getLogger().child({ component: 'monitoring-api' });
 
 // Store alerts in memory for demonstration
 // In production, these would be stored in a database
-const activeAlerts: any[] = [];
+interface Alert {
+  id: string;
+  key: string;
+  message: string;
+  level: 'info' | 'warning' | 'error' | 'critical';
+  timestamp: string;
+  acknowledged: boolean;
+}
+const activeAlerts: Alert[] = [];
 
 /**
  * @swagger

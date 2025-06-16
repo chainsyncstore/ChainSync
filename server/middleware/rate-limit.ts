@@ -103,13 +103,13 @@ function createRateLimiter(options: Partial<Options>) {
     },
     // Add structured logging
     handler: (req: Request, res: Response, next: NextFunction, options: Options) => {
-      const reqLogger = (req as any).logger || logger;
+      const reqLogger = req.logger || logger;
       
       reqLogger.warn('Rate limit exceeded', {
         path: req.path,
         method: req.method,
         ip: req.ip,
-        userId: (req as any).user?.id
+        userId: req.user?.id
       });
       
       res.status(options.statusCode).json(options.message);

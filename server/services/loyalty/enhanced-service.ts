@@ -461,7 +461,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
    * @param storeId ID of the store
    * @returns The store or null if not found
    */
-  private async getStoreById(storeId: number): Promise<any> {
+  private async getStoreById(storeId: number): Promise<schema.Store | null> {
     try {
       const result = await db.execute(
         sql.raw(`SELECT * FROM stores WHERE id = ${storeId} LIMIT 1`)
@@ -479,7 +479,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
    * @param userId ID of the user
    * @returns The user or null if not found
    */
-  private async getUserById(userId: number): Promise<any> {
+  private async getUserById(userId: number): Promise<schema.User | null> {
     try {
       const result = await db.execute(
         sql.raw(`SELECT * FROM users WHERE id = ${userId} LIMIT 1`)

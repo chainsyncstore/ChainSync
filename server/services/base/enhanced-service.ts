@@ -29,8 +29,8 @@ export abstract class EnhancedBaseService extends BaseService {
    */
   protected async executeSqlWithFormatting<T>(
     query: string, 
-    params: any[] = [],
-    formatter: (row: Record<string, any>) => T
+    params: unknown[] = [],
+    formatter: (row: Record<string, unknown>) => T
   ): Promise<T | null> {
     try {
       const result = await db.execute(sql.raw(query), params);
@@ -51,8 +51,8 @@ export abstract class EnhancedBaseService extends BaseService {
    */
   protected async executeSqlWithMultipleResults<T>(
     query: string,
-    params: any[] = [],
-    formatter: (row: Record<string, any>) => T
+    params: unknown[] = [],
+    formatter: (row: Record<string, unknown>) => T
   ): Promise<T[]> {
     try {
       const result = await db.execute(sql.raw(query), params);
@@ -73,8 +73,8 @@ export abstract class EnhancedBaseService extends BaseService {
    */
   protected async insertWithFormatting<T>(
     tableName: string,
-    data: Record<string, any>,
-    formatter: (row: Record<string, any>) => T
+    data: Record<string, unknown>,
+    formatter: (row: Record<string, unknown>) => T
   ): Promise<T | null> {
     try {
       const { query, values } = buildInsertQuery(tableName, data);
@@ -95,9 +95,9 @@ export abstract class EnhancedBaseService extends BaseService {
    */
   protected async updateWithFormatting<T>(
     tableName: string,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
     whereCondition: string,
-    formatter: (row: Record<string, any>) => T
+    formatter: (row: Record<string, unknown>) => T
   ): Promise<T | null> {
     try {
       const { query, values } = buildUpdateQuery(tableName, data, whereCondition);
@@ -117,8 +117,8 @@ export abstract class EnhancedBaseService extends BaseService {
    */
   protected async rawInsertWithFormatting<T>(
     tableName: string,
-    data: Record<string, any>,
-    formatter: (row: Record<string, any>) => T
+    data: Record<string, unknown>,
+    formatter: (row: Record<string, unknown>) => T
   ): Promise<T | null> {
     try {
       const preparedData = prepareSqlValues(data);
@@ -140,9 +140,9 @@ export abstract class EnhancedBaseService extends BaseService {
    */
   protected async rawUpdateWithFormatting<T>(
     tableName: string,
-    data: Record<string, any>,
+    data: Record<string, unknown>,
     whereCondition: string,
-    formatter: (row: Record<string, any>) => T
+    formatter: (row: Record<string, unknown>) => T
   ): Promise<T | null> {
     try {
       const preparedData = prepareSqlValues(data);
@@ -164,8 +164,8 @@ export abstract class EnhancedBaseService extends BaseService {
   protected validateAndPrepare<T, U>(
     data: T, 
     validator: ZodSchema<U>,
-    preparer: (data: U) => Record<string, any>
-  ): Record<string, any> {
+    preparer: (data: U) => Record<string, unknown>
+  ): Record<string, unknown> {
     try {
       const validatedData = validator.parse(data);
       return preparer(validatedData);
@@ -181,7 +181,7 @@ export abstract class EnhancedBaseService extends BaseService {
    * @param operation Description of the operation that failed
    * @returns Always throws, return type is for TypeScript compatibility
    */
-  protected handleError(error: any, operation: string): never {
+  protected handleError(error: unknown, operation: string): never {
     throw ServiceErrorHandler.handleError(error, operation);
   }
   

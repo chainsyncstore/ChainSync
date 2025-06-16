@@ -47,7 +47,7 @@ export async function validateBatchImportFile(filePath: string) {
   try {
     // Read and parse CSV file
     const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const records: any[] = parse(fileContent, {
+    const records: BatchImportRow[] = parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
       trim: true

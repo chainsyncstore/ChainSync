@@ -22,7 +22,7 @@ declare global {
       user?: {
         id: string;
         role: string;
-        [key: string]: any;
+        [key: string]: unknown;
       };
       progressId?: string;
       files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
@@ -35,7 +35,7 @@ interface MulterRequest extends Request {
   files?: {
     [fieldname: string]: Express.Multer.File[];
   } | Express.Multer.File[];
-  user?: any;
+  user?: Express.Request['user'];
 }
 
 // File upload configuration
@@ -88,11 +88,13 @@ const upload = multer({
           size: file.size,
           maxSize: fileUploadConfig.maxFileSize
         });
-        const error = new Error('File size too large') as any;
-        error.code = ErrorCode.BAD_REQUEST;
-        error.category = ErrorCategory.VALIDATION;
-        error.details = { maxSize: fileUploadConfig.maxFileSize };
-        error.statusCode = 400;
+        const error = new AppError(
+          'File size too large',
+          ErrorCategory.VALIDATION,
+          ErrorCode.BAD_REQUEST,
+          { maxSize: fileUploadConfig.maxFileSize },
+          400
+        );
         cb(error, false);
         return;
       }
@@ -106,11 +108,13 @@ const upload = multer({
           filename: file.originalname,
           mimeType: fileType?.mime
         });
-        const error = new Error('Invalid file type') as any;
-        error.code = ErrorCode.BAD_REQUEST;
-        error.category = ErrorCategory.VALIDATION;
-        error.details = { allowedTypes: await FileUtils.validateFileExtension.toString() };
-        error.statusCode = 400;
+        const error = new AppError(
+          'Invalid file type',
+          ErrorCategory.VALIDATION,
+          ErrorCode.BAD_REQUEST,
+          { allowedTypes: await FileUtils.validateFileExtension.toString() },
+          400
+        );
         cb(error, false);
         return;
       }
@@ -504,7 +508,7 @@ export class FileUploadMiddleware {
           logger.info('Progress update', { progress });
           res.json(progress);
         },
-        onError: (error: any) => {
+        onError: (error: AppError) => {
           logger.error('Progress error', error);
           res.status(error.status || 500).json({
             error: {
@@ -514,7 +518,7 @@ export class FileUploadMiddleware {
             }
           });
         },
-        onComplete: (result: any) => {
+        onComplete: (result: Record<string, unknown>) => {
           logger.info('Progress completed', { result });
           res.json(result);
         }

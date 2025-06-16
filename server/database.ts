@@ -1,8 +1,9 @@
 import { ValidationService as ValidationServiceImpl } from './services/import-export/validation';import { neon } from '@neondatabase/serverless';
 import { env } from './config/env';
 import { logger } from './services/logger';
+import { NeonQueryFunction } from '@neondatabase/serverless';
 
-let db: any;
+let db: NeonQueryFunction<false, false>;
 
 export async function getDatabase() {
   if (!db) {

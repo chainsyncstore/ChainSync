@@ -1,11 +1,13 @@
 import { Logger } from '../logger';
 import { db } from '@db';
 
+import { Transaction } from 'drizzle-orm';
+
 export abstract class BaseService {
   protected constructor(protected readonly logger: Logger) {}
 
   protected async withTransaction<T>(
-    callback: (trx: any) => Promise<T>
+    callback: (trx: Transaction<any, any, any, any>) => Promise<T>
   ): Promise<T> {
     return db.transaction(async (trx) => {
       return await callback(trx);

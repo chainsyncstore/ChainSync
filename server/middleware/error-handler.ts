@@ -19,7 +19,17 @@ export const errorHandler = (
   }
   if (error instanceof AppError) {
     const status = error.statusCode || 500;
-    const response: any = {
+    const response: {
+      error: {
+        code: ErrorCode;
+        message: string;
+        category: ErrorCategory;
+        details?: string;
+        retryable?: boolean;
+        retryAfter?: number;
+        validationErrors?: any;
+      };
+    } = {
       error: {
         code: error.code,
         message: formatErrorForUser(error),
@@ -44,7 +54,7 @@ export const errorHandler = (
 
   // Handle Zod validation errors
   if (error.name === 'ZodError') {
-    const appError = AppError.fromZodError(error as any);
+    const appError = AppError.fromZodError(error as import('zod').ZodError);
     const status = appError.statusCode || 400;
     return res.status(status).json({
       error: {

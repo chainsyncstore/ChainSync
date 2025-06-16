@@ -598,7 +598,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
    * @param productId ID of the product
    * @returns The product or null if not found
    */
-  private async getProductById(productId: number): Promise<any> {
+  private async getProductById(productId: number): Promise<schema.Product | null> {
     try {
       const result = await db.execute(
         sql.raw(`SELECT * FROM products WHERE id = ${productId} LIMIT 1`)
@@ -616,7 +616,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
    * @param storeId ID of the store
    * @returns The store or null if not found
    */
-  private async getStoreById(storeId: number): Promise<any> {
+  private async getStoreById(storeId: number): Promise<schema.Store | null> {
     try {
       const result = await db.execute(
         sql.raw(`SELECT * FROM stores WHERE id = ${storeId} LIMIT 1`)

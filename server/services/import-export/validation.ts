@@ -2,25 +2,25 @@ import { AppError, ErrorCategory } from '@shared/types/errors';
 import { ValidationOptions } from './types';
 
 export interface ValidationService {
-  validate(data: any[], options?: ValidationOptions): Promise<{
+  validate(data: Record<string, unknown>[], options?: ValidationOptions): Promise<{
     validCount: number;
     invalidCount: number;
-    validRecords: any[];
-    invalidRecords: any[];
+    validRecords: Record<string, unknown>[];
+    invalidRecords: { record: Record<string, unknown>; errors: string[] }[];
   }>;
 }
 
 export class ValidationService implements ValidationService {
-  async validate(data: any[], options?: ValidationOptions): Promise<{
+  async validate(data: Record<string, unknown>[], options?: ValidationOptions): Promise<{
     validCount: number;
     invalidCount: number;
-    validRecords: any[];
-    invalidRecords: { record: any; errors: string[] }[];
+    validRecords: Record<string, unknown>[];
+    invalidRecords: { record: Record<string, unknown>; errors: string[] }[];
   }> {
     try {
       const { requiredFields = [], filters = {} } = options || {};
-      const validRecords: any[] = [];
-      const invalidRecords: { record: any; errors: string[] }[] = [];
+      const validRecords: Record<string, unknown>[] = [];
+      const invalidRecords: { record: Record<string, unknown>; errors: string[] }[] = [];
 
       if (!Array.isArray(data)) {
         throw new AppError({

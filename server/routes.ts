@@ -1310,7 +1310,7 @@ export async function registerRoutes(app: App): Promise<Server> {
   // Store Performance Comparison API
   app.get(`${apiPrefix}/analytics/store-performance`, isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const session = req.session as any; // Access session
+      const session = req.session as Express.Session & Partial<Express.SessionData>; // Access session
       
       // Only admin users can access store comparison data
       if (session.userRole !== 'admin') {
@@ -3558,7 +3558,7 @@ export async function registerRoutes(app: App): Promise<Server> {
       });
       
       // Prepare return items
-      const returnItems = items.map((item: any) => schema.returnItemInsertSchema.parse({
+      const returnItems = items.map((item: schema.ReturnItemInsert) => schema.returnItemInsertSchema.parse({
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
@@ -4099,7 +4099,7 @@ export async function registerRoutes(app: App): Promise<Server> {
       }
       
       const { quantity, expiryDate, costPerUnit } = req.body;
-      const updateData: Record<string, any> = {};
+      const updateData: Partial<schema.InventoryBatchInsert> = {};
       
       if (quantity !== undefined) {
         if (isNaN(parseInt(quantity)) || parseInt(quantity) < 0) {

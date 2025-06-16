@@ -5,7 +5,7 @@ export interface IServiceError extends Error {
   category: ErrorCategory;
   retryable?: boolean;
   retryAfter?: number;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface IServiceResult<T> {
@@ -22,7 +22,7 @@ export class ServiceError extends Error implements IServiceError {
     public category: ErrorCategory,
     public retryable?: boolean,
     public retryAfter?: number,
-    public details?: Record<string, any>
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ServiceError';

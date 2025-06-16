@@ -22,7 +22,7 @@ export class InventoryFormatter extends ResultFormatter<Inventory> {
    * @param dbResult The raw database result row
    * @returns A properly formatted Inventory object
    */
-  formatResult(dbResult: Record<string, any>): Inventory {
+  formatResult(dbResult: Record<string, unknown>): Inventory {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory result');
     }
@@ -65,7 +65,7 @@ export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
    * @param dbResult The raw database result row
    * @returns A properly formatted InventoryItem object
    */
-  formatResult(dbResult: Record<string, any>): InventoryItem {
+  formatResult(dbResult: Record<string, unknown>): InventoryItem {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory item result');
     }
@@ -116,7 +116,7 @@ export class InventoryTransactionFormatter extends ResultFormatter<InventoryTran
    * @param dbResult The raw database result row
    * @returns A properly formatted InventoryTransaction object
    */
-  formatResult(dbResult: Record<string, any>): InventoryTransaction {
+  formatResult(dbResult: Record<string, unknown>): InventoryTransaction {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory transaction result');
     }

@@ -27,11 +27,11 @@ export class AIService extends BaseService implements AIService {
     this.cache = new CacheService(this.config.cache);
   }
 
-  private generateCacheKey(prompt: string, options: any): string {
+  private generateCacheKey(prompt: string, options: Record<string, unknown>): string {
     return `ai:${this.config.model}:${uuidv4()}:${prompt}:${JSON.stringify(options)}`;
   }
 
-  private async validateRequest(prompt: string, options: any): Promise<void> {
+  private async validateRequest(prompt: string, options: Record<string, unknown>): Promise<void> {
     if (!prompt) {
       throw AIServiceErrors.INVALID_REQUEST;
     }
@@ -81,8 +81,8 @@ export class AIService extends BaseService implements AIService {
   private async logRequest(
     userId: string,
     prompt: string,
-    options: any,
-    response: any,
+    options: Record<string, unknown>,
+    response: string,
     duration: number
   ): Promise<void> {
     try {
@@ -103,7 +103,7 @@ export class AIService extends BaseService implements AIService {
   async generateCompletion(
     userId: string,
     prompt: string,
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<string> {
     try {
       await this.validateRequest(prompt, options);
@@ -147,8 +147,8 @@ export class AIService extends BaseService implements AIService {
 
   async generateChat(
     userId: string,
-    messages: any[],
-    options: any = {}
+    messages: OpenAI.Chat.ChatCompletionMessageParam[],
+    options: Record<string, unknown> = {}
   ): Promise<string> {
     try {
       await this.validateRequest(JSON.stringify(messages), options);
@@ -195,7 +195,7 @@ export class AIService extends BaseService implements AIService {
     userId: string,
     prompt: string,
     language: string = 'javascript',
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a helpful code assistant. Generate code in ${language} language.`;
@@ -216,7 +216,7 @@ export class AIService extends BaseService implements AIService {
     userId: string,
     code: string,
     language: string,
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a code reviewer. Review the following ${language} code and provide feedback.`;
@@ -237,7 +237,7 @@ export class AIService extends BaseService implements AIService {
   async generateSummary(
     userId: string,
     text: string,
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<string> {
     try {
       const systemPrompt = 'You are a helpful assistant. Generate a concise summary of the following text.';
@@ -258,7 +258,7 @@ export class AIService extends BaseService implements AIService {
     userId: string,
     text: string,
     targetLanguage: string,
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a translator. Translate the following text into ${targetLanguage}.`;
@@ -279,15 +279,15 @@ export class AIService extends BaseService implements AIService {
   async listAvailableModels(): Promise<string[]> {
     try {
       const response = await this.openai.models.list();
-      return response.data.map((model: any) => model.id);
+      return response.data.map((model: OpenAI.Models.Model) => model.id);
     } catch (error) {
       this.handleError(error, 'Listing available models');
     }
   }
 
-  async getModelCapabilities(model: string): Promise<any> {
+  async getModelCapabilities(modelId: string): Promise<Record<string, unknown>> {
     try {
-      const response = await this.openai.models.retrieve(model);
+      const response = await this.openai.models.retrieve(modelId);
       return {
         maxTokens: response.max_tokens,
         temperatureRange: [0, 2],
@@ -299,7 +299,7 @@ export class AIService extends BaseService implements AIService {
   }
 
   // Usage Tracking
-  async getUsageStats(userId: string): Promise<any> {
+  async getUsageStats(userId: string): Promise<Record<string, unknown>> {
     try {
       const stats = await this.cache.getUsageStats(userId);
       return {

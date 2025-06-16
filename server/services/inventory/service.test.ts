@@ -57,7 +57,7 @@ jest.mock('@shared/schema-validation', () => ({
     }
   },
   SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: any) {
+    constructor(message: string, options?: Record<string, unknown>) {
       super(message);
       this.name = 'SchemaValidationError';
     }

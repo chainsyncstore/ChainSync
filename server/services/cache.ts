@@ -15,7 +15,7 @@ export class CacheService {
     });
   }
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<unknown> {
     try {
       const value = await this.client.get(key);
       if (!value) return null;
@@ -26,7 +26,7 @@ export class CacheService {
     }
   }
 
-  async set(key: string, value: any, ttl: number = env.CACHE_TTL): Promise<void> {
+  async set(key: string, value: unknown, ttl: number = env.CACHE_TTL): Promise<void> {
     try {
       await this.client.set(key, JSON.stringify(value), 'EX', ttl);
     } catch (error) {

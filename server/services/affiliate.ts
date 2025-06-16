@@ -6,7 +6,7 @@ import { db } from "../../db";
 import Flutterwave from "flutterwave-node-v3";
 
 // Initialize Flutterwave client if credentials are available
-let flwClient: any = null;
+let flwClient: Flutterwave | null = null;
 try {
   if (process.env.FLW_PUBLIC_KEY && process.env.FLW_SECRET_KEY) {
     flwClient = new Flutterwave(process.env.FLW_PUBLIC_KEY, process.env.FLW_SECRET_KEY);
@@ -50,7 +50,7 @@ export async function generateReferralCode(userId: number): Promise<string> {
 /**
  * Register a user as an affiliate
  */
-export async function registerAffiliate(userId: number, bankDetails?: any): Promise<schema.Affiliate> {
+export async function registerAffiliate(userId: number, bankDetails?: Partial<schema.AffiliateInsert>): Promise<schema.Affiliate> {
   try {
     // Check if user is already an affiliate
     const existingAffiliate = await getAffiliateByUserId(userId);
@@ -428,7 +428,15 @@ export async function getAffiliateDashboardStats(userId: number): Promise<{
 /**
  * Get all referrals for an affiliate
  */
-export async function getAffiliateReferrals(userId: number): Promise<any[]> {
+export async function getAffiliateReferrals(userId: number): Promise<Array<{
+  id: number;
+  status: "pending" | "active" | "expired" | "cancelled";
+  signupDate: Date;
+  activationDate: Date | null;
+  expiryDate: Date | null;
+  username: string | null;
+  fullName: string | null;
+}>> {
   try {
     const affiliate = await getAffiliateByUserId(userId);
     if (!affiliate) {

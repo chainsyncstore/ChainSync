@@ -386,10 +386,10 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
       });
       
       // Update user context in request for downstream use
-      (req as any).user = {
+      req.user = {
         id: user.id,
-        username: user.username,
-        email: user.email,
+        name: user.username, // Assuming username can be used as name
+        // email: user.email, // email is not in the User interface in Express.Request
         role: user.role
       };
       

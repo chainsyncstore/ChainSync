@@ -42,11 +42,11 @@ export async function enhanceValidationWithAI(
     
     
     // Prepare a sample of validation issues for Dialogflow to analyze
-    const errorSample = result.errors.slice(0, 5).map((err: any) => 
+    const errorSample = result.errors.slice(0, 5).map((err: ImportError) =>
       `Row ${err.row}: ${err.field} = "${err.value}" (${err.reason})`
     ).join("\n");
     
-    const missingSample = result.missingFields.slice(0, 5).map((field: any) => 
+    const missingSample = result.missingFields.slice(0, 5).map((field: MissingField) =>
       `Row ${field.row}: ${field.field} is missing ${field.isRequired ? '(required)' : '(optional)'}`
     ).join("\n");
     
@@ -198,7 +198,7 @@ function applyAISuggestedFixes(
           const newValue = match[2];
           
           // Try to find errors with this value and fix them
-          result.errors.forEach((error: any) => {
+          result.errors.forEach((error: ImportError) => {
             if (error.value === oldValue) {
               applyFix(result, error.row - 1, oldValue, newValue);
               
@@ -233,10 +233,10 @@ function applyAISuggestedFixes(
         
         // Apply default value to missing fields
         const missingFields = result.missingFields.filter(
-          (field: any) => field.field === fieldName
+          (field: MissingField) => field.field === fieldName
         );
         
-        missingFields.forEach((missingField: any) => {
+        missingFields.forEach((missingField: MissingField) => {
           const rowIndex = missingField.row - 1;
           if (result.mappedData[rowIndex]) {
             result.mappedData[rowIndex][fieldName] = defaultValue;
@@ -257,7 +257,7 @@ function applyAISuggestedFixes(
   const dataTypeDefaults = getDefaultValuesForDataType(dataType);
   
   // Apply data type specific defaults to remaining missing fields
-  result.missingFields.forEach((missingField: any) => {
+  result.missingFields.forEach((missingField: MissingField) => {
     const rowIndex = missingField.row - 1;
     const fieldName = missingField.field;
     
@@ -281,12 +281,12 @@ function applyAISuggestedFixes(
   });
   
   // Remove fixed errors from the error list
-  result.errors = result.errors.filter((error: any) => 
+  result.errors = result.errors.filter((error: ImportError) =>
     !fixedRows.has(error.row) || !fixedRows.get(error.row)?.has(error.field)
   );
   
   // Remove fixed missing fields
-  result.missingFields = result.missingFields.filter((field: any) =>
+  result.missingFields = result.missingFields.filter((field: MissingField) =>
     !fixedMissingFields.has(field.row) || !fixedMissingFields.get(field.row)?.has(field.field)
   );
   
@@ -297,13 +297,13 @@ function applyAISuggestedFixes(
   } else {
     result.success = result.errors.length === 0;
     result.importedRows = result.totalRows - 
-      new Set(result.errors.map((e: any) => e.row)).size - 
-      new Set(result.missingFields.map((m: any) => m.row)).size;
+      new Set(result.errors.map((e: ImportError) => e.row)).size -
+      new Set(result.missingFields.map((m: MissingField) => m.row)).size;
   }
 }
 
 // Get default values for different data types
-function getDefaultValuesForDataType(dataType: 'loyalty' | 'inventory'): Record<string, any> {
+function getDefaultValuesForDataType(dataType: 'loyalty' | 'inventory'): Record<string, string | number | boolean> {
   if (dataType === 'inventory') {
     return {
       quantity: 0,

@@ -78,8 +78,8 @@ const verifyWebhookSignature = (signature: string, key: string): boolean => {
 
 // Unified PaymentService supporting both Paystack and Flutterwave
 export class PaymentService extends BaseService {
-  private paystack: any = null;
-  private flutterwave: any = null;
+  private paystack: Paystack | null = null;
+  private flutterwave: Flutterwave | null = null;
 
   constructor() {
     super(logger); // Pass logger to BaseService if required
@@ -130,7 +130,7 @@ export class PaymentService extends BaseService {
         }
       }
       throw new AppError('payment', 'PAYMENT_NOT_FOUND', 'Payment not found or verification failed', { reference });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error verifying payment:', error);
       throw error instanceof AppError ? error : new AppError('payment', 'PAYMENT_VERIFICATION_ERROR', 'Failed to verify payment', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
@@ -389,7 +389,7 @@ export class PaymentService extends BaseService {
         return { link: response.data.link };
       }
       throw new AppError('payment', 'FLUTTERWAVE_TRANSACTION_FAILED', 'Failed to process Flutterwave transaction');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error processing Flutterwave transaction:', error);
       throw error instanceof Error ? error : new AppError('payment', 'FLUTTERWAVE_TRANSACTION_ERROR', 'Failed to process Flutterwave transaction');
     }

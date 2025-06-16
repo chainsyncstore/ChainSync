@@ -27,7 +27,7 @@ export async function getLoyaltyProgram(programId: number): Promise<LoyaltyProgr
       active: true,
       createdAt: true,
       updatedAt: true,
-      tiers: true
+      tiers: true // Assuming tiers is a JSON string column
     }
   }) as LoyaltyProgramWithTiers | null;
 
@@ -170,7 +170,7 @@ export async function enrollCustomer(customerId: number, storeId: number, userId
         pointsPerAmount: "1.00",
         active: true,
         expiryMonths: 12
-      } as any)
+      } as schema.LoyaltyProgramInsert)
       .returning();
     
     program = newProgram;
@@ -257,10 +257,10 @@ export async function calculatePointsForTransaction(
     }) as Product[];
 
     // Map products by ID for easy lookup
-    const productsById = products.reduce((acc: { [id: number]: Product }, product: Product) => {
+    const productsById = products.reduce((acc, product) => {
       acc[product.id] = product;
       return acc;
-    }, {});
+    }, {} as { [id: number]: Product });
 
     // Add bonus points from products
     for (const item of items) {
