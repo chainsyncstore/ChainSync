@@ -4,9 +4,10 @@ import { Request, Response, NextFunction } from 'express';
 
 // We need to avoid extending the Express namespace to prevent conflicts
 // Instead, we'll define the multer module with compatible interfaces
+import { Options as MulterOptions, StorageEngine, File } from 'multer';
 
 declare module 'multer' {
-  function multer(options?: any): any;
+  function multer(options?: MulterOptions): Express.Multer.Multer;
   
   namespace multer {
     function single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
@@ -15,9 +16,9 @@ declare module 'multer' {
     function any(): (req: Request, res: Response, next: NextFunction) => void;
     function none(): (req: Request, res: Response, next: NextFunction) => void;
     function diskStorage(options: {
-      destination?: string | ((req: Request, file: any, cb: (error: Error | null, destination: string) => void) => void);
-      filename?: (req: Request, file: any, cb: (error: Error | null, filename: string) => void) => void;
-    }): any;
-    function memoryStorage(): any;
+      destination?: string | ((req: Request, file: File, cb: (error: Error | null, destination: string) => void) => void);
+      filename?: (req: Request, file: File, cb: (error: Error | null, filename: string) => void) => void;
+    }): StorageEngine;
+    function memoryStorage(): StorageEngine;
   }
 }

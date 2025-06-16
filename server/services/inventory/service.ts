@@ -18,7 +18,7 @@ import {
 } from './types';
 import { db } from '@db';
 import * as schema from '@shared/schema';
-import { eq, and, or, like, gt, lte, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, gt, desc, asc, sql, like } from 'drizzle-orm'; // or, lte removed, like added
 import { inventoryValidation, SchemaValidationError } from '@shared/schema-validation';
 
 export class InventoryService extends BaseService implements IInventoryService {
@@ -212,10 +212,10 @@ export class InventoryService extends BaseService implements IInventoryService {
       let whereClause = eq(schema.inventory.storeId, params.storeId);
       
       // Join with products table for product-related filters
-      const inventoryQuery = db.$with('inventory_query').as(
-        db.select({
-          id: schema.inventory.id,
-          productId: schema.inventory.productId,
+      // const inventoryQuery = db.$with('inventory_query').as( // Unused
+      //   db.select({
+      //     id: schema.inventory.id,
+      //     productId: schema.inventory.productId,
           storeId: schema.inventory.storeId,
           totalQuantity: schema.inventory.totalQuantity,
           availableQuantity: schema.inventory.availableQuantity,

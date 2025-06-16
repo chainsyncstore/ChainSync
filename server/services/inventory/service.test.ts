@@ -5,11 +5,11 @@
  * validation, error handling, and schema standardization.
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals'; // afterEach removed
 import { InventoryService } from './service';
 import { InventoryServiceErrors, InventoryAdjustmentType } from './types';
 import { db } from '@db';
-import * as schema from '@shared/schema';
+// import * as schema from '@shared/schema'; // Unused
 import { SchemaValidationError } from '@shared/schema-validation';
 
 // Mock DB and schema validation
@@ -126,7 +126,7 @@ describe('InventoryService', () => {
       
       // Mock the updateInventory method
       const updateSpy = jest.spyOn(inventoryService, 'updateInventory').mockResolvedValue(
-        { ...existingInventory, totalQuantity: validInventoryData.totalQuantity } as any
+        { ...existingInventory, totalQuantity: validInventoryData.totalQuantity } as schema.Inventory
       );
       
       const result = await inventoryService.createInventory(validInventoryData);
@@ -210,7 +210,7 @@ describe('InventoryService', () => {
       };
       
       // Mock getInventoryByProduct
-      jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(mockInventory as any);
+      jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(mockInventory as schema.Inventory);
       
       // Mock transaction success
       (db.transaction as jest.Mock).mockImplementationOnce(async (fn) => {
@@ -252,7 +252,7 @@ describe('InventoryService', () => {
       };
       
       // Mock getInventoryByProduct
-      jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(mockInventory as any);
+      jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(mockInventory as schema.Inventory);
       
       // Adjustment data with quantity more negative than available
       const negativeAdjustment = {
@@ -278,7 +278,7 @@ describe('InventoryService', () => {
       };
       
       // Mock getInventoryByProduct
-      jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(mockInventory as any);
+      jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(mockInventory as schema.Inventory);
       
       // Mock batch retrieval
       const mockBatch = {
@@ -378,7 +378,7 @@ describe('InventoryService', () => {
       jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(null);
       
       // Mock createInventory
-      jest.spyOn(inventoryService, 'createInventory').mockResolvedValue({ id: 1 } as any);
+      jest.spyOn(inventoryService, 'createInventory').mockResolvedValue({ id: 1 } as schema.Inventory);
       
       // Mock batch creation
       (db.insert().values().returning as jest.Mock).mockResolvedValue([
@@ -414,10 +414,10 @@ describe('InventoryService', () => {
       };
       
       // Mock getInventoryByProduct
-      jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(mockInventory as any);
+      jest.spyOn(inventoryService, 'getInventoryByProduct').mockResolvedValue(mockInventory as schema.Inventory);
       
       // Mock updateInventory
-      jest.spyOn(inventoryService, 'updateInventory').mockResolvedValue({ ...mockInventory, batchTracking: true } as any);
+      jest.spyOn(inventoryService, 'updateInventory').mockResolvedValue({ ...mockInventory, batchTracking: true } as schema.Inventory);
       
       // Mock batch creation
       (db.insert().values().returning as jest.Mock).mockResolvedValue([

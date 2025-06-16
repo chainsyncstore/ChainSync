@@ -7,8 +7,9 @@ import { z } from 'zod';
 import { getLogger } from '../../src/logging';
 import { db } from '../../db';
 import * as schema from '@shared/schema';
+import { eq, gte, lte, desc, count } from 'drizzle-orm'; // Added imports from drizzle-orm
 import { queueTransactionForLoyalty } from '../../src/queue/processors/loyalty';
-import { cacheable } from '../../src/cache/redis';
+// import { cacheable } from '../../src/cache/redis'; // Unused
 
 // Get logger for transactions routes
 const logger = getLogger().child({ component: 'transactions-api' });

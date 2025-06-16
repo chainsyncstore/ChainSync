@@ -23,7 +23,7 @@ export const validateRequest = <T extends z.ZodTypeAny>(
 
 export const validateParams = <T extends z.ZodTypeAny>(
   schema: T,
-  params: Record<string, any>
+  params: Record<string, unknown>
 ): z.infer<T> => {
   try {
     return schema.parse(params);
@@ -43,7 +43,7 @@ export const validateParams = <T extends z.ZodTypeAny>(
 
 export const validateQuery = <T extends z.ZodTypeAny>(
   schema: T,
-  query: Record<string, any>
+  query: Record<string, unknown>
 ): z.infer<T> => {
   try {
     return schema.parse(query);

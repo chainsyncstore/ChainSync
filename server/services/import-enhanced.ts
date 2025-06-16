@@ -158,9 +158,9 @@ export async function processImportFile(
     } else {
       throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error parsing file:', error);
-    throw new Error(`Failed to parse file: ${error.message || 'Unknown error'}`);
+    throw new Error(`Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
   if (parsedData.length === 0) {
@@ -238,7 +238,7 @@ export async function validateInventoryData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'inventory');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -487,7 +487,8 @@ export async function validateLoyaltyData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'loyalty');
-  } catch (error: any) {
+  } catch (error: unknown) {
+  } catch (error: unknown) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -949,7 +950,7 @@ async function getColumnMappingSuggestions(
   try {
     const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
     return enhancedSuggestions;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error enhancing mappings with AI:", error);
     // If AI enhancement fails, return the basic pattern matching results
     return suggestions;
@@ -1021,7 +1022,7 @@ async function enhanceMappingsWithAI(
     const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
     
     return improvedMappings;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error using Dialogflow for column mapping:", error);
     return initialSuggestions;
   }

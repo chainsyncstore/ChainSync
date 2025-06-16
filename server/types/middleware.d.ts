@@ -6,7 +6,7 @@ interface CustomUser {
   id: string;
   email: string;
   role: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Extend Express Request type to handle file uploads and user type
@@ -28,14 +28,14 @@ export function createRequestHandler(handler: (req: Request, res: Response, next
 }
 
 // Helper function to create error handler
-export function createErrorHandler(handler: (err: Error | any, req: Request, res: Response, next: NextFunction) => void): ErrorRequestHandler {
-  return (err: Error | any, req: Request, res: Response, next: NextFunction): void => {
+export function createErrorHandler(handler: (err: Error | unknown, req: Request, res: Response, next: NextFunction) => void): ErrorRequestHandler {
+  return (err: Error | unknown, req: Request, res: Response, next: NextFunction): void => {
     handler(err, req, res, next);
   };
 }
 
 // Type guard for middleware
-export function isMiddlewareFunction(middleware: any): middleware is RequestHandler | ErrorRequestHandler {
+export function isMiddlewareFunction(middleware: unknown): middleware is RequestHandler | ErrorRequestHandler {
   return typeof middleware === 'function' && 
     (middleware.length === 3 || middleware.length === 4);
 }

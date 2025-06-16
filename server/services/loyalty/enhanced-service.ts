@@ -11,7 +11,7 @@ import {
   LoyaltyTransactionFormatter 
 } from './formatter';
 import { loyaltyValidation } from '@shared/schema-validation';
-import { ILoyaltyService } from './interface';
+// import { ILoyaltyService } from './interface'; // Unused
 import { 
   CreateLoyaltyProgramParams, 
   UpdateLoyaltyProgramParams,
@@ -24,10 +24,10 @@ import {
   LoyaltyProgramStatus
 } from './types';
 import { LoyaltyServiceErrors } from './errors';
-import { ErrorCode } from '@shared/types/errors';
+// import { ErrorCode } from '@shared/types/errors'; // Unused
 import { db } from '@server/db';
-import { eq, and, or, like, desc, asc, sql } from 'drizzle-orm';
-import * as schema from '@shared/schema';
+import { sql } from 'drizzle-orm'; // eq, and, or, like, desc, asc removed
+// import * as schema from '@shared/schema'; // Unused
 
 export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoyaltyService {
   private programFormatter: LoyaltyProgramFormatter;

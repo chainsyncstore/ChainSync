@@ -3,10 +3,10 @@ import * as schema from "../../shared/schema";
 import { eq, and, gt, lt, desc, sql } from "drizzle-orm";
 import { logger } from "../services/logger";
 import { 
-  prepareLoyaltyMemberData, 
-  prepareLoyaltyTierData, 
-  formatLoyaltyMemberResult,
-  formatLoyaltyTierResult
+  prepareLoyaltyMemberData
+  // prepareLoyaltyTierData, // Unused
+  // formatLoyaltyMemberResult, // Unused
+  // formatLoyaltyTierResult // Unused
 } from "../../shared/schema-helpers";
 
 /**
@@ -77,10 +77,10 @@ async function checkAndUpdateMemberTier(memberId: number, currentPoints: string)
 }
 
 import { 
-  LoyaltyMember, 
-  LoyaltyTransaction, 
-  LoyaltyProgram, 
-  LoyaltyTier 
+  // LoyaltyMember, // Unused
+  LoyaltyTransaction
+  // LoyaltyProgram, // Unused
+  // LoyaltyTier // Unused
 } from "../../shared/types";
 
 const db = await getDatabase();

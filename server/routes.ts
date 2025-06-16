@@ -1,27 +1,27 @@
 import express from 'express';
 import { env } from './config/env';
-import { logger } from './services/logger';
+// import { logger } from './services/logger'; // Unused
 import { FileUploadMiddleware } from './middleware/file-upload';
 import { AuthMiddleware } from './middleware/auth';
 import { RateLimitMiddleware } from './middleware/rate-limit';
-import { errorMiddleware } from './middleware/error-handler';
+// import { errorMiddleware } from './middleware/error-handler'; // Unused
 import cors from 'cors';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-import { socketHandler } from './socket/socket-handler';
+// import { createServer } from 'http'; // Unused
+import { Server as SocketIOServer } from 'socket.io'; // Renamed to avoid conflict
+// import { socketHandler } from './socket/socket-handler'; // Unused
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
-import { Pool } from 'pg';
+// import { Pool } from 'pg'; // Unused
 import { db } from '../db';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { ZodError } from 'zod-validation-error';
+// import { ZodError } from 'zod-validation-error'; // Unused
 import { storage } from './storage';
 import * as schema from '../shared/schema';
 import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from './middleware/auth';
 import { getAIResponse } from './services/ai';
 import multer from 'multer';
-import path from 'path';
+// import path from 'path'; // Unused
 import * as affiliateService from './services/affiliate';
 import * as webhookService from './services/webhook';
 import * as paymentService from './services/payment';
@@ -29,17 +29,17 @@ import * as loyaltyService from './services/loyalty';
 import * as analyticsService from './services/analytics';
 import { processImportFile, applyColumnMapping, validateLoyaltyData, validateInventoryData, importLoyaltyData, importInventoryData, generateErrorReport } from './services/import-enhanced';
 import { validateProductImportCSV, importProducts } from './services/product-import';
-import { File } from 'multer';
+// import { File } from 'multer'; // Unused
 import { Request, Response, NextFunction } from 'express';
 import { SessionOptions } from 'express-session';
-import { NeonDatabase } from '@neondatabase/serverless';
-import { App, Middleware, RouteHandler, EnvConfig } from './types/app';
+// import { NeonDatabase } from '@neondatabase/serverless'; // Unused
+import { App, Middleware, RouteHandler } from './types/app'; // EnvConfig removed
 import { Database } from './types/index';
 
 // Re-export env for type safety
-export const envConfig = env;
+// export const envConfig = env; // Unused
 
-export async function registerRoutes(app: App): Promise<Server> {
+export async function registerRoutes(app: App): Promise<SocketIOServer> { // Changed Server to SocketIOServer
   // Import the setupSecureServer to return either HTTP or HTTPS server based on environment
   const { setupSecureServer } = await import('./config/https');
   const PostgresStore = pgSession(session);

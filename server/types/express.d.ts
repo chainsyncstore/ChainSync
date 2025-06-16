@@ -11,7 +11,7 @@ declare module 'express' {
       id: string;
       email: string;
       role: string;
-      [key: string]: any;
+      [key: string]: unknown;
     };
   }
 
@@ -20,7 +20,7 @@ declare module 'express' {
   }
 
   interface ErrorRequestHandler {
-    (err: any, req: Request, res: Response, next: NextFunction): void;
+    (err: unknown, req: Request, res: Response, next: NextFunction): void;
   }
 }
 
