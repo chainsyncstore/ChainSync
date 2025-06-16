@@ -1,4 +1,4 @@
-import express, { type Request, Response, NextFunction, Application } from "express";
+import express, { type Request, Response, NextFunction } from "express"; // Application removed
 import { createRequestHandler, createErrorHandler, isMiddlewareFunction } from "./middleware/handler";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -7,8 +7,8 @@ import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./confi
 import { logNgrokInstructions } from "./config/ngrok";
 import { setupSecurity } from "../middleware/security";
 import { logger } from "./services/logger";
-import { env } from "./config/env";
-import { ServiceError } from "./services/base/base-service";
+// import { env } from "./config/env"; // Unused
+// import { ServiceError } from "./services/base/base-service"; // Unused
 import { applyRateLimiters } from "./middleware/rate-limiter";
 import { applyCORS } from "./middleware/cors";
 import { initializeDatabase } from "./database";
@@ -176,7 +176,7 @@ app.use((req, res, next) => {
   const httpServer = setupSecureServer(app);
   
   // Use the HTTP server with routes and Socket.io
-  const ioServer = await registerRoutes(app);
+  await registerRoutes(app); // ioServer removed
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

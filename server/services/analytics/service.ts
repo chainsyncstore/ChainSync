@@ -2,10 +2,10 @@ import { BaseService } from '../base/service';
 import { AnalyticsConfig, AnalyticsServiceErrors, AnalyticsError } from '../../config/analytics';
 import { CacheService } from '../cache/cache';
 import { Redis } from 'ioredis';
-import { performance } from 'perf_hooks';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+// import { performance } from 'perf_hooks'; // Unused
+import { ErrorCode, ErrorCategory } from '@shared/types/errors'; // AppError removed
 import { schema } from '@shared/schema';
-import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm';
+import { eq, and, gte, lte, sql } from 'drizzle-orm'; // desc, asc removed
 
 export class AnalyticsService extends BaseService {
   private redis: Redis;

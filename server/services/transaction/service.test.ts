@@ -85,7 +85,7 @@ jest.mock('@shared/schema-validation', () => ({
     }
   },
   SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: any) {
+    constructor(message: string, options?: Record<string, unknown>) {
       super(message);
       this.name = 'SchemaValidationError';
     }
@@ -151,20 +151,16 @@ describe('TransactionService', () => {
     // Set up mocked inventory service
     mockInventoryService = new InventoryService() as jest.Mocked<InventoryService>;
     // Type-safe: adjustInventory expects (params: InventoryAdjustmentParams) => Promise<boolean>
-    mockInventoryService.adjustInventory = jest.fn<(
-      params: any // Replace 'any' with InventoryAdjustmentParams if available
-    ) => Promise<boolean>>().mockResolvedValue(true);
+    mockInventoryService.adjustInventory = jest.fn<import('./types').InventoryAdjustmentParams, Promise<boolean>>().mockResolvedValue(true);
 
     // Set up mocked loyalty service
     mockLoyaltyService = new LoyaltyService() as jest.Mocked<LoyaltyService>;
     // Type-safe: awardPoints expects (params: any) => Promise<boolean>
-    mockLoyaltyService.awardPoints = jest.fn<(
-      params: any // Replace 'any' with AwardPointsParams if available
-    ) => Promise<boolean>>().mockResolvedValue(true);
+    mockLoyaltyService.awardPoints = jest.fn<unknown, Promise<boolean>>().mockResolvedValue(true);
 
     // Apply mocks to TransactionService constructor
-    (TransactionService as any).prototype.inventoryService = mockInventoryService;
-    (TransactionService as any).prototype.loyaltyService = mockLoyaltyService;
+    (TransactionService.prototype as any).inventoryService = mockInventoryService;
+    (TransactionService.prototype as any).loyaltyService = mockLoyaltyService;
 
     transactionService = new TransactionService();
   });
@@ -227,8 +223,8 @@ describe('TransactionService', () => {
     
     it('should throw error when store does not exist', async () => {
       // Mock store not found
-      const storesFindFirstMock = dbMock.query.stores.findFirst as jest.Mock<Promise<{ id: number; name: string } | null>, [any?]>;
-storesFindFirstMock.mockResolvedValue(null);
+      const storesFindFirstMock = dbMock.query.stores.findFirst as jest.Mock<Promise<schema.Store | null>, [any?]>;
+      storesFindFirstMock.mockResolvedValue(null);
       
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow(TransactionServiceErrors.STORE_NOT_FOUND.message);
@@ -236,9 +232,9 @@ storesFindFirstMock.mockResolvedValue(null);
     
     it('should throw error when user does not exist', async () => {
       // Mock store exists but user doesn't
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
-      const usersFindFirstMock = dbMock.query.users.findFirst as jest.Mock<Promise<{ id: number; name: string } | null>, [any?]>;
-usersFindFirstMock.mockResolvedValue(null);
+      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' } as schema.Store);
+      const usersFindFirstMock = dbMock.query.users.findFirst as jest.Mock<Promise<schema.User | null>, [any?]>;
+      usersFindFirstMock.mockResolvedValue(null);
       
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow(TransactionServiceErrors.USER_NOT_FOUND.message);
@@ -246,10 +242,10 @@ usersFindFirstMock.mockResolvedValue(null);
     
     it('should throw error when customer does not exist', async () => {
       // Mock store and user exist but customer doesn't
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
-      dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
-      const customersFindFirstMock = dbMock.query.customers.findFirst as jest.Mock<Promise<{ id: number; name: string } | null>, [any?]>;
-customersFindFirstMock.mockResolvedValue(null);
+      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' } as schema.Store);
+      dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' } as schema.User);
+      const customersFindFirstMock = dbMock.query.customers.findFirst as jest.Mock<Promise<schema.Customer | null>, [any?]>;
+      customersFindFirstMock.mockResolvedValue(null);
       
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow(TransactionServiceErrors.CUSTOMER_NOT_FOUND.message);
@@ -341,7 +337,7 @@ productsFindManyMock.mockResolvedValue([
     
     it('should process a full refund successfully', async () => {
       // Mock getTransactionById
-      jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(mockTransaction as any);
+      jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(mockTransaction as schema.Transaction);
       
       // Mock refund insert
       dbMock.insert().values().returning.mockResolvedValueOnce([{ id: 1, refundId: 'REF-123' }]);
@@ -377,7 +373,7 @@ productsFindManyMock.mockResolvedValue([
       jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue({
         ...mockTransaction,
         status: TransactionStatus.REFUNDED
-      } as any);
+      } as schema.Transaction);
       
       await expect(transactionService.processRefund(validRefundParams))
         .rejects.toThrow(TransactionServiceErrors.INVALID_REFUND.message);
@@ -385,7 +381,7 @@ productsFindManyMock.mockResolvedValue([
     
     it('should handle partial refunds', async () => {
       // Mock getTransactionById
-      jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(mockTransaction as any);
+      jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(mockTransaction as schema.Transaction);
       
       // Mock refund insert
       dbMock.insert().values().returning.mockResolvedValueOnce([{ id: 1, refundId: 'REF-123' }]);
@@ -488,8 +484,8 @@ productsFindManyMock.mockResolvedValue([
     
     it('should throw error when store not found', async () => {
       // Mock store not found
-      const storesFindFirstMock = dbMock.query.stores.findFirst as jest.Mock<Promise<{ id: number; name: string } | null>, [any?]>;
-storesFindFirstMock.mockResolvedValue(null);
+      const storesFindFirstMock = dbMock.query.stores.findFirst as jest.Mock<Promise<schema.Store | null>, [any?]>;
+      storesFindFirstMock.mockResolvedValue(null);
       
       await expect(transactionService.getTransactionAnalytics(1))
         .rejects.toThrow(TransactionServiceErrors.STORE_NOT_FOUND.message);

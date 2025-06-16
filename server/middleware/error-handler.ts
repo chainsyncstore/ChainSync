@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorCategory, RetryableError } from '@shared/types/errors';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors'; // RetryableError removed
 import { logError } from '@shared/utils/error-logger';
 import { formatErrorForUser } from '@shared/utils/error-messages';
 import { NextFunction, Request, Response } from 'express';

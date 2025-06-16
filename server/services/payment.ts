@@ -4,11 +4,6 @@ import { db } from '../../db';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-// Type safety for error handling
-interface ErrorWithMessage {
-  message: string;
-}
-
 // Type declaration for modules without types
 // This is a simpler approach that avoids augmentation issues
 type PaystackClient = any;

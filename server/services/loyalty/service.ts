@@ -1,19 +1,19 @@
 import { BaseService } from '../base/service';
-import { ILoyaltyService, ILoyaltyServiceErrors, LoyaltyServiceErrors } from './types';
+import { ILoyaltyService, LoyaltyServiceErrors } from './types'; // ILoyaltyServiceErrors removed
 import { db } from '@db';
 import * as schema from '@shared/schema';
 import { eq, and, gt, lt, desc, sql, asc } from 'drizzle-orm';
 import { 
-  prepareLoyaltyTierData, 
+  // prepareLoyaltyTierData, // Unused
   prepareLoyaltyMemberData, 
-  prepareLoyaltyRedemptionData,
-  formatLoyaltyTierResult,
-  formatLoyaltyMemberResult
+  // prepareLoyaltyRedemptionData, // Unused
+  formatLoyaltyTierResult
+  // formatLoyaltyMemberResult // Unused
 } from '@shared/schema-helpers';
 
 export class LoyaltyService extends BaseService implements ILoyaltyService {
   private static readonly POINTS_EXPIRY_MONTHS = 12;
-  private static readonly REWARD_THRESHOLD = 1000;
+  // private static readonly REWARD_THRESHOLD = 1000; // Unused
 
   async generateLoyaltyId(): Promise<string> {
     try {
@@ -383,9 +383,9 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         throw LoyaltyServiceErrors.PROGRAM_NOT_FOUND;
       }
 
-      const currentTier = await db.query.loyaltyTiers.findFirst({
-        where: eq(schema.loyaltyTiers.id, member.tierId)
-      });
+      // const currentTier = await db.query.loyaltyTiers.findFirst({ // Unused
+      //   where: eq(schema.loyaltyTiers.id, member.tierId)
+      // });
 
       // Use correct schema field names with schema helper functions
       const nextTier = await db.query.loyaltyTiers.findFirst({
@@ -398,7 +398,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       });
       
       // Format the result to have the fields the code expects
-      const formattedTier = nextTier ? formatLoyaltyTierResult(nextTier) : null;
+      // const formattedTier = nextTier ? formatLoyaltyTierResult(nextTier) : null; // Unused
 
       if (nextTier && member.points >= nextTier.pointsRequired) {
         await db.update(schema.loyaltyMembers)

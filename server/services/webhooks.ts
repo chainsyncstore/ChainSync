@@ -1,8 +1,8 @@
 import { db } from "@db";
 import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { AffiliateService } from "./affiliate/service";
-import { PaymentService } from "./payment/service";
+// import { AffiliateService } from "./affiliate/service"; // Unused
+// import { PaymentService } from "./payment/service"; // Unused
 import { prepareSubscriptionData } from "@shared/schema-helpers";
 import { 
   applyReferralDiscount, 

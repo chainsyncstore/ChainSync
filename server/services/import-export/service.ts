@@ -1,35 +1,36 @@
-import { Request, Express } from 'express';
-import * as multer from 'multer';
+// import { Request, Express } from 'express'; // Unused
+// import * as multer from 'multer'; // Unused
 import { AppError, ErrorCategory } from '@shared/types/errors';
-import { ImportExportConfig, ImportExportServiceErrors, ImportExportProgress, ImportExportResult, ImportExportOptions, ExportOptions, ValidationOptions } from './types';
+// ImportExportServiceErrors, ImportExportProgress removed
+import { ImportExportConfig, ImportExportResult, ImportExportOptions, ExportOptions, ValidationOptions } from './types';
 import { ValidationService as ValidationServiceImpl } from './validation';
 import { ImportExportRepository } from './repository';
-import * as fs from 'fs';
-import * as path from 'path';
-import { promisify } from 'util';
+// import * as fs from 'fs'; // Unused
+// import * as path from 'path'; // Unused
+// import { promisify } from 'util'; // Unused
 import { Parser } from 'json2csv';
 import { parse } from 'csv-parse';
 import * as ExcelJS from 'exceljs';
-import * as xlsx from 'xlsx';
+// import * as xlsx from 'xlsx'; // Unused
 
 // Helper function to chunk arrays
-type Chunk<T> = T[][];
+// type Chunk<T> = T[][]; // Unused
 
-function chunkArray<T>(array: T[], size: number): Chunk<T> {
-  if (!Array.isArray(array)) {
-    throw new Error('Input must be an array');
-  }
-  if (typeof size !== 'number' || size <= 0) {
-    throw new Error('Size must be a positive number');
-  }
+// function chunkArray<T>(array: T[], size: number): Chunk<T> { // Unused
+//   if (!Array.isArray(array)) {
+//     throw new Error('Input must be an array');
+//   }
+//   if (typeof size !== 'number' || size <= 0) {
+//     throw new Error('Size must be a positive number');
+//   }
 
-  return array.reduce((chunks, item, index) => {
-    const chunkIndex = Math.floor(index / size);
-    if (!chunks[chunkIndex]) chunks[chunkIndex] = [];
-    chunks[chunkIndex].push(item);
-    return chunks;
-  }, [] as Chunk<T>);
-}
+//   return array.reduce((chunks, item, index) => {
+//     const chunkIndex = Math.floor(index / size);
+//     if (!chunks[chunkIndex]) chunks[chunkIndex] = [];
+//     chunks[chunkIndex].push(item);
+//     return chunks;
+//   }, [] as Chunk<T>);
+// }
 
 export class ImportExportService {
   private config: {
@@ -371,9 +372,9 @@ const headers = Array.isArray(row1) ? row1.slice(1) : [];
     }
   }
 
-  private getConfig(): ImportExportConfig {
-    return {
-      batchSize: 100
-    };
-  }
+  // private getConfig(): ImportExportConfig { // Unused
+  //   return {
+  //     batchSize: 100
+  //   };
+  // }
 }

@@ -4,7 +4,7 @@
 import { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { getLogger } from '../../src/logging';
-import { Session } from 'express-session';
+// import { Session } from 'express-session'; // Unused
 import { extractAndValidateApiKey } from '../utils/auth';
 
 // Define session with csrf token property

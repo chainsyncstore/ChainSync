@@ -11,7 +11,7 @@ import {
   InventoryTransactionFormatter
 } from './formatter';
 import { inventoryValidation } from '@shared/schema-validation';
-import { IInventoryService } from './interface';
+// import { IInventoryService } from './interface'; // Unused
 import { 
   CreateInventoryParams,
   UpdateInventoryParams,
@@ -25,11 +25,11 @@ import {
   InventoryTransactionType
 } from './types';
 import { InventoryServiceErrors } from './errors';
-import { ErrorCode } from '@shared/types/errors';
+// import { ErrorCode } from '@shared/types/errors'; // Unused
 import { db } from '@server/db';
-import { eq, and, or, like, desc, asc, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm'; // eq, and, or, like, desc, asc removed
 import * as schema from '@shared/schema';
-import { formatDateForSql, formatJsonForSql } from '@shared/utils/sql-helpers';
+// import { formatDateForSql, formatJsonForSql } from '@shared/utils/sql-helpers'; // Unused
 
 export class EnhancedInventoryService extends EnhancedBaseService implements IInventoryService {
   private inventoryFormatter: InventoryFormatter;

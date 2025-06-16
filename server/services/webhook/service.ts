@@ -92,7 +92,7 @@ export class WebhookService extends BaseService implements IWebhookService {
     }
   }
 
-  private async processPaystackPayment(data: any): Promise<{
+  private async processPaystackPayment(data: Record<string, unknown>): Promise<{
     success: boolean;
     message: string;
     orderId: number;
@@ -133,7 +133,7 @@ export class WebhookService extends BaseService implements IWebhookService {
     }
   }
 
-  private async processPaystackPayout(data: any): Promise<{
+  private async processPaystackPayout(data: Record<string, unknown>): Promise<{
     success: boolean;
     message: string;
     orderId: number;
@@ -175,7 +175,7 @@ export class WebhookService extends BaseService implements IWebhookService {
     }
   }
 
-  private async processFlutterwavePayment(data: any): Promise<{
+  private async processFlutterwavePayment(data: Record<string, unknown>): Promise<{
     success: boolean;
     message: string;
     orderId: number;
@@ -216,7 +216,7 @@ export class WebhookService extends BaseService implements IWebhookService {
     }
   }
 
-  private async processFlutterwavePayout(data: any): Promise<{
+  private async processFlutterwavePayout(data: Record<string, unknown>): Promise<{
     success: boolean;
     message: string;
     orderId: number;

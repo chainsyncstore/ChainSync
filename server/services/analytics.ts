@@ -1,7 +1,7 @@
 import { storage } from "../storage";
 import * as schema from "@shared/schema";
 import { db } from "@db";
-import { desc, sql, eq, and, gte, lte, count } from "drizzle-orm";
+import { desc, sql, eq, count } from "drizzle-orm"; // and, gte, lte removed
 
 /**
  * Get sales trend analysis data

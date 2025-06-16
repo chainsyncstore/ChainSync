@@ -1,7 +1,7 @@
 import { storage } from '../storage';
-import * as schema from '@shared/schema';
-import { db } from '@db';
-import { eq, and, desc } from 'drizzle-orm';
+// import * as schema from '@shared/schema'; // Unused
+// import { db } from '@db'; // Unused
+// import { eq, and, desc } from 'drizzle-orm'; // Unused
 
 export interface BatchInsertData {
   inventoryId: number;

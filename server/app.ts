@@ -3,23 +3,23 @@ import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import { Pool } from 'pg';
-import { createClient } from 'redis';
+// import { createClient } from 'redis'; // Unused
 import { RedisStore } from 'connect-redis';
 import path from 'path';
 
 // Import logging and error handling
 import { setupLogging, setupGlobalErrorHandlers } from '../src/logging/setup';
 import { getLogger } from '../src/logging';
-import { requestLogger, errorLogger } from '../src/logging/middleware';
+// import { requestLogger, errorLogger } from '../src/logging/middleware'; // Unused
 
 // Import security middleware
 import { securityHeaders, csrfProtection, generateCsrfToken, validateContentType } from './middleware/security';
 import { rateLimitMiddleware, authRateLimiter, sensitiveOpRateLimiter } from './middleware/rate-limit';
-import { isAuthenticated, validateSession } from './middleware/auth';
-import { validateBody } from './middleware/validation';
+import { validateSession } from './middleware/auth'; // isAuthenticated removed
+// import { validateBody } from './middleware/validation'; // Unused
 
 // Import cache and job queue
-import { initRedis, getRedisClient } from '../src/cache/redis';
+import { initRedis } from '../src/cache/redis'; // getRedisClient removed
 import { initializeApp, registerHealthChecks } from '../src/startup';
 
 // Import routes

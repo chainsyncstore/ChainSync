@@ -1,8 +1,8 @@
-import { db, pool } from "../db";
+import { db } from "../db"; // pool removed
 import * as schema from "../shared/schema";
-import { eq, and, or, desc, lte, gte, sql, like, count, isNull, not, SQL, inArray, asc, gt, lt } from "drizzle-orm";
-import * as bcrypt from "bcrypt";
-import crypto from "crypto";
+import { eq, and, or, desc, gte, sql, count, isNull, asc } from "drizzle-orm"; // lte, like, not, SQL, inArray, gt, lt removed
+// import * as bcrypt from "bcrypt"; // Unused
+// import crypto from "crypto"; // Unused
 
 export const storage = {
   // --------- Cashier Sessions ---------
