@@ -1,5 +1,5 @@
 import { storage } from "../storage";
-import * as schema from "@shared/schema";
+// import * as schema from "@shared/schema"; // Unused
 import { getDialogflowResponse, enrichDialogflowWithBusinessData } from "./dialogflow";
 
 // Note: To fully enable Dialogflow capabilities, 

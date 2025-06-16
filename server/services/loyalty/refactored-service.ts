@@ -6,10 +6,10 @@
  */
 
 import { BaseService } from '../base/service';
-import { ILoyaltyService, ILoyaltyServiceErrors, LoyaltyServiceErrors } from './types';
+import { ILoyaltyService, LoyaltyServiceErrors } from './types'; // ILoyaltyServiceErrors removed
 import { db } from '@db';
 import * as schema from '@shared/schema';
-import { eq, and, gt, lt, desc, sql, asc } from 'drizzle-orm';
+import { eq, and, gt, sql, asc } from 'drizzle-orm'; // lt, desc removed
 import { loyaltyValidation } from '@shared/schema-validation';
 import { SchemaValidationError } from '@shared/schema-validation';
 
@@ -124,7 +124,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
   ): Promise<boolean> {
     try {
       // Validate input data using our schema validation
-      const validatedData = loyaltyValidation.earnPoints({
+      loyaltyValidation.earnPoints({ // validatedData removed
         memberId,
         points,
         source,
@@ -198,9 +198,9 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         throw LoyaltyServiceErrors.CUSTOMER_NOT_FOUND;
       }
 
-      const currentTier = await db.query.loyaltyTiers.findFirst({
-        where: eq(schema.loyaltyTiers.id, member.tierId)
-      });
+      // const currentTier = await db.query.loyaltyTiers.findFirst({ // Unused
+      //   where: eq(schema.loyaltyTiers.id, member.tierId)
+      // });
 
       // Find the next tier that the member qualifies for
       const nextTier = await db.query.loyaltyTiers.findFirst({

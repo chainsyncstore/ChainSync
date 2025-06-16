@@ -1,6 +1,6 @@
 import { storage } from "../storage";
 import * as schema from "@shared/schema";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, desc } from "drizzle-orm"; // lte removed
 import { randomBytes } from "crypto";
 import { db } from "../../db";
 import Flutterwave from "flutterwave-node-v3";

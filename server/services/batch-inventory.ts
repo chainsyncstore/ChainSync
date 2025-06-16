@@ -1,8 +1,8 @@
 import { storage } from '../storage';
 import fs from 'fs';
 import { parse } from 'csv-parse/sync';
-import { stringify } from 'csv-stringify/sync';
-import path from 'path';
+// import { stringify } from 'csv-stringify/sync'; // Unused
+// import path from 'path'; // Unused
 
 interface BatchImportRow {
   storeId: number;
@@ -54,7 +54,7 @@ export async function validateBatchImportFile(filePath: string) {
     });
     
     const requiredColumns = ['storeId', 'productId', 'batchNumber', 'quantity'];
-    const optionalColumns = ['expiryDate', 'manufacturingDate', 'costPerUnit'];
+    // const optionalColumns = ['expiryDate', 'manufacturingDate', 'costPerUnit']; // Unused
     
     // Check if file has required columns
     const headers = Object.keys(records[0] || {});

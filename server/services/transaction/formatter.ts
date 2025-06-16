@@ -24,7 +24,7 @@ export class TransactionFormatter extends ResultFormatter<Transaction> {
    * @param dbResult The raw database result row
    * @returns A properly formatted Transaction object
    */
-  formatResult(dbResult: Record<string, any>): Transaction {
+  formatResult(dbResult: Record<string, unknown>): Transaction {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction result');
     }
@@ -76,7 +76,7 @@ export class TransactionItemFormatter extends ResultFormatter<TransactionItem> {
    * @param dbResult The raw database result row
    * @returns A properly formatted TransactionItem object
    */
-  formatResult(dbResult: Record<string, any>): TransactionItem {
+  formatResult(dbResult: Record<string, unknown>): TransactionItem {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction item result');
     }
@@ -126,7 +126,7 @@ export class TransactionPaymentFormatter extends ResultFormatter<TransactionPaym
    * @param dbResult The raw database result row
    * @returns A properly formatted TransactionPayment object
    */
-  formatResult(dbResult: Record<string, any>): TransactionPayment {
+  formatResult(dbResult: Record<string, unknown>): TransactionPayment {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction payment result');
     }

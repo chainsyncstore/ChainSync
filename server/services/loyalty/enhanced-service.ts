@@ -11,7 +11,7 @@ import {
   LoyaltyTransactionFormatter 
 } from './formatter';
 import { loyaltyValidation } from '@shared/schema-validation';
-import { ILoyaltyService } from './interface';
+// import { ILoyaltyService } from './interface'; // Unused
 import { 
   CreateLoyaltyProgramParams, 
   UpdateLoyaltyProgramParams,
@@ -24,10 +24,10 @@ import {
   LoyaltyProgramStatus
 } from './types';
 import { LoyaltyServiceErrors } from './errors';
-import { ErrorCode } from '@shared/types/errors';
+// import { ErrorCode } from '@shared/types/errors'; // Unused
 import { db } from '@server/db';
-import { eq, and, or, like, desc, asc, sql } from 'drizzle-orm';
-import * as schema from '@shared/schema';
+import { sql } from 'drizzle-orm'; // eq, and, or, like, desc, asc removed
+// import * as schema from '@shared/schema'; // Unused
 
 export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoyaltyService {
   private programFormatter: LoyaltyProgramFormatter;
@@ -452,42 +452,6 @@ export class EnhancedLoyaltyService extends EnhancedBaseService implements ILoya
       );
     } catch (error) {
       return this.handleError(error, 'getting loyalty transactions by member');
-    }
-  }
-  
-  /**
-   * Helper method to get a store by ID
-   * 
-   * @param storeId ID of the store
-   * @returns The store or null if not found
-   */
-  private async getStoreById(storeId: number): Promise<schema.Store | null> {
-    try {
-      const result = await db.execute(
-        sql.raw(`SELECT * FROM stores WHERE id = ${storeId} LIMIT 1`)
-      );
-      
-      return result.rows?.[0] || null;
-    } catch (error) {
-      return null;
-    }
-  }
-  
-  /**
-   * Helper method to get a user by ID
-   * 
-   * @param userId ID of the user
-   * @returns The user or null if not found
-   */
-  private async getUserById(userId: number): Promise<schema.User | null> {
-    try {
-      const result = await db.execute(
-        sql.raw(`SELECT * FROM users WHERE id = ${userId} LIMIT 1`)
-      );
-      
-      return result.rows?.[0] || null;
-    } catch (error) {
-      return null;
     }
   }
   

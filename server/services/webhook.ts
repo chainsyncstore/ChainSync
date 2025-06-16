@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 
 // Make sure these are available from the environment
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
+// const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY; // Unused
 const FLUTTERWAVE_WEBHOOK_HASH = process.env.FLUTTERWAVE_WEBHOOK_HASH;
 
 export interface WebhookHandlerResult {

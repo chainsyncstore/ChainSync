@@ -1,15 +1,12 @@
 import { AppError, ErrorCode, ErrorCategory } from '../middleware/types/error';
 
 export interface FileUploadConfig {
-import express from 'express';
-
-export interface FileUploadConfig {
   maxFileSize: number; // in bytes
   maxTotalUploadSize: number; // in bytes
   allowedMimeTypes: string[];
   maxFiles: number;
   destination: string;
-  filename: (req: express.Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => void;
+  filename: (req: Express.Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => void;
   allowedFileExtensions: string[];
   cleanupInterval: number;
   cacheTTL: number;

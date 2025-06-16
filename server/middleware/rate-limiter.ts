@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+// Request, Response, NextFunction removed
 import { RateLimiter } from './types/index';
 
 const rateLimitOptions = {

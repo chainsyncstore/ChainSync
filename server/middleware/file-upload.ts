@@ -8,9 +8,9 @@ import { logger } from './utils/logger';
 import { FileUtils } from './utils/file-utils';
 import { UploadMetricsTracker } from './utils/logger';
 import { LRUCache } from 'lru-cache';
-import * as fs from 'fs';
-import * as crypto from 'crypto';
-import sanitize from 'sanitize-filename';
+// import * as fs from 'fs'; // Unused
+// import * as crypto from 'crypto'; // Unused
+// import sanitize from 'sanitize-filename'; // Unused
 import { fileTypeFromBuffer } from 'file-type';
 import uuidv4 from 'uuid';
 import * as path from 'path';
@@ -71,10 +71,10 @@ const progressCache = new LRUCache<string, FileUploadProgress>({
 const subscriptionCache = new Map<string, ProgressSubscription[]>();
 
 // Multer instance
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: fileUploadConfig.maxFileSize,
+// const upload = multer({ // Unused
+//   storage: multer.memoryStorage(),
+//   limits: {
+//     fileSize: fileUploadConfig.maxFileSize,
     files: fileUploadConfig.maxFiles
   },
   fileFilter: async (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {

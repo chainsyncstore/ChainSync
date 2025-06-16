@@ -220,10 +220,10 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
     // through the proper API calls
     
     // This is a simplified example of setting contexts
-    const contextRequest = {
-      session: sessionPath,
-      contexts: [
-        {
+    // const contextRequest = { // Unused
+    //   session: sessionPath,
+    //   contexts: [
+    //     {
           name: `${sessionPath}/contexts/sales_data`,
           lifespanCount: 5,
           parameters: {
@@ -271,9 +271,9 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
               }
             }
           }
-        }
-      ]
-    };
+        // }
+      // ]
+    // }; // Unused
 
     // In a real implementation, you would use:
     // await sessionClient.setContexts(contextRequest);

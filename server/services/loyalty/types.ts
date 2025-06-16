@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+import { ErrorCode, ErrorCategory } from '@shared/types/errors'; // AppError removed
 import * as schema from '@shared/schema';
 
 export type LoyaltyProgram = schema.LoyaltyProgram;

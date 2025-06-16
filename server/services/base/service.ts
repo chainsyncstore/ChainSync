@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+import { ErrorCode, ErrorCategory } from '@shared/types/errors'; // AppError removed
 
 export interface IServiceError extends Error {
   code: ErrorCode;

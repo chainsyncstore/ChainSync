@@ -1,8 +1,8 @@
 import { BaseService } from '../base/service';
-import { IAffiliateService, IAffiliateServiceErrors, AffiliateServiceErrors } from './types';
+import { IAffiliateService, AffiliateServiceErrors } from './types'; // IAffiliateServiceErrors removed
 import { storage } from '../../storage';
 import * as schema from '@shared/schema';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm'; // gte, lte removed
 import { randomBytes } from 'crypto';
 import { db } from '../../../db';
 import Flutterwave from 'flutterwave-node-v3';
@@ -239,17 +239,17 @@ export class AffiliateService extends BaseService implements IAffiliateService {
 
       const referrals = await db
         .select({
-          total: sql<number>`count(*)`,
-          active: sql<number>`count(*) filter (where ${schema.referrals.status} = 'active')`,
-          pending: sql<number>`count(*) filter (where ${schema.referrals.status} = 'pending')`
+          total: schema.referrals.id.count(), // Using Drizzle's count aggregation
+          active: schema.referrals.id.count().filter(eq(schema.referrals.status, 'active')), // Using Drizzle's count with filter
+          pending: schema.referrals.id.count().filter(eq(schema.referrals.status, 'pending')) // Using Drizzle's count with filter
         })
         .from(schema.referrals)
         .where(eq(schema.referrals.referringUserId, affiliate.userId));
 
       const earnings = await db
         .select({
-          total: sql<number>`sum(${schema.affiliateCommissions.amount})`,
-          pending: sql<number>`sum(${schema.affiliateCommissions.amount}) filter (where ${schema.affiliateCommissions.status} = 'pending')`
+          total: schema.affiliateCommissions.amount.sum(), // Using Drizzle's sum aggregation
+          pending: schema.affiliateCommissions.amount.sum().filter(eq(schema.affiliateCommissions.status, 'pending')) // Using Drizzle's sum with filter
         })
         .from(schema.affiliateCommissions)
         .where(eq(schema.affiliateCommissions.affiliateId, affiliate.id));

@@ -2,7 +2,7 @@ import { BaseService } from '../base/service';
 import { AIServiceConfig, AIServiceErrors, AIError } from '../../config/ai';
 import { CacheService } from '../cache/cache';
 import { RateLimiter } from '../rate-limiter/rate-limiter';
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+import { ErrorCode, ErrorCategory } from '@shared/types/errors'; // AppError removed
 import { OpenAI } from 'openai';
 import { v4 as uuidv4 } from 'uuid';
 import { performance } from 'perf_hooks';
