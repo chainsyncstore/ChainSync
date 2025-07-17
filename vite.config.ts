@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 // Get the directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -19,6 +20,7 @@ export default defineConfig(({ mode }) => {
     publicDir: path.resolve(__dirname, 'public'),
     envDir: path.resolve(__dirname),
     plugins: [
+      tsconfigPaths(),
       react({
         // React fast refresh is enabled by default in @vitejs/plugin-react
       }),

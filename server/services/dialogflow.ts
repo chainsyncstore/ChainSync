@@ -224,7 +224,7 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
     //   session: sessionPath,
     //   contexts: [
     //     {
-          name: `${sessionPath}/contexts/sales_data`,
+    /*      name: `${sessionPath}/contexts/sales_data`,
           lifespanCount: 5,
           parameters: {
             fields: {
@@ -274,6 +274,7 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
         // }
       // ]
     // }; // Unused
+    */
 
     // In a real implementation, you would use:
     // await sessionClient.setContexts(contextRequest);

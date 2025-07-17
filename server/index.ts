@@ -7,6 +7,8 @@ import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./confi
 import { logNgrokInstructions } from "./config/ngrok";
 import { setupSecurity } from "../middleware/security";
 import { logger } from "./services/logger";
+import * as Sentry from '@sentry/node';
+import { env } from "@shared/env";
 // import { env } from "./config/env"; // Unused
 // import { ServiceError } from "./services/base/base-service"; // Unused
 import { applyRateLimiters } from "./middleware/rate-limiter";
@@ -15,6 +17,18 @@ import { initializeDatabase } from "./database";
 import { initializeGlobals } from "@shared/db/types";
 
 const app = express();
+
+// --- Sentry Monitoring ---
+Sentry.init({
+  dsn: env.SENTRY_DSN,
+  environment: env.NODE_ENV,
+  tracesSampleRate: 1.0,
+  integrations: [
+    Sentry.httpIntegration(),
+    Sentry.expressIntegration(),
+  ],
+});
+
 
 // Initialize global database references
 initializeGlobals();
@@ -108,7 +122,10 @@ if (isMiddlewareFunction(fallbackMiddleware)) {
 }
 
 // Register routes
+// Register routes first
 registerRoutes(app);
+// Install Sentry error handler (new API)
+Sentry.setupExpressErrorHandler(app);
 
 // Add error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

@@ -488,7 +488,6 @@ export async function validateLoyaltyData(
   try {
     await enhanceValidationWithAI(result, 'loyalty');
   } catch (error: unknown) {
-  } catch (error: unknown) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }

@@ -9,7 +9,7 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "noEmit": true,
+    "noEmit": false,
     "emitDeclarationOnly": false,
     "allowImportingTsExtensions": true,
     "types": ["node"],

@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/providers/auth-provider";
 import { CurrencyProvider } from "@/providers/currency-provider";
+import { ErrorBoundary } from "@/sentry"; // Initialize Sentry
 
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
@@ -230,14 +231,35 @@ function AppRoutes() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CurrencyProvider>
-          <AppRoutes />
-          <Toaster />
-        </CurrencyProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary fallback={({ error, resetError }) => (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-red-600 mb-4">Something went wrong</h2>
+          <p className="text-gray-600 mb-4">We're sorry, but something unexpected happened.</p>
+          <details className="mb-4">
+            <summary className="cursor-pointer text-sm text-gray-500">Error details</summary>
+            <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
+              {error instanceof Error ? error.message : String(error)}
+            </pre>
+          </details>
+          <button
+            onClick={resetError}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <CurrencyProvider>
+            <AppRoutes />
+            <Toaster />
+          </CurrencyProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
