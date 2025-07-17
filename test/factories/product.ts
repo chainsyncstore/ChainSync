@@ -1,15 +1,16 @@
 // test/factories/product.ts
 // Factory for creating mock Product objects for tests
-import type { Product } from '@prisma/client';
+import * as schema from '@shared/schema';
 
-export function makeMockProduct(overrides: Partial<Product> = {}): Product {
+export function makeMockProduct(
+  overrides: Partial<schema.ProductInsert> = {}
+): schema.ProductInsert {
   return {
-    id: 1,
     name: 'Test Product',
+    sku: `SKU-${Date.now()}`,
     price: '10.00',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    inventory: 10,
+    cost: '5.00',
+    categoryId: 1, // Default category, can be overridden in tests
     ...overrides,
   };
 }

@@ -1,18 +1,18 @@
 /**
  * Enhanced Inventory Service
- * 
+ *
  * A refactored version of the Inventory service that uses the enhanced base service
  * and utility abstractions to reduce code duplication and improve type safety.
  */
 import { EnhancedBaseService } from '@server/services/base/enhanced-service';
-import { 
+import {
   InventoryFormatter,
   InventoryItemFormatter,
-  InventoryTransactionFormatter
+  InventoryTransactionFormatter,
 } from './formatter';
 import { inventoryValidation } from '@shared/schema-validation';
 // import { IInventoryService } from './interface'; // Unused
-import { 
+import {
   CreateInventoryParams,
   UpdateInventoryParams,
   Inventory,
@@ -22,7 +22,7 @@ import {
   UpdateInventoryItemParams,
   InventoryAdjustmentParams,
   InventoryBatchParams,
-  InventoryTransactionType
+  InventoryTransactionType,
 } from './types';
 import { InventoryServiceErrors } from './errors';
 // import { ErrorCode } from '@shared/types/errors'; // Unused
@@ -35,17 +35,17 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
   private inventoryFormatter: InventoryFormatter;
   private itemFormatter: InventoryItemFormatter;
   private transactionFormatter: InventoryTransactionFormatter;
-  
+
   constructor() {
     super();
     this.inventoryFormatter = new InventoryFormatter();
     this.itemFormatter = new InventoryItemFormatter();
     this.transactionFormatter = new InventoryTransactionFormatter();
   }
-  
+
   /**
    * Create a new inventory record with validated data
-   * 
+   *
    * @param params Inventory creation parameters
    * @returns The created inventory record
    */
@@ -56,19 +56,19 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       if (!product) {
         throw InventoryServiceErrors.PRODUCT_NOT_FOUND;
       }
-      
+
       // Check if store exists
       const store = await this.getStoreById(params.storeId);
       if (!store) {
         throw InventoryServiceErrors.STORE_NOT_FOUND;
       }
-      
+
       // Check for existing inventory for this product and store
       const existingInventory = await this.getInventoryByProduct(params.productId, params.storeId);
       if (existingInventory) {
         return this.updateInventory(existingInventory.id, params);
       }
-      
+
       // Prepare inventory data
       const inventoryData = {
         ...params,
@@ -76,29 +76,29 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         lastAuditDate: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        metadata: params.metadata ? JSON.stringify(params.metadata) : null,
       };
-      
+
       // Validate and prepare the data
       const validatedData = inventoryValidation.insert(inventoryData);
-      
+
       // Use the raw insert method to avoid TypeScript field mapping errors
       const inventory = await this.rawInsertWithFormatting(
         'inventory',
         validatedData,
         this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
       );
-      
+
       // Ensure the inventory was created
       return this.ensureExists(inventory, 'Inventory');
     } catch (error) {
       return this.handleError(error, 'creating inventory');
     }
   }
-  
+
   /**
    * Update an inventory record with validated data
-   * 
+   *
    * @param inventoryId ID of the inventory to update
    * @param params Inventory update parameters
    * @returns The updated inventory record
@@ -110,17 +110,17 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       if (!existingInventory) {
         throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
       }
-      
+
       // Prepare update data with proper field names
       const updateData = {
         ...params,
         updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : existingInventory.metadata
+        metadata: params.metadata ? JSON.stringify(params.metadata) : existingInventory.metadata,
       };
-      
+
       // Validate the data
       const validatedData = inventoryValidation.update(updateData);
-      
+
       // Use the raw update method to avoid TypeScript field mapping errors
       const updatedInventory = await this.rawUpdateWithFormatting(
         'inventory',
@@ -128,17 +128,17 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         `id = ${inventoryId}`,
         this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
       );
-      
+
       // Ensure the inventory was updated
       return this.ensureExists(updatedInventory, 'Inventory');
     } catch (error) {
       return this.handleError(error, 'updating inventory');
     }
   }
-  
+
   /**
    * Get an inventory record by ID
-   * 
+   *
    * @param inventoryId ID of the inventory to retrieve
    * @returns The inventory record or null if not found
    */
@@ -148,7 +148,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const query = `
         SELECT * FROM inventory WHERE id = ${inventoryId}
       `;
-      
+
       // Execute the query and format the result
       return await this.executeSqlWithFormatting(
         query,
@@ -159,10 +159,10 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       return this.handleError(error, 'getting inventory by ID');
     }
   }
-  
+
   /**
    * Get an inventory record by product and store
-   * 
+   *
    * @param productId ID of the product
    * @param storeId ID of the store
    * @returns The inventory record or null if not found
@@ -174,13 +174,13 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         SELECT * FROM inventory 
         WHERE product_id = ${productId}
       `;
-      
+
       if (storeId) {
         query += ` AND store_id = ${storeId}`;
       }
-      
+
       query += ' LIMIT 1';
-      
+
       // Execute the query and format the result
       return await this.executeSqlWithFormatting(
         query,
@@ -191,10 +191,10 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       return this.handleError(error, 'getting inventory by product');
     }
   }
-  
+
   /**
    * Create an inventory item with validated data
-   * 
+   *
    * @param params Inventory item creation parameters
    * @returns The created inventory item
    */
@@ -205,13 +205,13 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       if (!inventory) {
         throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
       }
-      
+
       // Check if product exists
       const product = await this.getProductById(params.productId);
       if (!product) {
         throw InventoryServiceErrors.PRODUCT_NOT_FOUND;
       }
-      
+
       // Prepare item data
       const itemData = {
         ...params,
@@ -222,54 +222,57 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         receivedDate: params.receivedDate || new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        metadata: params.metadata ? JSON.stringify(params.metadata) : null,
       };
-      
+
       // Validate and prepare the data
       const validatedData = inventoryValidation.itemInsert(itemData);
-      
+
       // Use the raw insert method to avoid TypeScript field mapping errors
       const item = await this.rawInsertWithFormatting(
         'inventory_items',
         validatedData,
         this.itemFormatter.formatResult.bind(this.itemFormatter)
       );
-      
+
       // Update inventory utilization
       await this.updateInventoryUtilization(params.inventoryId);
-      
+
       // Ensure the item was created
       return this.ensureExists(item, 'Inventory Item');
     } catch (error) {
       return this.handleError(error, 'creating inventory item');
     }
   }
-  
+
   /**
    * Update an inventory item with validated data
-   * 
+   *
    * @param itemId ID of the item to update
    * @param params Inventory item update parameters
    * @returns The updated inventory item
    */
-  async updateInventoryItem(itemId: number, params: UpdateInventoryItemParams): Promise<InventoryItem> {
+  async updateInventoryItem(
+    itemId: number,
+    params: UpdateInventoryItemParams
+  ): Promise<InventoryItem> {
     try {
       // Get existing item
       const existingItem = await this.getInventoryItemById(itemId);
       if (!existingItem) {
         throw InventoryServiceErrors.ITEM_NOT_FOUND;
       }
-      
+
       // Prepare update data with proper field names
       const updateData = {
         ...params,
         updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : existingItem.metadata
+        metadata: params.metadata ? JSON.stringify(params.metadata) : existingItem.metadata,
       };
-      
+
       // Validate the data
       const validatedData = inventoryValidation.itemUpdate(updateData);
-      
+
       // Use the raw update method to avoid TypeScript field mapping errors
       const updatedItem = await this.rawUpdateWithFormatting(
         'inventory_items',
@@ -277,22 +280,22 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         `id = ${itemId}`,
         this.itemFormatter.formatResult.bind(this.itemFormatter)
       );
-      
+
       // Update inventory utilization if quantity changed
       if (params.quantity !== undefined && params.quantity !== existingItem.quantity) {
         await this.updateInventoryUtilization(existingItem.inventoryId);
       }
-      
+
       // Ensure the item was updated
       return this.ensureExists(updatedItem, 'Inventory Item');
     } catch (error) {
       return this.handleError(error, 'updating inventory item');
     }
   }
-  
+
   /**
    * Get an inventory item by ID
-   * 
+   *
    * @param itemId ID of the item to retrieve
    * @returns The inventory item or null if not found
    */
@@ -302,7 +305,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const query = `
         SELECT * FROM inventory_items WHERE id = ${itemId}
       `;
-      
+
       // Execute the query and format the result
       return await this.executeSqlWithFormatting(
         query,
@@ -313,10 +316,10 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       return this.handleError(error, 'getting inventory item by ID');
     }
   }
-  
+
   /**
    * Get all inventory items for an inventory
-   * 
+   *
    * @param inventoryId ID of the inventory
    * @returns Array of inventory items
    */
@@ -328,7 +331,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         WHERE inventory_id = ${inventoryId}
         ORDER BY created_at DESC
       `;
-      
+
       // Execute the query and format the results
       return await this.executeSqlWithMultipleResults(
         query,
@@ -339,10 +342,10 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       return this.handleError(error, 'getting inventory items');
     }
   }
-  
+
   /**
    * Adjust inventory quantity with transaction tracking
-   * 
+   *
    * @param params Inventory adjustment parameters
    * @returns The created inventory transaction
    */
@@ -353,28 +356,28 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       if (!inventory) {
         throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
       }
-      
+
       // Get item
       const item = await this.getInventoryItemById(params.itemId);
       if (!item) {
         throw InventoryServiceErrors.ITEM_NOT_FOUND;
       }
-      
+
       // Calculate new quantity
       const quantity = params.quantity;
       const beforeQuantity = item.quantity;
-      let afterQuantity = beforeQuantity + quantity;
-      
+      const afterQuantity = beforeQuantity + quantity;
+
       // Check if sufficient stock for negative adjustments
       if (quantity < 0 && afterQuantity < 0) {
         throw InventoryServiceErrors.INSUFFICIENT_STOCK;
       }
-      
+
       // Update item quantity
       await this.updateInventoryItem(item.id, {
-        quantity: afterQuantity
+        quantity: afterQuantity,
       });
-      
+
       // Prepare transaction data
       const transactionData = {
         inventoryId: params.inventoryId,
@@ -391,33 +394,33 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         transactionDate: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        metadata: params.metadata ? JSON.stringify(params.metadata) : null,
       };
-      
+
       // Validate and prepare the data
       // TODO: Implement transactionInsert validation in inventoryValidation if needed
       const validatedData = transactionData; // Pass-through until validation is defined
-      
+
       // Use the raw insert method to avoid TypeScript field mapping errors
       const transaction = await this.rawInsertWithFormatting(
         'inventory_transactions',
         validatedData,
         this.transactionFormatter.formatResult.bind(this.transactionFormatter)
       );
-      
+
       // Update inventory utilization
       await this.updateInventoryUtilization(params.inventoryId);
-      
+
       // Ensure the transaction was created
       return this.ensureExists(transaction, 'Inventory Transaction');
     } catch (error) {
       return this.handleError(error, 'adjusting inventory');
     }
   }
-  
+
   /**
    * Add a new batch to inventory with batch tracking
-   * 
+   *
    * @param params Inventory batch parameters
    * @returns The created inventory item for the batch
    */
@@ -428,7 +431,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       if (!product) {
         throw InventoryServiceErrors.PRODUCT_NOT_FOUND;
       }
-      
+
       // Get or create inventory
       let inventory = await this.getInventoryByProduct(params.productId, params.storeId);
       if (!inventory) {
@@ -437,17 +440,17 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
           storeId: params.storeId || 1, // Default to main store if not specified
           name: product.name,
           description: product.description || '',
-          batchTracking: true
+          batchTracking: true,
         });
       }
-      
+
       // Enable batch tracking if not already enabled
       if (!inventory.batchTracking) {
         await this.updateInventory(inventory.id, {
-          batchTracking: true
+          batchTracking: true,
         });
       }
-      
+
       // Create the batch as an inventory item
       const batchItemParams: CreateInventoryItemParams = {
         inventoryId: inventory.id,
@@ -463,12 +466,12 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         expiryDate: params.expiryDate,
         supplier: params.supplier,
         isActive: true,
-        metadata: params.metadata
+        metadata: params.metadata,
       };
-      
+
       // Create the batch item
       const batchItem = await this.createInventoryItem(batchItemParams);
-      
+
       // Create a transaction record for the batch addition
       await this.adjustInventory({
         inventoryId: inventory.id,
@@ -478,18 +481,18 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         unitCost: params.unitCost,
         referenceId: params.referenceId,
         notes: `Batch ${params.batchNumber || batchItem.batchNumber} received`,
-        performedBy: params.performedBy
+        performedBy: params.performedBy,
       });
-      
+
       return batchItem;
     } catch (error) {
       return this.handleError(error, 'adding inventory batch');
     }
   }
-  
+
   /**
    * Get a transaction by ID
-   * 
+   *
    * @param transactionId ID of the transaction to retrieve
    * @returns The inventory transaction or null if not found
    */
@@ -499,7 +502,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const query = `
         SELECT * FROM inventory_transactions WHERE id = ${transactionId}
       `;
-      
+
       // Execute the query and format the result
       return await this.executeSqlWithFormatting(
         query,
@@ -510,10 +513,10 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       return this.handleError(error, 'getting transaction by ID');
     }
   }
-  
+
   /**
    * Get all transactions for an inventory
-   * 
+   *
    * @param inventoryId ID of the inventory
    * @returns Array of inventory transactions
    */
@@ -525,7 +528,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         WHERE inventory_id = ${inventoryId}
         ORDER BY transaction_date DESC
       `;
-      
+
       // Execute the query and format the results
       return await this.executeSqlWithMultipleResults(
         query,
@@ -536,10 +539,10 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       return this.handleError(error, 'getting transactions by inventory');
     }
   }
-  
+
   /**
    * Get all transactions for an inventory item
-   * 
+   *
    * @param itemId ID of the inventory item
    * @returns Array of inventory transactions
    */
@@ -551,7 +554,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         WHERE item_id = ${itemId}
         ORDER BY transaction_date DESC
       `;
-      
+
       // Execute the query and format the results
       return await this.executeSqlWithMultipleResults(
         query,
@@ -562,10 +565,10 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       return this.handleError(error, 'getting transactions by item');
     }
   }
-  
+
   /**
    * Update inventory utilization based on current item quantities
-   * 
+   *
    * @param inventoryId ID of the inventory to update
    * @returns The updated inventory record
    */
@@ -577,24 +580,24 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         FROM inventory_items
         WHERE inventory_id = ${inventoryId}
       `;
-      
+
       const result = await db.execute(sql.raw(query));
       const totalQuantity = Number(result.rows?.[0]?.total_quantity || 0);
-      
+
       // Update inventory utilization
       return this.updateInventory(inventoryId, {
         currentUtilization: totalQuantity,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
     } catch (error) {
       console.error(`Error updating inventory utilization: ${error}`);
       return null;
     }
   }
-  
+
   /**
    * Helper method to get a product by ID
-   * 
+   *
    * @param productId ID of the product
    * @returns The product or null if not found
    */
@@ -603,16 +606,16 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const result = await db.execute(
         sql.raw(`SELECT * FROM products WHERE id = ${productId} LIMIT 1`)
       );
-      
+
       return result.rows?.[0] || null;
     } catch (error) {
       return null;
     }
   }
-  
+
   /**
    * Helper method to get a store by ID
-   * 
+   *
    * @param storeId ID of the store
    * @returns The store or null if not found
    */
@@ -621,7 +624,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const result = await db.execute(
         sql.raw(`SELECT * FROM stores WHERE id = ${storeId} LIMIT 1`)
       );
-      
+
       return result.rows?.[0] || null;
     } catch (error) {
       return null;

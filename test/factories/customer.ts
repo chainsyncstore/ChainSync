@@ -1,17 +1,15 @@
 // test/factories/customer.ts
 // Factory for creating mock Customer objects for tests
-// NOTE: Add loyaltyEnabled to Customer type if not present in @prisma/client
-import type { Customer } from '@prisma/client';
+import * as schema from '@shared/schema';
 
-export function makeMockCustomer(overrides: Partial<Customer> = {}): Customer {
+export function makeMockCustomer(
+  overrides: Partial<schema.CustomerInsert> = {}
+): schema.CustomerInsert {
   return {
-    id: 1,
-    name: 'Test Customer',
-    email: 'customer@example.com',
+    fullName: 'Test Customer',
+    email: `customer.${Date.now()}@example.com`,
     phone: '555-1234',
-    loyaltyEnabled: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    storeId: 1, // Default storeId, can be overridden in tests
     ...overrides,
   };
 }

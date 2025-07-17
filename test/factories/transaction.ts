@@ -1,23 +1,23 @@
 // test/factories/transaction.ts
 // Factory for creating mock Transaction objects for tests
-import type { Transaction, TransactionType, TransactionStatus } from '@prisma/client';
+import * as schema from '@shared/schema';
 
-export function makeMockTransaction(overrides: Partial<Transaction> = {}): Transaction {
-  return {
-    id: 1,
+// Note: We are using TransactionInsert which is derived from the Zod schema.
+// The Zod schema has been updated to expect strings for decimal fields.
+export function makeMockTransaction(
+  overrides: Partial<schema.TransactionInsert> = {}
+): schema.TransactionInsert {
+  const data: schema.TransactionInsert = {
     storeId: 1,
-    customerId: 1,
     userId: 1,
-    type: 'SALE' as TransactionType,
-    status: 'COMPLETED' as TransactionStatus,
-    subtotal: '100.00',
-    tax: '10.00',
-    total: '110.00',
-    paymentMethod: 'CASH',
+    customerId: 1,
+    status: 'completed',
+    totalAmount: '110.00',
+    paymentStatus: 'paid',
+    paymentMethod: 'cash',
     notes: 'Test transaction',
-    reference: 'TXN-123',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    referenceNumber: `TXN-${Date.now()}`,
     ...overrides,
   };
+  return data;
 }

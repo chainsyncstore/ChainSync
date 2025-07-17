@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "module": "CommonJS"
+  },
+  "include": [
+    "server/**/*.ts",
+    "db/**/*.ts",
+    "shared/**/*.ts",
+    "tests/**/*.ts",
+    "test/**/*.ts",
+    "types/**/*.d.ts",
+    "**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "client"]
+}

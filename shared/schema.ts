@@ -26,30 +26,36 @@ import {
 } from "./payment-schema";
 
 // Users & Authentication
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  fullName: text("full_name").notNull(),
-  email: text("email").notNull(),
-  role: text("role").notNull().default("cashier"),
-  storeId: integer("store_id").references(() => stores.id),
-  lastLogin: timestamp("last_login"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-}, (table) => ({
-  usernameIndex: index("idx_users_username").on(table.username),
-  emailIndex: index("idx_users_email").on(table.email),
-  roleIndex: index("idx_users_role").on(table.role)
-}));
+export const users = pgTable(
+  'users',
+  {
+    id: serial('id').primaryKey(),
+    username: text('username').notNull().unique(),
+    password: text('password').notNull(),
+    fullName: text('full_name').notNull(),
+    email: text('email').notNull(),
+    role: text('role').notNull().default('cashier'),
+    storeId: integer('store_id').references(() => stores.id),
+    lastLogin: timestamp('last_login'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => ({
+    usernameIndex: index('idx_users_username').on(table.username),
+    emailIndex: index('idx_users_email').on(table.email),
+    roleIndex: index('idx_users_role').on(table.role),
+  })
+);
 
-export const passwordResetTokens = pgTable("password_reset_tokens", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  token: text("token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  used: boolean("used").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  token: text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  used: boolean('used').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -68,37 +74,40 @@ export const passwordResetTokensRelations = relations(passwordResetTokens, ({ on
 }));
 
 // Stores
-export const stores = pgTable("stores", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  address: text("address").notNull(),
-  city: text("city").notNull(),
-  state: text("state").notNull(),
-  country: text("country").notNull(),
-  phone: text("phone").notNull(),
-  email: text("email").notNull(),
-  timezone: text("timezone").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-}, (table) => ({
-  nameIndex: index("idx_stores_name").on(table.name),
-  emailIndex: index("idx_stores_email").on(table.email)
-}));
+export const stores = pgTable(
+  'stores',
+  {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull(),
+    address: text('address').notNull(),
+    city: text('city').notNull(),
+    state: text('state').notNull(),
+    country: text('country').notNull(),
+    phone: text('phone').notNull(),
+    email: text('email').notNull(),
+    timezone: text('timezone').notNull(),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => ({
+    nameIndex: index('idx_stores_name').on(table.name),
+    emailIndex: index('idx_stores_email').on(table.email),
+  })
+);
 
 export const storesRelations = relations(stores, ({ many }) => ({
   users: many(users),
   inventory: many(inventory),
-  transactions: many(transactions),
 }));
 
 // Product Categories
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const categories = pgTable('categories', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -106,20 +115,22 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
 }));
 
 // Products
-export const products = pgTable("products", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  sku: text("sku").notNull().unique(),
-  description: text("description"),
-  barcode: text("barcode"),
-  categoryId: integer("category_id").references(() => categories.id).notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  cost: decimal("cost", { precision: 10, scale: 2 }).default("0"),
-  isPerishable: boolean("is_perishable").notNull().default(false),
-  imageUrl: text("image_url"),
-  bonusPoints: decimal("bonus_points", { precision: 10, scale: 2 }).default("0"), // For loyalty program bonus points
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const products = pgTable('products', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  sku: text('sku').notNull().unique(),
+  description: text('description'),
+  barcode: text('barcode'),
+  categoryId: integer('category_id')
+    .references(() => categories.id)
+    .notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  cost: decimal('cost', { precision: 10, scale: 2 }).default('0'),
+  isPerishable: boolean('is_perishable').notNull().default(false),
+  imageUrl: text('image_url'),
+  bonusPoints: decimal('bonus_points', { precision: 10, scale: 2 }).default('0'), // For loyalty program bonus points
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -128,37 +139,58 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     references: [categories.id],
   }),
   inventoryItems: many(inventory),
-  transactionItems: many(transactionItems),
 }));
 
 // Inventory (master record for each product in a store)
-export const inventory = pgTable("inventory", {
-  id: serial("id").primaryKey(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
-  productId: integer("product_id").references(() => products.id).notNull(),
-  totalQuantity: integer("total_quantity").notNull().default(0), // Sum of all batch quantities
-  minimumLevel: integer("minimum_level").notNull().default(10),
-  lastStockUpdate: timestamp("last_stock_update").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => {
-  return {
-    storeProductUnique: unique().on(table.storeId, table.productId),
+export const inventory = pgTable(
+  'inventory',
+  {
+    id: serial('id').primaryKey(),
+    storeId: integer('store_id')
+      .references(() => stores.id)
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => products.id)
+      .notNull(),
+    totalQuantity: integer('total_quantity').notNull().default(0), // Sum of all batch quantities
+    availableQuantity: integer('available_quantity').notNull().default(0),
+    minimumLevel: integer('minimum_level').notNull().default(10),
+    batchTracking: boolean('batch_tracking').notNull().default(false),
+    lastStockUpdate: timestamp('last_stock_update').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  table => {
+    return {
+      storeProductUnique: unique().on(table.storeId, table.productId),
+    };
   }
-});
+);
 
 // Inventory Batches - tracking different batches with their expiry dates
-export const inventoryBatches = pgTable("inventory_batches", {
-  id: serial("id").primaryKey(),
-  inventoryId: integer("inventory_id").references(() => inventory.id).notNull(),
-  batchNumber: text("batch_number").notNull(),
-  quantity: integer("quantity").notNull().default(0),
-  expiryDate: timestamp("expiry_date"),
-  manufacturingDate: timestamp("manufacturing_date"),
-  costPerUnit: decimal("cost_per_unit", { precision: 10, scale: 2 }),
-  receivedDate: timestamp("received_date").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+// Logs for inventory changes
+export const inventoryLogs = pgTable('inventory_logs', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const inventoryBatches = pgTable('inventory_batches', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  batchNumber: text('batch_number').notNull(),
+  quantity: integer('quantity').notNull().default(0),
+  expiryDate: timestamp('expiry_date'),
+  manufacturingDate: timestamp('manufacturing_date'),
+  costPerUnit: decimal('cost_per_unit', { precision: 10, scale: 2 }),
+  receivedDate: timestamp('received_date').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const inventoryRelations = relations(inventory, ({ one, many }) => ({
@@ -178,19 +210,21 @@ export const inventoryBatchesRelations = relations(inventoryBatches, ({ one, man
     fields: [inventoryBatches.inventoryId],
     references: [inventory.id],
   }),
-  auditLogs: many(batchAuditLogs)
+  auditLogs: many(batchAuditLogs),
 }));
 
 // Batch audit logs to track changes
-export const batchAuditLogs = pgTable("batch_audit_logs", {
-  id: serial("id").primaryKey(),
-  batchId: integer("batch_id").references(() => inventoryBatches.id, { onDelete: 'set null' }),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  action: text("action").notNull(),
-  details: jsonb("details").notNull(),
-  quantityBefore: integer("quantity_before"),
-  quantityAfter: integer("quantity_after"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const batchAuditLogs = pgTable('batch_audit_logs', {
+  id: serial('id').primaryKey(),
+  batchId: integer('batch_id').references(() => inventoryBatches.id, { onDelete: 'set null' }),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  action: text('action').notNull(),
+  details: jsonb('details').notNull(),
+  quantityBefore: integer('quantity_before'),
+  quantityAfter: integer('quantity_after'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const batchAuditLogsRelations = relations(batchAuditLogs, ({ one }) => ({
@@ -201,19 +235,19 @@ export const batchAuditLogsRelations = relations(batchAuditLogs, ({ one }) => ({
   user: one(users, {
     fields: [batchAuditLogs.userId],
     references: [users.id],
-  })
+  }),
 }));
 
 // Suppliers
-export const suppliers = pgTable("suppliers", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  contactName: text("contact_name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone").notNull(),
-  address: text("address").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const suppliers = pgTable('suppliers', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  contactName: text('contact_name').notNull(),
+  email: text('email').notNull(),
+  phone: text('phone').notNull(),
+  address: text('address').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const suppliersRelations = relations(suppliers, ({ many }) => ({
@@ -221,15 +255,21 @@ export const suppliersRelations = relations(suppliers, ({ many }) => ({
 }));
 
 // Purchase Orders
-export const purchaseOrders = pgTable("purchase_orders", {
-  id: serial("id").primaryKey(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
-  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
-  status: text("status").notNull().default("pending"), // pending, approved, received, cancelled
-  createdBy: integer("created_by").references(() => users.id).notNull(),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const purchaseOrders = pgTable('purchase_orders', {
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  supplierId: integer('supplier_id')
+    .references(() => suppliers.id)
+    .notNull(),
+  status: text('status').notNull().default('pending'), // pending, approved, received, cancelled
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const purchaseOrdersRelations = relations(purchaseOrders, ({ one, many }) => ({
@@ -249,14 +289,18 @@ export const purchaseOrdersRelations = relations(purchaseOrders, ({ one, many })
 }));
 
 // Purchase Order Items
-export const purchaseOrderItems = pgTable("purchase_order_items", {
-  id: serial("id").primaryKey(),
-  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id).notNull(),
-  productId: integer("product_id").references(() => products.id).notNull(),
-  quantity: integer("quantity").notNull(),
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const purchaseOrderItems = pgTable('purchase_order_items', {
+  id: serial('id').primaryKey(),
+  purchaseOrderId: integer('purchase_order_id')
+    .references(() => purchaseOrders.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  quantity: integer('quantity').notNull(),
+  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const purchaseOrderItemsRelations = relations(purchaseOrderItems, ({ one }) => ({
@@ -270,104 +314,23 @@ export const purchaseOrderItemsRelations = relations(purchaseOrderItems, ({ one 
   }),
 }));
 
-// Transactions (Sales)
-export const transactions = pgTable("transactions", {
-  id: serial("id").primaryKey(),
-  transactionId: text("transaction_id").notNull().unique(), // e.g., TRX-12345
-  storeId: integer("store_id").references(() => stores.id).notNull(),
-  cashierId: integer("cashier_id").references(() => users.id).notNull(),
-  customerId: integer("customer_id").references(() => customers.id),
-  loyaltyMemberId: integer("loyalty_member_id").references(() => loyaltyMembers.id),
-  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-  tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  paymentMethod: text("payment_method").notNull(),
-  paymentReference: text("payment_reference"),
-  pointsEarned: decimal("points_earned", { precision: 10, scale: 2 }),
-  pointsRedeemed: decimal("points_redeemed", { precision: 10, scale: 2 }),
-  rewardId: integer("reward_id").references(() => loyaltyRewards.id),
-  paymentStatus: text("payment_status").default("pending"), // pending, paid, failed
-  referenceId: text("reference_id").unique(), // Payment gateway reference ID
-  paymentProcessor: text("payment_processor"), // paystack, flutterwave
-  paymentConfirmedAt: timestamp("payment_confirmed_at"),
-  isOfflineTransaction: boolean("is_offline_transaction").notNull().default(false),
-  syncedAt: timestamp("synced_at"),
-  type: text("type").notNull(), // "SALE" | "RETURN" | ...
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const transactionsRelations = relations(transactions, ({ one, many }) => ({
-  store: one(stores, {
-    fields: [transactions.storeId],
-    references: [stores.id],
-  }),
-  cashier: one(users, {
-    fields: [transactions.cashierId],
-    references: [users.id],
-  }),
-  customer: one(customers, {
-    fields: [transactions.customerId],
-    references: [customers.id],
-  }),
-  loyaltyMember: one(loyaltyMembers, {
-    fields: [transactions.loyaltyMemberId],
-    references: [loyaltyMembers.id],
-  }),
-  reward: one(loyaltyRewards, {
-    fields: [transactions.rewardId],
-    references: [loyaltyRewards.id],
-  }),
-  items: many(transactionItems),
-  paymentStatus: one(paymentStatus, {
-    fields: [transactions.paymentReference],
-    references: [paymentStatus.reference],
-  }),
-}));
-
-// Transaction Items
-export const transactionItems = pgTable("transaction_items", {
-  id: serial("id").primaryKey(),
-  transactionId: integer("transaction_id").references(() => transactions.id).notNull(),
-  productId: integer("product_id").references(() => products.id).notNull(),
-  batchId: integer("batch_id").references(() => inventoryBatches.id),
-  quantity: integer("quantity").notNull(),
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-  returnedQuantity: integer("returned_quantity").default(0),
-  expiryDate: timestamp("expiry_date"), // Store the expiry date at time of sale for reference
-  batchNumber: text("batch_number"), // Store the batch number at time of sale for reference
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const transactionItemsRelations = relations(transactionItems, ({ one }) => ({
-  transaction: one(transactions, {
-    fields: [transactionItems.transactionId],
-    references: [transactions.id],
-  }),
-  product: one(products, {
-    fields: [transactionItems.productId],
-    references: [products.id],
-  }),
-  batch: one(inventoryBatches, {
-    fields: [transactionItems.batchId],
-    references: [inventoryBatches.id],
-  }),
-}));
-
 // Cashier Sessions
-export const cashierSessions = pgTable("cashier_sessions", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
-  startTime: timestamp("start_time").defaultNow().notNull(),
-  endTime: timestamp("end_time"),
-  transactionCount: integer("transaction_count").default(0),
-  totalSales: decimal("total_sales", { precision: 10, scale: 2 }).default("0.00"),
-  notes: text("notes"),
-  status: text("status").notNull().default("active"), // active, closed
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const cashierSessions = pgTable('cashier_sessions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  startTime: timestamp('start_time').defaultNow().notNull(),
+  endTime: timestamp('end_time'),
+  transactionCount: integer('transaction_count').default(0),
+  totalSales: decimal('total_sales', { precision: 10, scale: 2 }).default('0.00'),
+  notes: text('notes'),
+  status: text('status').notNull().default('active'), // active, closed
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const cashierSessionsRelations = relations(cashierSessions, ({ one }) => ({
@@ -388,12 +351,14 @@ export interface Message {
 }
 
 // AI Assistant Conversations
-export const aiConversations = pgTable("ai_conversations", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  messages: jsonb("messages").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const aiConversations = pgTable('ai_conversations', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  messages: jsonb('messages').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const aiConversationsRelations = relations(aiConversations, ({ one }) => ({
@@ -404,18 +369,24 @@ export const aiConversationsRelations = relations(aiConversations, ({ one }) => 
 }));
 
 export const aiConversationInsertSchema = createInsertSchema(aiConversations, {
-  messages: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
-    content: z.string(),
-    timestamp: z.string().optional(),
-  })).default([])
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+        timestamp: z.string().optional(),
+      })
+    )
+    .default([]),
 });
 export const aiConversationSelectSchema = createSelectSchema(aiConversations, {
-  messages: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
-    content: z.string(),
-    timestamp: z.string().optional(),
-  }))
+  messages: z.array(
+    z.object({
+      role: z.enum(['user', 'assistant']),
+      content: z.string(),
+      timestamp: z.string().optional(),
+    })
+  ),
 });
 
 export type AiConversation = typeof aiConversations.$inferSelect;
@@ -450,44 +421,20 @@ export const inventoryInsertSchema = createInsertSchema(inventory);
 export const inventoryBatchInsertSchema = createInsertSchema(inventoryBatches, {
   // quantity: z.number().int().nonnegative({ message: "Quantity must be a non-negative integer" }), // Will use default inference
   // costPerUnit: z.number().positive({ message: "Cost per unit must be a positive number" }), // Will use default inference
-  batchNumber: z.string().min(1, { message: "Batch number cannot be empty if provided" }).optional(),
+  batchNumber: z
+    .string()
+    .min(1, { message: 'Batch number cannot be empty if provided' })
+    .optional(),
   // expiryDate: z.coerce.date().refine(date => date > new Date(), { message: "Expiry date must be in the future" }).optional(), // Will use default inference
-});
-
-export const transactionInsertSchema = createInsertSchema(transactions, {
-  transactionId: z.string().min(5, "Transaction ID must be at least 5 characters"),
-  subtotal: z.coerce.number().nonnegative({ message: "Subtotal must be a non-negative number" }),
-  // taxAmount: z.coerce.number().nonnegative({ message: "Tax amount must be a non-negative number" }).optional(), // Will use default inference
-  // discountAmount: z.coerce.number().nonnegative({ message: "Discount amount must be a non-negative number" }).optional(), // Will use default inference
-  // totalAmount: z.coerce.number().nonnegative({ message: "Total amount must be a non-negative number" }), // Will use default inference
-  paymentMethod: z.string().min(1, "Payment method is required"),
-  // pointsEarned: z.coerce.number().nonnegative({ message: "Points earned must be a non-negative number" }).optional(), // Will use default inference
-  // pointsRedeemed: z.coerce.number().nonnegative({ message: "Points redeemed must be a non-negative number" }).optional(), // Will use default inference
-  // notes is optional by default in the base schema, no need to redefine unless changing its type or adding specific validation
-});
-
-export const transactionItemInsertSchema = createInsertSchema(transactionItems, {
-  quantity: z.number().refine(val => val > 0, { // This direct Zod type seems to work for now
-    message: "Quantity must be greater than 0"
-  }),
-  // unitPrice: (s) => s.unitPrice.refine(val => parseFloat(val) >= 0, { // Will use default inference
-  //   message: "Unit price must be a positive number"
-  // }),
-  // subtotal: (s) => s.subtotal.refine(val => parseFloat(val) >= 0, { // Will use default inference
-  //   message: "Subtotal must be a positive number"
-  // }),
-  // batchId: (s) => s.batchId.optional(), // Will use default inference
-  // batchNumber: (s) => s.batchNumber.optional(), // Will use default inference
-  // expiryDate: (s) => s.expiryDate.optional(), // Will use default inference
 });
 
 // Schema for user operations
 export const userSchema = createSelectSchema(users);
 export const userInsertSchema = createInsertSchema(users, {
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  fullName: z.string().min(2, "Full name is required"),
-  email: z.string().email("Please provide a valid email address")
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  fullName: z.string().min(2, 'Full name is required'),
+  email: z.string().email('Please provide a valid email address'),
   // role: z.string().refine(val => ["admin", "manager", "cashier", "affiliate"].includes(val), { // Will use default inference
   //   message: "Role must be one of: admin, manager, cashier, affiliate"
   // })
@@ -495,9 +442,9 @@ export const userInsertSchema = createInsertSchema(users, {
 
 // Auth schemas
 export const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().optional()
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional(),
 });
 
 export const authResponseSchema = z.object({
@@ -511,8 +458,8 @@ export type User = typeof users.$inferSelect;
 export type UserInsert = z.infer<typeof userInsertSchema>;
 
 export const passwordResetTokenInsertSchema = createInsertSchema(passwordResetTokens, {
-  token: z.string().min(1, "Token is required"),
-  userId: z.number().positive("User ID must be positive"),
+  token: z.string().min(1, 'Token is required'),
+  userId: z.number().positive('User ID must be positive'),
 });
 
 export const passwordResetTokenSchema = createSelectSchema(passwordResetTokens);
@@ -544,15 +491,9 @@ export type PurchaseOrderInsert = typeof purchaseOrders.$inferInsert;
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
 export type PurchaseOrderItemInsert = typeof purchaseOrderItems.$inferInsert;
 
-export type Transaction = typeof transactions.$inferSelect;
-export type TransactionInsert = z.infer<typeof transactionInsertSchema>;
-
-export type TransactionItem = typeof transactionItems.$inferSelect;
-export type TransactionItemInsert = z.infer<typeof transactionItemInsertSchema>;
-
 export const cashierSessionInsertSchema = createInsertSchema(cashierSessions, {
-  userId: z.number().positive("User ID must be positive"),
-  storeId: z.number().positive("Store ID must be positive")
+  userId: z.number().positive('User ID must be positive'),
+  storeId: z.number().positive('Store ID must be positive'),
   // status: z.string().refine(val => ["active", "closed"].includes(val), { // Will use default inference
   //   message: "Status must be either 'active' or 'closed'"
   // }),
@@ -564,28 +505,26 @@ export type CashierSession = typeof cashierSessions.$inferSelect;
 export type CashierSessionInsert = z.infer<typeof cashierSessionInsertSchema>;
 
 // Payment Methods
-export const paymentMethods = pgTable("payment_methods", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+export const paymentMethods = pgTable('payment_methods', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const paymentMethodsRelations = relations(paymentMethods, ({ many }) => ({
-  transactions: many(transactions)
-}));
+export const paymentMethodsRelations = relations(paymentMethods, ({ many }) => ({}));
 
 // Returns and Refunds System
-export const customers = pgTable("customers", {
-  id: serial("id").primaryKey(),
-  fullName: text("full_name").notNull(),
-  email: text("email"),
-  phone: text("phone"),
-  storeId: integer("store_id").references(() => stores.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at"),
+export const customers = pgTable('customers', {
+  id: serial('id').primaryKey(),
+  fullName: text('full_name').notNull(),
+  email: text('email'),
+  phone: text('phone'),
+  storeId: integer('store_id').references(() => stores.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
 });
 
 export const customersRelations = relations(customers, ({ one }) => ({
@@ -596,29 +535,35 @@ export const customersRelations = relations(customers, ({ one }) => ({
 }));
 
 // Return reason lookup table
-export const returnReasons = pgTable("return_reasons", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  active: boolean("active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const returnReasons = pgTable('return_reasons', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 // Product returns table - Note: This table is actually called 'refunds' in the database
-export const returns = pgTable("refunds", {
-  id: serial("id").primaryKey(),
-  refundId: text("refund_id").notNull().unique(), // a readable ID (e.g., RET-12345)
-  transactionId: integer("transaction_id").references(() => transactions.id).notNull(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
-  processedById: integer("processed_by_id").references(() => users.id).notNull(),
-  reason: text("reason"),
-  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-  tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  refundMethod: text("refund_method").notNull(), // cash, credit_card, store_credit
-  status: text("status").notNull().default("pending"), // pending, approved, rejected
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const returns = pgTable('refunds', {
+  id: serial('id').primaryKey(),
+  refundId: text('refund_id').notNull().unique(), // a readable ID (e.g., RET-12345)
+  transactionId: integer('transaction_id')
+    .references(() => transactions.id)
+    .notNull(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  processedById: integer('processed_by_id')
+    .references(() => users.id)
+    .notNull(),
+  reason: text('reason'),
+  subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
+  tax: decimal('tax', { precision: 10, scale: 2 }).notNull(),
+  total: decimal('total', { precision: 10, scale: 2 }).notNull(),
+  refundMethod: text('refund_method').notNull(), // cash, credit_card, store_credit
+  status: text('status').notNull().default('pending'), // pending, approved, rejected
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const returnsRelations = relations(returns, ({ one, many }) => ({
@@ -632,22 +577,26 @@ export const returnsRelations = relations(returns, ({ one, many }) => ({
   }),
   transaction: one(transactions, {
     fields: [returns.transactionId],
-    references: [transactions.id], 
+    references: [transactions.id],
   }),
   items: many(returnItems),
 }));
 
 // Return items table (actually refund_items in the database)
-export const returnItems = pgTable("refund_items", {
-  id: serial("id").primaryKey(),
-  refundId: integer("refund_id").references(() => returns.id).notNull(),
-  transactionItemId: integer("transaction_item_id").references(() => transactionItems.id),
-  productId: integer("product_id").references(() => products.id).notNull(),
-  quantity: integer("quantity").notNull(),
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-  isRestocked: boolean("is_restocked").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const returnItems = pgTable('refund_items', {
+  id: serial('id').primaryKey(),
+  refundId: integer('refund_id')
+    .references(() => returns.id)
+    .notNull(),
+  transactionItemId: integer('transaction_item_id').references(() => transactionItems.id),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  quantity: integer('quantity').notNull(),
+  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
+  isRestocked: boolean('is_restocked').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const returnItemsRelations = relations(returnItems, ({ one }) => ({
@@ -667,23 +616,24 @@ export const returnItemsRelations = relations(returnItems, ({ one }) => ({
 
 // Validation schemas for returns
 export const customerInsertSchema = createInsertSchema(customers, {
-  fullName: z.string().min(2, "Customer name must be at least 2 characters"),
+  fullName: z.string().min(2, 'Customer name must be at least 2 characters'),
 });
 
 export const returnReasonInsertSchema = createInsertSchema(returnReasons, {
-  name: z.string().min(2, "Reason name must be at least 2 characters"),
+  name: z.string().min(2, 'Reason name must be at least 2 characters'),
 });
 
 export const returnInsertSchema = createInsertSchema(returns, {
-  refundId: z.string().min(5, "Refund ID must be at least 5 characters"),
+  refundId: z.string().min(5, 'Refund ID must be at least 5 characters'),
   total: z.string().refine(val => parseFloat(val) >= 0, {
-    message: "Total amount must be a positive number"
+    message: 'Total amount must be a positive number',
   }),
 });
 
 export const returnItemInsertSchema = createInsertSchema(returnItems, {
-  quantity: z.number().refine(val => val > 0, { // This direct Zod type seems to work for now
-    message: "Quantity must be greater than 0"
+  quantity: z.number().refine(val => val > 0, {
+    // This direct Zod type seems to work for now
+    message: 'Quantity must be greater than 0',
   }),
   // subtotal: (s) => s.subtotal.refine(val => parseFloat(val) >= 0, { // Will use default inference
   //   message: "Subtotal amount must be a positive number"
@@ -704,90 +654,103 @@ export type ReturnItem = typeof returnItems.$inferSelect;
 export type ReturnItemInsert = z.infer<typeof returnItemInsertSchema>;
 
 // Affiliate Program Schema
-export const affiliates = pgTable("affiliates", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  code: text("code").notNull().unique(),
-  totalReferrals: integer("total_referrals").default(0).notNull(),
-  totalEarnings: decimal("total_earnings", { precision: 10, scale: 2 }).default("0").notNull(),
-  pendingEarnings: decimal("pending_earnings", { precision: 10, scale: 2 }).default("0").notNull(),
-  bankName: text("bank_name"),
-  accountNumber: text("account_number"),
-  accountName: text("account_name"),
-  bankCode: text("bank_code"),
-  paymentMethod: text("payment_method").default("paystack"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+export const affiliates = pgTable('affiliates', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  code: text('code').notNull().unique(),
+  totalReferrals: integer('total_referrals').default(0).notNull(),
+  totalEarnings: decimal('total_earnings', { precision: 10, scale: 2 }).default('0').notNull(),
+  pendingEarnings: decimal('pending_earnings', { precision: 10, scale: 2 }).default('0').notNull(),
+  bankName: text('bank_name'),
+  accountNumber: text('account_number'),
+  accountName: text('account_name'),
+  bankCode: text('bank_code'),
+  paymentMethod: text('payment_method').default('paystack'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const affiliatesRelations = relations(affiliates, ({ one }) => ({
-  user: one(users, { fields: [affiliates.userId], references: [users.id] })
+  user: one(users, { fields: [affiliates.userId], references: [users.id] }),
 }));
 
-export const referrals = pgTable("referrals", {
-  id: serial("id").primaryKey(),
-  affiliateId: integer("affiliate_id").references(() => affiliates.id).notNull(),
-  referredUserId: integer("referred_user_id").references(() => users.id).notNull(),
-  status: text("status").default("pending").notNull(), // pending, active, completed, cancelled
-  discountApplied: boolean("discount_applied").default(false).notNull(),
-  commissionPaid: boolean("commission_paid").default(false).notNull(),
-  signupDate: timestamp("signup_date").defaultNow().notNull(),
-  activationDate: timestamp("activation_date"),
-  expiryDate: timestamp("expiry_date"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+export const referrals = pgTable('referrals', {
+  id: serial('id').primaryKey(),
+  affiliateId: integer('affiliate_id')
+    .references(() => affiliates.id)
+    .notNull(),
+  referredUserId: integer('referred_user_id')
+    .references(() => users.id)
+    .notNull(),
+  status: text('status').default('pending').notNull(), // pending, active, completed, cancelled
+  discountApplied: boolean('discount_applied').default(false).notNull(),
+  commissionPaid: boolean('commission_paid').default(false).notNull(),
+  signupDate: timestamp('signup_date').defaultNow().notNull(),
+  activationDate: timestamp('activation_date'),
+  expiryDate: timestamp('expiry_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const referralsRelations = relations(referrals, ({ one }) => ({
   affiliate: one(affiliates, { fields: [referrals.affiliateId], references: [affiliates.id] }),
-  referredUser: one(users, { fields: [referrals.referredUserId], references: [users.id] })
+  referredUser: one(users, { fields: [referrals.referredUserId], references: [users.id] }),
 }));
 
-export const referralPayments = pgTable("referral_payments", {
-  id: serial("id").primaryKey(),
-  affiliateId: integer("affiliate_id").references(() => affiliates.id).notNull(),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").default("NGN").notNull(),
-  status: text("status").default("pending").notNull(), // pending, completed, failed
-  paymentMethod: text("payment_method").default("paystack").notNull(),
-  transactionReference: text("transaction_reference"),
-  paymentDate: timestamp("payment_date"),
-  metadata: text("metadata"), // JSON string with additional data
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+export const referralPayments = pgTable('referral_payments', {
+  id: serial('id').primaryKey(),
+  affiliateId: integer('affiliate_id')
+    .references(() => affiliates.id)
+    .notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: text('currency').default('NGN').notNull(),
+  status: text('status').default('pending').notNull(), // pending, completed, failed
+  paymentMethod: text('payment_method').default('paystack').notNull(),
+  transactionReference: text('transaction_reference'),
+  paymentDate: timestamp('payment_date'),
+  metadata: text('metadata'), // JSON string with additional data
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const referralPaymentsRelations = relations(referralPayments, ({ one }) => ({
-  affiliate: one(affiliates, { fields: [referralPayments.affiliateId], references: [affiliates.id] })
+  affiliate: one(affiliates, {
+    fields: [referralPayments.affiliateId],
+    references: [affiliates.id],
+  }),
 }));
 
-export const subscriptions = pgTable("subscriptions", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  plan: text("plan").notNull(), // basic, pro, enterprise
-  status: text("status").default("active").notNull(), // active, cancelled, expired
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").default("NGN").notNull(),
-  referralCode: text("referral_code"),
-  discountApplied: boolean("discount_applied").default(false).notNull(),
-  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0").notNull(),
-  startDate: timestamp("start_date").defaultNow().notNull(),
-  endDate: timestamp("end_date").notNull(),
-  autoRenew: boolean("auto_renew").default(true).notNull(),
-  paymentProvider: text("payment_provider").default("paystack").notNull(),
-  paymentReference: text("payment_reference"),
-  metadata: text("metadata"), // JSON string with additional data
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+export const subscriptions = pgTable('subscriptions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  plan: text('plan').notNull(), // basic, pro, enterprise
+  status: text('status').default('active').notNull(), // active, cancelled, expired
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: text('currency').default('NGN').notNull(),
+  referralCode: text('referral_code'),
+  discountApplied: boolean('discount_applied').default(false).notNull(),
+  discountAmount: decimal('discount_amount', { precision: 10, scale: 2 }).default('0').notNull(),
+  startDate: timestamp('start_date').defaultNow().notNull(),
+  endDate: timestamp('end_date').notNull(),
+  autoRenew: boolean('auto_renew').default(true).notNull(),
+  paymentProvider: text('payment_provider').default('paystack').notNull(),
+  paymentReference: text('payment_reference'),
+  metadata: text('metadata'), // JSON string with additional data
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
-  user: one(users, { fields: [subscriptions.userId], references: [users.id] })
+  user: one(users, { fields: [subscriptions.userId], references: [users.id] }),
 }));
 
 // Create insert schemas for the new tables
 export const affiliateInsertSchema = createInsertSchema(affiliates, {
-  code: z.string().min(6, "Referral code must be at least 6 characters")
+  code: z.string().min(6, 'Referral code must be at least 6 characters'),
 });
 
 export const referralInsertSchema = createInsertSchema(referrals);
@@ -811,15 +774,17 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type SubscriptionInsert = z.infer<typeof subscriptionInsertSchema>;
 
 // Loyalty Program Schema
-export const loyaltyPrograms = pgTable("loyalty_programs", {
-  id: serial("id").primaryKey(),
-  storeId: integer("store_id").references(() => stores.id).notNull(),
-  name: text("name").notNull(), // e.g., "ChainSync Rewards"
-  pointsPerAmount: decimal("points_per_amount", { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
-  active: boolean("active").default(true).notNull(),
-  expiryMonths: integer("expiry_months").default(12), // Number of months before points expire
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+export const loyaltyPrograms = pgTable('loyalty_programs', {
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
 });
 
 export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
@@ -829,22 +794,28 @@ export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many 
   }),
   members: many(loyaltyMembers),
   tiers: many(loyaltyTiers),
-  rewards: many(loyaltyRewards)
+  rewards: many(loyaltyRewards),
 }));
 
-export const loyaltyMembers = pgTable("loyalty_members", {
-  id: serial("id").primaryKey(),
-  customerId: integer("customer_id").references(() => customers.id).notNull(),
-  loyaltyId: text("loyalty_id").notNull().unique(), // Unique identifier for the member
-  currentPoints: decimal("current_points", { precision: 10, scale: 2 }).default("0").notNull(),
-  totalPointsEarned: decimal("total_points_earned", { precision: 10, scale: 2 }).default("0").notNull(),
-  totalPointsRedeemed: decimal("total_points_redeemed", { precision: 10, scale: 2 }).default("0").notNull(),
-  tierId: integer("tier_id").references(() => loyaltyTiers.id),
-  enrollmentDate: timestamp("enrollment_date").defaultNow().notNull(),
-  lastActivity: timestamp("last_activity").defaultNow().notNull(),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
 });
 
 export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
@@ -856,18 +827,20 @@ export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many })
     fields: [loyaltyMembers.tierId],
     references: [loyaltyTiers.id],
   }),
-  transactions: many(loyaltyTransactions)
+  transactions: many(loyaltyTransactions),
 }));
 
-export const loyaltyTiers = pgTable("loyalty_tiers", {
-  id: serial("id").primaryKey(),
-  programId: integer("program_id").references(() => loyaltyPrograms.id).notNull(),
-  name: text("name").notNull(), // e.g., "Silver", "Gold", "Platinum"
-  requiredPoints: decimal("required_points", { precision: 10, scale: 2 }).notNull(),
-  pointMultiplier: decimal("point_multiplier", { precision: 5, scale: 2 }).default("1.0").notNull(), // Earn rate multiplier
-  active: boolean("active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
 });
 
 export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
@@ -875,23 +848,25 @@ export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => 
     fields: [loyaltyTiers.programId],
     references: [loyaltyPrograms.id],
   }),
-  members: many(loyaltyMembers)
+  members: many(loyaltyMembers),
 }));
 
-export const loyaltyRewards = pgTable("loyalty_rewards", {
-  id: serial("id").primaryKey(),
-  programId: integer("program_id").references(() => loyaltyPrograms.id).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  pointsCost: decimal("points_cost", { precision: 10, scale: 2 }).notNull(),
-  discountValue: decimal("discount_value", { precision: 10, scale: 2 }),
-  discountType: text("discount_type"), // "percentage", "fixed", "free_product"
-  productId: integer("product_id").references(() => products.id), // For free product rewards
-  active: boolean("active").default(true).notNull(),
-  startDate: timestamp("start_date"),
-  endDate: timestamp("end_date"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
 });
 
 export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
@@ -903,19 +878,23 @@ export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many })
     fields: [loyaltyRewards.productId],
     references: [products.id],
   }),
-  redemptions: many(loyaltyTransactions)
+  redemptions: many(loyaltyTransactions),
 }));
 
-export const loyaltyTransactions = pgTable("loyalty_transactions", {
-  id: serial("id").primaryKey(),
-  memberId: integer("member_id").references(() => loyaltyMembers.id).notNull(),
-  transactionId: integer("transaction_id").references(() => transactions.id),
-  type: text("type").notNull(), // "earn", "redeem", "expire", "adjust"
-  points: decimal("points", { precision: 10, scale: 2 }).notNull(),
-  rewardId: integer("reward_id").references(() => loyaltyRewards.id),
-  note: text("note"),
-  createdBy: integer("created_by").references(() => users.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  type: text('type').notNull(), // "earn", "redeem", "expire", "adjust"
+  points: decimal('points', { precision: 10, scale: 2 }).notNull(),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  note: text('note'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
@@ -934,41 +913,41 @@ export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ on
   createdByUser: one(users, {
     fields: [loyaltyTransactions.createdBy],
     references: [users.id],
-  })
+  }),
 }));
-
 
 // Create validation schemas for loyalty
 export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
-  name: z.string().min(2, "Program name must be at least 2 characters"),
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
   pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
-    message: "Points per amount must be a positive number"
-  })
+    message: 'Points per amount must be a positive number',
+  }),
 });
 
 export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers);
 
 export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
-  name: z.string().min(2, "Tier name must be at least 2 characters"),
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
   requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
-    message: "Required points must be a positive number"
-  })
+    message: 'Required points must be a positive number',
+  }),
 });
 
 export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
-  name: z.string().min(2, "Reward name must be at least 2 characters"),
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
   pointsCost: z.string().refine(val => parseFloat(val) > 0, {
-    message: "Points cost must be a positive number"
-  })
+    message: 'Points cost must be a positive number',
+  }),
 });
 
 export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
-  type: z.string().refine(val => ["earn", "redeem", "expire", "adjust"].includes(val), {
-    message: "Type must be one of: earn, redeem, expire, adjust"
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
   }),
-  points: z.string().refine(val => parseFloat(val) !== 0, { // Points can be negative for adjustments
-    message: "Points value cannot be zero for a transaction"
-  })
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    // Points can be negative for adjustments
+    message: 'Points value cannot be zero for a transaction',
+  }),
 });
 
 // Export types for loyalty
@@ -991,23 +970,25 @@ export type LoginData = z.infer<typeof loginSchema>;
 
 // Type for AI conversation messages
 export interface DialogflowMessage {
-  role: "system" | "user" | "assistant";
+  role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
 // Notifications
-export const notifications = pgTable("notifications", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  storeId: integer("store_id").references(() => stores.id),
-  title: text("title").notNull(),
-  message: text("message").notNull(),
-  type: text("type").notNull(), // 'alert', 'info', 'warning', 'success'
-  isRead: boolean("is_read").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  readAt: timestamp("read_at"),
-  link: text("link"), // Optional link to navigate when clicked
-  metadata: jsonb("metadata"), // Additional data related to the notification
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
 });
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -1022,11 +1003,11 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 }));
 
 export const notificationInsertSchema = createInsertSchema(notifications, {
-  title: z.string().min(1, "Title is required"),
-  message: z.string().min(1, "Message is required"),
-  type: z.string().refine(val => ["info", "warning", "error", "success"].includes(val), {
-    message: "Type must be one of: info, warning, error, success"
-  })
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
 });
 
 export type Notification = typeof notifications.$inferSelect;

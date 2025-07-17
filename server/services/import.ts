@@ -47,9 +47,21 @@ export const expectedSchemas = {
     price: { required: true, type: 'number', description: 'Product price' },
     categoryId: { required: true, type: 'any', description: 'Category ID or name' },
     quantity: { required: true, type: 'number', description: 'Current stock quantity' },
-    minStockLevel: { required: false, type: 'number', description: 'Minimum stock level for alerts' },
-    isPerishable: { required: false, type: 'boolean', description: 'Whether product is perishable' },
-    expiryDate: { required: false, type: 'date', description: 'Expiry date for perishable products' }
+    minStockLevel: {
+      required: false,
+      type: 'number',
+      description: 'Minimum stock level for alerts',
+    },
+    isPerishable: {
+      required: false,
+      type: 'boolean',
+      description: 'Whether product is perishable',
+    },
+    expiryDate: {
+      required: false,
+      type: 'date',
+      description: 'Expiry date for perishable products',
+    },
   },
   loyalty: {
     loyaltyId: { required: true, type: 'string', description: 'Unique loyalty member ID' },
@@ -57,14 +69,18 @@ export const expectedSchemas = {
     email: { required: false, type: 'string', description: 'Customer email address' },
     phone: { required: false, type: 'string', description: 'Customer phone number' },
     points: { required: false, type: 'number', description: 'Current loyalty points balance' },
-    enrollmentDate: { required: false, type: 'date', description: 'Date customer enrolled in program' }
-  }
+    enrollmentDate: {
+      required: false,
+      type: 'date',
+      description: 'Date customer enrolled in program',
+    },
+  },
 };
 
 // Validate a data value against expected type
 export function validateDataType(value: any, expectedType: string): boolean {
   if (value === null || value === undefined) return false;
-  
+
   switch (expectedType) {
     case 'string':
       return typeof value === 'string' && value.trim().length > 0;
@@ -109,12 +125,12 @@ export async function processImportFile(
     missingRequired: string[];
     foundHeaders: string[];
     expectedHeaders: string[];
-  }
+  };
 }> {
   // Parse file based on type
   let parsedData: any[] = [];
   let originalHeaders: string[] = [];
-  
+
   try {
     if (fileType.includes('csv')) {
       // First parse with { columns: false } to get the raw headers
@@ -123,11 +139,11 @@ export async function processImportFile(
         skip_empty_lines: true,
         trim: true,
       });
-      
+
       if (result.length > 0) {
         originalHeaders = result[0];
       }
-      
+
       // Then parse normally with { columns: true }
       parsedData = csvParse(fileBuffer.toString(), {
         columns: true,
@@ -135,14 +151,14 @@ export async function processImportFile(
         trim: true,
       });
     } else if (
-      fileType.includes('spreadsheetml') || 
-      fileType.includes('excel') || 
+      fileType.includes('spreadsheetml') ||
+      fileType.includes('excel') ||
       fileType.includes('xls')
     ) {
       const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      
+
       // Get headers from the first row
       const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1');
       originalHeaders = [];
@@ -169,24 +185,27 @@ export async function processImportFile(
   // Validate headers against expected schema
   const expectedSchema = expectedSchemas[dataType];
   const expectedHeaders = Object.keys(expectedSchema);
-  const foundHeaders = originalHeaders.filter(header => 
-    expectedHeaders.includes(header) || 
-    expectedHeaders.find(eh => eh.toLowerCase() === header.toLowerCase())
+  const foundHeaders = originalHeaders.filter(
+    header =>
+      expectedHeaders.includes(header) ||
+      expectedHeaders.find(eh => eh.toLowerCase() === header.toLowerCase())
   );
-  
+
   // Find required headers that are missing
   const missingRequired = Object.entries(expectedSchema)
-    .filter(([key, value]) => value.required && !foundHeaders.find(h => 
-      h === key || h.toLowerCase() === key.toLowerCase()
-    ))
+    .filter(
+      ([key, value]) =>
+        value.required &&
+        !foundHeaders.find(h => h === key || h.toLowerCase() === key.toLowerCase())
+    )
     .map(([key]) => key);
 
   // Get column mapping suggestions based on data type (AI-enhanced)
   const columnSuggestions = await getColumnMappingSuggestions(parsedData[0], dataType);
-  
+
   // Return first 5 rows of data as sample
   const sampleData = parsedData.slice(0, 5);
-  
+
   return {
     data: parsedData,
     columnSuggestions,
@@ -194,8 +213,8 @@ export async function processImportFile(
     headerValidation: {
       missingRequired,
       foundHeaders,
-      expectedHeaders
-    }
+      expectedHeaders,
+    },
   };
 }
 
@@ -206,9 +225,9 @@ async function getColumnMappingSuggestions(
 ): Promise<ColumnMapping[]> {
   const sourceColumns = Object.keys(sampleRow);
   const targetColumns = getTargetColumns(dataType);
-  
+
   const suggestions: ColumnMapping[] = [];
-  
+
   // For each source column, find the best match in target columns
   for (const source of sourceColumns) {
     const matchResult = findBestMatch(source, targetColumns);
@@ -216,10 +235,10 @@ async function getColumnMappingSuggestions(
       source,
       target: matchResult.match,
       confidence: matchResult.confidence,
-      required: matchResult.required
+      required: matchResult.required,
     });
   }
-  
+
   // Enhance mappings with AI if available
   try {
     const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
@@ -239,10 +258,10 @@ async function enhanceMappingsWithAI(
 ): Promise<ColumnMapping[]> {
   // Check if Dialogflow credentials are available
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !process.env.DIALOGFLOW_PROJECT_ID) {
-    console.log("Dialogflow credentials not found. Using basic mapping only.");
+    console.log('Dialogflow credentials not found. Using basic mapping only.');
     return initialSuggestions;
   }
-  
+
   try {
     // Initialize Dialogflow session client
     const sessionClient = new SessionsClient();
@@ -251,19 +270,19 @@ async function enhanceMappingsWithAI(
       process.env.DIALOGFLOW_PROJECT_ID,
       sessionId
     );
-    
+
     // Prepare the prompt for Dialogflow
-    const targetFields = getTargetColumns(dataType).map(col => 
-      `${col.name}${col.required ? ' (required)' : ''}`
-    ).join(", ");
-    
+    const targetFields = getTargetColumns(dataType)
+      .map(col => `${col.name}${col.required ? ' (required)' : ''}`)
+      .join(', ');
+
     const lowConfidenceMappings = initialSuggestions
       .filter(mapping => mapping.confidence < 0.7)
       .map(mapping => `${mapping.source} => ${mapping.target} (confidence: ${mapping.confidence})`)
-      .join("\n");
-    
-    let prompt = `I need to map columns from a CSV file to specific target fields in my database. 
-    The source columns are: ${sourceColumns.join(", ")}
+      .join('\n');
+
+    const prompt = `I need to map columns from a CSV file to specific target fields in my database. 
+    The source columns are: ${sourceColumns.join(', ')}
     The target fields I'm trying to map to are: ${targetFields}
     
     I already have these suggested mappings with low confidence:
@@ -271,7 +290,7 @@ async function enhanceMappingsWithAI(
     
     Based on common naming patterns for ${dataType} data, can you suggest better mappings for these low confidence fields?
     Please respond in a structured format with just the improved mappings as source => target with confidence score (0-1).`;
-    
+
     // Send the request to Dialogflow
     const request = {
       session: sessionPath,
@@ -282,19 +301,23 @@ async function enhanceMappingsWithAI(
         },
       },
     };
-    
+
     // Get Dialogflow response
     const [response] = await sessionClient.detectIntent(request);
-    
+
     if (!response.queryResult) {
-      throw new Error("No query result returned from Dialogflow");
+      throw new Error('No query result returned from Dialogflow');
     }
-    
-    const responseText = response.queryResult.fulfillmentText || "";
-    
+
+    const responseText = response.queryResult.fulfillmentText || '';
+
     // Parse the response to extract improved mappings
-    const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
-    
+    const improvedMappings = parseDialogflowMappingResponse(
+      responseText,
+      initialSuggestions,
+      dataType
+    );
+
     return improvedMappings;
   } catch (error: any) {
     console.error("Error using Dialogflow for column mapping:", error);
@@ -310,20 +333,20 @@ function parseDialogflowMappingResponse(
 ): ColumnMapping[] {
   // Make a copy of the initial suggestions
   const enhancedSuggestions = [...initialSuggestions];
-  
+
   // Look for patterns like "source => target (confidence: 0.8)" in the response
   const mappingPattern = /([^=]+)\s*=>\s*([^(]+)\s*\(confidence:\s*([\d.]+)\)/gi;
   const matches = responseText.matchAll(mappingPattern);
-  
+
   for (const match of Array.from(matches)) {
     if (match.length >= 4) {
       const source = match[1].trim();
       const target = match[2].trim();
       const confidence = parseFloat(match[3].trim());
-      
+
       // Find this suggestion in our initial set
       const index = enhancedSuggestions.findIndex(s => s.source === source);
-      
+
       if (index !== -1 && !isNaN(confidence)) {
         // Only update if the AI confidence is higher than our initial confidence
         if (confidence > enhancedSuggestions[index].confidence) {
@@ -331,23 +354,25 @@ function parseDialogflowMappingResponse(
           const targetColumns = getTargetColumns(dataType);
           const targetColumn = targetColumns.find(t => t.name === target);
           const isRequired = targetColumn?.required || false;
-          
+
           enhancedSuggestions[index] = {
             source,
             target,
             confidence,
-            required: isRequired
+            required: isRequired,
           };
         }
       }
     }
   }
-  
+
   return enhancedSuggestions;
 }
 
 // Get the target column names for the given data type
-function getTargetColumns(dataType: 'loyalty' | 'inventory'): { name: string; required: boolean }[] {
+function getTargetColumns(
+  dataType: 'loyalty' | 'inventory'
+): { name: string; required: boolean }[] {
   if (dataType === 'loyalty') {
     return [
       { name: 'fullName', required: true },
@@ -364,7 +389,7 @@ function getTargetColumns(dataType: 'loyalty' | 'inventory'): { name: string; re
       { name: 'name', required: true },
       { name: 'description', required: false },
       { name: 'barcode', required: true },
-      { name: 'price', required: true }, 
+      { name: 'price', required: true },
       { name: 'categoryId', required: true },
       { name: 'isPerishable', required: false },
       { name: 'quantity', required: true },
@@ -375,12 +400,12 @@ function getTargetColumns(dataType: 'loyalty' | 'inventory'): { name: string; re
 
 // Find the best match for a source column in the target columns
 function findBestMatch(
-  source: string, 
+  source: string,
   targets: { name: string; required: boolean }[]
 ): { match: string; confidence: number; required: boolean } {
   // Normalize the source string for comparison
   const normalizedSource = source.toLowerCase().replace(/[^a-z0-9]/g, '');
-  
+
   // Common aliases for fields
   const aliases: Record<string, string[]> = {
     fullName: ['name', 'customername', 'customer', 'fullname', 'contact', 'contactname'],
@@ -389,7 +414,14 @@ function findBestMatch(
     loyaltyId: ['loyalty', 'loyaltyid', 'memberid', 'membershipid', 'cardnumber', 'loyaltynumber'],
     points: ['points', 'loyaltypoints', 'rewardpoints', 'balance', 'pointbalance'],
     tier: ['tier', 'level', 'loyaltytier', 'membertier', 'status', 'rank'],
-    enrollmentDate: ['enrolled', 'enrollmentdate', 'joindate', 'registered', 'startdate', 'membershipdate'],
+    enrollmentDate: [
+      'enrolled',
+      'enrollmentdate',
+      'joindate',
+      'registered',
+      'startdate',
+      'membershipdate',
+    ],
     name: ['productname', 'item', 'itemname', 'title', 'product'],
     description: ['desc', 'details', 'productdescription', 'info', 'about', 'notes'],
     barcode: ['sku', 'upc', 'ean', 'code', 'itemcode', 'productcode', 'barcode'],
@@ -397,7 +429,7 @@ function findBestMatch(
     categoryId: ['category', 'categoryname', 'department', 'section', 'group', 'productcategory'],
     isPerishable: ['perishable', 'expires', 'hasexpiration', 'expiry', 'expiration'],
     quantity: ['qty', 'stock', 'stocklevel', 'inventory', 'onhand', 'available'],
-    storeId: ['store', 'location', 'branch', 'storeid', 'storelocation', 'outlet']
+    storeId: ['store', 'location', 'branch', 'storeid', 'storelocation', 'outlet'],
   };
 
   let bestMatch = '';
@@ -406,15 +438,17 @@ function findBestMatch(
 
   for (const target of targets) {
     const normalizedTarget = target.name.toLowerCase();
-    
+
     // Direct match
     if (normalizedSource === normalizedTarget) {
       return { match: target.name, confidence: 1, required: target.required };
     }
-    
+
     // Check if source contains target
-    if (normalizedSource.includes(normalizedTarget) || 
-        normalizedTarget.includes(normalizedSource)) {
+    if (
+      normalizedSource.includes(normalizedTarget) ||
+      normalizedTarget.includes(normalizedSource)
+    ) {
       const confidence = 0.8;
       if (confidence > highestConfidence) {
         highestConfidence = confidence;
@@ -422,7 +456,7 @@ function findBestMatch(
         isRequired = target.required;
       }
     }
-    
+
     // Check aliases
     if (aliases[target.name]) {
       for (const alias of aliases[target.name]) {
@@ -462,7 +496,7 @@ export function applyColumnMapping(
         transformedRow[target] = row[source];
       }
     }
-    
+
     return transformedRow;
   });
 }
@@ -477,12 +511,12 @@ export async function validateLoyaltyData(
     importedRows: 0,
     errors: [],
     mappedData: [],
-    missingFields: []
+    missingFields: [],
   };
-  
+
   // Perform basic validation
   basicValidateLoyaltyData(data, result);
-  
+
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'loyalty');
@@ -490,14 +524,14 @@ export async function validateLoyaltyData(
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
-  
+
   return result;
 }
 
 // Basic loyalty data validation
 /**
  * Basic validation for loyalty data with improved field handling and data type validation
- * 
+ *
  * @param data - The loyalty data to validate
  * @param result - The import result object to update with validation results
  * @returns Updated import result
@@ -515,7 +549,7 @@ function validateLoyaltyRow(
     result.missingFields.push({
       row: rowNumber,
       field: 'fullName',
-      isRequired: true
+      isRequired: true,
     });
     hasErrors = true;
   }
@@ -546,7 +580,7 @@ function validateLoyaltyRow(
     result.missingFields.push({
       row: rowNumber,
       field: 'email',
-      isRequired: true
+      isRequired: true,
     });
     hasErrors = true;
   }
@@ -598,12 +632,12 @@ export async function validateInventoryData(
     importedRows: 0,
     errors: [],
     mappedData: [],
-    missingFields: []
+    missingFields: [],
   };
-  
+
   // Perform basic validation
   basicValidateInventoryData(data, result);
-  
+
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'inventory');
@@ -611,14 +645,14 @@ export async function validateInventoryData(
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
-  
+
   return result;
 }
 
 // Basic inventory data validation
 /**
  * Basic validation for inventory data with improved field handling and data type verification
- * 
+ *
  * @param data - The inventory data to validate
  * @param result - The import result object to update with validation results
  * @returns Updated import result
@@ -629,44 +663,44 @@ export function basicValidateInventoryData(
 ): ImportResult {
   const processedBarcodes = new Set<string>();
   const schema = expectedSchemas.inventory;
-  
+
   data.forEach((row, index) => {
     const rowNumber = index + 1;
     const cleanedRow = { ...row };
     let hasErrors = false;
-    
+
     // Validate each field against the expected schema
     Object.entries(schema).forEach(([field, definition]) => {
       const value = cleanedRow[field];
-      
+
       // Check required fields
       if (definition.required && (value === null || value === undefined || value === '')) {
         result.missingFields.push({
           row: rowNumber,
           field,
-          isRequired: true
+          isRequired: true,
         });
         hasErrors = true;
         return; // Skip further validation for this field
       }
-      
+
       // Skip validation for optional empty fields
       if (!definition.required && (value === null || value === undefined || value === '')) {
         return;
       }
-      
+
       // Validate data type
       if (!validateDataType(value, definition.type)) {
         result.errors.push({
           row: rowNumber,
           field,
           value: String(value),
-          reason: `Invalid data type for ${field}. Expected ${definition.type}.`
+          reason: `Invalid data type for ${field}. Expected ${definition.type}.`,
         });
         hasErrors = true;
         return;
       }
-      
+
       // Field-specific validation
       switch (field) {
         case 'name':
@@ -675,7 +709,7 @@ export function basicValidateInventoryData(
               row: rowNumber,
               field,
               value,
-              reason: 'Product name must be at least 2 characters long'
+              reason: 'Product name must be at least 2 characters long',
             });
             hasErrors = true;
           }
@@ -689,7 +723,7 @@ export function basicValidateInventoryData(
       result.missingFields.push({
         row: rowNumber,
         field: 'categoryId',
-        isRequired: true
+        isRequired: true,
       });
       hasErrors = true;
     } else {
@@ -705,7 +739,7 @@ export function basicValidateInventoryData(
       result.missingFields.push({
         row: rowNumber,
         field: 'quantity',
-        isRequired: true
+        isRequired: true,
       });
       hasErrors = true;
     } else {
@@ -725,7 +759,7 @@ export function basicValidateInventoryData(
         hasErrors = true;
       }
     }
-    
+
     // Validate reorderLevel field if present
     if (cleanedRow.reorderLevel !== undefined && cleanedRow.reorderLevel !== null && cleanedRow.reorderLevel !== '') {
       try {
@@ -743,7 +777,7 @@ export function basicValidateInventoryData(
         hasErrors = true;
       }
     }
-    
+
     // Validate reorderQuantity field if present
     if (cleanedRow.reorderQuantity !== undefined && cleanedRow.reorderQuantity !== null && cleanedRow.reorderQuantity !== '') {
       try {
@@ -761,12 +795,12 @@ export function basicValidateInventoryData(
         hasErrors = true;
       }
     }
-    
+
     if (!cleanedRow.storeId) {
       result.missingFields.push({
         row: rowNumber,
         field: 'storeId',
-        isRequired: true
+        isRequired: true,
       });
       hasErrors = true;
     } else {
@@ -784,12 +818,12 @@ export function basicValidateInventoryData(
         hasErrors = true;
       }
     }
-    
+
     // Handle isPerishable field - convert various string formats to boolean
     if (cleanedRow.isPerishable !== undefined) {
       if (typeof cleanedRow.isPerishable === 'string') {
         const value = cleanedRow.isPerishable.toLowerCase().trim();
-        
+
         if (['yes', 'y', 'true', '1', 't'].includes(value)) {
           cleanedRow.isPerishable = true;
         } else if (['no', 'n', 'false', '0', 'f'].includes(value)) {
@@ -810,14 +844,14 @@ export function basicValidateInventoryData(
       // Default to false if not provided
       cleanedRow.isPerishable = false;
     }
-    
+
     // Validate batch number if present
     if (cleanedRow.batchNumber !== undefined && cleanedRow.batchNumber !== null) {
       if (typeof cleanedRow.batchNumber === 'string' && cleanedRow.batchNumber.trim() === '') {
         cleanedRow.batchNumber = null;
       }
     }
-    
+
     // Validate expiry date if present
     if (cleanedRow.expiryDate !== undefined && cleanedRow.expiryDate !== null && cleanedRow.expiryDate !== '') {
       try {
@@ -825,7 +859,7 @@ export function basicValidateInventoryData(
         if (isNaN(date.getTime())) {
           throw new Error('Invalid date format');
         }
-        
+
         // For perishable items, expiry date should be in the future
         if (cleanedRow.isPerishable && date < new Date()) {
           result.errors.push({
@@ -852,7 +886,7 @@ export function basicValidateInventoryData(
       result.missingFields.push({
         row: rowNumber,
         field: 'expiryDate',
-        isRequired: false
+        isRequired: false,
       }); // Closes the push to missingFields
     } // Closes 'else if (cleanedRow.isPerishable === true)'
 
@@ -874,7 +908,7 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
     importedRows: 0,
     errors: [],
     mappedData: [],
-    missingFields: []
+    missingFields: [],
   };
 
   // Get loyalty program ID for the store
@@ -915,9 +949,9 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
           // storeId: storeId // Removed as UserInsert schema does not currently accept it
           // Add other relevant fields for user creation if necessary
         };
-        
+
         const user = await storage.createUser(userData); // Assuming createUser replaces createCustomer
-        
+
         // Create new loyalty member linked to user
         const memberData: schema.LoyaltyMemberInsert = {
           loyaltyId: row.loyaltyId,
@@ -928,10 +962,10 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
           enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : new Date(),
           lastActivity: new Date() // Corrected property name here too
         };
-        
+
         await storage.createLoyaltyMember(memberData);
       }
-      
+
       result.importedRows++;
     } catch (error: any) {
       result.errors.push({
@@ -955,20 +989,20 @@ export async function importInventoryData(data: any[], storeId: number): Promise
     importedRows: 0,
     errors: [],
     mappedData: [],
-    missingFields: []
+    missingFields: [],
   };
-  
+
   // Get all categories for category name matching
   const categories = await storage.getAllCategories();
   const categoryMap = new Map<string, number>();
   categories.forEach(category => {
     categoryMap.set(category.name.toLowerCase(), category.id);
   });
-  
+
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     const rowNumber = i + 1;
-    
+
     try {
       // Resolve category ID if it's a name
       let categoryId = row.categoryId;
@@ -979,7 +1013,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         }
         categoryId = matchedCategoryId;
       }
-      
+
       // Check if product already exists by barcode
       const existingProduct = await storage.getProductByBarcode(row.barcode);
       
@@ -994,7 +1028,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
           // categoryId: categoryId,
           isPerishable: row.isPerishable !== undefined ? row.isPerishable : existingProduct.isPerishable,
         });
-        
+
         // Update inventory quantity
         const inventory = await storage.getStoreProductInventory(storeId, existingProduct.id);
         if (inventory) {
@@ -1024,9 +1058,9 @@ export async function importInventoryData(data: any[], storeId: number): Promise
           categoryId: categoryId,
           isPerishable: row.isPerishable || false,
         };
-        
+
         const newProduct = await storage.createProduct(productData);
-        
+
         // Create inventory record
         await db.insert(schema.inventory).values({
           storeId: storeId,
@@ -1038,7 +1072,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
           lastStockUpdate: new Date()
         } as typeof schema.inventory.$inferInsert); // Added explicit cast
       }
-      
+
       result.importedRows++;
     } catch (error: any) {
       result.errors.push({
@@ -1049,7 +1083,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
       });
     }
   }
-  
+
   result.success = result.errors.length === 0 && result.missingFields.length === 0;
   return result;
 }
@@ -1057,38 +1091,25 @@ export async function importInventoryData(data: any[], storeId: number): Promise
 // Format validation errors as CSV string
 export function formatErrorsAsCsv(errors: ImportError[]): string {
   if (errors.length === 0) return '';
-  
-  const rows = [
-    ['Row', 'Field', 'Value', 'Error']
-  ];
-  
+
+  const rows = [['Row', 'Field', 'Value', 'Error']];
+
   errors.forEach(error => {
-    rows.push([
-      error.row.toString(), 
-      error.field, 
-      error.value, 
-      error.reason
-    ]);
+    rows.push([error.row.toString(), error.field, error.value, error.reason]);
   });
-  
+
   return csvStringify(rows);
 }
 
 // Format missing fields as CSV string
 export function formatMissingFieldsAsCsv(missingFields: MissingField[]): string {
   if (missingFields.length === 0) return '';
-  
-  const rows = [
-    ['Row', 'Field', 'Required']
-  ];
-  
+
+  const rows = [['Row', 'Field', 'Required']];
+
   missingFields.forEach(field => {
-    rows.push([
-      field.row.toString(), 
-      field.field, 
-      field.isRequired ? 'Yes' : 'No'
-    ]);
+    rows.push([field.row.toString(), field.field, field.isRequired ? 'Yes' : 'No']);
   });
-  
+
   return csvStringify(rows);
 }

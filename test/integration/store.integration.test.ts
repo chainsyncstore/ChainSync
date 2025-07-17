@@ -1,23 +1,27 @@
 // test/integration/store.integration.test.ts
-import { PrismaClient } from '@prisma/client';
+import { db } from '../../db';
+import * as schema from '@shared/schema';
 import { makeMockStore } from '../factories/store';
 import { test, describe } from '../testTags';
-
-const prisma = new PrismaClient();
+import { eq } from 'drizzle-orm';
 
 describe.integration('Store Integration', () => {
-  beforeAll(async () => { await prisma.$connect(); });
-  afterAll(async () => { await prisma.$disconnect(); });
-  beforeEach(async () => { await prisma.store.deleteMany(); });
+  beforeEach(async () => {
+    await db.delete(schema.stores);
+  });
 
   test.integration('should create and fetch a store', async () => {
     const mockStore = makeMockStore({ name: 'Main Store', email: 'main@store.com' });
-    const created = await prisma.store.create({ data: mockStore });
-    expect(created).toMatchObject({ name: 'Main Store', email: 'main@store.com' });
+    const [created] = await db.insert(schema.stores).values(mockStore).returning();
 
-    const fetched = await prisma.store.findUnique({ where: { id: created.id } });
-    expect(fetched).not.toBeNull();
-    expect(fetched?.name).toBe('Main Store');
-    expect(fetched?.email).toBe('main@store.com');
+    expect(created).toBeDefined();
+    expect(created.name).toBe('Main Store');
+    expect(created.email).toBe('main@store.com');
+
+    const [fetched] = await db.select().from(schema.stores).where(eq(schema.stores.id, created.id));
+
+    expect(fetched).toBeDefined();
+    expect(fetched.name).toBe('Main Store');
+    expect(fetched.email).toBe('main@store.com');
   });
 });

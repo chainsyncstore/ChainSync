@@ -1,35 +1,54 @@
 // test/integration/transaction.integration.test.ts
-// Example integration test using in-memory SQLite DB with Prisma
-import { PrismaClient } from '@prisma/client';
+// Example integration test using Drizzle ORM
+import { db } from '../../db';
+import * as schema from '@shared/schema';
 import { makeMockProduct } from '../factories/product';
 import { makeMockTransaction } from '../factories/transaction';
+import { makeMockStore } from '../factories/store';
+import { makeMockCustomer } from '../factories/customer';
+import { makeMockUser } from '../factories/user';
+import { test, describe } from '../testTags';
+import { eq } from 'drizzle-orm';
 
-const prisma = new PrismaClient();
+describe.integration('Transaction Integration', () => {
+  let store: schema.Store;
+  let user: schema.User;
+  let customer: schema.Customer;
 
-beforeAll(async () => {
-  await prisma.$connect();
-  // Ensure schema is up-to-date (run this in your test runner setup or CI for best results)
-  // await prisma.$executeRaw`PRAGMA foreign_keys=ON;` // Optional: enable foreign keys
-});
-
-afterAll(async () => {
-  await prisma.$disconnect();
-});
-
-describe('Transaction Integration', () => {
   beforeEach(async () => {
-    // Clean DB and seed minimal data
-    await prisma.transaction.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.product.create({ data: makeMockProduct() });
+    // Clean DB in reverse order of creation to avoid foreign key constraints
+    await db.delete(schema.transactions);
+    await db.delete(schema.products);
+    await db.delete(schema.customers);
+    await db.delete(schema.users);
+    await db.delete(schema.stores);
+
+    // Seed necessary data for a transaction
+    [store] = await db.insert(schema.stores).values(makeMockStore()).returning();
+    [user] = await db.insert(schema.users).values(makeMockUser()).returning();
+    [customer] = await db
+      .insert(schema.customers)
+      .values(makeMockCustomer({ storeId: store.id }))
+      .returning();
+    await db.insert(schema.products).values(makeMockProduct()).returning();
   });
 
-  it('should create and fetch a transaction', async () => {
-    const created = await prisma.transaction.create({ data: makeMockTransaction() });
+  test.integration('should create and fetch a transaction', async () => {
+    const mockTx = makeMockTransaction({
+      storeId: store.id,
+      customerId: customer.id,
+      userId: user.id,
+      referenceNumber: 'TXN-123',
+    });
+
+    const [created] = await db.insert(schema.transactions).values(mockTx).returning();
     expect(created).toHaveProperty('id');
 
-    const fetched = await prisma.transaction.findUnique({ where: { id: created.id } });
+    const [fetched] = await db
+      .select()
+      .from(schema.transactions)
+      .where(eq(schema.transactions.id, created.id));
     expect(fetched).not.toBeNull();
-    expect(fetched?.reference).toBe('TXN-123');
+    expect(fetched?.referenceNumber).toBe('TXN-123');
   });
 });

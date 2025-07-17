@@ -1,17 +1,17 @@
 // test/factories/store.ts
 // Factory for creating mock Store objects for tests
-import type { Store } from '@prisma/client';
+import * as schema from '@shared/schema';
 
-export function makeMockStore(overrides: Partial<Store> = {}): Store {
+export function makeMockStore(overrides: Partial<schema.StoreInsert> = {}): schema.StoreInsert {
   return {
-    id: 1,
     name: 'Test Store',
-    email: 'store@example.com',
+    address: '123 Test St',
+    city: 'Testville',
+    state: 'TS',
+    country: 'USA',
+    phone: '555-555-5555',
+    email: `store.${Date.now()}@example.com`,
     timezone: 'UTC',
-    country: 'US',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
     ...overrides,
   };
 }
