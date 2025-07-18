@@ -1,9 +1,10 @@
 // db/migrations/setup.ts
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { db } from '../index';
+import { sql } from 'drizzle-orm';
+import { db } from '../index.js';
 import path from 'path';
 import fs from 'fs';
-import { getLogger } from '../../src/logging';
+import { getLogger } from '../../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'db-migrations' });
 

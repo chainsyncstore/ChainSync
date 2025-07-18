@@ -1,7 +1,7 @@
 // server/middleware/validation.ts
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { getLogger, getRequestLogger } from '../../src/logging';
+import { getLogger, getRequestLogger } from '../../src/logging/index.js';
 
 // Get centralized logger for validation middleware
 const logger = getLogger().child({ component: 'validation-middleware' });

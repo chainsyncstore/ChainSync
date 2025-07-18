@@ -1,12 +1,12 @@
 import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
 
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { FileUploadConfig } from '../config/file-upload';
-import { FileUploadProgress, ProgressSubscription } from './types/file-upload';
-import { logger } from './utils/logger';
-import { FileUtils } from './utils/file-utils';
-import { UploadMetricsTracker } from './utils/logger';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { FileUploadConfig } from '../config/file-upload.js';
+import { FileUploadProgress, ProgressSubscription } from './types/file-upload.js';
+import { logger } from './utils/logger.js';
+import { FileUtils } from './utils/file-utils.js';
+import { UploadMetricsTracker } from './utils/logger.js';
 import { LRUCache } from 'lru-cache';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
@@ -16,19 +16,6 @@ import uuidv4 from 'uuid';
 import * as path from 'path';
 
 // Type definitions
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: string;
-        [key: string]: any;
-      };
-      progressId?: string;
-      files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
-    }
-  }
-}
 
 interface MulterRequest extends Request {
   file?: Express.Multer.File;

@@ -3,9 +3,9 @@
 // It includes protections against XSS, CSRF, clickjacking, and other common web vulnerabilities
 import { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
-import { getLogger } from '../../src/logging';
+import { getLogger } from '../../src/logging/index.js';
 import { Session } from 'express-session';
-import { extractAndValidateApiKey } from '../utils/auth';
+import { extractAndValidateApiKey } from '../utils/auth.js';
 
 // Define session with csrf token property
 interface SessionWithCsrf {

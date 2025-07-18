@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import rateLimit, { Options } from 'express-rate-limit';
-import { getLogger } from '../../src/logging';
+import { getLogger } from '../../src/logging/index.js';
 import Redis from 'ioredis';
 
 // Get centralized logger for rate limiting middleware
@@ -102,7 +102,7 @@ function createRateLimiter(options: Partial<Options>) {
       return (req.ip || '127.0.0.1');
     },
     // Add structured logging
-    handler: (req: Request, res: Response, next: NextFunction, options: Options) => {
+    handler: (req: Request, res: Response, next: NextFunction, options: any) => {
       const reqLogger = (req as any).logger || logger;
       
       reqLogger.warn('Rate limit exceeded', {
@@ -173,12 +173,12 @@ export const userRateLimiter: RequestHandler = createRateLimiter({
   max: 300, // limit each user to 300 requests per hour
   // Use user ID instead of IP for authenticated users
   keyGenerator: (req: Request) => {
-    return req.session.userId ? 
-      `user_${req.session.userId}` : 
+    return (req.session as any).userId ?
+      `user_${(req.session as any).userId}` :
       (req.ip || '127.0.0.1');
   },
   skip: (req: Request) => {
     // Skip if user is admin or manager
-    return req.session.userRole === 'admin' || req.session.userRole === 'manager';
+    return (req.session as any).userRole === 'admin' || (req.session as any).userRole === 'manager';
   }
 });

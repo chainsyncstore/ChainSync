@@ -1,5 +1,5 @@
-import { db } from "./index";
-import * as schema from "@shared/schema";
+import { db } from "./index.js";
+import * as schema from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 
@@ -131,7 +131,7 @@ async function seed() {
 
     // Create store managers
     await Promise.all(
-      createdStores.map(async (store, index) => {
+      createdStores.map(async (store: { id: number; }, index: number) => {
         // Use type assertion to bypass TypeScript schema validation
         const managerUser = {
           username: `manager${index + 1}`,
@@ -179,7 +179,7 @@ async function seed() {
         description: "Bunch of fresh organic bananas",
         sku: "SKU-5011001",
         barcode: "5011001",
-        categoryId: createdCategories.find(c => c.name === "Produce")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Produce")!.id,
         price: "1.99",
         cost: "0.89",
         isPerishable: true
@@ -189,7 +189,7 @@ async function seed() {
         description: "1 gallon of whole milk",
         sku: "SKU-5011002",
         barcode: "5011002",
-        categoryId: createdCategories.find(c => c.name === "Dairy")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Dairy")!.id,
         price: "3.49",
         cost: "2.10",
         isPerishable: true
@@ -199,7 +199,7 @@ async function seed() {
         description: "Fresh baked sourdough bread",
         sku: "SKU-5011003",
         barcode: "5011003",
-        categoryId: createdCategories.find(c => c.name === "Bakery")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Bakery")!.id,
         price: "4.99",
         cost: "2.50",
         isPerishable: true
@@ -209,7 +209,7 @@ async function seed() {
         description: "1 pound of 80/20 ground beef",
         sku: "SKU-5011004",
         barcode: "5011004",
-        categoryId: createdCategories.find(c => c.name === "Meat & Seafood")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Meat & Seafood")!.id,
         price: "5.99",
         cost: "3.75",
         isPerishable: true
@@ -219,7 +219,7 @@ async function seed() {
         description: "2 liter bottle of cola",
         sku: "SKU-5011005",
         barcode: "5011005",
-        categoryId: createdCategories.find(c => c.name === "Beverages")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Beverages")!.id,
         price: "2.49",
         cost: "1.20",
         isPerishable: false
@@ -229,7 +229,7 @@ async function seed() {
         description: "8oz bag of potato chips",
         sku: "SKU-5011006",
         barcode: "5011006",
-        categoryId: createdCategories.find(c => c.name === "Snacks")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Snacks")!.id,
         price: "3.99",
         cost: "1.75",
         isPerishable: false
@@ -239,7 +239,7 @@ async function seed() {
         description: "10.5oz can of condensed soup",
         sku: "SKU-5011007",
         barcode: "5011007",
-        categoryId: createdCategories.find(c => c.name === "Canned Goods")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Canned Goods")!.id,
         price: "1.79",
         cost: "0.95",
         isPerishable: false
@@ -249,7 +249,7 @@ async function seed() {
         description: "12-inch frozen pepperoni pizza",
         sku: "SKU-5011008",
         barcode: "5011008",
-        categoryId: createdCategories.find(c => c.name === "Frozen Foods")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Frozen Foods")!.id,
         price: "6.99",
         cost: "3.50",
         isPerishable: false
@@ -259,7 +259,7 @@ async function seed() {
         description: "Fresh red apples",
         sku: "SKU-5011009",
         barcode: "5011009",
-        categoryId: createdCategories.find(c => c.name === "Produce")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Produce")!.id,
         price: "0.79",
         cost: "0.35",
         isPerishable: true
@@ -269,7 +269,7 @@ async function seed() {
         description: "6oz container of Greek yogurt",
         sku: "SKU-5011010",
         barcode: "5011010",
-        categoryId: createdCategories.find(c => c.name === "Dairy")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Dairy")!.id,
         price: "1.29",
         cost: "0.70",
         isPerishable: true
@@ -337,7 +337,7 @@ async function seed() {
     });
 
     // Group cashiers by store
-    const cashiersByStore = cashiers.reduce((acc, cashier) => {
+    const cashiersByStore = cashiers.reduce((acc: Record<number, typeof cashiers>, cashier) => {
       if (!cashier.storeId) return acc;
       if (!acc[cashier.storeId]) acc[cashier.storeId] = [];
       acc[cashier.storeId].push(cashier);
@@ -409,7 +409,7 @@ async function seed() {
         // Update inventory
         for (const item of transactionItems) {
           const inventory = await db.query.inventory.findFirst({
-            where: (inv, { and, eq }) => 
+            where: (inv: { storeId: number; productId: number; }, { and, eq }: { and: any; eq: any; }) =>
               and(eq(inv.storeId, store.id), eq(inv.productId, item.productId))
           });
           
