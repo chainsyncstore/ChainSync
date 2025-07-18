@@ -1,8 +1,8 @@
-import { users } from "./users";
-import { stores } from "./stores";
-import { products, categories } from "./products";
-import { inventory, inventoryBatches } from "./inventory";
-import { transactions, transactionItems, transactionPayments } from "./transactions";
+import { users } from "./users.js";
+import { stores } from "./stores.js";
+import { products, categories } from "./products.js";
+import { inventory, inventoryBatches } from "./inventory.js";
+import { transactions, transactionItems } from "./transactions.js";
 
 // Database configuration
 export const schema = {
@@ -13,14 +13,13 @@ export const schema = {
   inventory,
   inventoryBatches,
   transactions,
-  transactionItems,
-  transactionPayments
+  transactionItems
 };
 
 // Re-export all types and schemas
-export * from "./base";
-export * from "./users";
-export * from "./stores";
-export * from "./products";
-export * from "./inventory";
-export * from "./transactions";
+export * from "./base.js";
+export * from "./users.js";
+export * from "./stores.js";
+export * from "./products.js";
+export * from "./inventory.js";
+export * from "./transactions.js";

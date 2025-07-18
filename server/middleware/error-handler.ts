@@ -1,6 +1,6 @@
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors'; // RetryableError removed
-import { logError } from '@shared/utils/error-logger';
-import { formatErrorForUser } from '@shared/utils/error-messages';
+import { AppError, ErrorCode, ErrorCategory, RetryableError } from '@shared/types/errors.js';
+import { logError } from '@shared/utils/error-logger.js';
+import { formatErrorForUser } from '@shared/utils/error-messages.js';
 import { NextFunction, Request, Response } from 'express';
 
 export const errorHandler = (
@@ -59,7 +59,7 @@ export const errorHandler = (
   // Handle database errors
   if (error.name === 'DatabaseError') {
     const appError = AppError.fromDatabaseError(error);
-    return res.status(appError.status).json({
+    return res.status(appError.statusCode).json({
       error: {
         code: appError.code,
         message: appError.message,
@@ -71,7 +71,7 @@ export const errorHandler = (
   // Handle authentication errors
   if (error.name === 'AuthenticationError') {
     const appError = AppError.fromAuthenticationError(error);
-    return res.status(appError.status).json({
+    return res.status(appError.statusCode).json({
       error: {
         code: appError.code,
         message: appError.message,

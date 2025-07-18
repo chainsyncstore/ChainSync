@@ -1,5 +1,5 @@
-import { db } from "./index";
-import * as schema from "@shared/schema";
+import { db } from "./index.js";
+import * as schema from "@shared/schema.js";
 
 async function seedReturnReasons() {
   try {

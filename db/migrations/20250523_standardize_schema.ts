@@ -38,7 +38,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   // Add missing timestamps to ensure consistency
   await db.schema
     .alterTable('loyalty_transactions')
-    .addColumnIfNotExists('updated_at', sql`timestamp with time zone`)
+    .addColumn('updated_at', sql`timestamp with time zone`)
     .execute();
 
   // Add consistent boolean defaults
@@ -58,7 +58,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   for (const table of tables) {
     await db.schema
       .alterTable(table)
-      .addColumnIfNotExists('updated_at', sql`timestamp with time zone`)
+      .addColumn('updated_at', sql`timestamp with time zone`)
       .execute();
   }
 }

@@ -1,25 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../../db';
+import { db } from '../../db/index.js';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { getLogger, getRequestLogger } from '../../src/logging';
+import { getLogger, getRequestLogger } from '../../src/logging/index.js';
 
 // Get centralized logger for auth middleware
 const logger = getLogger().child({ component: 'auth-middleware' });
 
 // Define user interface for express requests
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string | number; // Allow both string and number types for ID
-        role: string;
-        storeId?: number;
-        name: string;
-      };
-    }
-  }
-}
 
 declare module 'express-session' {
   interface SessionData {

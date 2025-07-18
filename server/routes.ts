@@ -1,47 +1,43 @@
 import express from 'express';
-import { env } from './config/env';
-// import { logger } from './services/logger'; // Unused
-import { FileUploadMiddleware } from './middleware/file-upload';
-import { AuthMiddleware } from './middleware/auth';
-import { RateLimitMiddleware } from './middleware/rate-limit';
-// import { errorMiddleware } from './middleware/error-handler'; // Unused
+import { env } from './config/env.js';
+import { logger } from './services/logger.js';
+import { FileUploadMiddleware } from './middleware/file-upload.js';
+import { AuthMiddleware } from './middleware/auth.js';
+import { RateLimitMiddleware } from './middleware/rate-limit.js';
+import { errorMiddleware } from './middleware/error-handler.js';
 import cors from 'cors';
 // import { createServer } from 'http'; // Unused
 import { Server as SocketIOServer } from 'socket.io'; // Renamed to avoid conflict
 // import { socketHandler } from './socket/socket-handler'; // Unused
 import session from 'express-session';
 import pgSession from 'connect-pg-simple';
-// import { Pool } from 'pg'; // Unused
-import { db } from '../db';
+import { Pool } from 'pg';
+import { db } from '../db/index.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
-// import { ZodError } from 'zod-validation-error'; // Unused
-import { storage } from './storage';
-import * as schema from '../shared/schema';
-import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from './middleware/auth';
-import { getAIResponse } from './services/ai';
+import { storage } from './storage.js';
+import * as schema from '../shared/schema.js';
+import { isAuthenticated, isAdmin, isManagerOrAdmin, hasStoreAccess, validateSession } from './middleware/auth.js';
+import { getAIResponse } from './services/ai.js';
 import multer from 'multer';
-// import path from 'path'; // Unused
-import * as affiliateService from './services/affiliate';
-import * as webhookService from './services/webhook';
-import * as paymentService from './services/payment';
-import * as loyaltyService from './services/loyalty';
-import * as analyticsService from './services/analytics';
-import { processImportFile, applyColumnMapping, validateLoyaltyData, validateInventoryData, importLoyaltyData, importInventoryData, generateErrorReport } from './services/import-enhanced';
-import { validateProductImportCSV, importProducts } from './services/product-import';
-// import { File } from 'multer'; // Unused
+import * as affiliateService from './services/affiliate.js';
+import * as webhookService from './services/webhook.js';
+import * as paymentService from './services/payment.js';
+import * as loyaltyService from './services/loyalty.js';
+import * as analyticsService from './services/analytics.js';
+import { processImportFile, applyColumnMapping, validateLoyaltyData, validateInventoryData, importLoyaltyData, importInventoryData, generateErrorReport } from './services/import-enhanced.js';
+import { validateProductImportCSV, importProducts } from './services/product-import.js';
 import { Request, Response, NextFunction } from 'express';
 import { SessionOptions } from 'express-session';
-// import { NeonDatabase } from '@neondatabase/serverless'; // Unused
-import { App, Middleware, RouteHandler } from './types/app'; // EnvConfig removed
-import { Database } from './types/index';
+import { App, Middleware, RouteHandler, EnvConfig } from './types/app.js';
+import { Database } from './types/index.js';
 
 // Re-export env for type safety
 // export const envConfig = env; // Unused
 
 export async function registerRoutes(app: App): Promise<SocketIOServer> { // Changed Server to SocketIOServer
   // Import the setupSecureServer to return either HTTP or HTTPS server based on environment
-  const { setupSecureServer } = await import('./config/https');
+  const { setupSecureServer } = await import('./config/https.js');
   const PostgresStore = pgSession(session);
   
   // Set up session middleware
@@ -261,7 +257,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       const programData = req.body;
       
       // Validate store access
-      if (!hasStoreAccess(req.session, storeId)) {
+      if (!hasStoreAccess(req.session as any, storeId)) {
         return res.status(403).json({ message: 'Access denied to this store' });
       }
 
@@ -760,7 +756,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       const resetToken = await storage.createPasswordResetToken(user.id);
       
       // Import the email service
-      const { sendPasswordResetEmail } = await import('./services/email');
+      const { sendPasswordResetEmail } = await import('./services/email.js');
       
       // Send the password reset email
       const emailSent = await sendPasswordResetEmail(
@@ -877,6 +873,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
         const { sendEmail, verifyEmailConnection } = await import('./services/email');
         
         // First verify the connection
+        const { verifyEmailConnection, sendEmail } = await import('./services/email.js');
         const isConnected = await verifyEmailConnection();
         
         if (!isConnected) {
@@ -2314,7 +2311,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       const rawPayload = JSON.stringify(req.body);
       
       // Process the webhook
-      const { handlePaystackWebhook } = await import('./services/webhooks');
+      const { handlePaystackWebhook } = await import('./services/webhook.js');
       const success = await handlePaystackWebhook(signature, rawPayload);
       
       if (success) {
@@ -2334,7 +2331,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       const rawPayload = JSON.stringify(req.body);
       
       // Process the webhook
-      const { handleFlutterwaveWebhook } = await import('./services/webhooks');
+      const { handleFlutterwaveWebhook } = await import('./services/webhook.js');
       const success = await handleFlutterwaveWebhook(signature, rawPayload);
       
       if (success) {
@@ -2359,7 +2356,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       }
       
       // Register the user as an affiliate
-      const { registerAffiliate } = await import('./services/affiliate');
+      const { registerAffiliate } = await import('./services/affiliate.js');
       const affiliate = await registerAffiliate(userId, req.body);
       
       return res.status(201).json(affiliate);
@@ -2378,7 +2375,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       }
       
       // Get affiliate dashboard stats
-      const { getAffiliateDashboardStats } = await import('./services/affiliate');
+      const { getAffiliateDashboardStats } = await import('./services/affiliate.js');
       const stats = await getAffiliateDashboardStats(userId);
       
       return res.status(200).json(stats);
@@ -2403,7 +2400,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       }
       
       // Get affiliate referrals
-      const { getAffiliateReferrals } = await import('./services/affiliate');
+      const { getAffiliateReferrals } = await import('./services/affiliate.js');
       const referrals = await getAffiliateReferrals(userId);
       
       return res.status(200).json(referrals);
@@ -2422,7 +2419,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       }
       
       // Get affiliate payments
-      const { getAffiliatePayments } = await import('./services/affiliate');
+      const { getAffiliatePayments } = await import('./services/affiliate.js');
       const payments = await getAffiliatePayments(userId);
       
       return res.status(200).json(payments);
@@ -2441,7 +2438,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       }
       
       // Update affiliate bank details
-      const { updateAffiliateBankDetails } = await import('./services/affiliate');
+      const { updateAffiliateBankDetails } = await import('./services/affiliate.js');
       const affiliate = await updateAffiliateBankDetails(userId, req.body);
       
       if (!affiliate) {
@@ -2464,7 +2461,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       }
       
       // Track the click
-      const { trackAffiliateClick } = await import('./services/affiliate');
+      const { trackAffiliateClick } = await import('./services/affiliate.js');
       await trackAffiliateClick(code, source);
       
       // Return a transparent 1x1 GIF to avoid CORS issues
@@ -2511,7 +2508,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       // If there's a referral code, track the referral
       if (referralCode) {
         // Import the affiliate service
-        const { trackReferral } = await import('./services/affiliate');
+        const { trackReferral } = await import('./services/affiliate.js');
         await trackReferral(referralCode, newUser.id);
       }
       
@@ -2675,7 +2672,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       const { affiliateId } = req.body;
       
       // Process the payout
-      const { processAffiliatePayout } = await import('./services/affiliate');
+      const { processAffiliatePayout } = await import('./services/affiliate.js');
       const payments = await processAffiliatePayout(affiliateId);
       
       return res.status(200).json(payments);
@@ -3876,7 +3873,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
         summary,
         message: 'Validation completed'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error validating product import:', error);
       res.status(500).json({ 
         message: 'Error validating CSV file', 
@@ -3902,7 +3899,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       const result = await importProducts(products, storeId);
       
       res.status(200).json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error importing products:', error);
       res.status(500).json({ 
         message: 'Error importing products', 
@@ -4014,7 +4011,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
         });
       }
       
-      const batchService = await import('./services/inventory-batch');
+      const batchService = await import('./services/inventory-batch.js');
       const newBatch = await batchService.addBatch({
         storeId,
         productId,
@@ -4058,7 +4055,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
         });
       }
       
-      const batchService = await import('./services/batch-inventory');
+      const batchService = await import('./services/batch-inventory.js');
       const validationResult = await batchService.validateBatchImportFile(req.file.path);
       
       if (!validationResult.valid) {
@@ -4146,7 +4143,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
       // Get product details for the audit log
       const product = await storage.getProductById(inventory.productId);
       
-      const batchService = await import('./services/inventory-batch');
+      const batchService = await import('./services/inventory-batch.js');
       const updatedBatch = await batchService.updateBatch(batchId, updateData);
       
       // Create audit log entry
@@ -4193,7 +4190,7 @@ export async function registerRoutes(app: App): Promise<SocketIOServer> { // Cha
         });
       }
       
-      const batchService = await import('./services/inventory-batch');
+      const batchService = await import('./services/inventory-batch.js');
       const updatedBatch = await batchService.adjustBatchStock({
         batchId,
         quantity: parseInt(quantity),
