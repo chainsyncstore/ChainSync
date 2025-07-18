@@ -2,7 +2,7 @@ import { users } from "./users";
 import { stores } from "./stores";
 import { products, categories } from "./products";
 import { inventory, inventoryBatches } from "./inventory";
-import { transactions, transactionItems } from "./transactions";
+import { transactions, transactionItems, transactionPayments } from "./transactions";
 
 // Database configuration
 export const schema = {
@@ -13,7 +13,8 @@ export const schema = {
   inventory,
   inventoryBatches,
   transactions,
-  transactionItems
+  transactionItems,
+  transactionPayments
 };
 
 // Re-export all types and schemas

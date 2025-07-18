@@ -103,9 +103,11 @@ export {
 // Re-export types with proper syntax for isolatedModules
 export type { 
   Logger, 
-  LogLevel, 
   LogMeta 
 };
+
+// Export LogLevel as both type and value
+export { LogLevel };
 
 // Re-export our new tracing components
 export { TracingLogger, createTracingLogger };

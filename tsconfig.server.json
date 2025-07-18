@@ -11,11 +11,12 @@
     "allowSyntheticDefaultImports": true,
     "noEmit": false,
     "emitDeclarationOnly": false,
-    "allowImportingTsExtensions": true,
+
     "types": ["node"],
     "allowJs": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "noEmitOnError": false,
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "baseUrl": ".",

@@ -1,7 +1,7 @@
 import Paystack from 'paystack-node';
 import Flutterwave from 'flutterwave-node-v3';
 import { db } from '../../db';
-import * as schema from '@shared/schema';
+import * as schema from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 // Type declaration for modules without types

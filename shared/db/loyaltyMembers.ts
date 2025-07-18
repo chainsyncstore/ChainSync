@@ -3,7 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
 import { customers } from './customers';
-import { loyaltyPrograms } from './loyaltyPrograms'; // Import loyaltyPrograms
+import { loyaltyPrograms } from '../schema'; // Import loyaltyPrograms from main schema
 
 export const loyaltyMembers = pgTable('loyalty_members', {
   id: serial('id').primaryKey(),

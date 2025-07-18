@@ -235,26 +235,22 @@ export const subscriptionValidation = {
 
 // Transaction validation
 export const transactionSchema = createInsertSchema(schema.transactions, {
-  transactionId: z.string().min(5, "Transaction ID must be at least 5 characters"),
-  subtotal: z.coerce.number().nonnegative({ message: "Subtotal must be a non-negative number" }),
+  totalAmount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Total amount must be a valid decimal"),
   paymentMethod: z.string().min(1, "Payment method is required"),
-  type: z.enum(["SALE", "RETURN"]),
+  status: z.string().min(1, "Status is required"),
 });
 
 // Transaction item schema
 export const transactionItemSchema = createInsertSchema(schema.transactionItems, {
   quantity: z.number().int().positive("Quantity must be positive"),
   unitPrice: z.string().regex(/^\d+(\.\d{1,2})?$/, "Unit price must be a valid decimal"),
-  subtotal: z.string().regex(/^\d+(\.\d{1,2})?$/, "Subtotal must be a valid decimal"),
 });
 
-// Transaction payment schema (assuming payments table exists in schema)
-export const transactionPaymentSchema = schema.payments
-  ? createInsertSchema(schema.payments, {
+// Transaction payment schema
+export const transactionPaymentSchema = createInsertSchema(schema.transactionPayments, {
       amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Amount must be a valid decimal"),
       method: z.string().min(1, "Payment method is required"),
-    })
-  : z.object({ amount: z.string(), method: z.string() });
+    });
 
 export const transactionValidation = {
   insert: (data: unknown) => validateEntity(transactionSchema, data, 'transaction'),

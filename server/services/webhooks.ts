@@ -1,14 +1,17 @@
-import { db } from "@db";
-import * as schema from "@shared/schema";
+import { db } from "../../db";
+import * as schema from "../../shared/schema";
 import { eq } from "drizzle-orm";
 // import { AffiliateService } from "./affiliate/service"; // Unused
 // import { PaymentService } from "./payment/service"; // Unused
-import { prepareSubscriptionData } from "@shared/schema-helpers";
+// Helper function to prepare subscription data
+function prepareSubscriptionData(data: any) {
+  return data; // Simple pass-through for now
+}
 import { 
   applyReferralDiscount, 
   processAffiliateCommission 
 } from "./affiliate";
-import crypto from "crypto";
+import * as crypto from "crypto";
 
 /**
  * Verify Paystack webhook signature

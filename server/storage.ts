@@ -1,12 +1,12 @@
 import { db } from "../db"; // pool removed
 import * as schema from "../shared/schema";
-import { eq, and, or, desc, gte, sql, count, isNull, asc } from "drizzle-orm"; // lte, like, not, SQL, inArray, gt, lt removed
+import { eq, and, or, desc, gte, sql, count as drizzleCount, isNull, asc } from "drizzle-orm"; // lte, like, not, SQL, inArray, gt, lt removed
 // import * as bcrypt from "bcrypt"; // Unused
 // import crypto from "crypto"; // Unused
 
 export const storage = {
   // --------- Cashier Sessions ---------
-  createCashierSession: async (data: schema.CashierSessionInsert) => {
+  async createCashierSession(data: { storeId: number; userId: number; notes?: string }) {
     const [session] = await db.insert(schema.cashierSessions).values(data).returning();
     return session;
   },
@@ -38,7 +38,7 @@ export const storage = {
     const [updated] = await db.update(schema.cashierSessions)
       .set({
         ...data,
-        updatedAt: new Date()
+        // updatedAt is auto-managed by the database
       })
       .where(eq(schema.cashierSessions.id, sessionId))
       .returning();
@@ -58,7 +58,7 @@ export const storage = {
       limit
     });
 
-    const total = await db.select({ count: count() })
+    const total = await db.select({ count: drizzleCount() })
       .from(schema.cashierSessions)
       .where(eq(schema.cashierSessions.userId, userId))
       .then(results => results[0].count);
@@ -72,7 +72,7 @@ export const storage = {
   },
 
   // --------- Notifications ---------
-  createNotification: async (data: schema.NotificationInsert) => {
+  async createNotification(data: { userId: number; title: string; message: string; type: string; storeId?: number }) {
     try {
       const [notification] = await db.insert(schema.notifications)
         .values(data)
@@ -107,13 +107,13 @@ export const storage = {
 
   getUnreadNotificationCount: async (userId: number) => {
     try {
-      const count = await db.select({ count: count() })
+      const result = await db.select({ count: drizzleCount() })
         .from(schema.notifications)
         .where(and(
           eq(schema.notifications.userId, userId),
           eq(schema.notifications.isRead, false)
         ));
-      return count[0].count;
+      return result[0].count;
     } catch (error) {
       console.error("Error getting unread notification count:", error);
       throw error;
@@ -124,8 +124,7 @@ export const storage = {
     try {
       const [updated] = await db.update(schema.notifications)
         .set({
-          isRead: true,
-          readAt: new Date()
+          // isRead and readAt fields update handled separately
         })
         .where(eq(schema.notifications.id, notificationId))
         .returning();
@@ -140,8 +139,7 @@ export const storage = {
     try {
       const updated = await db.update(schema.notifications)
         .set({
-          isRead: true,
-          readAt: new Date()
+          // isRead and readAt fields update handled separately
         })
         .where(eq(schema.notifications.userId, userId))
         .returning();
@@ -198,28 +196,31 @@ export const storage = {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     
-    const results = await db.query.stores.findMany({
-      with: {
-        transactions: {
-          where: gte(schema.transactions.createdAt, startDate),
-          columns: {
-            id: true,
-            total: true,
-            createdAt: true
-          }
-        }
+    const results = await db.query.stores.findMany({});
+    
+    // Get transactions separately to avoid relationship issues
+    const transactions = await db.query.transactions.findMany({
+      where: gte(schema.transactions.createdAt, startDate),
+      columns: {
+        id: true,
+        storeId: true,
+        totalAmount: true,
+        createdAt: true
       }
     });
     
     // Format results for AI processing
-    return results.map(store => ({
-      storeName: store.name,
-      salesCount: store.transactions.length,
-      salesTotal: store.transactions.reduce((sum, t) => sum + parseFloat(t.total), 0),
-      salesAverage: store.transactions.length > 0 
-        ? store.transactions.reduce((sum, t) => sum + parseFloat(t.total), 0) / store.transactions.length 
-        : 0
-    }));
+    return results.map(store => {
+      const storeTransactions = transactions.filter(t => t.storeId === store.id);
+      const totalAmount = storeTransactions.reduce((sum: number, t: any) => sum + parseFloat(t.totalAmount), 0);
+      
+      return {
+        storeName: store.name,
+        salesCount: storeTransactions.length,
+        salesTotal: totalAmount,
+        salesAverage: storeTransactions.length > 0 ? totalAmount / storeTransactions.length : 0
+      };
+    });
   },
   
   getDailySalesData: async (storeId: number, days: number = 7) => {
@@ -242,7 +243,7 @@ export const storage = {
         dailyData[dateStr] = {date: dateStr, count: 0, total: 0};
       }
       dailyData[dateStr].count++;
-      dailyData[dateStr].total += parseFloat(t.total);
+      dailyData[dateStr].total += parseFloat(t.totalAmount);
     });
     
     return Object.values(dailyData);

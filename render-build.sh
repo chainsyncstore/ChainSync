@@ -1,11 +1,15 @@
 #!/bin/bash
 # Render build script for ChainSync
 
-# Output each command for debugging
+# Output each command for debugging and exit on error
+set -euo pipefail
 set -x
 
-# Install dependencies
-npm ci
+# Install dependencies – strict CI install first, fallback to npm install if lock mismatch
+if ! npm ci; then
+  echo "npm ci failed – lockfile out of sync. Falling back to npm install ..."
+  npm install
+fi
 
 # Install essential build tools
 npm install typescript ts-node tsc-alias terser --save-dev

@@ -70,6 +70,7 @@ const progressCache = new LRUCache<string, FileUploadProgress>({
 
 const subscriptionCache = new Map<string, ProgressSubscription[]>();
 
+/*
 // Multer instance
 // const upload = multer({ // Unused
 //   storage: multer.memoryStorage(),
@@ -144,6 +145,7 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
   }
 });
 
+*/
 // File upload middleware class
 export class FileUploadMiddleware {
   private static instance: FileUploadMiddleware;

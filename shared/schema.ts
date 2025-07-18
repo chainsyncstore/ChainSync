@@ -24,6 +24,8 @@ import {
   paymentRefundsRelations, 
   paymentWebhooksRelations 
 } from "./payment-schema";
+import { transactions, transactionItems, transactionPayments } from "./db/transactions";
+import { customers } from "./db/customers";
 
 // Users & Authentication
 export const users = pgTable(
@@ -36,6 +38,7 @@ export const users = pgTable(
     email: text('email').notNull(),
     role: text('role').notNull().default('cashier'),
     storeId: integer('store_id').references(() => stores.id),
+    isActive: boolean('is_active').notNull().default(true),
     lastLogin: timestamp('last_login'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -517,22 +520,7 @@ export const paymentMethods = pgTable('payment_methods', {
 export const paymentMethodsRelations = relations(paymentMethods, ({ many }) => ({}));
 
 // Returns and Refunds System
-export const customers = pgTable('customers', {
-  id: serial('id').primaryKey(),
-  fullName: text('full_name').notNull(),
-  email: text('email'),
-  phone: text('phone'),
-  storeId: integer('store_id').references(() => stores.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at'),
-});
-
-export const customersRelations = relations(customers, ({ one }) => ({
-  store: one(stores, {
-    fields: [customers.storeId],
-    references: [stores.id],
-  }),
-}));
+// Note: customers table is imported from ./db/customers.ts
 
 // Return reason lookup table
 export const returnReasons = pgTable('return_reasons', {
@@ -641,8 +629,7 @@ export const returnItemInsertSchema = createInsertSchema(returnItems, {
 });
 
 // Type exports for returns
-export type Customer = typeof customers.$inferSelect;
-export type CustomerInsert = z.infer<typeof customerInsertSchema>;
+// Note: Customer types are exported at the end of the file
 
 export type ReturnReason = typeof returnReasons.$inferSelect;
 export type ReturnReasonInsert = z.infer<typeof returnReasonInsertSchema>;
@@ -986,6 +973,7 @@ export const notifications = pgTable('notifications', {
   type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
   readAt: timestamp('read_at'),
   link: text('link'), // Optional link to navigate when clicked
   metadata: jsonb('metadata'), // Additional data related to the notification
@@ -1012,3 +1000,20 @@ export const notificationInsertSchema = createInsertSchema(notifications, {
 
 export type Notification = typeof notifications.$inferSelect;
 export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;

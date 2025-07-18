@@ -1,5 +1,5 @@
 // src/queue/index.ts
-import { Queue, Worker, QueueScheduler, Job, ConnectionOptions } from 'bullmq';
+import { Queue, Worker, Job, ConnectionOptions } from 'bullmq';
 import { getLogger } from '../logging';
 import { getRedisClient } from '../cache/redis';
 
@@ -26,7 +26,6 @@ export enum JobPriority {
 // Queue registry to track active queues
 const queues: Record<string, Queue> = {};
 const workers: Record<string, Worker> = {};
-const schedulers: Record<string, QueueScheduler> = {};
 
 /**
  * Redis connection configuration

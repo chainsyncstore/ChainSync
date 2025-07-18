@@ -1,8 +1,8 @@
 import { parse } from 'csv-parse';
-import { db } from '@db';
+import { db } from '../../db';
 import { eq } from 'drizzle-orm';
-import * as schema from '@shared/schema';
-import { categories } from '@shared/schema';
+import * as schema from '../../shared/schema';
+import { categories } from '../../shared/schema';
 
 interface ProductImportRow {
   'Product Name': string;

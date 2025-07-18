@@ -1,5 +1,5 @@
 import { storage } from '../storage';
-import * as schema from '@shared/schema';
+import * as schema from '../../shared/schema';
 import { eq, and, gte, desc } from 'drizzle-orm'; // lte removed
 import { randomBytes } from 'crypto';
 import { db } from '../../db';
@@ -28,7 +28,8 @@ const REFERRAL_PERIOD_MONTHS = 12; // 12 months
  */
 export async function generateReferralCode(userId: number): Promise<string> {
   try {
-    const user = await storage.getUserById(userId);
+    // Get user directly from database since storage method doesn't exist
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
     if (!user) {
       throw new Error('User not found');
     }

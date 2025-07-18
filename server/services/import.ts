@@ -2,9 +2,9 @@ import { parse as csvParse } from 'csv-parse/sync';
 import { stringify as csvStringify } from 'csv-stringify/sync';
 import * as xlsx from 'xlsx';
 import { storage } from '../storage';
-import * as schema from '@shared/schema';
+import * as schema from '../../shared/schema';
 import { eq } from 'drizzle-orm';
-import { db } from '@db/index';
+import { db } from '../../db';
 import { SessionsClient } from '@google-cloud/dialogflow';
 import { enhanceValidationWithAI } from './import-ai';
 

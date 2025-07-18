@@ -1,6 +1,6 @@
 // src/logging/SentryLogger.ts
 import * as Sentry from '@sentry/node';
-import { Integrations } from '@sentry/integrations';
+import { extraErrorDataIntegration, captureConsoleIntegration } from '@sentry/integrations';
 import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger';
 
 interface SentryLoggerOptions {
@@ -25,14 +25,8 @@ export function initSentry(options: SentryLoggerOptions): void {
     release: options.release,
     serverName: options.serverName,
     integrations: [
-      new Integrations.OnUncaughtException({
-        onFatalError: (error) => {
-          console.error('FATAL ERROR - UNCAUGHT EXCEPTION:');
-          console.error(error);
-          process.exit(1);
-        },
-      }),
-      new Integrations.OnUnhandledRejection({ mode: 'warn' }),
+      extraErrorDataIntegration(),
+      captureConsoleIntegration(),
     ],
     tracesSampleRate: options.tracesSampleRate || 0.2,
     maxBreadcrumbs: options.maxBreadcrumbs || 100,

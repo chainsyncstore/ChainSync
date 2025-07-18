@@ -4,10 +4,16 @@ import { Request, Response, NextFunction } from 'express';
 
 // We need to avoid extending the Express namespace to prevent conflicts
 // Instead, we'll define the multer module with compatible interfaces
-import { Options as MulterOptions, StorageEngine, File } from 'multer';
+import { Options as MulterOptions, StorageEngine } from 'multer';
 
 declare module 'multer' {
-  function multer(options?: MulterOptions): Express.Multer.Multer;
+  interface Multer {
+    single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
+    array(fieldname: string, maxCount?: number): (req: Request, res: Response, next: NextFunction) => void;
+    fields(fields: Array<{ name: string; maxCount?: number }>): (req: Request, res: Response, next: NextFunction) => void;
+  }
+  
+  function multer(options?: MulterOptions): Multer;
   
   namespace multer {
     function single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
