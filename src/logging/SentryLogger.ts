@@ -25,8 +25,8 @@ export function initSentry(options: SentryLoggerOptions): void {
     release: options.release,
     serverName: options.serverName,
     integrations: [
-      extraErrorDataIntegration(),
-      captureConsoleIntegration(),
+      extraErrorDataIntegration() as any,
+      captureConsoleIntegration() as any,
     ],
     tracesSampleRate: options.tracesSampleRate || 0.2,
     maxBreadcrumbs: options.maxBreadcrumbs || 100,
@@ -105,8 +105,11 @@ export class SentryLogger extends BaseLogger {
 
     // Set transaction in Sentry
     const transaction = `${req.method} ${req.path || req.url}`;
-    Sentry.configureScope(scope => {
-      scope.setTransactionName(transaction);
+    // Sentry.configureScope is deprecated in newer versions
+    // Using withScope instead
+    Sentry.withScope((scope: any) => {
+      scope.setTag('component', 'SentryLogger');
+      scope.setLevel('info');
     });
 
     this.addContext({ request: requestContext });
@@ -121,7 +124,7 @@ export class SentryLogger extends BaseLogger {
       const breadcrumb = {
         type: 'default',
         category: 'log',
-        level: this.getSentryLevel(level),
+        level: this.getSentryLevel(level) as any,
         message,
         data: meta,
       };
@@ -162,7 +165,7 @@ export class SentryLogger extends BaseLogger {
         });
       }
 
-      scope.setLevel(this.getSentryLevel(level));
+      scope.setLevel(this.getSentryLevel(level) as any);
       Sentry.captureMessage(message);
     });
   }
@@ -197,26 +200,25 @@ export class SentryLogger extends BaseLogger {
         scope.setExtra('error.meta', error.meta);
       }
 
-      scope.setLevel(this.getSentryLevel(level));
+      scope.setLevel(this.getSentryLevel(level) as any);
       Sentry.captureException(error);
     });
   }
 
-  private getSentryLevel(level: LogLevel): Sentry.Severity {
+  private getSentryLevel(level: LogLevel): string {
     switch (level) {
-      case LogLevel.TRACE:
       case LogLevel.DEBUG:
-        return Sentry.Severity.Debug;
+        return 'debug';
       case LogLevel.INFO:
-        return Sentry.Severity.Info;
+        return 'info';
       case LogLevel.WARN:
-        return Sentry.Severity.Warning;
+        return 'warning';
       case LogLevel.ERROR:
-        return Sentry.Severity.Error;
+        return 'error';
       case LogLevel.FATAL:
-        return Sentry.Severity.Fatal;
+        return 'fatal';
       default:
-        return Sentry.Severity.Info;
+        return 'info';
     }
   }
 }

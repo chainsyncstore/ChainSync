@@ -161,7 +161,7 @@ describe('Service Helper Utilities', () => {
     });
     
     it('should rethrow AppError instances as-is', () => {
-      const originalError = new AppError(ErrorCode.NOT_FOUND, 'Not found');
+      const originalError = new AppError('Not found', ErrorCode.NOT_FOUND, 'VALIDATION');
       
       try {
         ServiceErrorHandler.handleError(originalError, 'getting entity');

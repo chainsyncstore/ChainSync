@@ -1,5 +1,5 @@
 import { PaymentService } from '@server/services/payment';
-import { ConsoleLogger } from '../../../../src/logging/Logger';
+import { ConsoleLogger } from '../../../src/logging/Logger.js';
 
 describe('PaymentService Loyalty Logger Integration', () => {
   let paymentService: PaymentService;

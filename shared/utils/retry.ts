@@ -37,7 +37,7 @@ export class RetryStrategy {
       try {
         return await operation();
       } catch (error) {
-        if (!errorFilter(error)) {
+        if (!errorFilter(error as Error)) {
           throw error;
         }
 
@@ -47,7 +47,7 @@ export class RetryStrategy {
 
         const delay = this.calculateDelay(attempt);
         if (onRetry) {
-          onRetry(error, attempt);
+          onRetry(error as Error, attempt);
         }
 
         await new Promise(resolve => setTimeout(resolve, delay));

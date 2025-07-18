@@ -1,4 +1,4 @@
-import { db, pool } from "@db";
+import { db, pool } from "../db/index.js";
 import * as schema from "@shared/schema";
 import {
   eq,
@@ -102,10 +102,10 @@ export const storage = {
     const session = await this.getCashierSessionById(sessionId);
     if (!session) return null;
 
-    const newTotalSales = parseFloat(session.totalSales.toString()) + amount;
+    const newTotalSales = parseFloat((session.totalSales || 0).toString()) + amount;
 
     return await this.updateCashierSession(sessionId, {
-      transactionCount: session.transactionCount + 1,
+      transactionCount: (session.transactionCount || 0) + 1,
       totalSales: newTotalSales.toFixed(2),
     });
   },
@@ -1039,7 +1039,7 @@ export const storage = {
 
     // Calculate the total quantity
     const totalQuantity = batches.reduce(
-      (sum, batch) => sum + batch.quantity,
+      (sum: number, batch: any) => sum + batch.quantity,
       0,
     );
 
@@ -1158,8 +1158,8 @@ export const storage = {
         try {
           // First attempt to update inventory by selling from batches
           const saleResult = await sellProductFromBatches(
-            transaction.storeId,
-            item.productId,
+            transaction.storeId!,
+            item.productId!,
             item.quantity,
             transaction.cashierId,
           );
@@ -1259,21 +1259,21 @@ export const storage = {
     let whereClause = sql`1=1`;
 
     if (storeId) {
-      whereClause = and(whereClause, eq(schema.transactions.storeId, storeId));
+      whereClause = and(whereClause, eq(schema.transactions.storeId, storeId)) as any;
     }
 
     if (startDate) {
       whereClause = and(
         whereClause,
-        gte(schema.transactions.createdAt, startDate),
-      );
+        gte(schema.transactions.createdAt, startDate)
+      ) as any;
     }
 
     if (endDate) {
       whereClause = and(
         whereClause,
-        lte(schema.transactions.createdAt, endDate),
-      );
+        lte(schema.transactions.createdAt, endDate)
+      ) as any;
     }
 
     const result = await db
@@ -1355,15 +1355,15 @@ export const storage = {
     let whereClause = sql`1=1`;
 
     if (storeId) {
-      whereClause = and(whereClause, eq(schema.returns.storeId, storeId));
+      whereClause = and(whereClause, eq(schema.returns.storeId, storeId)) as any;
     }
 
     if (startDate) {
-      whereClause = and(whereClause, gte(schema.returns.createdAt, startDate));
+      whereClause = and(whereClause, gte(schema.returns.createdAt, startDate)) as any;
     }
 
     if (endDate) {
-      whereClause = and(whereClause, lte(schema.returns.createdAt, endDate));
+      whereClause = and(whereClause, lte(schema.returns.createdAt, endDate)) as any;
     }
 
     // Get total refund amount
@@ -1401,14 +1401,14 @@ export const storage = {
 
     // Format the reasons data with names
     const reasonsMap = returnReasons.reduce(
-      (acc, reason) => {
+      (acc: any, reason: any) => {
         acc[reason.id] = reason.name;
         return acc;
       },
       {} as Record<number, string>,
     );
 
-    const reasonsBreakdown = reasonsQuery.map((item) => ({
+    const reasonsBreakdown = reasonsQuery.map((item: any) => ({
       reasonId: item.reasonId,
       reason: reasonsMap[item.reasonId] || "Unknown",
       count: item.count,
@@ -1433,7 +1433,7 @@ export const storage = {
       lost: 0,
     };
 
-    restockedQuery.forEach((item) => {
+    restockedQuery.forEach((item: any) => {
       if (item.isRestocked) {
         restockedBreakdown.restocked = Number(item.count);
       } else {

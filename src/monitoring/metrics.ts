@@ -174,7 +174,7 @@ export function httpMetricsMiddleware(req: Request, res: Response, next: NextFun
     }
     
     // Call original end method
-    return originalEnd.apply(res, args);
+    return originalEnd.apply(res, args as any);
   };
   
   next();

@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { UserService } from './service';
 import { UserServiceErrors, UserRole } from './types';
-import { db } from '@db';
+import { db } from '../../../db/index.js';
 import * as schema from '@shared/schema';
 import { SchemaValidationError } from '@shared/schema-validation';
 import * as bcrypt from 'bcrypt';
@@ -131,7 +131,7 @@ describe('UserService', () => {
           throw new SchemaValidationError('Invalid user data');
         });
       
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       
       await expect(userService.createUser(validUserData))
         .rejects.toThrow();

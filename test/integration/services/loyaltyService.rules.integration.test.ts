@@ -1,7 +1,7 @@
-import { makeMockCustomer } from '../../factories/customer';
-import { recordPointsEarned, setLoyaltyLogger } from '@server/services/loyalty';
-import { db } from '@db';
-import { ConsoleLogger } from '../../../../src/logging/Logger';
+import { makeMockCustomer } from '../../factories/customer.js';
+import { recordPointsEarned, setLoyaltyLogger } from '@server/services/loyalty.js';
+import { db } from '@db/index.js';
+import { ConsoleLogger } from '../../../src/logging/Logger.js';
 
 describe('LoyaltyService Business Rules', () => {
   let loggerSpy: any;

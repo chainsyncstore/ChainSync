@@ -103,7 +103,7 @@ export async function getTransactionStatus(page: Page, transactionId: string): P
   await page.waitForLoadState('networkidle');
   
   const statusElement = await page.locator('[data-testid="transaction-status"]');
-  return statusElement.textContent() || '';
+  return (await statusElement.textContent()) || '';
 }
 
 /**

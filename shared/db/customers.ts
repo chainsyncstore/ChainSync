@@ -10,6 +10,7 @@ export const customers = pgTable('customers', {
   email: text('email'),
   phone: text('phone'),
   storeId: integer('store_id').notNull(),
+  loyaltyPoints: integer('loyalty_points').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

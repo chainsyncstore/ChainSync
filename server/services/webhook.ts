@@ -99,7 +99,7 @@ export async function handlePaystackWebhook(
     await db.update(transactions)
       .set({
         paymentStatus: 'paid',
-        paymentConfirmedAt: new Date()
+        updatedAt: new Date()
       })
       .where(eq(transactions.id, order.id));
 
@@ -200,7 +200,7 @@ export async function handleFlutterwaveWebhook(
     await db.update(transactions)
       .set({
         paymentStatus: 'paid',
-        paymentConfirmedAt: new Date()
+        updatedAt: new Date()
       })
       .where(eq(transactions.id, order.id));
 

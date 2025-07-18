@@ -10,6 +10,7 @@ import {
   jsonb,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { z } from 'zod';
 
 import { inventory } from './inventory'; // Assuming inventory items/batches are linked to main inventory
 import { inventoryBatches } from './inventory'; // Assuming itemId refers to inventoryBatches

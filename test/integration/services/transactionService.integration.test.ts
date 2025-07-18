@@ -102,7 +102,7 @@ describe.integration('TransactionService Integration', () => {
       expect(createdTransaction.id).toBeGreaterThan(0);
       expect(createdTransaction.storeId).toBe(store.id);
       expect(createdTransaction.customerId).toBe(customer.id);
-      expect(createdTransaction.total).toBe('22.00');
+      expect(createdTransaction.totalAmount).toBe('22.00');
 
       // Assert inventory was decremented
       const updatedInventory = await db.query.inventory.findFirst({

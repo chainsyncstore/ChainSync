@@ -153,7 +153,7 @@ export const storage = {
   createSystemNotifications: async (title: string, message: string, type: schema.NotificationInsert['type'], storeId?: number) => {
     try {
       // Get users to notify
-      let conditions = eq(schema.users.isActive, true);
+      let conditions: any = eq(schema.users.isActive, true);
       
       // If storeId is provided, include store-specific users
       if (storeId) {

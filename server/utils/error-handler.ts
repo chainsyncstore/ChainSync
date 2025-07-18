@@ -71,7 +71,7 @@ export class ErrorHandler extends EventEmitter {
       try {
         return await operation();
       } catch (error) {
-        lastError = error;
+        lastError = error as Error;
         this.handleError(error, { ...context, attempt });
 
         if (attempt === retryConfig.maxAttempts) {

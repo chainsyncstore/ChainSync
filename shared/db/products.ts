@@ -22,11 +22,11 @@ export const productStatusSchema = z.enum([
 ]);
 
 // Category table
-export const categories = pgTable("categories", {
+export const categories: any = pgTable("categories", {
   ...baseTable,
   name: text("name").notNull(),
   description: text("description"),
-  parentCategoryId: integer("parent_category_id").references(() => categories.id),
+  parentCategoryId: integer("parent_category_id").references((): any => categories.id),
 }, (table) => ({
   nameIndex: index("idx_categories_name").on(table.name)
 }));

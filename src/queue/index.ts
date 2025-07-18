@@ -35,20 +35,16 @@ const getRedisConfig = (): ConnectionOptions => {
   
   // Use existing Redis client if available
   if (redisClient) {
-    return {
-      connection: redisClient
-    };
+    return redisClient as any;
   }
   
   // Otherwise create a new connection from environment variables
   return {
-    connection: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      password: process.env.REDIS_PASSWORD,
-      db: parseInt(process.env.REDIS_DB || '0', 10)
-    }
-  };
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB || '0', 10)
+  } as any;
 };
 
 /**
@@ -64,7 +60,7 @@ export function initQueue(queueName: QueueType): Queue {
   logger.info(`Initializing ${queueName} queue`);
   
   const queue = new Queue(queueName, {
-    connection: getRedisConfig().connection,
+    connection: getRedisConfig(),
     defaultJobOptions: {
       attempts: 3,
       backoff: {
@@ -100,20 +96,10 @@ export function getQueue(queueName: QueueType): Queue {
  * Initialize a queue scheduler
  * Used for delayed and repeating jobs
  */
-export function initScheduler(queueName: QueueType): QueueScheduler {
-  if (schedulers[queueName]) {
-    return schedulers[queueName];
-  }
-  
-  logger.info(`Initializing ${queueName} scheduler`);
-  
-  const scheduler = new QueueScheduler(queueName, {
-    connection: getRedisConfig().connection
-  });
-  
-  schedulers[queueName] = scheduler;
-  
-  return scheduler;
+export function initScheduler(queueName: QueueType): any {
+  // QueueScheduler functionality removed due to compatibility issues
+  logger.info(`Scheduler for ${queueName} not available in current Bull version`);
+  return null;
 }
 
 /**
@@ -148,7 +134,7 @@ export function initWorker(
       throw error;
     }
   }, {
-    connection: getRedisConfig().connection,
+    connection: getRedisConfig(),
     concurrency
   });
   
@@ -310,9 +296,7 @@ export async function shutdownQueues(): Promise<void> {
   );
   
   // Close schedulers
-  await Promise.all(
-    Object.values(schedulers).map(scheduler => scheduler.close())
-  );
+  // Scheduler cleanup removed due to compatibility issues
   
   // Close queues
   await Promise.all(

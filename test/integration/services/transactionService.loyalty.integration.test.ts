@@ -6,6 +6,7 @@ import { makeMockCustomer } from '../../factories/customer';
 import { makeMockStore } from '../../factories/store';
 import { makeMockProduct } from '../../factories/product';
 import { test, describe } from '../../testTags';
+import { eq } from 'drizzle-orm';
 
 class LoyaltyService {
   async accrueLoyaltyPoints(customerId: number, amountSpent: number): Promise<void> {
@@ -17,11 +18,11 @@ class LoyaltyService {
     await db
       .update(customers)
       .set({ loyaltyPoints: db.raw(`"loyalty_points" + ${points}`) })
-      .where(customers.id.eq(customerId));
+      .where(eq(customers.id, customerId));
   }
   async reverseLoyaltyPoints(customerId: number, amountRefunded: number): Promise<void> {
     const points = Math.floor(amountRefunded / 10);
-    const customer = await db.select().from(customers).where(customers.id.eq(customerId)).limit(1);
+    const customer = await db.select().from(customers).where(eq(customers.id, customerId)).limit(1);
     if (!customer[0]) throw new Error('Customer not found');
     const currentPoints = customer[0].loyaltyPoints || 0;
     const decrement = Math.min(points, currentPoints);
@@ -37,7 +38,7 @@ class LoyaltyService {
     await db
       .update(customers)
       .set({ loyaltyPoints: db.raw(`GREATEST("loyalty_points" - ${decrement}, 0)`) })
-      .where(customers.id.eq(customerId));
+      .where(eq(customers.id, customerId));
   }
 }
 
@@ -89,7 +90,7 @@ describe.integration('TransactionService Loyalty Integration', () => {
   test.integration('should accrue loyalty points on purchase', async () => {
     const { customer } = await setupFullPurchaseFlow(db, 95, 0);
     await transactionService.purchase(customer.id, 95); // Should add 9 points
-    const updatedArr = await db.select().from(customers).where(customers.id.eq(customer.id));
+    const updatedArr = await db.select().from(customers).where(eq(customers.id, customer.id));
     const updated = updatedArr[0];
     expect(updated?.loyaltyPoints).toBe(9);
   });
@@ -97,7 +98,7 @@ describe.integration('TransactionService Loyalty Integration', () => {
   test.integration('should reverse loyalty points on refund', async () => {
     const { customer } = await setupFullPurchaseFlow(db, 42, 12);
     await transactionService.refund(customer.id, 42); // Should subtract 4 points
-    const updatedArr = await db.select().from(customers).where(customers.id.eq(customer.id));
+    const updatedArr = await db.select().from(customers).where(eq(customers.id, customer.id));
     const updated = updatedArr[0];
     expect(updated?.loyaltyPoints).toBe(8);
   });
@@ -107,7 +108,7 @@ describe.integration('TransactionService Loyalty Integration', () => {
     async () => {
       const { customer } = await setupFullPurchaseFlow(db, 100, 2);
       await transactionService.refund(customer.id, 100); // Would subtract 10 points, but only 2 available
-      const updatedArr = await db.select().from(customers).where(customers.id.eq(customer.id));
+      const updatedArr = await db.select().from(customers).where(eq(customers.id, customer.id));
       const updated = updatedArr[0];
       expect(updated?.loyaltyPoints).toBe(0);
     }
@@ -117,7 +118,7 @@ describe.integration('TransactionService Loyalty Integration', () => {
     const { customer } = await setupFullPurchaseFlow(db, 90, 0);
     await transactionService.purchase(customer.id, 90); // 9 points
     await transactionService.refund(customer.id, 30); // refund $30, reverse 3 points
-    const updatedArr = await db.select().from(customers).where(customers.id.eq(customer.id));
+    const updatedArr = await db.select().from(customers).where(eq(customers.id, customer.id));
     const updated = updatedArr[0];
     expect(updated?.loyaltyPoints).toBe(6);
   });
@@ -127,7 +128,7 @@ describe.integration('TransactionService Loyalty Integration', () => {
     await transactionService.purchase(customer.id, 100); // 10 points
     await transactionService.refund(customer.id, 100); // reverse 10 points
     await transactionService.refund(customer.id, 100); // should reverse 0 (no negative)
-    const updatedArr = await db.select().from(customers).where(customers.id.eq(customer.id));
+    const updatedArr = await db.select().from(customers).where(eq(customers.id, customer.id));
     const updated = updatedArr[0];
     expect(updated?.loyaltyPoints).toBe(0);
   });

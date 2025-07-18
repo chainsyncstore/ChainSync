@@ -55,7 +55,7 @@ export function initRedis(): Redis | null {
     
     return redisClient;
   } catch (error) {
-    logger.error('Failed to initialize Redis', error);
+    logger.error('Failed to initialize Redis', error as Error);
     return null;
   }
 }

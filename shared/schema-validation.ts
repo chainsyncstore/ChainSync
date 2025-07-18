@@ -64,7 +64,7 @@ export function validateEntity<T>(schema: z.ZodType<T>, data: unknown, entityNam
         {
           code: `INVALID_${entityName.toUpperCase()}`,
           issues: error.errors,
-          path: error.errors[0]?.path,
+          path: error.errors[0]?.path as string[],
           field: error.errors[0]?.path.join('.')
         }
       );
@@ -249,7 +249,7 @@ export const transactionItemSchema = createInsertSchema(schema.transactionItems,
 // Transaction payment schema
 export const transactionPaymentSchema = createInsertSchema(schema.transactionPayments, {
       amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Amount must be a valid decimal"),
-      method: z.string().min(1, "Payment method is required"),
+      method: z.string().min(1, "Payment method is required") as any,
     });
 
 export const transactionValidation = {

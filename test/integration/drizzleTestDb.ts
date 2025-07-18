@@ -1,13 +1,13 @@
 // drizzleTestDb.ts
 // Helper to get a Drizzle test database instance for integration tests
 import { eq } from 'drizzle-orm';
-import { mysqlTable, int, varchar, text, decimal, boolean, datetime } from 'drizzle-orm/mysql-core';
+import { pgTable, serial, varchar, text, decimal, boolean, timestamp, integer } from 'drizzle-orm/pg-core';
 
-import { db } from '../../server/db/connection';
+import { db } from '../../server/db/connection.js';
 
 // Test Stores Table (already present)
-export const testStores = mysqlTable('stores', {
-  id: int('id').primaryKey().autoincrement(),
+export const testStores = pgTable('stores', {
+  id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   address: text('address').notNull(),
   city: varchar('city', { length: 255 }).notNull(),
@@ -20,33 +20,33 @@ export const testStores = mysqlTable('stores', {
 });
 
 // Test Customers Table
-export const testCustomers = mysqlTable('customers', {
-  id: int('id').primaryKey().autoincrement(),
+export const testCustomers = pgTable('customers', {
+  id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull(),
   phone: varchar('phone', { length: 32 }),
   loyaltyEnabled: boolean('loyalty_enabled').notNull().default(true),
-  loyaltyPoints: int('loyalty_points').notNull().default(0),
-  createdAt: datetime('created_at').notNull(),
-  updatedAt: datetime('updated_at').notNull(),
+  loyaltyPoints: integer('loyalty_points').notNull().default(0),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
 });
 
 // Test Products Table
-export const testProducts = mysqlTable('products', {
-  id: int('id').primaryKey().autoincrement(),
+export const testProducts = pgTable('products', {
+  id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  inventory: int('inventory').notNull().default(10),
-  createdAt: datetime('created_at').notNull(),
-  updatedAt: datetime('updated_at').notNull(),
+  inventory: integer('inventory').notNull().default(10),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
 });
 
 // Test Transactions Table
-export const testTransactions = mysqlTable('transactions', {
-  id: int('id').primaryKey().autoincrement(),
-  customerId: int('customer_id').notNull(),
-  storeId: int('store_id').notNull(),
-  userId: int('user_id').notNull(),
+export const testTransactions = pgTable('transactions', {
+  id: serial('id').primaryKey(),
+  customerId: integer('customer_id').notNull(),
+  storeId: integer('store_id').notNull(),
+  userId: integer('user_id').notNull(),
   type: varchar('type', { length: 32 }).notNull(),
   status: varchar('status', { length: 32 }).notNull(),
   subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
@@ -55,18 +55,18 @@ export const testTransactions = mysqlTable('transactions', {
   paymentMethod: varchar('payment_method', { length: 32 }).notNull(),
   notes: text('notes'),
   reference: varchar('reference', { length: 64 }),
-  createdAt: datetime('created_at').notNull(),
-  updatedAt: datetime('updated_at').notNull(),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
 });
 
 // Test Refunds Table
-export const testRefunds = mysqlTable('refunds', {
-  id: int('id').primaryKey().autoincrement(),
-  transactionId: int('transaction_id').notNull(),
+export const testRefunds = pgTable('refunds', {
+  id: serial('id').primaryKey(),
+  transactionId: integer('transaction_id').notNull(),
   amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
   status: varchar('status', { length: 32 }).notNull(),
-  createdAt: datetime('created_at').notNull(),
-  updatedAt: datetime('updated_at').notNull(),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
 });
 
 export const drizzleTestDb = db;
@@ -76,9 +76,9 @@ export async function clearStores() {
   await drizzleTestDb.delete(testStores);
 }
 export async function createStore(storeData: any) {
-  const insertResult = await drizzleTestDb.insert(testStores).values(storeData);
-  if ('insertId' in insertResult && insertResult.insertId) {
-    return findStoreById(insertResult.insertId);
+  const insertResult = await drizzleTestDb.insert(testStores).values(storeData).returning({ id: testStores.id });
+  if (insertResult[0]?.id) {
+    return findStoreById(insertResult[0].id);
   }
   if (storeData.email) {
     const [store] = await drizzleTestDb
@@ -99,9 +99,9 @@ export async function clearCustomers() {
   await drizzleTestDb.delete(testCustomers);
 }
 export async function createCustomer(customerData: any) {
-  const insertResult = await drizzleTestDb.insert(testCustomers).values(customerData);
-  if ('insertId' in insertResult && insertResult.insertId) {
-    return findCustomerById(insertResult.insertId);
+  const insertResult = await drizzleTestDb.insert(testCustomers).values(customerData).returning({ id: testCustomers.id });
+  if (insertResult[0]?.id) {
+    return findCustomerById(insertResult[0].id);
   }
   if (customerData.email) {
     const [customer] = await drizzleTestDb
@@ -125,9 +125,9 @@ export async function clearProducts() {
   await drizzleTestDb.delete(testProducts);
 }
 export async function createProduct(productData: any) {
-  const insertResult = await drizzleTestDb.insert(testProducts).values(productData);
-  if ('insertId' in insertResult && insertResult.insertId) {
-    return findProductById(insertResult.insertId);
+  const insertResult = await drizzleTestDb.insert(testProducts).values(productData).returning({ id: testProducts.id });
+  if (insertResult[0]?.id) {
+    return findProductById(insertResult[0].id);
   }
   if (productData.name) {
     const [product] = await drizzleTestDb
@@ -148,9 +148,9 @@ export async function clearTransactions() {
   await drizzleTestDb.delete(testTransactions);
 }
 export async function createTransaction(txData: any) {
-  const insertResult = await drizzleTestDb.insert(testTransactions).values(txData);
-  if ('insertId' in insertResult && insertResult.insertId) {
-    return findTransactionById(insertResult.insertId);
+  const insertResult = await drizzleTestDb.insert(testTransactions).values(txData).returning({ id: testTransactions.id });
+  if (insertResult[0]?.id) {
+    return findTransactionById(insertResult[0].id);
   }
   return null;
 }
@@ -167,9 +167,9 @@ export async function clearRefunds() {
   await drizzleTestDb.delete(testRefunds);
 }
 export async function createRefund(refundData: any) {
-  const insertResult = await drizzleTestDb.insert(testRefunds).values(refundData);
-  if ('insertId' in insertResult && insertResult.insertId) {
-    return findRefundById(insertResult.insertId);
+  const insertResult = await drizzleTestDb.insert(testRefunds).values(refundData).returning({ id: testRefunds.id });
+  if (insertResult[0]?.id) {
+    return findRefundById(insertResult[0].id);
   }
   return null;
 }

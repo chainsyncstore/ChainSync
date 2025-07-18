@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 
 import { app, dbPool } from '../server/app';
-import { secretsManager } from '../server/config/secrets';
+// import { secretsManager } from '../server/config/secrets';
 import { getLogger } from '../src/logging/index';
 
 const logger = getLogger().child({ component: 'production-readiness-test' });

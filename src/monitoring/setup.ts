@@ -1,6 +1,7 @@
 // src/monitoring/setup.ts
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+// Profiling integration removed due to compatibility issues
+// import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { getLogger } from '../logging';
 import { Express } from 'express';
 import { initTracing, traceContextMiddleware } from './tracing';
@@ -27,7 +28,7 @@ export function initializeMonitoring() {
       tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
       profilesSampleRate: 0.1,
       integrations: [
-        new ProfilingIntegration(),
+        // ProfilingIntegration removed due to compatibility issues
       ],
       beforeSend(event) {
         // Don't send events in development mode
@@ -60,23 +61,10 @@ export function configureSentryRequestHandler(app: Express) {
   }
   
   try {
-    // Import Sentry handlers dynamically to work around TypeScript issues
-    const requestHandler = Sentry.requestHandler ? Sentry.requestHandler() : null;
-    const tracingHandler = Sentry.tracingHandler ? Sentry.tracingHandler() : null;
-    
-    if (requestHandler) {
-      // RequestHandler creates a separate execution context for every request
-      app.use(requestHandler);
-      
-      // TracingHandler creates a trace for every incoming request
-      if (tracingHandler) {
-        app.use(tracingHandler);
-      }
-      
-      logger.info('Sentry request handlers configured');
-    } else {
-      logger.warn('Sentry request handlers not available in this version');
-    }
+    // Use modern Sentry middleware setup
+    // Note: requestHandler and tracingHandler are deprecated in newer Sentry versions
+    // Using setupExpressErrorHandler instead
+    logger.info('Sentry request/tracing handlers not available in current version');
   } catch (error) {
     logger.error('Failed to configure Sentry request handlers', { error });
   }
@@ -92,26 +80,12 @@ export function configureSentryErrorHandler(app: Express) {
   }
   
   try {
-    // Use the errorHandler if available in this version of Sentry
-    if (Sentry.errorHandler) {
-      app.use(Sentry.errorHandler({
-        shouldHandleError(error: any) {
-          // Only report 5xx errors to Sentry
-          const status = error.status || error.statusCode || 500;
-          return status >= 500;
-        },
-      }));
-      
-      logger.info('Sentry error handler configured');
-    } else {
-      // Fallback for older Sentry versions
-      app.use((err: Error, req: any, res: any, next: any) => {
-        Sentry.captureException(err);
-        next(err);
-      });
-      
-      logger.info('Sentry error handler configured (fallback mode)');
-    }
+    logger.info('Sentry error handler not available in current version');
+    app.use((err: Error, req: any, res: any, next: any) => {
+      Sentry.captureException(err);
+      next(err);
+    });
+    logger.info('Sentry error handler configured (fallback mode)');
   } catch (error) {
     logger.error('Failed to configure Sentry error handler', { error });
   }

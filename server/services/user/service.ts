@@ -1,271 +1,246 @@
-/**
- * User Service Implementation
- * 
- * This file implements a standardized user service with proper schema validation
- * and error handling according to our schema style guide.
- */
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { eq, and, or, gt } from 'drizzle-orm';
 
-import { BaseService } from '../base/service';
-import { IUserService, UserServiceErrors, CreateUserParams, UpdateUserParams, UserRole } from './types';
-import { db } from '@db';
-import * as schema from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
-import { userValidation, SchemaValidationError } from '@shared/schema-validation';
-import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
+import { BaseService } from '../base/service.js';
+import { IUserService, CreateUserParams, UpdateUserParams } from './types.js';
+import { db } from '../../../db/index.js';
+import * as schema from '../../../shared/schema.js';
+import { userValidation, SchemaValidationError } from '../../../shared/schema-validation.js';
+import { AppError, ErrorCode, ErrorCategory } from '../../../shared/types/errors.js';
 
 export class UserService extends BaseService implements IUserService {
   private static readonly SALT_ROUNDS = 10;
-  private static readonly TOKEN_EXPIRY_HOURS = 24;
   
-  /**
-   * Create a new user with validated data
-   */
   async createUser(params: CreateUserParams): Promise<schema.User> {
     try {
-      // Check for duplicate username
-      const existingUsername = await db.query.users.findFirst({
-        where: eq(schema.users.username, params.username)
+      // Validate input data
+      const validatedData = userValidation.insert(params);
+      
+      // Check if user already exists
+      const existingUser = await db.query.users.findFirst({
+        where: or(
+          eq(schema.users.username, validatedData.username),
+          eq(schema.users.email, validatedData.email)
+        )
       });
       
-      if (existingUsername) {
-        throw UserServiceErrors.DUPLICATE_USERNAME;
-      }
-      
-      // Check for duplicate email
-      const existingEmail = await db.query.users.findFirst({
-        where: eq(schema.users.email, params.email)
-      });
-      
-      if (existingEmail) {
-        throw UserServiceErrors.DUPLICATE_EMAIL;
+      if (existingUser) {
+        throw new AppError(
+          'User with this username or email already exists',
+          ErrorCode.DUPLICATE_ENTRY,
+          ErrorCategory.VALIDATION
+        );
       }
       
       // Hash password
-      const hashedPassword = await bcrypt.hash(params.password, UserService.SALT_ROUNDS);
+      const hashedPassword = await bcrypt.hash(validatedData.password, UserService.SALT_ROUNDS);
       
-      // Prepare user data with camelCase field names (will be converted to snake_case in DB)
-      const userData = {
-        username: params.username,
-        password: hashedPassword,
-        fullName: params.fullName,
-        email: params.email,
-        role: params.role,
-        storeId: params.storeId,
-        lastLogin: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      // Validate with our schema validation
-      const validatedData = userValidation.insert(userData);
-      
-      // Insert validated data
-      const [user] = await db.insert(schema.users)
-        .values(validatedData)
+      // Create user
+      const [user] = await db
+        .insert(schema.users)
+        .values({
+          ...validatedData,
+          password: hashedPassword
+        })
         .returning();
       
       return user;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        console.error(`Validation error: ${error.message}`, error.toJSON());
+        console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
       }
-      return this.handleError(error, 'Creating user');
+      return this.handleError(error as Error, 'Creating user');
     }
   }
   
-  /**
-   * Update a user with validated data
-   */
   async updateUser(userId: number, params: UpdateUserParams): Promise<schema.User> {
     try {
-      // Verify user exists
+      // Validate input data
+      const validatedData = userValidation.update(params);
+      
+      // Check if user exists
       const existingUser = await db.query.users.findFirst({
         where: eq(schema.users.id, userId)
       });
       
       if (!existingUser) {
-        throw UserServiceErrors.USER_NOT_FOUND;
+        throw new AppError(
+          'User not found',
+          ErrorCode.NOT_FOUND,
+          ErrorCategory.VALIDATION
+        );
       }
       
-      // Check for duplicate username if being updated
-      if (params.username && params.username !== existingUser.username) {
-        const existingUsername = await db.query.users.findFirst({
-          where: eq(schema.users.username, params.username)
-        });
-        
-        if (existingUsername) {
-          throw UserServiceErrors.DUPLICATE_USERNAME;
-        }
+      // If password is being updated, hash it
+      if (validatedData.password) {
+        validatedData.password = await bcrypt.hash(validatedData.password, UserService.SALT_ROUNDS);
       }
       
-      // Check for duplicate email if being updated
-      if (params.email && params.email !== existingUser.email) {
-        const existingEmail = await db.query.users.findFirst({
-          where: eq(schema.users.email, params.email)
-        });
-        
-        if (existingEmail) {
-          throw UserServiceErrors.DUPLICATE_EMAIL;
-        }
-      }
-      
-      // Prepare update data with proper camelCase field names
-      const updateData = {
-        ...params,
-        updatedAt: new Date()
-      };
-      
-      // Validate the update data
-      const validatedData = userValidation.update(updateData);
-      
-      // Update with validated data
-      const [updatedUser] = await db.update(schema.users)
-        .set(validatedData)
+      // Update user
+      const [updatedUser] = await db
+        .update(schema.users)
+        .set({
+          ...validatedData,
+          updatedAt: new Date()
+        })
         .where(eq(schema.users.id, userId))
         .returning();
       
       return updatedUser;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        console.error(`Validation error: ${error.message}`, error.toJSON());
+        console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
       }
-      return this.handleError(error, 'Updating user');
+      return this.handleError(error as Error, 'Updating user');
     }
   }
   
-  /**
-   * Delete a user by ID
-   */
   async deleteUser(userId: number): Promise<boolean> {
     try {
-      const result = await db.delete(schema.users)
-        .where(eq(schema.users.id, userId))
-        .returning({ id: schema.users.id });
+      // Check if user exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(schema.users.id, userId)
+      });
       
-      if (result.length === 0) {
-        throw UserServiceErrors.USER_NOT_FOUND;
+      if (!existingUser) {
+        throw new AppError(
+          'User not found',
+          ErrorCode.NOT_FOUND,
+          ErrorCategory.VALIDATION
+        );
       }
+      
+      // Soft delete user
+      await db
+        .update(schema.users)
+        .set({
+          isActive: false,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId));
       
       return true;
     } catch (error) {
-      return this.handleError(error, 'Deleting user');
+      return this.handleError(error as Error, 'Deleting user');
     }
   }
   
-  /**
-   * Get a user by ID
-   */
   async getUserById(userId: number): Promise<schema.User | null> {
     try {
       const user = await db.query.users.findFirst({
-        where: eq(schema.users.id, userId),
-        with: {
-          store: true
-        }
+        where: and(
+          eq(schema.users.id, userId),
+          eq(schema.users.isActive, true)
+        )
       });
       
-      return user;
+      return user || null;
     } catch (error) {
-      return this.handleError(error, 'Getting user by ID');
+      return this.handleError(error as Error, 'Getting user by ID');
     }
   }
   
-  /**
-   * Get a user by username
-   */
   async getUserByUsername(username: string): Promise<schema.User | null> {
     try {
       const user = await db.query.users.findFirst({
-        where: eq(schema.users.username, username),
-        with: {
-          store: true
-        }
+        where: and(
+          eq(schema.users.username, username),
+          eq(schema.users.isActive, true)
+        )
       });
       
-      return user;
+      return user || null;
     } catch (error) {
-      return this.handleError(error, 'Getting user by username');
+      return this.handleError(error as Error, 'Getting user by username');
     }
   }
   
-  /**
-   * Get a user by email
-   */
   async getUserByEmail(email: string): Promise<schema.User | null> {
     try {
       const user = await db.query.users.findFirst({
-        where: eq(schema.users.email, email),
-        with: {
-          store: true
-        }
+        where: and(
+          eq(schema.users.email, email),
+          eq(schema.users.isActive, true)
+        )
       });
       
-      return user;
+      return user || null;
     } catch (error) {
-      return this.handleError(error, 'Getting user by email');
+      return this.handleError(error as Error, 'Getting user by email');
     }
   }
   
-  /**
-   * Validate user credentials
-   */
   async validateCredentials(username: string, password: string): Promise<schema.User | null> {
     try {
-      const user = await this.getUserByUsername(username);
+      const user = await db.query.users.findFirst({
+        where: and(
+          eq(schema.users.username, username),
+          eq(schema.users.isActive, true)
+        )
+      });
       
       if (!user) {
-        throw UserServiceErrors.INVALID_CREDENTIALS;
+        return null;
       }
       
-      const passwordMatch = await bcrypt.compare(password, user.password);
+      const isValidPassword = await bcrypt.compare(password, user.password);
       
-      if (!passwordMatch) {
-        throw UserServiceErrors.INVALID_CREDENTIALS;
+      if (!isValidPassword) {
+        return null;
       }
       
-      // Update last login timestamp
-      await db.update(schema.users)
+      // Update last login
+      await db
+        .update(schema.users)
         .set({ lastLogin: new Date(), updatedAt: new Date() })
         .where(eq(schema.users.id, user.id));
       
       return user;
     } catch (error) {
-      return this.handleError(error, 'Validating credentials');
+      return this.handleError(error as Error, 'Validating credentials');
     }
   }
   
-  /**
-   * Change a user's password
-   */
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<boolean> {
     try {
-      const user = await this.getUserById(userId);
+      // Get user
+      const user = await db.query.users.findFirst({
+        where: and(
+          eq(schema.users.id, userId),
+          eq(schema.users.isActive, true)
+        )
+      });
       
       if (!user) {
-        throw UserServiceErrors.USER_NOT_FOUND;
+        throw new AppError(
+          'User not found',
+          ErrorCode.NOT_FOUND,
+          ErrorCategory.VALIDATION
+        );
       }
       
-      // Validate current password
-      const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+      // Verify current password
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
       
-      if (!passwordMatch) {
-        throw UserServiceErrors.INVALID_CREDENTIALS;
+      if (!isValidPassword) {
+        throw new AppError(
+          'Current password is incorrect',
+          ErrorCode.INVALID_CREDENTIALS,
+          ErrorCategory.VALIDATION
+        );
       }
       
-      // Validate the new password
-      const passwordData = {
-        password: newPassword,
-        confirmPassword: newPassword
-      };
+      // Validate new password
+      const validatedData = userValidation.passwordReset({ password: newPassword, confirmPassword: newPassword });
       
-      userValidation.passwordReset(passwordData);
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(validatedData.password, UserService.SALT_ROUNDS);
       
-      // Hash and update password
-      const hashedPassword = await bcrypt.hash(newPassword, UserService.SALT_ROUNDS);
-      
-      await db.update(schema.users)
-        .set({ 
+      // Update password
+      await db
+        .update(schema.users)
+        .set({
           password: hashedPassword,
           updatedAt: new Date()
         })
@@ -274,99 +249,93 @@ export class UserService extends BaseService implements IUserService {
       return true;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        console.error(`Validation error: ${error.message}`, error.toJSON());
+        console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
       }
-      return this.handleError(error, 'Changing password');
+      return this.handleError(error as Error, 'Changing password');
     }
   }
   
-  /**
-   * Request a password reset
-   */
   async requestPasswordReset(email: string): Promise<string> {
     try {
-      const user = await this.getUserByEmail(email);
+      // Get user
+      const user = await db.query.users.findFirst({
+        where: and(
+          eq(schema.users.email, email),
+          eq(schema.users.isActive, true)
+        )
+      });
       
       if (!user) {
-        throw UserServiceErrors.USER_NOT_FOUND;
+        // Don't reveal if user exists or not
+        return crypto.randomBytes(32).toString('hex');
       }
       
-      // Generate a random token
+      // Generate reset token
       const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 3600000); // 1 hour
       
-      // Calculate expiry date
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + UserService.TOKEN_EXPIRY_HOURS);
-      
-      // Save token to database
-      await db.insert(schema.passwordResetTokens)
+      // Store reset token
+      await db
+        .insert(schema.passwordResetTokens)
         .values({
           userId: user.id,
           token,
-          expiresAt,
-          used: false,
-          createdAt: new Date()
+          expiresAt
         });
       
       return token;
     } catch (error) {
-      return this.handleError(error, 'Requesting password reset');
+      return this.handleError(error as Error, 'Requesting password reset');
     }
   }
   
-  /**
-   * Reset a password using a token
-   */
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
     try {
-      // Find the token
+      // Find valid token
       const resetToken = await db.query.passwordResetTokens.findFirst({
-        where: eq(schema.passwordResetTokens.token, token)
+        where: and(
+          eq(schema.passwordResetTokens.token, token),
+          gt(schema.passwordResetTokens.expiresAt, new Date())
+        ),
+        with: {
+          user: true
+        }
       });
       
       if (!resetToken) {
-        throw UserServiceErrors.PASSWORD_RESET_NOT_FOUND;
+        throw new AppError(
+          'Invalid or expired reset token',
+          ErrorCode.INVALID_TOKEN,
+          ErrorCategory.VALIDATION
+        );
       }
       
-      // Check if token is used
-      if (resetToken.used) {
-        throw UserServiceErrors.PASSWORD_RESET_USED;
-      }
+      // Validate new password
+      const validatedData = userValidation.passwordReset({ password: newPassword, confirmPassword: newPassword });
       
-      // Check if token is expired
-      if (resetToken.expiresAt < new Date()) {
-        throw UserServiceErrors.PASSWORD_RESET_EXPIRED;
-      }
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(validatedData.password, UserService.SALT_ROUNDS);
       
-      // Validate the new password
-      const passwordData = {
-        password: newPassword,
-        confirmPassword: newPassword
-      };
-      
-      userValidation.passwordReset(passwordData);
-      
-      // Hash and update password
-      const hashedPassword = await bcrypt.hash(newPassword, UserService.SALT_ROUNDS);
-      
-      await db.update(schema.users)
-        .set({ 
+      // Update password
+      await db
+        .update(schema.users)
+        .set({
           password: hashedPassword,
           updatedAt: new Date()
         })
         .where(eq(schema.users.id, resetToken.userId));
       
-      // Mark token as used
-      await db.update(schema.passwordResetTokens)
-        .set({ used: true })
+      // Delete used token
+      await db
+        .delete(schema.passwordResetTokens)
         .where(eq(schema.passwordResetTokens.id, resetToken.id));
       
       return true;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        console.error(`Validation error: ${error.message}`, error.toJSON());
+        console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
       }
-      return this.handleError(error, 'Resetting password');
+      return this.handleError(error as Error, 'Resetting password');
     }
   }
 }

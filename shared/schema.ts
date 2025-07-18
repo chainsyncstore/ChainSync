@@ -583,6 +583,7 @@ export const returnItems = pgTable('refund_items', {
   quantity: integer('quantity').notNull(),
   unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
   subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
+  returnReasonId: integer('return_reason_id'),
   isRestocked: boolean('is_restocked').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

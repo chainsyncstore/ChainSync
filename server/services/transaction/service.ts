@@ -522,10 +522,10 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Get sales totals
       const [salesResult] = await db
         .select({
-          totalSales: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.type} = '${TransactionType.SALE}' THEN ${schema.transactions.total} ELSE 0 END), 0)`,
-          totalReturns: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.type} = '${TransactionType.RETURN}' THEN ${schema.transactions.total} ELSE 0 END), 0)`,
-          saleCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.type} = '${TransactionType.SALE}' THEN ${schema.transactions.id} END)`,
-          returnCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.type} = '${TransactionType.RETURN}' THEN ${schema.transactions.id} END)`
+          totalSales: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status} = '${TransactionType.SALE}' THEN ${schema.transactions.totalAmount} ELSE 0 END), 0)`,
+          totalReturns: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status} = '${TransactionType.RETURN}' THEN ${schema.transactions.totalAmount} ELSE 0 END), 0)`,
+          saleCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionType.SALE}' THEN ${schema.transactions.id} END)`,
+          returnCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionType.RETURN}' THEN ${schema.transactions.id} END)`
         })
         .from(schema.transactions)
         .where(dateFilter);
@@ -545,13 +545,13 @@ export class TransactionService extends BaseService implements ITransactionServi
       const salesByPaymentMethod = await db
         .select({
           method: schema.transactions.paymentMethod,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
+          amount: sql<string>`COALESCE(SUM(${schema.transactions.totalAmount}::numeric), 0)`,
           count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
         .where(and(
           dateFilter,
-          eq(schema.transactions.type, TransactionType.SALE)
+          eq(schema.transactions.status, 'completed')
         ))
         .groupBy(schema.transactions.paymentMethod);
       
@@ -559,13 +559,13 @@ export class TransactionService extends BaseService implements ITransactionServi
       const salesByHourOfDay = await db
         .select({
           hour: sql<number>`EXTRACT(HOUR FROM ${schema.transactions.createdAt})`,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
+          amount: sql<string>`COALESCE(SUM(${schema.transactions.totalAmount}::numeric), 0)`,
           count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
         .where(and(
           dateFilter,
-          eq(schema.transactions.type, TransactionType.SALE)
+          eq(schema.transactions.status, 'completed')
         ))
         .groupBy(sql`EXTRACT(HOUR FROM ${schema.transactions.createdAt})`)
         .orderBy(sql`EXTRACT(HOUR FROM ${schema.transactions.createdAt})`);
@@ -574,13 +574,13 @@ export class TransactionService extends BaseService implements ITransactionServi
       const salesByDayOfWeek = await db
         .select({
           day: sql<number>`EXTRACT(DOW FROM ${schema.transactions.createdAt})`,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
+          amount: sql<string>`COALESCE(SUM(${schema.transactions.totalAmount}::numeric), 0)`,
           count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
         .where(and(
           dateFilter,
-          eq(schema.transactions.type, TransactionType.SALE)
+          eq(schema.transactions.status, 'completed')
         ))
         .groupBy(sql`EXTRACT(DOW FROM ${schema.transactions.createdAt})`)
         .orderBy(sql`EXTRACT(DOW FROM ${schema.transactions.createdAt})`);
@@ -597,7 +597,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         salesByDayOfWeek
       };
     } catch (error) {
-      return this.handleError(error, 'Getting transaction analytics');
+      return this.handleError(error as Error, 'Getting transaction analytics');
     }
   }
   
