@@ -29,6 +29,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
+      "@db": ["./db/index.ts"],
       "@/*": ["./client/src/*"],
       "@/components/*": ["./client/src/components/*"],
       "@/lib/*": ["./client/src/lib/*"],

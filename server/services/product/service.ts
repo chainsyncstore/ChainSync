@@ -16,6 +16,7 @@ import {
 import { db } from '@db';
 import * as schema from '@shared/schema';
 import { eq, and, or, like, gte, lte, desc, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import { productValidation, SchemaValidationError } from '@shared/schema-validation';
 
 export class ProductService extends BaseService implements IProductService {
@@ -116,12 +117,12 @@ export class ProductService extends BaseService implements IProductService {
         updatedAt: new Date(),
       });
 
-      return product;
+      return product as schema.Product;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
-      return this.handleError(error, 'Creating product');
+      return this.handleError(error as Error, 'Creating product');
     }
   }
 
@@ -205,12 +206,12 @@ export class ProductService extends BaseService implements IProductService {
         .where(eq(schema.products.id, productId))
         .returning();
 
-      return updatedProduct;
+      return updatedProduct as schema.Product;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
-      return this.handleError(error, 'Updating product');
+      return this.handleError(error as Error, 'Updating product');
     }
   }
 
@@ -230,7 +231,7 @@ export class ProductService extends BaseService implements IProductService {
 
       return true;
     } catch (error) {
-      return this.handleError(error, 'Deleting product');
+      return this.handleError(error as Error, 'Deleting product');
     }
   }
 
@@ -248,9 +249,9 @@ export class ProductService extends BaseService implements IProductService {
         },
       });
 
-      return product;
+      return product as schema.Product | null;
     } catch (error) {
-      return this.handleError(error, 'Getting product by ID');
+      return this.handleError(error as Error, 'Getting product by ID');
     }
   }
 
@@ -268,9 +269,9 @@ export class ProductService extends BaseService implements IProductService {
         },
       });
 
-      return product;
+      return product as schema.Product | null;
     } catch (error) {
-      return this.handleError(error, 'Getting product by SKU');
+      return this.handleError(error as Error, 'Getting product by SKU');
     }
   }
 
@@ -288,9 +289,9 @@ export class ProductService extends BaseService implements IProductService {
         },
       });
 
-      return product;
+      return product as schema.Product | null;
     } catch (error) {
-      return this.handleError(error, 'Getting product by barcode');
+      return this.handleError(error as Error, 'Getting product by barcode');
     }
   }
 
@@ -304,55 +305,56 @@ export class ProductService extends BaseService implements IProductService {
     limit: number;
   }> {
     try {
-      const page = params.page || 1;
-      const limit = params.limit || 20;
+      const page = params.page ?? 1;
+      const limit = params.limit ?? 20;
       const offset = (page - 1) * limit;
 
-      // Build where clause
-      let whereClause = eq(schema.products.storeId, params.storeId);
+      // Build dynamic conditions list
+      const conditions: SQL[] = [eq(schema.products.storeId, params.storeId)];
 
       if (params.query) {
         const searchQuery = `%${params.query}%`;
-        whereClause = and(
-          whereClause,
+        conditions.push(
           or(
-            like(schema.products.name, searchQuery),
-            like(schema.products.sku, searchQuery),
-            like(schema.products.barcode, searchQuery)
-          )
+            like(schema.products.name, searchQuery) as SQL,
+            like(schema.products.sku, searchQuery) as SQL,
+            like(schema.products.barcode, searchQuery) as SQL,
+          ) as SQL,
         );
       }
 
       if (params.categoryId) {
-        whereClause = and(whereClause, eq(schema.products.categoryId, params.categoryId));
+        conditions.push(eq(schema.products.categoryId, params.categoryId));
       }
 
       if (params.brandId) {
-        whereClause = and(whereClause, eq(schema.products.brandId, params.brandId));
+        conditions.push(eq(schema.products.brandId, params.brandId));
       }
 
       if (params.isActive !== undefined) {
-        whereClause = and(whereClause, eq(schema.products.isActive, params.isActive));
+        conditions.push(eq(schema.products.isActive, params.isActive));
       }
 
-      if (params.minPrice) {
-        whereClause = and(whereClause, gte(schema.products.price, params.minPrice));
+      if (params.minPrice !== undefined) {
+        conditions.push(gte(schema.products.price, params.minPrice));
       }
 
-      if (params.maxPrice) {
-        whereClause = and(whereClause, lte(schema.products.price, params.maxPrice));
+      if (params.maxPrice !== undefined) {
+        conditions.push(lte(schema.products.price, params.maxPrice));
       }
 
-      // Count total results
+      const whereClause = and(...conditions);
+
+      // Count total
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.products)
         .where(whereClause);
 
-      const total = Number(countResult?.count || 0);
+      const total = Number(countResult?.count ?? 0);
 
-      // Handle in-stock filter
-      const query = db.query.products.findMany({
+      // Main query with pagination
+      let products = await db.query.products.findMany({
         where: whereClause,
         limit,
         offset,
@@ -364,7 +366,7 @@ export class ProductService extends BaseService implements IProductService {
         },
       });
 
-      let products = await query;
+      
 
       // Filter by stock status if needed
       if (params.inStock !== undefined) {
@@ -377,13 +379,13 @@ export class ProductService extends BaseService implements IProductService {
       }
 
       return {
-        products,
+        products: products as schema.Product[],
         total,
         page,
         limit,
       };
     } catch (error) {
-      return this.handleError(error, 'Searching products');
+      return this.handleError(error as Error, 'Searching products');
     }
   }
 
@@ -407,9 +409,9 @@ export class ProductService extends BaseService implements IProductService {
         return (
           inventory && inventory.availableQuantity < inventory.minimumLevel && product.isActive
         );
-      });
+      }) as schema.Product[];
     } catch (error) {
-      return this.handleError(error, 'Getting low stock products');
+      return this.handleError(error as Error, 'Getting low stock products');
     }
   }
 
@@ -482,7 +484,7 @@ export class ProductService extends BaseService implements IProductService {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
-      return this.handleError(error, 'Updating product inventory');
+      return this.handleError(error as Error, 'Updating product inventory');
     }
   }
 }

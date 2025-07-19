@@ -1,6 +1,8 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "noEmit": true,
+    "allowJs": false,
     "typeRoots": [
       "./node_modules/@types",
       "./client/src/types"
@@ -9,12 +11,14 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx",
     "client/src/paths.d.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "dist.bak",
+    "coverage",
+    "playwright-report",
+    "test-results"
   ]
 }

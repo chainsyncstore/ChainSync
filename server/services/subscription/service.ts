@@ -19,7 +19,7 @@ import {
 } from './types';
 import { db } from '../../../db';
 import * as schema from '@shared/schema';
-import { eq, and, or, like, gte, lte, lt, desc, asc, sql, between, isNull, isNotNull } from 'drizzle-orm';
+import { eq, and, or, like, gte, lte, lt, desc, asc, sql, SQL } from 'drizzle-orm';
 import { subscriptionValidation, SchemaValidationError } from '@shared/schema-validation';
 import { prepareSubscriptionData, formatSubscriptionResult } from '@shared/schema-helpers';
 
@@ -107,17 +107,19 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       const result = await db.execute(sql.raw(finalQuery));
       
       // Extract the first row from the result and map it to the expected type
-      const rawSubscription = result.rows?.[0] || null;
-      
-      // Use our format helper to properly map database fields to code fields
-      const subscription = rawSubscription ? formatSubscriptionResult(rawSubscription) : null;
-      
+      const rawSubscription = result.rows?.[0];
+
+      if (!rawSubscription) {
+        throw new Error('Failed to insert subscription');
+      }
+
+      const subscription = formatSubscriptionResult(rawSubscription) as schema.Subscription;
       return subscription;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
-      return this.handleError(error, 'Creating subscription');
+      return this.handleError(error as Error, 'Creating subscription');
     }
   }
   
@@ -203,17 +205,20 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       const result = await db.execute(sql.raw(query));
       
       // Extract the first row from the result and map it to the expected type
-      const rawSubscription = result.rows?.[0] || null;
+      const rawSubscription = result.rows?.[0];
       
       // Use our format helper to properly map database fields to code fields
-      const updatedSubscription = rawSubscription ? formatSubscriptionResult(rawSubscription) : null;
+      if (!rawSubscription) {
+        throw new Error('Operation failed, no subscription updated');
+      }
+      const updatedSubscription = formatSubscriptionResult(rawSubscription) as schema.Subscription;
       
       return updatedSubscription;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
-      return this.handleError(error, 'Updating subscription');
+      return this.handleError(error as Error, 'Updating subscription');
     }
   }
   
@@ -222,16 +227,13 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
    */
   async getSubscriptionById(subscriptionId: number): Promise<schema.Subscription | null> {
     try {
-      const subscription = await db.query.subscriptions.findFirst({
-        where: eq(schema.subscriptions.id, subscriptionId),
-        with: {
-          user: true
-        }
+      const subscriptionRecord = await db.query.subscriptions.findFirst({
+        where: eq(schema.subscriptions.id, subscriptionId)
       });
       
-      return subscription;
+      return subscriptionRecord ?? null;
     } catch (error) {
-      return this.handleError(error, 'Getting subscription by ID');
+      return this.handleError(error as Error, 'Getting subscription by ID');
     }
   }
   
@@ -240,33 +242,21 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
    */
   async getSubscriptionByUser(userId: number): Promise<schema.Subscription | null> {
     try {
-      const subscription = await db.query.subscriptions.findFirst({
+      const subscriptionRecord = await db.query.subscriptions.findFirst({
         where: eq(schema.subscriptions.userId, userId),
         orderBy: [desc(schema.subscriptions.createdAt)]
       });
       
-      return subscription;
+      return subscriptionRecord ?? null;
     } catch (error) {
-      return this.handleError(error, 'Getting subscription by user');
+      return this.handleError(error as Error, 'Getting subscription by user');
     }
   }
   
   /**
-   * Get the active subscription for a user
-   */
-  async getActiveSubscription(userId: number): Promise<schema.Subscription | null> {
-    try {
-      const subscription = await db.query.subscriptions.findFirst({
-        where: and(
-          eq(schema.subscriptions.userId, userId),
-          eq(schema.subscriptions.status, SubscriptionStatus.ACTIVE),
-          gte(schema.subscriptions.endDate, new Date())
-        )
-      });
-      
       return subscription;
     } catch (error) {
-      return this.handleError(error, 'Getting active subscription');
+      return this.handleError(error as Error, 'Getting active subscription');
     }
   }
   
@@ -285,50 +275,34 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       const offset = (page - 1) * limit;
       
       // Build where clause
-      let whereClause = sql`1=1`; // Default to true
-      
+      // Build dynamic conditions array to avoid undefined in AND
+      const conditions: SQL[] = [];
       if (params.userId) {
-        whereClause = and(
-          whereClause,
-          eq(schema.subscriptions.userId, params.userId)
-        );
+        conditions.push(eq(schema.subscriptions.userId, params.userId));
       }
-      
       if (params.plan) {
-        whereClause = and(
-          whereClause,
-          eq(schema.subscriptions.plan, params.plan)
-        );
+        conditions.push(eq(schema.subscriptions.plan, params.plan));
       }
-      
       if (params.status) {
-        whereClause = and(
-          whereClause,
-          eq(schema.subscriptions.status, params.status)
-        );
+        conditions.push(eq(schema.subscriptions.status, params.status));
       }
-      
       if (params.startDate) {
-        whereClause = and(
-          whereClause,
-          gte(schema.subscriptions.startDate, params.startDate)
-        );
+        conditions.push(gte(schema.subscriptions.startDate, params.startDate));
       }
-      
       if (params.endDate) {
-        whereClause = and(
-          whereClause,
-          lte(schema.subscriptions.endDate, params.endDate)
-        );
+        conditions.push(lte(schema.subscriptions.endDate, params.endDate));
       }
-      
       if (params.provider) {
-        whereClause = and(
-          whereClause,
-          eq(schema.subscriptions.paymentProvider, params.provider)
-        );
+        conditions.push(eq(schema.subscriptions.paymentProvider, params.provider));
       }
-      
+
+      let whereClause: SQL;
+      if (conditions.length) {
+        whereClause = and(...conditions) as SQL;
+      } else {
+        whereClause = sql`true`;
+      }
+
       // Count total results
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
@@ -355,7 +329,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
         limit
       };
     } catch (error) {
-      return this.handleError(error, 'Searching subscriptions');
+      return this.handleError(error as Error, 'Searching subscriptions');
     }
   }
   
@@ -402,14 +376,17 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       const result = await db.execute(sql.raw(query));
       
       // Extract the first row from the result and map it to the expected type
-      const rawSubscription = result.rows?.[0] || null;
+      const rawSubscription = result.rows?.[0];
       
       // Use our format helper to properly map database fields to code fields
-      const updatedSubscription = rawSubscription ? formatSubscriptionResult(rawSubscription) : null;
+      if (!rawSubscription) {
+        throw new Error('Operation failed, no subscription updated');
+      }
+      const updatedSubscription = formatSubscriptionResult(rawSubscription) as schema.Subscription;
       
       return updatedSubscription;
     } catch (error) {
-      return this.handleError(error, 'Cancelling subscription');
+      return this.handleError(error as Error, 'Cancelling subscription');
     }
   }
   
@@ -450,14 +427,17 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       const result = await db.execute(sql.raw(query));
       
       // Extract the first row from the result and map it to the expected type
-      const rawSubscription = result.rows?.[0] || null;
+      const rawSubscription = result.rows?.[0];
       
       // Use our format helper to properly map database fields to code fields
-      const updatedSubscription = rawSubscription ? formatSubscriptionResult(rawSubscription) : null;
+      if (!rawSubscription) {
+        throw new Error('Operation failed, no subscription updated');
+      }
+      const updatedSubscription = formatSubscriptionResult(rawSubscription) as schema.Subscription;
       
       return updatedSubscription;
     } catch (error) {
-      return this.handleError(error, 'Renewing subscription');
+      return this.handleError(error as Error, 'Renewing subscription');
     }
   }
   
@@ -481,7 +461,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
-      return this.handleError(error, 'Processing webhook');
+      return this.handleError(error as Error, 'Processing webhook');
     }
   }
   
@@ -502,7 +482,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
           return true;
       }
     } catch (error) {
-      return this.handleError(error, `Processing Paystack webhook: ${event}`);
+      return this.handleError(error as Error, `Processing Paystack webhook: ${event}`);
     }
   }
   
@@ -523,7 +503,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
           return true;
       }
     } catch (error) {
-      return this.handleError(error, `Processing Flutterwave webhook: ${event}`);
+      return this.handleError(error as Error, `Processing Flutterwave webhook: ${event}`);
     }
   }
   
@@ -622,7 +602,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       
       return true;
     } catch (error) {
-      return this.handleError(error, 'Handling subscription create webhook');
+      return this.handleError(error as Error, 'Handling subscription create webhook');
     }
   }
   
@@ -675,7 +655,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       
       return true;
     } catch (error) {
-      return this.handleError(error, 'Handling charge success webhook');
+      return this.handleError(error as Error, 'Handling charge success webhook');
     }
   }
   
@@ -710,7 +690,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       
       return true;
     } catch (error) {
-      return this.handleError(error, 'Handling subscription cancel webhook');
+      return this.handleError(error as Error, 'Handling subscription cancel webhook');
     }
   }
   
@@ -743,13 +723,28 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       
       return true;
     } catch (error) {
-      return this.handleError(error, 'Updating existing subscription');
+      return this.handleError(error as Error, 'Updating existing subscription');
     }
   }
   
   /**
    * Calculate end date based on plan and start date
    */
+  /**
+   * Get the active subscription for a user (helper used in many methods)
+   */
+  async getActiveSubscription(userId: number): Promise<schema.Subscription | null> {
+    const now = new Date();
+    const subscription = await db.query.subscriptions.findFirst({
+      where: and(
+        eq(schema.subscriptions.userId, userId),
+        eq(schema.subscriptions.status, SubscriptionStatus.ACTIVE),
+        gte(schema.subscriptions.endDate, now)
+      )
+    });
+    return subscription ?? null;
+  }
+
   private calculateEndDate(startDate: Date, plan: string): Date {
     const endDate = new Date(startDate);
     
@@ -801,7 +796,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       // User has access if their plan is equal or higher in the hierarchy
       return userPlanValue >= requiredPlanValue;
     } catch (error) {
-      return this.handleError(error, 'Validating subscription access');
+      return this.handleError(error as Error, 'Validating subscription access');
     }
   }
   
@@ -921,7 +916,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
         churnRate
       };
     } catch (error) {
-      return this.handleError(error, 'Getting subscription metrics');
+      return this.handleError(error as Error, 'Getting subscription metrics');
     }
   }
   

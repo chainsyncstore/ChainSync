@@ -113,9 +113,41 @@ export const productSchema = createInsertSchema(schema.products, {
   sku: z.string().min(3, "SKU must be at least 3 characters"),
 });
 
+// Schema for inventory adjustment related to products
+const inventoryAdjustmentSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int(),
+  reason: z.string().min(2, "Reason must be at least 2 characters"),
+});
+
+// Webhook validation schemas
+export const webhookValidation = {
+  create: (data: unknown) => validateEntity(
+    z.object({
+      url: z.string().url(),
+      storeId: z.number().int().positive(),
+      events: z.array(z.string()).min(1),
+    }),
+    data,
+    'webhook'
+  ),
+  update: (data: unknown) => validateEntity(
+    z.object({
+      url: z.string().url().optional(),
+      events: z.array(z.string()).optional(),
+      isActive: z.boolean().optional(),
+    }),
+    data,
+    'webhook'
+  ),
+};
+
 export const productValidation = {
   insert: (data: unknown) => validateEntity(productSchema, data, 'product'),
   update: (data: unknown) => validateEntity(productSchema.partial(), data, 'product'),
+  inventory: {
+    adjustment: (data: unknown) => validateEntity(inventoryAdjustmentSchema, data, 'inventory_adjustment'),
+  },
 };
 
 // Inventory validation schema

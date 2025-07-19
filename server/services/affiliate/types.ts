@@ -1,5 +1,6 @@
-import { ErrorCode, ErrorCategory } from '@shared/types/errors'; // AppError removed
-import { schema } from '@shared/schema';
+import { ErrorCode, ErrorCategory } from '@shared/types/errors';
+import * as schema from '@shared/schema';
+import { ServiceError } from '../base/base-service';
 
 export interface IAffiliateService {
   generateReferralCode(userId: number): Promise<string>;
@@ -66,35 +67,33 @@ export interface IAffiliateServiceErrors {
 
 export const AffiliateServiceErrors: IAffiliateServiceErrors = {
   USER_NOT_FOUND: new ServiceError(
-    'User not found',
     ErrorCode.RESOURCE_NOT_FOUND,
-    ErrorCategory.RESOURCE
+    'User not found',
+    { category: ErrorCategory.RESOURCE }
   ),
   INVALID_REFERRAL_CODE: new ServiceError(
-    'Invalid referral code',
     ErrorCode.INVALID_FIELD_VALUE,
-    ErrorCategory.VALIDATION
+    'Invalid referral code',
+    { category: ErrorCategory.VALIDATION }
   ),
   REFERRAL_ALREADY_EXISTS: new ServiceError(
-    'Referral already exists',
     ErrorCode.RESOURCE_ALREADY_EXISTS,
-    ErrorCategory.RESOURCE
+    'Referral already exists',
+    { category: ErrorCategory.RESOURCE }
   ),
   INSUFFICIENT_BALANCE: new ServiceError(
-    'Insufficient balance for payout',
     ErrorCode.INSUFFICIENT_BALANCE,
-    ErrorCategory.BUSINESS
+    'Insufficient balance for payout',
+    { category: ErrorCategory.BUSINESS }
   ),
   PAYOUT_FAILED: new ServiceError(
-    'Failed to process payout',
     ErrorCode.INTERNAL_SERVER_ERROR,
-    ErrorCategory.SYSTEM,
-    true,
-    5000
+    'Failed to process payout',
+    { category: ErrorCategory.SYSTEM, retryable: true, timeout: 5000 }
   ),
   INVALID_BANK_DETAILS: new ServiceError(
-    'Invalid bank details provided',
     ErrorCode.INVALID_FIELD_VALUE,
-    ErrorCategory.VALIDATION
-  )
+    'Invalid bank details provided',
+    { category: ErrorCategory.VALIDATION }
+  ),
 };

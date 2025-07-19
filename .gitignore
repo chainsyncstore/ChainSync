@@ -29,6 +29,12 @@ build
 .temp
 .tmp
 
+# Build artefacts
+/dist.bak
+/playwright-report
+/test-results
+/coverage
+
 # Logs
 logs
 *.log

@@ -117,7 +117,68 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
   products: many(products),
 }));
 
+// Alias for backward compatibility
+export const productCategories = categories;
+
+// Brands
+export const brands = pgTable('brands', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+
+
 // Products
+// ---- Webhook Tables ----
+import { jsonb } from 'drizzle-orm/pg-core';
+
+export const webhooks = pgTable('webhooks', {
+  id: serial('id').primaryKey(),
+  url: text('url').notNull(),
+  storeId: integer('store_id').references(() => stores.id).notNull(),
+  secret: text('secret').notNull(),
+  events: jsonb('events').notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const webhookEvents = pgTable('webhook_events', {
+  id: serial('id').primaryKey(),
+  eventType: text('event_type').notNull(),
+  data: jsonb('data').notNull(),
+  storeId: integer('store_id').references(() => stores.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const webhookDeliveries = pgTable('webhook_deliveries', {
+  id: serial('id').primaryKey(),
+  webhookId: integer('webhook_id').references(() => webhooks.id).notNull(),
+  eventId: integer('event_id').references(() => webhookEvents.id).notNull(),
+  attempt: integer('attempt').notNull(),
+  status: text('status').notNull().default('pending'),
+  responseCode: integer('response_code'),
+  responseBody: text('response_body'),
+  errorMessage: text('error_message'),
+  deliveredAt: timestamp('delivered_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Relations
+export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one }) => ({
+  webhook: one(webhooks, {
+    fields: [webhookDeliveries.webhookId],
+    references: [webhooks.id],
+  }),
+  event: one(webhookEvents, {
+    fields: [webhookDeliveries.eventId],
+    references: [webhookEvents.id],
+  }),
+}));
+
 export const products = pgTable('products', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
@@ -128,6 +189,10 @@ export const products = pgTable('products', {
     .references(() => categories.id)
     .notNull(),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  storeId: integer('store_id').references(() => stores.id).notNull(),
+  brandId: integer('brand_id').references(() => brands.id),
+  isActive: boolean('is_active').default(true).notNull(),
+  attributes: jsonb('attributes'),
   cost: decimal('cost', { precision: 10, scale: 2 }).default('0'),
   isPerishable: boolean('is_perishable').notNull().default(false),
   imageUrl: text('image_url'),
@@ -141,7 +206,16 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     fields: [products.categoryId],
     references: [categories.id],
   }),
-  inventoryItems: many(inventory),
+  brand: one(brands, {
+    fields: [products.brandId],
+    references: [brands.id],
+  }),
+  inventory: many(inventory),
+}));
+
+// Brands relations now that products is defined
+export const brandsRelations = relations(brands, ({ many }) => ({
+  products: many(products),
 }));
 
 // Inventory (master record for each product in a store)
@@ -174,10 +248,13 @@ export const inventory = pgTable(
 // Logs for inventory changes
 export const inventoryLogs = pgTable('inventory_logs', {
   id: serial('id').primaryKey(),
-  inventoryId: integer('inventory_id')
-    .references(() => inventory.id)
+  productId: integer('product_id')
+    .references(() => products.id)
     .notNull(),
-  message: text('message').notNull(),
+  previousQuantity: integer('previous_quantity').notNull(),
+  newQuantity: integer('new_quantity').notNull(),
+  quantity: integer('quantity').notNull(),
+  reason: text('reason').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
