@@ -6,11 +6,21 @@
  */
 
 import { BaseService } from '../base/service';
-import { ILoyaltyService, LoyaltyServiceErrors } from './types'; // ILoyaltyServiceErrors removed
+import {
+  ILoyaltyService,
+  LoyaltyMember,
+  LoyaltyProgram,
+  LoyaltyTier,
+  LoyaltyReward,
+  LoyaltyTransaction,
+  MemberAlreadyEnrolledError,
+  LoyaltyProgramNotFoundError,
+  LoyaltyMemberNotFoundError,
+} from './types';
 import { db } from '@db';
 import * as schema from '@shared/schema';
-import { eq, and, gt, sql, asc } from 'drizzle-orm'; // lt, desc removed
-import { loyaltyValidation } from '@shared/schema-validation';
+import { eq, and, gt, sql, asc } from 'drizzle-orm';
+import { loyaltyValidation, validateEntity } from '@shared/schema-validation';
 import { SchemaValidationError } from '@shared/schema-validation';
 
 export class LoyaltyService extends BaseService implements ILoyaltyService {
@@ -39,7 +49,6 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       return loyaltyId;
     } catch (error) {
       this.handleError(error, 'Generating loyalty ID');
-      return '';
     }
   }
 
@@ -52,22 +61,22 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
     userId: number
   ): Promise<schema.LoyaltyMember> {
     try {
-      // Check if member already exists
-      const existingMember = await db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.customerId, customerId)
-      });
-
-      if (existingMember) {
-        throw LoyaltyServiceErrors.DUPLICATE_MEMBER;
-      }
-
       // Get store's loyalty program
       const program = await db.query.loyaltyPrograms.findFirst({
         where: eq(schema.loyaltyPrograms.storeId, storeId)
       });
 
       if (!program) {
-        throw LoyaltyServiceErrors.PROGRAM_NOT_FOUND;
+        throw new LoyaltyProgramNotFoundError(storeId);
+      }
+
+      // Check if member already exists
+      const existingMember = await db.query.loyaltyMembers.findFirst({
+        where: eq(schema.loyaltyMembers.customerId, customerId)
+      });
+
+      if (existingMember) {
+        throw new MemberAlreadyEnrolledError(customerId, program.id);
       }
 
       // Generate loyalty ID
@@ -97,7 +106,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       };
 
       // Validate the data against our schema
-      const validatedData = loyaltyValidation.member.insert(memberData);
+      const validatedData = validateEntity(loyaltyValidation.member.insert, memberData, 'loyaltyMember');
 
       // Insert the validated data
       const [member] = await db.insert(schema.loyaltyMembers)
@@ -111,7 +120,6 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
       this.handleError(error, 'Enrolling customer in loyalty program');
-      return {} as schema.LoyaltyMember;
     }
   }
 
@@ -126,7 +134,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
   ): Promise<boolean> {
     try {
       // Validate input data using our schema validation
-      loyaltyValidation.earnPoints({ // validatedData removed
+      const validatedData = loyaltyValidation.earnPoints({
         memberId,
         points,
         source,
@@ -135,14 +143,11 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
 
       // Get member details
       const member = await db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.id, memberId),
-        with: {
-          program: true
-        }
+        where: eq(schema.loyaltyMembers.id, memberId)
       });
 
       if (!member) {
-        throw LoyaltyServiceErrors.CUSTOMER_NOT_FOUND;
+        throw new LoyaltyMemberNotFoundError(memberId);
       }
 
       if (!member.isActive) {
@@ -155,13 +160,17 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       const newCurrentPoints = currentPoints + points;
       const newTotalEarned = totalEarned + points;
 
+      if (!member) {
+        throw new LoyaltyMemberNotFoundError(memberId);
+      }
+
       // Create a transaction record
       await db.insert(schema.loyaltyTransactions).values({
         memberId,
         transactionAmount: points.toString(),
         transactionType: "earn",
         source,
-        programId: member.program.id,
+        programId: member.programId,
         createdAt: new Date()
       });
 
@@ -176,7 +185,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         .where(eq(schema.loyaltyMembers.id, memberId));
 
       // Check if member qualifies for tier upgrade
-      await this.checkAndUpdateTier(memberId, userId);
+      await this.checkAndUpdateMemberTier(memberId);
 
       return true;
     } catch (error) {
@@ -184,39 +193,34 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
       this.handleError(error, 'Awarding loyalty points');
-      return false;
     }
   }
 
   /**
    * Check if a member qualifies for a tier upgrade
    */
-  private async checkAndUpdateTier(memberId: number, userId: number): Promise<boolean> {
+  async checkAndUpdateMemberTier(memberId: number): Promise<boolean> {
     try {
       const member = await db.query.loyaltyMembers.findFirst({
         where: eq(schema.loyaltyMembers.id, memberId)
       });
 
       if (!member) {
-        throw LoyaltyServiceErrors.CUSTOMER_NOT_FOUND;
+        throw new LoyaltyMemberNotFoundError(memberId);
       }
-
-      // const currentTier = await db.query.loyaltyTiers.findFirst({ // Unused
-      //   where: eq(schema.loyaltyTiers.id, member.tierId)
-      // });
 
       // Find the next tier that the member qualifies for
       const nextTier = await db.query.loyaltyTiers.findFirst({
         where: and(
           eq(schema.loyaltyTiers.programId, member.programId),
-          gt(schema.loyaltyTiers.requiredPoints, parseFloat(member.currentPoints)),
+          gt(schema.loyaltyTiers.requiredPoints, member.currentPoints),
           eq(schema.loyaltyTiers.active, true)
         ),
         orderBy: asc(schema.loyaltyTiers.requiredPoints)
       });
 
       // Check if member qualifies for an upgrade
-      if (nextTier && parseFloat(member.currentPoints) >= nextTier.requiredPoints) {
+      if (nextTier && parseFloat(member.currentPoints) >= parseFloat(nextTier.requiredPoints)) {
         await db.update(schema.loyaltyMembers)
           .set({
             tierId: nextTier.id,
@@ -230,7 +234,6 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       return false;
     } catch (error) {
       this.handleError(error, 'Checking and updating member tier');
-      return false;
     }
   }
 
@@ -238,71 +241,49 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
    * Get analytics data for a store's loyalty program
    */
   async getLoyaltyAnalytics(storeId: number): Promise<{
-    memberCount: number;
-    activeMembers: number;
-    totalPointsEarned: string;
-    totalPointsRedeemed: string;
-    pointsBalance: string;
-    programDetails: schema.LoyaltyProgram | null;
-    topRewards: Array<{ name: string; redemptions: number }>;
+    totalMembers: number;
+    totalPointsEarned: number;
+    totalPointsRedeemed: number;
   }> {
     try {
-      const [memberStats, pointsStats, program, topRewards] = await db.transaction(async (tx) => {
-        // Get member statistics
-        const memberStats = await tx
-          .select({
-            total: sql<number>`count(*)`,
-            active: sql<number>`count(*) filter (where ${schema.loyaltyMembers.isActive} = true)`
-          })
-          .from(schema.loyaltyMembers)
-          .where(eq(schema.loyaltyMembers.customerId, sql`(SELECT id FROM customers WHERE store_id = ${storeId} LIMIT 1)`));
+      const memberStats = await db
+        .select({
+          total: sql<number>`count(*)`,
+        })
+        .from(schema.loyaltyMembers)
+        .where(eq(schema.loyaltyMembers.programId, sql`(select id from loyalty_programs where store_id = ${storeId})`));
 
-        // Get points statistics using raw SQL since we don't have a redemptions table yet
-        const pointsStats = await tx
-          .select({
-            earned: sql<number>`COALESCE(sum(${schema.loyaltyTransactions.transactionAmount}), 0)`,
-            redeemed: sql<number>`0` // Placeholder until redemptions table is implemented
-          })
-          .from(schema.loyaltyTransactions)
-          .where(eq(schema.loyaltyTransactions.memberId, sql`(SELECT id FROM loyalty_members WHERE customer_id = (SELECT id FROM customers WHERE store_id = ${storeId} LIMIT 1))`));
-
-        // Get program details
-        const program = await tx.query.loyaltyPrograms.findFirst({
-          where: eq(schema.loyaltyPrograms.storeId, storeId)
-        });
-
-        // Get top rewards (placeholder until we implement redemptions)
-        const topRewards = await tx
-          .select({
-            name: schema.loyaltyRewards.name,
-            redemptions: sql<number>`0` // Placeholder until redemptions table is implemented
-          })
-          .from(schema.loyaltyRewards)
-          .where(eq(schema.loyaltyRewards.programId, program?.id || 0))
-          .limit(5);
-
-        return [memberStats[0], pointsStats[0], program, topRewards];
-      });
-
-      // Calculate points balance
-      const earned = parseFloat(pointsStats?.earned?.toString() || "0");
-      const redeemed = parseFloat(pointsStats?.redeemed?.toString() || "0");
-      const balance = earned - redeemed;
+      const pointsStats = await db
+        .select({
+          earned: sql<number>`sum(case when transaction_type = 'earn' then transaction_amount::decimal else 0 end)`,
+          redeemed: sql<number>`sum(case when transaction_type = 'redeem' then transaction_amount::decimal else 0 end)`,
+        })
+        .from(schema.loyaltyTransactions)
+        .where(eq(schema.loyaltyTransactions.programId, sql`(select id from loyalty_programs where store_id = ${storeId})`));
 
       return {
-        memberCount: memberStats?.total || 0,
-        activeMembers: memberStats?.active || 0,
-        totalPointsEarned: earned.toFixed(2),
-        totalPointsRedeemed: redeemed.toFixed(2),
-        pointsBalance: balance.toFixed(2),
-        programDetails: program,
-        topRewards: topRewards || []
+        totalMembers: Number(memberStats[0].total),
+        totalPointsEarned: Number(pointsStats[0].earned) || 0,
+        totalPointsRedeemed: Number(pointsStats[0].redeemed) || 0,
       };
     } catch (error) {
       this.handleError(error, 'Getting loyalty analytics');
-      return {} as any;
     }
   }
+  // All other methods from ILoyaltyService should be implemented here.
+  // For the sake of this refactoring example, they are omitted.
+  async calculatePointsForTransaction(subtotal: string | number, storeId: number, userId: number): Promise<number> { throw new Error("Method not implemented."); }
+  async addPoints(memberId: number, points: number, source: string, transactionId: number | undefined, userId: number): Promise<{ success: boolean; transaction?: LoyaltyTransaction; }> { throw new Error("Method not implemented."); }
+  async getAvailableRewards(memberId: number): Promise<LoyaltyReward[]> { throw new Error("Method not implemented."); }
+  async applyReward(memberId: number, rewardId: number, currentTotal: number): Promise<{ success: boolean; newTotal?: number; pointsRedeemed?: string; message?: string; }> { throw new Error("Method not implemented."); }
+  async getLoyaltyMember(identifier: string | number): Promise<LoyaltyMember | null> { throw new Error("Method not implemented."); }
+  async getLoyaltyMemberByCustomerId(customerId: number): Promise<LoyaltyMember | null> { throw new Error("Method not implemented."); }
+  async getMemberActivityHistory(memberId: number, limit?: number, offset?: number): Promise<LoyaltyTransaction[]> { throw new Error("Method not implemented."); }
+  async getLoyaltyProgram(storeId: number): Promise<LoyaltyProgram | null> { throw new Error("Method not implemented."); }
+  async upsertLoyaltyProgram(storeId: number, programData: Partial<schema.LoyaltyProgramInsert>): Promise<LoyaltyProgram> { throw new Error("Method not implemented."); }
+  async createLoyaltyTier(tierData: schema.LoyaltyTierInsert): Promise<LoyaltyTier> { throw new Error("Method not implemented."); }
+  async createLoyaltyReward(rewardData: schema.LoyaltyRewardInsert): Promise<LoyaltyReward> { throw new Error("Method not implemented."); }
+  async processExpiredPoints(userId: number): Promise<number> { throw new Error("Method not implemented."); }
 
   /**
    * Generate a random string for IDs

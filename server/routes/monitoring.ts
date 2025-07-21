@@ -59,7 +59,7 @@ router.get('/health', (req, res) => {
       timestamp
     });
   } catch (error) {
-    logger.error('Error getting health status', error);
+    logger.error('Error getting health status', error as Error);
     res.status(500).json({ error: 'Failed to retrieve health status' });
   }
 });
@@ -196,7 +196,7 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async (req, 
     
     res.json(metrics);
   } catch (error) {
-    logger.error('Error getting system metrics', error);
+    logger.error('Error getting system metrics', error as Error);
     res.status(500).json({ error: 'Failed to retrieve system metrics' });
   }
 });
@@ -243,7 +243,7 @@ router.get('/alerts', authenticateUser, authorizeRoles(['admin']), (req, res) =>
   try {
     res.json(activeAlerts);
   } catch (error) {
-    logger.error('Error getting alerts', error);
+    logger.error('Error getting alerts', error as Error);
     res.status(500).json({ error: 'Failed to retrieve alerts' });
   }
 });
@@ -303,7 +303,7 @@ router.post('/alerts/:id/acknowledge', authenticateUser, authorizeRoles(['admin'
       id: alertId
     });
   } catch (error) {
-    logger.error('Error acknowledging alert', error);
+    logger.error('Error acknowledging alert', error as Error);
     res.status(500).json({ error: 'Failed to acknowledge alert' });
   }
 });
@@ -375,7 +375,7 @@ router.post('/simulate-alert', authenticateUser, authorizeRoles(['admin']), (req
       alert: newAlert
     });
   } catch (error) {
-    logger.error('Error creating simulated alert', error);
+    logger.error('Error creating simulated alert', error as Error);
     res.status(500).json({ error: 'Failed to create simulated alert' });
   }
 });

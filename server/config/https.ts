@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as https from 'https';
 import * as http from 'http';
 import express from 'express';
+import { Server as SocketIOServer } from 'socket.io';
 import { log } from '../vite';
 
 /**
@@ -10,10 +11,12 @@ import { log } from '../vite';
  * @param app Express application
  * @returns HTTP or HTTPS server
  */
-export function setupSecureServer(app: express.Express): http.Server | https.Server {
+export function setupSecureServer(
+  app: express.Express,
+): { server: http.Server | https.Server; io: SocketIOServer } {
   // Check environment
   const isProduction = process.env.NODE_ENV === 'production';
-  
+  let server: http.Server | https.Server;
   if (isProduction) {
     try {
       // In production, attempt to load SSL certificates
@@ -30,27 +33,35 @@ export function setupSecureServer(app: express.Express): http.Server | https.Ser
         
         // Create HTTPS server
         log('Starting HTTPS server in production mode');
-        return https.createServer(
-          { 
-            key: privateKey, 
-            cert: certificate 
-          }, 
-          app
+        server = https.createServer(
+          {
+            key: privateKey,
+            cert: certificate,
+          },
+          app,
         );
       } else {
         log('SSL certificates not found, falling back to HTTP server in production');
-        return http.createServer(app);
+        server = http.createServer(app);
       }
     } catch (error) {
       console.error('Error setting up HTTPS server:', error);
       log('Failed to set up HTTPS server, falling back to HTTP');
-      return http.createServer(app);
+      server = http.createServer(app);
     }
   } else {
     // In development, use HTTP server
     log('Starting HTTP server in development mode');
-    return http.createServer(app);
+    server = http.createServer(app);
   }
+  const io = new SocketIOServer(server, {
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST'],
+    },
+  });
+
+  return { server, io };
 }
 
 /**

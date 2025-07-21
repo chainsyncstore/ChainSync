@@ -23,6 +23,7 @@ interface MulterRequest extends Request {
     [fieldname: string]: Express.Multer.File[];
   } | Express.Multer.File[];
   user?: any;
+  progressId?: string;
 }
 
 // File upload configuration
@@ -459,7 +460,9 @@ export class FileUploadMiddleware {
       const subscriptions = subscriptionCache.get(progressId) || [];
       for (const sub of subscriptions) {
         try {
-          sub.onProgress(progressData);
+          if (sub && sub.onProgress) {
+            sub.onProgress(progressData);
+          }
         } catch (err) {
           console.error('Failed to notify subscriber:', err instanceof Error ? err.message : String(err));
         }
@@ -515,7 +518,7 @@ export class FileUploadMiddleware {
 
       // Send initial progress
       const progressData = progressCache.get(progressId);
-      if (progressData) {
+      if (progressData && subscription && subscription.onProgress) {
         subscription.onProgress(progressData);
       }
     } catch (subscriptionError: unknown) {

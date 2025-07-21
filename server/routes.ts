@@ -8,11 +8,13 @@
  * be filled out incrementally without blocking compilation.
  */
 
-import express, { Application, Router } from 'express';
+import express, { Application, Router, Express } from 'express';
 import cors from 'cors';
 import session, { SessionOptions } from 'express-session';
 import pgSession from 'connect-pg-simple';
 import { Server as SocketIOServer } from 'socket.io';
+import * as http from 'http';
+import * as https from 'https';
 
 import { env } from './config/env.js';
 import { setupSecureServer } from './config/https.js';
@@ -61,7 +63,10 @@ function composeApiRouter(): Router {
  * Registers all global middleware + API routes on the provided Express app and
  * returns an initialised Socket.io server (because existing code expects that).
  */
-export async function registerRoutes(app: Application): Promise<SocketIOServer> {
+export function registerRoutes(app: Application): {
+  server: http.Server | https.Server;
+  io: SocketIOServer;
+} {
   // ----- Middleware -----
   app.use(cors());
   app.use(express.json());
@@ -71,7 +76,7 @@ export async function registerRoutes(app: Application): Promise<SocketIOServer> 
   const PostgresStore = pgSession(session);
   const sessionConfig: SessionOptions = {
     store: new PostgresStore({
-      pool: (db as Database).pool,
+      pool: (db as unknown as Database).pool,
       createTableIfMissing: true,
       tableName: 'sessions',
     }),
@@ -102,7 +107,7 @@ export async function registerRoutes(app: Application): Promise<SocketIOServer> 
   });
 
   // ----- HTTPS / HTTP and Socket.io wiring -----
-  const { server, io } = await setupSecureServer(app);
+  const { server, io } = setupSecureServer(app as express.Express);
   // The caller is responsible for listening on the HTTP server.
-  return io;
+  return { server, io };
 }

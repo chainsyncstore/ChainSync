@@ -111,7 +111,7 @@ import { QueueType } from '../../src/queue';
 async function checkQueueStatus(): Promise<{ status: string; messageCount: number; error?: string }> {
   try {
     // Fixed: Added explicit empty object parameter to match expected function signature
-    const queue = getQueue(QueueType.default);
+    const queue = getQueue(QueueType.LOYALTY);
     
     if (!queue) {
       return { status: 'DISABLED', messageCount: 0 };

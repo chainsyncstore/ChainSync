@@ -5,7 +5,8 @@
     "allowJs": false,
     "typeRoots": [
       "./node_modules/@types",
-      "./client/src/types"
+      "./client/src/types",
+      "./types"
     ]
   },
   "include": [

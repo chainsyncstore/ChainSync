@@ -61,7 +61,7 @@ export const authorizeRoles = (allowedRoles: string[]) => {
       return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
     }
     
-    if (!allowedRoles.includes(req.session.userRole)) {
+    if (!req.session.userRole || !allowedRoles.includes(req.session.userRole)) {
       reqLogger.warn('Forbidden access attempt', {
         path: req.path,
         method: req.method,
@@ -77,12 +77,15 @@ export const authorizeRoles = (allowedRoles: string[]) => {
     }
     
     // Set user object for downstream middleware and route handlers
-    req.user = {
-      id: String(req.session.userId), // Convert number to string to match interface
-      role: req.session.userRole,
-      storeId: req.session.storeId,
-      name: req.session.fullName || ''
-    };
+    if (req.session.userRole) {
+      req.user = {
+        id: String(req.session.userId), // Convert number to string to match interface
+        role: req.session.userRole,
+        storeId: req.session.storeId,
+        name: req.session.fullName || '',
+        email: '' // Add email property
+      };
+    }
     
     next();
   };
@@ -176,7 +179,7 @@ export const isCashierOrAbove = (req: Request, res: Response, next: NextFunction
   }
   
   const validRoles = ['cashier', 'manager', 'admin'];
-  if (!validRoles.includes(req.session.userRole)) {
+  if (!req.session.userRole || !validRoles.includes(req.session.userRole)) {
     reqLogger.warn('Forbidden access attempt', {
       path: req.path,
       method: req.method,

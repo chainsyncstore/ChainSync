@@ -46,7 +46,9 @@ const createRedisStore = () => {
             redisClient.expire(key, ttlSeconds);
           }
           
-          cb(null, result);
+          if (result !== undefined) {
+            cb(null, result);
+          }
         });
       },
       decrement: (key: string) => {
@@ -65,7 +67,7 @@ const createRedisStore = () => {
       }
     };
   } catch (error) {
-    logger.error('Failed to initialize Redis rate-limit store', error);
+    logger.error('Failed to initialize Redis rate-limit store', error as Error);
     return null;
   }
 };
@@ -120,7 +122,7 @@ function createRateLimiter(options: Partial<Options>) {
              process.env.NODE_ENV !== 'production';
     },
     // Use Redis store in production if available
-    store: redisStore || undefined,
+    store: redisStore as any,
     // Add custom options
     ...options
   });

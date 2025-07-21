@@ -278,7 +278,7 @@ async function seed() {
 
     const createdProducts = await Promise.all(
       products.map(async (product) => {
-        const [created] = await db.insert(schema.products).values(product).returning();
+        const [created] = await db.insert(schema.products).values({ ...product, storeId: createdStores[0].id }).returning();
         return created;
       })
     );
@@ -409,8 +409,8 @@ async function seed() {
         // Update inventory
         for (const item of transactionItems) {
           const inventory = await db.query.inventory.findFirst({
-            where: (inv: { storeId: number; productId: number; }, { and, eq }: { and: any; eq: any; }) =>
-              and(eq(inv.storeId, store.id), eq(inv.productId, item.productId))
+            where: (inventory, { and, eq }) =>
+              and(eq(inventory.storeId, store.id), eq(inventory.productId, item.productId))
           });
           
           if (inventory) {

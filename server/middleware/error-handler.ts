@@ -59,7 +59,7 @@ export const errorHandler = (
   // Handle database errors
   if (error.name === 'DatabaseError') {
     const appError = AppError.fromDatabaseError(error);
-    return res.status(appError.statusCode).json({
+    return res.status(appError.statusCode || 500).json({
       error: {
         code: appError.code,
         message: appError.message,
@@ -71,7 +71,7 @@ export const errorHandler = (
   // Handle authentication errors
   if (error.name === 'AuthenticationError') {
     const appError = AppError.fromAuthenticationError(error);
-    return res.status(appError.statusCode).json({
+    return res.status(appError.statusCode || 401).json({
       error: {
         code: appError.code,
         message: appError.message,

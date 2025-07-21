@@ -3,7 +3,7 @@
 // from this specific path receive the correctly configured PostgreSQL Drizzle instance
 // from the central db management in the root 'db' folder.
 
-import { db, dbPool } from '../../db';
-import { schema } from '../../../shared/db/index';
+import { db, pool } from '../../db';
+import * as schema from '../../shared/schema';
 
-export { db, dbPool, schema };
+export { db, pool, schema };

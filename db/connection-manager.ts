@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { schema } from '@shared/schema';
+import * as schema from '@shared/schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { getLogger } from '../shared/logging';
 
@@ -18,7 +18,7 @@ const STATEMENT_TIMEOUT_MS = 30000; // 30 seconds
 class DbConnectionManager {
   private static instance: DbConnectionManager;
   private pool!: Pool;
-  private drizzleDb: ReturnType<typeof drizzle>;
+  private drizzleDb!: ReturnType<typeof drizzle>;
   private isInitialized = false;
   private connectionMetrics = {
     totalConnections: 0,

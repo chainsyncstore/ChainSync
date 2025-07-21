@@ -27,43 +27,47 @@ export interface AnalyticsError extends AppError {
 export const AnalyticsServiceErrors = {
   INVALID_QUERY: new AppError(
     'Invalid analytics query',
-    ErrorCode.INVALID_REQUEST,
     ErrorCategory.VALIDATION,
-    false,
-    undefined,
-    'Please check your query parameters'
+    ErrorCode.INVALID_REQUEST,
+    { details: 'Please check your query parameters' },
+    400,
+    false
   ),
   CACHE_ERROR: new AppError(
     'Cache error',
-    ErrorCode.INTERNAL_SERVER_ERROR,
     ErrorCategory.SYSTEM,
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    { details: 'Failed to access cache. Please try again' },
+    500,
     true,
-    5000,
-    'Failed to access cache. Please try again'
+    5000
   ),
   STORAGE_ERROR: new AppError(
     'Storage error',
-    ErrorCode.INTERNAL_SERVER_ERROR,
     ErrorCategory.SYSTEM,
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    { details: 'Failed to access storage. Please try again' },
+    500,
     true,
-    5000,
-    'Failed to access storage. Please try again'
+    5000
   ),
   AGGREGATION_ERROR: new AppError(
     'Aggregation error',
-    ErrorCode.INTERNAL_SERVER_ERROR,
     ErrorCategory.SYSTEM,
+    ErrorCode.INTERNAL_SERVER_ERROR,
+    { details: 'Failed to aggregate data. Please try again' },
+    500,
     true,
-    5000,
-    'Failed to aggregate data. Please try again'
+    5000
   ),
   QUERY_TIMEOUT: new AppError(
     'Query timeout',
-    ErrorCode.REQUEST_TIMEOUT,
     ErrorCategory.SYSTEM,
+    ErrorCode.REQUEST_TIMEOUT,
+    { details: 'Query took too long to complete. Please try again' },
+    408,
     true,
-    10000,
-    'Query took too long to complete. Please try again'
+    10000
   )
 };
 
