@@ -52,14 +52,14 @@ async function checkDatabase(): Promise<{ status: string; responseTime: number; 
   
   try {
     // Simple query to check database connection
-    const result = await dbPool.query('SELECT 1');
+    await dbPool.query('SELECT 1');
     const responseTime = Math.round(performance.now() - startTime);
     
     return { 
       status: 'UP', 
       responseTime
     };
-  } catch (error) {
+  } catch (error: any) {
     const responseTime = Math.round(performance.now() - startTime);
     logger.error('Database health check failed', error);
     
@@ -92,7 +92,7 @@ async function checkRedis(): Promise<{ status: string; responseTime: number; err
       status: 'UP', 
       responseTime 
     };
-  } catch (error) {
+  } catch (error: any) {
     const responseTime = Math.round(performance.now() - startTime);
     logger.error('Redis health check failed', error);
     
@@ -107,10 +107,11 @@ async function checkRedis(): Promise<{ status: string; responseTime: number; err
 /**
  * Queue health check
  */
+import { QueueType } from '../../src/queue';
 async function checkQueueStatus(): Promise<{ status: string; messageCount: number; error?: string }> {
   try {
     // Fixed: Added explicit empty object parameter to match expected function signature
-    const queue = getQueue({});
+    const queue = getQueue(QueueType.default);
     
     if (!queue) {
       return { status: 'DISABLED', messageCount: 0 };
@@ -124,7 +125,7 @@ async function checkQueueStatus(): Promise<{ status: string; messageCount: numbe
       status: 'UP', 
       messageCount
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Queue health check failed', error);
     
     return { 
@@ -393,7 +394,7 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
       
       res.send(htmlContent);
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error serving dashboard', error);
     res.status(500).send('Error loading dashboard');
   }
@@ -436,7 +437,7 @@ router.get('/health', authenticateUser, authorizeRoles(['admin']), async (req: R
     addHealthRecord(healthResult);
     
     res.json(healthResult);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Health check error', error);
     res.status(500).json({
       status: 'ERROR',
@@ -450,7 +451,7 @@ router.get('/health', authenticateUser, authorizeRoles(['admin']), async (req: R
 router.get('/health/history', authenticateUser, authorizeRoles(['admin']), (req: Request, res: Response) => {
   try {
     res.json(healthHistory);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error fetching health history', error);
     res.status(500).json({ error: 'Failed to retrieve health history' });
   }

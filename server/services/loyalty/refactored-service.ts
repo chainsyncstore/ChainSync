@@ -39,6 +39,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       return loyaltyId;
     } catch (error) {
       this.handleError(error, 'Generating loyalty ID');
+      return '';
     }
   }
 
@@ -110,6 +111,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
       this.handleError(error, 'Enrolling customer in loyalty program');
+      return {} as schema.LoyaltyMember;
     }
   }
 
@@ -182,6 +184,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         console.error(`Validation error: ${error.message}`, error.toJSON());
       }
       this.handleError(error, 'Awarding loyalty points');
+      return false;
     }
   }
 
@@ -213,7 +216,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       });
 
       // Check if member qualifies for an upgrade
-      if (nextTier && parseFloat(member.currentPoints) >= parseFloat(nextTier.requiredPoints)) {
+      if (nextTier && parseFloat(member.currentPoints) >= nextTier.requiredPoints) {
         await db.update(schema.loyaltyMembers)
           .set({
             tierId: nextTier.id,
@@ -227,6 +230,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       return false;
     } catch (error) {
       this.handleError(error, 'Checking and updating member tier');
+      return false;
     }
   }
 
@@ -259,9 +263,8 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
             earned: sql<number>`COALESCE(sum(${schema.loyaltyTransactions.transactionAmount}), 0)`,
             redeemed: sql<number>`0` // Placeholder until redemptions table is implemented
           })
-          .from(schema.loyaltyMembers)
-          .where(eq(schema.loyaltyMembers.customerId, sql`(SELECT id FROM customers WHERE store_id = ${storeId} LIMIT 1)`))
-          .leftJoin(schema.loyaltyTransactions, eq(schema.loyaltyTransactions.memberId, schema.loyaltyMembers.id));
+          .from(schema.loyaltyTransactions)
+          .where(eq(schema.loyaltyTransactions.memberId, sql`(SELECT id FROM loyalty_members WHERE customer_id = (SELECT id FROM customers WHERE store_id = ${storeId} LIMIT 1))`));
 
         // Get program details
         const program = await tx.query.loyaltyPrograms.findFirst({
@@ -297,6 +300,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       };
     } catch (error) {
       this.handleError(error, 'Getting loyalty analytics');
+      return {} as any;
     }
   }
 

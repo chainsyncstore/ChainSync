@@ -23,6 +23,8 @@ import {
   InventoryAdjustmentParams,
   InventoryBatchParams,
   InventoryTransactionType,
+  IInventoryService,
+  InventorySearchParams,
 } from './types';
 import { InventoryServiceErrors } from './errors';
 // import { ErrorCode } from '@shared/types/errors'; // Unused
@@ -83,7 +85,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const validatedData = inventoryValidation.insert(inventoryData);
 
       // Use the raw insert method to avoid TypeScript field mapping errors
-      const inventory = await this.rawInsertWithFormatting(
+      const inventory = await this.rawInsertWithFormatting<Inventory>(
         'inventory',
         validatedData,
         this.inventoryFormatter.formatResult.bind(this.inventoryFormatter)
@@ -122,7 +124,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const validatedData = inventoryValidation.update(updateData);
 
       // Use the raw update method to avoid TypeScript field mapping errors
-      const updatedInventory = await this.rawUpdateWithFormatting(
+      const updatedInventory = await this.rawUpdateWithFormatting<Inventory>(
         'inventory',
         validatedData,
         `id = ${inventoryId}`,
@@ -229,7 +231,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const validatedData = inventoryValidation.itemInsert(itemData);
 
       // Use the raw insert method to avoid TypeScript field mapping errors
-      const item = await this.rawInsertWithFormatting(
+      const item = await this.rawInsertWithFormatting<InventoryItem>(
         'inventory_items',
         validatedData,
         this.itemFormatter.formatResult.bind(this.itemFormatter)
@@ -274,7 +276,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const validatedData = inventoryValidation.itemUpdate(updateData);
 
       // Use the raw update method to avoid TypeScript field mapping errors
-      const updatedItem = await this.rawUpdateWithFormatting(
+      const updatedItem = await this.rawUpdateWithFormatting<InventoryItem>(
         'inventory_items',
         validatedData,
         `id = ${itemId}`,
@@ -349,7 +351,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
    * @param params Inventory adjustment parameters
    * @returns The created inventory transaction
    */
-  async adjustInventory(params: InventoryAdjustmentParams): Promise<InventoryTransaction> {
+  async adjustInventory(params: InventoryAdjustmentParams): Promise<boolean> {
     try {
       // Get inventory
       const inventory = await this.getInventoryById(params.inventoryId);
@@ -402,7 +404,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       const validatedData = transactionData; // Pass-through until validation is defined
 
       // Use the raw insert method to avoid TypeScript field mapping errors
-      const transaction = await this.rawInsertWithFormatting(
+      const transaction = await this.rawInsertWithFormatting<InventoryTransaction>(
         'inventory_transactions',
         validatedData,
         this.transactionFormatter.formatResult.bind(this.transactionFormatter)
@@ -412,7 +414,8 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       await this.updateInventoryUtilization(params.inventoryId);
 
       // Ensure the transaction was created
-      return this.ensureExists(transaction, 'Inventory Transaction');
+      this.ensureExists(transaction, 'Inventory Transaction');
+      return true;
     } catch (error) {
       return this.handleError(error, 'adjusting inventory');
     }
@@ -424,7 +427,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
    * @param params Inventory batch parameters
    * @returns The created inventory item for the batch
    */
-  async addInventoryBatch(params: InventoryBatchParams): Promise<InventoryItem> {
+  async addInventoryBatch(params: InventoryBatchParams): Promise<schema.InventoryBatch> {
     try {
       // Check if product exists
       const product = await this.getProductById(params.productId);
@@ -438,8 +441,9 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         inventory = await this.createInventory({
           productId: params.productId,
           storeId: params.storeId || 1, // Default to main store if not specified
-          name: product.name,
-          description: product.description || '',
+          totalQuantity: params.quantity,
+          availableQuantity: params.quantity,
+          minimumLevel: 0,
           batchTracking: true,
         });
       }
@@ -460,7 +464,7 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         sku: params.sku || `BATCH-${params.productId}-${Date.now()}`,
         quantity: params.quantity,
         unit: params.unit || 'each',
-        unitCost: params.unitCost || '0.00',
+        unitCost: params.unitCost || 0,
         batchNumber: params.batchNumber || `B${Date.now()}`,
         manufactureDate: params.manufactureDate,
         expiryDate: params.expiryDate,
@@ -478,10 +482,10 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
         itemId: batchItem.id,
         quantity: params.quantity,
         transactionType: InventoryTransactionType.RECEIVE,
-        unitCost: params.unitCost,
+        unitCost: String(params.unitCost),
         referenceId: params.referenceId,
         notes: `Batch ${params.batchNumber || batchItem.batchNumber} received`,
-        performedBy: params.performedBy,
+        performedBy: params.userId,
       });
 
       return batchItem;
@@ -587,7 +591,6 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
       // Update inventory utilization
       return this.updateInventory(inventoryId, {
         currentUtilization: totalQuantity,
-        updatedAt: new Date(),
       });
     } catch (error) {
       console.error(`Error updating inventory utilization: ${error}`);
@@ -629,5 +632,21 @@ export class EnhancedInventoryService extends EnhancedBaseService implements IIn
     } catch (error) {
       return null;
     }
+  }
+
+  async getInventoryByStore(storeId: number, page?: number, limit?: number): Promise<{ inventory: Inventory[]; total: number; page: number; limit: number; }> {
+    throw new Error('Method not implemented.');
+  }
+  async searchInventory(params: InventorySearchParams): Promise<{ inventory: Inventory[]; total: number; page: number; limit: number; }> {
+    throw new Error('Method not implemented.');
+  }
+  async getBatchesByProduct(productId: number): Promise<schema.InventoryBatch[]> {
+    throw new Error('Method not implemented.');
+  }
+  async getLowStockItems(storeId: number): Promise<Inventory[]> {
+    throw new Error('Method not implemented.');
+  }
+  async getInventoryValuation(storeId: number): Promise<{ totalValue: string; totalItems: number; valuationDate: Date; breakdown: { categoryId: number; categoryName: string; value: string; itemCount: number; }[]; }> {
+    throw new Error('Method not implemented.');
   }
 }

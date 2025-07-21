@@ -1,14 +1,15 @@
 import { BaseService } from '../base/service';
-import { AnalyticsConfig, AnalyticsServiceErrors, AnalyticsError } from '../../config/analytics';
-import { CacheService } from '../cache/cache';
+import { AnalyticsConfig, AnalyticsServiceErrors, AnalyticsError, defaultAnalyticsConfig } from '../../config/analytics';
+import { CacheService } from '../cache/service';
 import { Redis } from 'ioredis';
 // import { performance } from 'perf_hooks'; // Unused
 import { ErrorCode, ErrorCategory } from '@shared/types/errors'; // AppError removed
-import { schema } from '@shared/schema';
+import { db } from '../../db';
+import * as schema from '@shared/schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm'; // desc, asc removed
 
 export class AnalyticsService extends BaseService {
-  private redis: Redis;
+  private redis: Redis | undefined;
   private cache: CacheService;
   private config: AnalyticsConfig;
   private aggregationQueue: Array<any>;
@@ -17,7 +18,7 @@ export class AnalyticsService extends BaseService {
     super();
     this.config = { ...defaultAnalyticsConfig, ...config };
     
-    if (this.config.storage.type === 'redis') {
+    if (this.config.storage.type === 'redis' && this.config.storage.connection) {
       this.redis = new Redis(this.config.storage.connection);
     }
 
@@ -41,10 +42,7 @@ export class AnalyticsService extends BaseService {
       throw new AnalyticsError(
         'Invalid query parameters',
         ErrorCode.INVALID_FIELD_VALUE,
-        ErrorCategory.VALIDATION,
-        false,
-        undefined,
-        'Query parameters must be an object'
+        ErrorCategory.VALIDATION
       );
     }
   }
@@ -107,8 +105,8 @@ export class AnalyticsService extends BaseService {
 
       // Store in Redis
       if (this.redis) {
-        await this.redis.hincrbyfloat(`metrics:transactions:total`, data.storeId, data.amount);
-        await this.redis.hincrby(`metrics:transactions:count`, data.storeId, 1);
+        await this.redis.hincrbyfloat(`metrics:transactions:total`, String(data.storeId), data.amount);
+        await this.redis.hincrby(`metrics:transactions:count`, String(data.storeId), 1);
       }
 
       // Update cache
@@ -129,9 +127,9 @@ export class AnalyticsService extends BaseService {
 
       // Store in Redis
       if (this.redis) {
-        await this.redis.hincrby(`metrics:users:total`, data.storeId, 1);
+        await this.redis.hincrby(`metrics:users:total`, String(data.storeId), 1);
         if (data.active) {
-          await this.redis.hincrby(`metrics:users:active`, data.storeId, 1);
+          await this.redis.hincrby(`metrics:users:active`, String(data.storeId), 1);
         }
       }
 
@@ -154,9 +152,9 @@ export class AnalyticsService extends BaseService {
 
       // Store in Redis
       if (this.redis) {
-        await this.redis.hincrby(`metrics:products:total`, data.storeId, 1);
+        await this.redis.hincrby(`metrics:products:total`, String(data.storeId), 1);
         if (data.inStock) {
-          await this.redis.hincrby(`metrics:products:in_stock`, data.storeId, 1);
+          await this.redis.hincrby(`metrics:products:in_stock`, String(data.storeId), 1);
         }
       }
 
@@ -197,9 +195,9 @@ export class AnalyticsService extends BaseService {
           const query = db
             .select({
               date: sql<string>`DATE(${schema.transactions.createdAt})`,
-              totalSales: sql<number>`SUM(${schema.transactions.amount})`,
+              totalSales: sql<number>`SUM(${schema.transactions.totalAmount})`,
               totalTransactions: sql<number>`COUNT(*)`,
-              averageTransaction: sql<number>`AVG(${schema.transactions.amount})`
+              averageTransaction: sql<number>`AVG(${schema.transactions.totalAmount})`
             })
             .from(schema.transactions)
             .where(
@@ -208,7 +206,8 @@ export class AnalyticsService extends BaseService {
                 gte(schema.transactions.createdAt, startDate),
                 lte(schema.transactions.createdAt, endDate)
               )
-            );
+            )
+            .groupBy(sql`DATE(${schema.transactions.createdAt})`);
 
           return query;
         },
@@ -220,7 +219,7 @@ export class AnalyticsService extends BaseService {
 
       return metrics;
     } catch (error) {
-      this.handleError(error, 'Getting store metrics');
+      return this.handleError(error, 'Getting store metrics');
     }
   }
 
@@ -257,7 +256,7 @@ export class AnalyticsService extends BaseService {
               totalUsers: sql<number>`COUNT(*)`,
               activeUsers: sql<number>`COUNT(*) filter (where ${schema.users.status} = 'active')`,
               averageTransactions: sql<number>`AVG(
-                (SELECT COUNT(*) FROM ${schema.transactions} WHERE ${schema.transactions.userId} = ${schema.users.id})
+                (SELECT COUNT(*) FROM transactions WHERE transactions.user_id = ${schema.users.id})
               )`
             })
             .from(schema.users)
@@ -267,7 +266,8 @@ export class AnalyticsService extends BaseService {
                 gte(schema.users.createdAt, startDate),
                 lte(schema.users.createdAt, endDate)
               )
-            );
+            )
+            .groupBy(sql`DATE(${schema.users.createdAt})`);
 
           return query;
         },
@@ -279,7 +279,7 @@ export class AnalyticsService extends BaseService {
 
       return metrics;
     } catch (error) {
-      this.handleError(error, 'Getting user metrics');
+      return this.handleError(error, 'Getting user metrics');
     }
   }
 
@@ -314,8 +314,8 @@ export class AnalyticsService extends BaseService {
             .select({
               date: sql<string>`DATE(${schema.products.createdAt})`,
               totalProducts: sql<number>`COUNT(*)`,
-              inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.stockQuantity} > 0)`,
-              outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.stockQuantity} = 0)`,
+              inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.quantity} > 0)`,
+              outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.products.quantity} = 0)`,
               averagePrice: sql<number>`AVG(${schema.products.price})`
             })
             .from(schema.products)
@@ -325,7 +325,8 @@ export class AnalyticsService extends BaseService {
                 gte(schema.products.createdAt, startDate),
                 lte(schema.products.createdAt, endDate)
               )
-            );
+            )
+            .groupBy(sql`DATE(${schema.products.createdAt})`);
 
           return query;
         },
@@ -337,7 +338,7 @@ export class AnalyticsService extends BaseService {
 
       return metrics;
     } catch (error) {
-      this.handleError(error, 'Getting product metrics');
+      return this.handleError(error, 'Getting product metrics');
     }
   }
 
@@ -376,14 +377,15 @@ export class AnalyticsService extends BaseService {
               activeMembers: sql<number>`COUNT(DISTINCT ${schema.loyaltyMembers.id})`
             })
             .from(schema.loyaltyTransactions)
-            .leftJoin(schema.loyaltyMembers, eq(schema.loyaltyMembers.id, schema.loyaltyTransactions.memberId))
+            .leftJoin(schema.loyalty, eq(schema.loyalty.id, schema.loyaltyTransactions.loyaltyId))
             .where(
               and(
-                eq(schema.loyaltyMembers.storeId, storeId),
+                eq(schema.loyalty.storeId, storeId),
                 gte(schema.loyaltyTransactions.createdAt, startDate),
                 lte(schema.loyaltyTransactions.createdAt, endDate)
               )
-            );
+            )
+            .groupBy(sql`DATE(${schema.loyaltyTransactions.createdAt})`);
 
           return query;
         },
@@ -395,7 +397,7 @@ export class AnalyticsService extends BaseService {
 
       return metrics;
     } catch (error) {
-      this.handleError(error, 'Getting loyalty metrics');
+      return this.handleError(error, 'Getting loyalty metrics');
     }
   }
 

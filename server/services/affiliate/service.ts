@@ -62,21 +62,25 @@ export class AffiliateService extends BaseService implements IAffiliateService {
 
   async getAffiliateByUserId(userId: number): Promise<schema.Affiliate | null> {
     try {
-      return await db.query.affiliates.findFirst({
+      const affiliate = await db.query.affiliates.findFirst({
         where: eq(schema.affiliates.userId, userId)
       });
+      return affiliate ?? null;
     } catch (error) {
       this.handleError(error, 'Getting affiliate by user ID');
+      return null;
     }
   }
 
   async getAffiliateByCode(code: string): Promise<schema.Affiliate | null> {
     try {
-      return await db.query.affiliates.findFirst({
+      const affiliate = await db.query.affiliates.findFirst({
         where: eq(schema.affiliates.code, code)
       });
+      return affiliate ?? null;
     } catch (error) {
       this.handleError(error, 'Getting affiliate by code');
+      return null;
     }
   }
 
@@ -148,7 +152,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .insert(schema.referralPayments)
         .values({
           affiliateId: affiliate.id,
-          amount: commissionAmount,
+          amount: commissionAmount.toString(),
           currency,
           status: 'pending',
           paymentDate: new Date(),
@@ -170,17 +174,16 @@ export class AffiliateService extends BaseService implements IAffiliateService {
 
   async processAffiliatePayout(affiliateId?: number): Promise<schema.ReferralPayment[]> {
     try {
-      const query = db
-        .select()
-        .from(schema.referralPayments)
-        .where(eq(schema.referralPayments.status, 'pending'))
-        .orderBy(desc(schema.referralPayments.paymentDate));
-
+      const whereClauses = [eq(schema.referralPayments.status, 'pending')];
       if (affiliateId) {
-        query.where(eq(schema.referralPayments.affiliateId, affiliateId));
+        whereClauses.push(eq(schema.referralPayments.affiliateId, affiliateId));
       }
 
-      const pendingPayments = await query;
+      const pendingPayments = await db
+        .select()
+        .from(schema.referralPayments)
+        .where(and(...whereClauses))
+        .orderBy(desc(schema.referralPayments.paymentDate));
       const processed: schema.ReferralPayment[] = [];
 
       for (const paymentRow of pendingPayments) {
@@ -189,15 +192,24 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         }
 
         try {
+          const affiliate = await this.getAffiliateByUserId(paymentRow.affiliateId);
+          if (!affiliate || !affiliate.bankCode || !affiliate.accountNumber) {
+            console.error(`Affiliate or bank details not found for payment ${paymentRow.id}`);
+            continue;
+          }
+
           // Simulate payout
           const payment = await this.withRetry(
-            () => flwClient.Payout.createPayout(
-              commission.amount,
-              commission.currency,
-              affiliate.bankDetails
-            ),
+            () => flwClient!.Transfer.initiate({
+              account_bank: affiliate.bankCode!,
+              account_number: affiliate.accountNumber!,
+              amount: Number(paymentRow.amount),
+              currency: paymentRow.currency,
+              narration: `Affiliate Payout for ${affiliate.code}`,
+              reference: `payout_${paymentRow.id}_${Date.now()}`
+            }),
             'Processing payout'
-          );
+          ) as { status: string; data: any };
 
           if (payment.status === 'success') {
             // mark as paid locally
@@ -311,7 +323,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .select()
         .from(schema.referrals)
         .where(eq(schema.referrals.affiliateId, affiliate.id))
-        .orderBy(desc(schema.referrals.signupDate));
+        .orderBy(desc(schema.referrals.createdAt));
     } catch (error) {
       this.handleError(error, 'Getting affiliate referrals');
     }
@@ -363,15 +375,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
 
       const updated = await db
         .update(schema.affiliates)
-        .set({
-          bankDetails: {
-            bankName: bankDetails.bankName,
-            accountNumber: bankDetails.accountNumber,
-            accountName: bankDetails.accountName,
-            bankCode: bankDetails.bankCode,
-            paymentMethod: bankDetails.paymentMethod
-          }
-        })
+        .set(bankDetails)
         .where(eq(schema.affiliates.userId, userId))
         .returning();
 
