@@ -3,7 +3,7 @@ import { stringify as csvStringify } from 'csv-stringify/sync';
 import * as xlsx from 'xlsx';
 import { storage } from '../storage';
 import * as schema from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../../db';
 import { SessionsClient } from '@google-cloud/dialogflow';
 import { enhanceValidationWithAI } from './import-ai';
@@ -704,10 +704,9 @@ export async function importInventoryData(data: any[], storeId: number): Promise
     lastUpdated: new Date()
   };
   
-  // Get all categories for category name matching
-  const categories = await storage.getAllCategories();
+  const categories = await db.query.categories.findMany();
   const categoryMap = new Map<string, number>();
-  categories.forEach(category => {
+  categories.forEach((category: any) => {
     categoryMap.set(category.name.toLowerCase(), category.id);
   });
   
@@ -716,7 +715,6 @@ export async function importInventoryData(data: any[], storeId: number): Promise
     const rowNumber = i + 1;
     
     try {
-      // Resolve category ID if it's a name
       let categoryId = row.categoryId;
       if (typeof categoryId === 'string' && isNaN(parseInt(categoryId, 10))) {
         const matchedCategoryId = categoryMap.get(categoryId.toLowerCase());
@@ -726,57 +724,52 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         categoryId = matchedCategoryId;
       }
       
-      // Check if product already exists by barcode
-      const existingProduct = await storage.getProductByBarcode(row.barcode);
+      const existingProduct = await db.query.products.findFirst({ where: eq(schema.products.barcode, row.barcode) });
       
       if (existingProduct) {
-        // Update existing product
-        await storage.updateProduct(existingProduct.id, {
+        await db.update(schema.products).set({
           name: row.name,
           description: row.description || existingProduct.description,
           price: row.price.toString(),
           categoryId: categoryId,
           isPerishable: row.isPerishable || false
-        });
+        }).where(eq(schema.products.id, existingProduct.id));
         
-        // Update inventory for specific store
-        const inventoryItem = await storage.getStoreProductInventory(storeId, existingProduct.id);
+        const inventoryItem = await db.query.inventory.findFirst({ where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, existingProduct.id)) });
         
         if (inventoryItem) {
-          // Update existing inventory
-          await storage.updateInventory(inventoryItem.id, {
-            quantity: row.quantity,
-            minStockLevel: row.minStockLevel || inventoryItem.minStockLevel,
-            lastUpdated: new Date()
-          });
+          await db.update(schema.inventory).set({
+            availableQuantity: row.quantity,
+            minimumLevel: row.minStockLevel || inventoryItem.minimumLevel,
+            lastStockUpdate: new Date()
+          }).where(eq(schema.inventory.id, inventoryItem.id));
         } else {
-          // Create new inventory entry for this store/product
           await db.insert(schema.inventory).values({
             storeId: storeId,
             productId: existingProduct.id,
-            quantity: row.quantity,
-            minStockLevel: row.minStockLevel || 5,
-            lastUpdated: new Date()
+            availableQuantity: row.quantity,
+            minimumLevel: row.minStockLevel || 5,
+            lastStockUpdate: new Date()
           });
         }
       } else {
-        // Create new product
         const [newProduct] = await db.insert(schema.products).values({
           name: row.name,
           description: row.description || '',
           barcode: row.barcode,
+          sku: row.barcode,
           price: row.price.toString(),
+          storeId: storeId,
           categoryId: categoryId,
           isPerishable: row.isPerishable || false
         }).returning();
         
-        // Create inventory entry for this store/product
         await db.insert(schema.inventory).values({
           storeId: storeId,
           productId: newProduct.id,
-          quantity: row.quantity,
-          minStockLevel: row.minStockLevel || 5,
-          lastUpdated: new Date()
+          availableQuantity: row.quantity,
+          minimumLevel: row.minStockLevel || 5,
+          lastStockUpdate: new Date()
         });
       }
       
@@ -812,21 +805,18 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
     const rowNumber = i + 1;
     
     try {
-      // Check if loyalty member already exists
-      const existingMember = await storage.getLoyaltyMemberByLoyaltyId(row.loyaltyId);
+      const existingMember = await db.query.loyaltyMembers.findFirst({ where: eq(schema.loyaltyMembers.loyaltyId, row.loyaltyId) });
       
       if (existingMember) {
-        // Update existing member
-        await storage.updateLoyaltyMember(existingMember.id, {
+        await db.update(schema.loyaltyMembers).set({
           currentPoints: row.points ? row.points.toString() : existingMember.currentPoints
-        });
+        }).where(eq(schema.loyaltyMembers.id, existingMember.id));
         
-        // Get and update customer
-        const customer = await storage.getCustomerById(existingMember.customerId);
+        const customer = await db.query.customers.findFirst({ where: eq(schema.customers.id, existingMember.customerId) });
         if (customer) {
           await db.update(schema.customers)
             .set({
-              name: row.name || customer.name,
+              fullName: row.name || customer.fullName,
               email: row.email || customer.email,
               phone: row.phone || customer.phone,
               updatedAt: new Date()
@@ -834,27 +824,20 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
             .where(eq(schema.customers.id, customer.id));
         }
       } else {
-        // Create new customer
-        const customerData: schema.CustomerInsert = {
-          name: row.name,
+        const [newCustomer] = await db.insert(schema.customers).values({
+          fullName: row.name,
           email: row.email || null,
           phone: row.phone || null,
           storeId: storeId
-        };
+        }).returning();
         
-        // Create customer first, then loyalty member
-        const customer = await storage.createCustomer(customerData);
-        
-        // Create new loyalty member linked to customer
-        const memberData: schema.LoyaltyMemberInsert = {
+        await db.insert(schema.loyaltyMembers).values({
           loyaltyId: row.loyaltyId,
-          customerId: customer.id,
-          tierId: null, // Default tier - can be updated later
+          customerId: newCustomer.id,
+          programId: 1, // Assuming a default programId
           currentPoints: row.points ? row.points.toString() : "0",
           enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : new Date()
-        };
-        
-        await storage.createLoyaltyMember(memberData);
+        });
       }
       
       result.importedRows++;

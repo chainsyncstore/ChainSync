@@ -67,8 +67,8 @@ export interface AIService {
   generateImageEdit(
     userId: string,
     image: string,
-    mask?: string,
     prompt: string,
+    mask?: string,
     options?: {
       n?: number;
       size?: '256x256' | '512x512' | '1024x1024';
@@ -157,12 +157,6 @@ export interface AIService {
       maxTokens?: number;
     }
   ): Promise<string>;
-
-  // Error Handling
-  handleError(
-    error: Error,
-    context: string
-  ): never;
 
   // Usage Tracking
   getUsageStats(

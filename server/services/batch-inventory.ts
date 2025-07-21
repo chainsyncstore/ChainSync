@@ -1,4 +1,5 @@
 import { storage } from '../storage';
+import * as schema from '@shared/schema';
 import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 // import { stringify } from 'csv-stringify/sync'; // Unused
@@ -210,7 +211,7 @@ export async function importBatchInventory(data: BatchImportRow[]) {
         }
         
         // Get or create inventory record
-        let inventory = await storage.getStoreProductInventory(row.storeId, row.productId);
+        let inventory: schema.Inventory | null = await storage.getStoreProductInventory(row.storeId, row.productId) as schema.Inventory | null;
         
         if (!inventory) {
           // Create new inventory record
@@ -219,19 +220,28 @@ export async function importBatchInventory(data: BatchImportRow[]) {
             productId: row.productId,
             totalQuantity: 0,
             minimumLevel: 5, // Default minimum level
-            lastStockUpdate: new Date()
           });
         }
         
         // Add batch to inventory
+        if (!inventory) {
+          results.errors.push({
+            row: rowIndex,
+            field: 'general',
+            message: 'Failed to create inventory record'
+          });
+          results.failedRows++;
+          rowIndex++;
+          continue;
+        }
         await storage.createInventoryBatch({
           inventoryId: inventory.id,
           batchNumber: row.batchNumber,
           quantity: row.quantity,
           receivedDate: new Date(),
-          expiryDate: row.expiryDate ? new Date(row.expiryDate) : null,
-          manufacturingDate: row.manufacturingDate ? new Date(row.manufacturingDate) : null,
-          costPerUnit: row.costPerUnit ? row.costPerUnit.toString() : null
+          expiryDate: row.expiryDate ? new Date(row.expiryDate) : undefined,
+          manufacturingDate: row.manufacturingDate ? new Date(row.manufacturingDate) : undefined,
+          costPerUnit: row.costPerUnit ? row.costPerUnit.toString() : undefined
         });
         
         results.successfulRows++;

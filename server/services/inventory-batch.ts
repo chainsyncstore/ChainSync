@@ -1,7 +1,6 @@
-import { storage } from '../storage';
-// import * as schema from '@shared/schema'; // Unused
-// import { db } from '@db'; // Unused
-// import { eq, and, desc } from 'drizzle-orm'; // Unused
+import { db } from '../../db';
+import * as schema from '../../shared/schema';
+import { eq, and, desc, sum, isNull } from 'drizzle-orm';
 
 export interface BatchInsertData {
   inventoryId: number;
@@ -35,35 +34,30 @@ export interface BatchData {
  */
 export async function addBatch(batchData: BatchData) {
   try {
-    // Check if inventory exists
-    let inventory = await storage.getStoreProductInventory(
-      batchData.storeId,
-      batchData.productId
-    );
+    let inventory = await db.query.inventory.findFirst({
+      where: and(eq(schema.inventory.storeId, batchData.storeId), eq(schema.inventory.productId, batchData.productId)),
+    });
 
-    // Create inventory if it doesn't exist
     if (!inventory) {
-      inventory = await storage.createInventory({
+      [inventory] = await db.insert(schema.inventory).values({
         storeId: batchData.storeId,
         productId: batchData.productId,
         totalQuantity: 0,
-        minimumLevel: 5
-      });
+        minimumLevel: 5,
+      }).returning();
     }
 
-    // Create batch
-    const batch = await storage.createInventoryBatch({
+    const [batch] = await db.insert(schema.inventoryBatches).values({
       inventoryId: inventory.id,
       batchNumber: batchData.batchNumber,
       quantity: batchData.quantity,
-      expiryDate: batchData.expiryDate || null,
-      receivedDate: new Date().toISOString(),
-      manufacturingDate: batchData.manufacturingDate || null,
-      costPerUnit: batchData.costPerUnit?.toString() || null
-    });
+      expiryDate: batchData.expiryDate ? new Date(batchData.expiryDate) : null,
+      receivedDate: new Date(),
+      manufacturingDate: batchData.manufacturingDate ? new Date(batchData.manufacturingDate) : null,
+      costPerUnit: batchData.costPerUnit?.toString() || null,
+    }).returning();
 
-    // Update inventory total quantity
-    await storage.updateInventoryTotalQuantity(inventory.id);
+    await updateInventoryTotalQuantity(inventory.id);
     
     return batch;
   } catch (error) {
@@ -77,7 +71,23 @@ export async function addBatch(batchData: BatchData) {
  */
 export async function getBatches(storeId: number, productId: number, includeExpired = false) {
   try {
-    return await storage.getInventoryBatchesByProduct(storeId, productId, includeExpired);
+    const inventory = await db.query.inventory.findFirst({
+      where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, productId)),
+    });
+
+    if (!inventory) {
+      return [];
+    }
+
+    const conditions = [eq(schema.inventoryBatches.inventoryId, inventory.id)];
+    if (!includeExpired) {
+      conditions.push(isNull(schema.inventoryBatches.expiryDate));
+    }
+
+    return await db.query.inventoryBatches.findMany({
+      where: and(...conditions),
+      orderBy: [desc(schema.inventoryBatches.expiryDate)],
+    });
   } catch (error) {
     console.error('Error getting batches:', error);
     throw new Error('Failed to retrieve inventory batches');
@@ -89,7 +99,9 @@ export async function getBatches(storeId: number, productId: number, includeExpi
  */
 export async function getBatchById(batchId: number) {
   try {
-    return await storage.getInventoryBatchById(batchId);
+    return await db.query.inventoryBatches.findFirst({
+      where: eq(schema.inventoryBatches.id, batchId),
+    });
   } catch (error) {
     console.error('Error getting batch by ID:', error);
     throw new Error('Failed to retrieve inventory batch');
@@ -101,19 +113,28 @@ export async function getBatchById(batchId: number) {
  */
 export async function updateBatch(batchId: number, updateData: Partial<BatchInsertData>) {
   try {
-    // Get the current batch to retrieve its inventory ID
-    const currentBatch = await storage.getInventoryBatchById(batchId);
+    const currentBatch = await getBatchById(batchId);
     if (!currentBatch) {
       throw new Error('Batch not found');
     }
 
-    // Update batch
-    await storage.updateInventoryBatch(batchId, updateData);
+    const dataToUpdate: any = { ...updateData };
+    if (updateData.expiryDate) {
+      dataToUpdate.expiryDate = new Date(updateData.expiryDate);
+    }
+    if (updateData.manufacturingDate) {
+      dataToUpdate.manufacturingDate = new Date(updateData.manufacturingDate);
+    }
+    if (updateData.receivedDate) {
+      dataToUpdate.receivedDate = new Date(updateData.receivedDate);
+    }
 
-    // Update inventory total quantity
-    await storage.updateInventoryTotalQuantity(currentBatch.inventoryId);
 
-    return await storage.getInventoryBatchById(batchId);
+    await db.update(schema.inventoryBatches).set(dataToUpdate).where(eq(schema.inventoryBatches.id, batchId));
+
+    await updateInventoryTotalQuantity(currentBatch.inventoryId);
+
+    return await getBatchById(batchId);
   } catch (error) {
     console.error('Error updating batch:', error);
     throw new Error('Failed to update inventory batch');
@@ -125,32 +146,22 @@ export async function updateBatch(batchId: number, updateData: Partial<BatchInse
  */
 export async function adjustBatchStock(adjustment: BatchStockAdjustment) {
   try {
-    // Get the current batch
-    const currentBatch = await storage.getInventoryBatchById(adjustment.batchId);
+    const currentBatch = await getBatchById(adjustment.batchId);
     if (!currentBatch) {
       throw new Error('Batch not found');
     }
 
-    // Calculate new quantity
     const newQuantity = currentBatch.quantity + adjustment.quantity;
     
-    // Ensure quantity doesn't go below zero
     if (newQuantity < 0) {
       throw new Error('Adjustment would result in negative stock');
     }
 
-    // Update batch quantity
-    await storage.updateInventoryBatch(adjustment.batchId, { 
-      quantity: newQuantity 
-    });
+    await db.update(schema.inventoryBatches).set({ quantity: newQuantity }).where(eq(schema.inventoryBatches.id, adjustment.batchId));
 
-    // Update inventory total quantity
-    await storage.updateInventoryTotalQuantity(currentBatch.inventoryId);
+    await updateInventoryTotalQuantity(currentBatch.inventoryId);
 
-    // TODO: In a more advanced version, we would log this adjustment
-    // with the reason in a stock_adjustments table
-
-    return await storage.getInventoryBatchById(adjustment.batchId);
+    return await getBatchById(adjustment.batchId);
   } catch (error) {
     console.error('Error adjusting batch stock:', error);
     throw new Error('Failed to adjust batch stock');
@@ -195,11 +206,8 @@ export async function returnToBatch(batchId: number, quantity: number) {
  */
 export async function sellFromBatchesFIFO(storeId: number, productId: number, quantity: number) {
   try {
-    // Get all non-expired batches for this product, ordered by expiry date (ascending)
-    const batches = await storage.getInventoryBatchesByProduct(storeId, productId, false);
+    const batches = await getBatches(storeId, productId, false);
     
-    // Sort batches by expiry date (closest expiry first)
-    // Batches without expiry dates will go last
     const sortedBatches = batches.sort((a, b) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
@@ -210,14 +218,12 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
     let remainingQty = quantity;
     const updatedBatches = [];
 
-    // Iterate through batches to fulfill the quantity needed
     for (const batch of sortedBatches) {
       if (remainingQty <= 0) break;
 
       const qtyToSell = Math.min(batch.quantity, remainingQty);
       
       if (qtyToSell > 0) {
-        // Sell from this batch
         const updatedBatch = await sellFromBatch(batch.id, qtyToSell);
         updatedBatches.push(updatedBatch);
         remainingQty -= qtyToSell;
@@ -233,4 +239,15 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
     console.error('Error selling with FIFO logic:', error);
     throw new Error('Failed to process sale with FIFO logic');
   }
+}
+
+async function updateInventoryTotalQuantity(inventoryId: number) {
+  const result = await db
+    .select({ total: sum(schema.inventoryBatches.quantity) })
+    .from(schema.inventoryBatches)
+    .where(eq(schema.inventoryBatches.inventoryId, inventoryId));
+
+  const totalQuantity = Number(result[0].total) || 0;
+
+  await db.update(schema.inventory).set({ totalQuantity }).where(eq(schema.inventory.id, inventoryId));
 }

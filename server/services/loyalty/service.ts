@@ -1,5 +1,5 @@
 /* server/services/loyalty/service.ts */
-import { BaseService } from '../base/service';
+import { EnhancedBaseService } from '../base/enhanced-service';
 import { LoyaltyTier } from './types';
 import {
   ILoyaltyService,
@@ -16,24 +16,16 @@ import {
   LoyaltyReward,
   LoyaltyTransaction,
 } from './types';
-import { db } from '@db';
+import db from '@server/database';
 import * as schema from '@shared/schema';
 import { eq, and, lte, lt, gt, desc, asc, sql } from 'drizzle-orm';
 
-export class LoyaltyService extends BaseService implements ILoyaltyService {
+export class LoyaltyService extends EnhancedBaseService implements ILoyaltyService {
   /* ------------------------------------------------------------------ *
    *  Utilities                                                          *
    * ------------------------------------------------------------------ */
   private random(n = 5): string {
     return Math.random().toString(36).substring(2, 2 + n).toUpperCase();
-  }
-
-  /** Uniform internal error handler – wraps and re-throws for now */
-  private handleError(err: unknown, ctx: string): never {
-    /* eslint-disable no-console */
-    console.error(`[LoyaltyService] ${ctx}:`, err);
-    /* eslint-enable  no-console */
-    throw err;
   }
 
   /* ------------------------------------------------------------------ *
@@ -186,7 +178,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
     message?: string;
   }> {
     try {
-      return await db.transaction(async (trx) => {
+      return await db.transaction(async (trx: any) => {
         const member = await trx.query.loyaltyMembers.findFirst({
           where: eq(schema.loyaltyMembers.id, memberId),
         });
@@ -327,11 +319,11 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
 
       // Sum points older than cutoff & still active
       const [{ expired = '0' }] = await db
-        .select({ expired: sql<number>`COALESCE(sum(${schema.loyaltyTransactions.points}),0)` })
+        .select({ expired: sql<number>`COALESCE(sum(${schema.loyaltyTransactions.pointsEarned}),0)` })
         .from(schema.loyaltyTransactions)
         .where(
           and(
-            eq(schema.loyaltyTransactions.type, 'earn'),
+            eq(schema.loyaltyTransactions.transactionType, 'earn'),
             lt(schema.loyaltyTransactions.createdAt, cutoff)
           )
         );
@@ -343,10 +335,10 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         // flag existing as expired type
         await trx
           .update(schema.loyaltyTransactions)
-          .set({ type: 'expire' })
+          .set({ transactionType: 'expire' })
           .where(
             and(
-              eq(schema.loyaltyTransactions.type, 'earn'),
+              eq(schema.loyaltyTransactions.transactionType, 'earn'),
               lt(schema.loyaltyTransactions.createdAt, cutoff)
             )
           );
@@ -421,8 +413,8 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
 
       const [{ earned = '0', redeemed = '0' }] = await db
         .select({
-          earned: sql<number>`COALESCE(sum(points) filter (where type='earn'),0)`,
-          redeemed: sql<number>`COALESCE(sum(points) filter (where type='redeem'),0)`,
+          earned: sql<number>`COALESCE(sum(points_earned) filter (where transaction_type='earn'),0)`,
+          redeemed: sql<number>`COALESCE(sum(points_redeemed) filter (where transaction_type='redeem'),0)`,
         })
         .from(schema.loyaltyTransactions)
         .leftJoin(schema.loyaltyMembers, eq(schema.loyaltyMembers.id, schema.loyaltyTransactions.memberId));

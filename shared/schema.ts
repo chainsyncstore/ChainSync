@@ -864,10 +864,14 @@ export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many 
 
 export const loyaltyMembers = pgTable('loyalty_members', {
   id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
   customerId: integer('customer_id')
     .references(() => customers.id)
     .notNull(),
-  loyaltyId: text('loyalty_id').notNull().unique(), // Unique identifier for the member
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
   currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
   totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
     .default('0')
@@ -952,10 +956,16 @@ export const loyaltyTransactions = pgTable('loyalty_transactions', {
     .references(() => loyaltyMembers.id)
     .notNull(),
   transactionId: integer('transaction_id').references(() => transactions.id),
-  type: text('type').notNull(), // "earn", "redeem", "expire", "adjust"
-  points: decimal('points', { precision: 10, scale: 2 }).notNull(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
   rewardId: integer('reward_id').references(() => loyaltyRewards.id),
-  note: text('note'),
+  source: text('source'),
+  description: text('description'),
   createdBy: integer('created_by')
     .references(() => users.id)
     .notNull(),

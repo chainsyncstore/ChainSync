@@ -3,16 +3,9 @@ import { IProductService, CreateProductParams, UpdateProductParams, ProductSearc
 import db from '../../database';
 import * as schema from '@shared/schema';
 import { productValidation, SchemaValidationError } from '@shared/schema-validation';
-import { eq, and } from 'drizzle-orm'; // ensure eq and and are imported
+import { eq, and, or, like } from 'drizzle-orm'; // ensure eq and and are imported
 
 export class EnhancedProductService extends EnhancedBaseService implements IProductService {
-  // Stubs for missing interface methods
-  async deleteProduct(productId: number): Promise<boolean> { throw new Error('Not implemented'); }
-  async getProductById(productId: number): Promise<schema.products | null> { throw new Error('Not implemented'); }
-  async getProductBySku(sku: string, storeId: number): Promise<schema.products | null> { throw new Error('Not implemented'); }
-  async getProductByBarcode(barcode: string, storeId: number): Promise<schema.products | null> { throw new Error('Not implemented'); }
-  async getProductsWithLowStock(storeId: number, limit: number): Promise<schema.products[]> { throw new Error('Not implemented'); }
-  async updateProductInventory(productId: number, quantity: number, reason: string): Promise<boolean> { throw new Error('Not implemented'); }
   async createProduct(params: CreateProductParams): Promise<schema.Product> {
     try {
       // Check if store exists
@@ -65,8 +58,6 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
         totalQuantity: 0,
         availableQuantity: 0,
         minimumLevel: 10,
-        createdAt: new Date(),
-        updatedAt: new Date()
       });
       return product;
     } catch (error) {
@@ -133,28 +124,101 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
   }
 
   async getProductBySku(sku: string, storeId: number): Promise<schema.Product | null> {
-    // ...
-    return null;
+    try {
+      return await db.query.products.findFirst({
+        where: and(eq(schema.products.sku, sku), eq(schema.products.storeId, storeId)),
+        with: { category: true, brand: true, inventory: true }
+      });
+    } catch (error) {
+      return this.handleError(error, 'Getting product by SKU');
+    }
   }
 
   async getProductByBarcode(barcode: string, storeId: number): Promise<schema.Product | null> {
-    // ...
-    return null;
+    try {
+      return await db.query.products.findFirst({
+        where: and(eq(schema.products.barcode, barcode), eq(schema.products.storeId, storeId)),
+        with: { category: true, brand: true, inventory: true }
+      });
+    } catch (error) {
+      return this.handleError(error, 'Getting product by barcode');
+    }
   }
 
   async searchProducts(params: ProductSearchParams): Promise<{ products: schema.Product[]; total: number; page: number; limit: number; }> {
-    // ...
-    return { products: [], total: 0, page: 1, limit: 10 };
+    try {
+      const page = params.page || 1;
+      const limit = params.limit || 10;
+      const offset = (page - 1) * limit;
+
+      const conditions = [];
+      if (params.storeId) conditions.push(eq(schema.products.storeId, params.storeId));
+      if (params.query) {
+        conditions.push(
+          or(
+            like(schema.products.name, `%${params.query}%`),
+            like(schema.products.sku, `%${params.query}%`)
+          )
+        );
+      }
+      if (params.categoryId) conditions.push(eq(schema.products.categoryId, params.categoryId));
+      if (params.brandId) conditions.push(eq(schema.products.brandId, params.brandId));
+
+      const where = and(...conditions);
+
+      const products = await db.query.products.findMany({
+        where,
+        with: { category: true, brand: true, inventory: true },
+        limit,
+        offset,
+      });
+
+      const total = await db.select({ count: schema.products.id }).from(schema.products).where(where);
+
+      return { products, total: total.length, page, limit };
+    } catch (error) {
+      return this.handleError(error, 'Searching products');
+    }
   }
 
-  async getProductsWithLowStock(storeId: number, limit?: number): Promise<schema.Product[]> {
-    // ...
-    return [];
+  async getProductsWithLowStock(storeId: number, limit: number = 10): Promise<schema.Product[]> {
+    try {
+      return await db.query.products.findMany({
+        where: and(
+          eq(schema.products.storeId, storeId),
+          eq(schema.inventory.availableQuantity, 0)
+        ),
+        with: { inventory: true },
+        limit,
+      });
+    } catch (error) {
+      return this.handleError(error, 'Getting products with low stock');
+    }
   }
 
   async updateProductInventory(productId: number, quantity: number, reason: string): Promise<boolean> {
-    // ...
-    return true;
+    try {
+      const inventory = await db.query.inventory.findFirst({ where: eq(schema.inventory.productId, productId) });
+      if (!inventory) throw ProductServiceErrors.PRODUCT_NOT_FOUND;
+
+      const newQuantity = inventory.availableQuantity + quantity;
+      if (newQuantity < 0) throw new Error('Insufficient stock');
+
+      await db.update(schema.inventory).set({ availableQuantity: newQuantity }).where(eq(schema.inventory.id, inventory.id));
+      
+      // Log the inventory change
+      await db.insert(schema.inventoryLogs).values({
+        productId,
+        previousQuantity: inventory.availableQuantity,
+        newQuantity,
+        quantity,
+        reason,
+      });
+
+      return true;
+    } catch (error) {
+      return this.handleError(error, 'Updating product inventory');
+    }
   }
 }
 

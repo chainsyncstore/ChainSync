@@ -39,13 +39,6 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     return db.query.users.findFirst({ where: eq(schema.users.id, userId) });
   }
 
-  // Helper to generate a unique membership ID
-  private generateMembershipId(userId: number, programId: number): string {
-    const timestamp = Date.now().toString(36);
-    const randomPart = Math.random().toString(36).substring(2, 7);
-    return `MEM-${programId}-${userId}-${timestamp}-${randomPart}`.toUpperCase();
-  }
-
   async createProgram(params: CreateProgramParams): Promise<LoyaltyProgram> {
     try {
       const store = await this.getStoreById(params.storeId);
@@ -240,7 +233,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
       const query = db.query.loyaltyPrograms.findFirst({
         where: and(
           eq(schema.loyaltyPrograms.storeId, storeId),
-          eq(schema.loyaltyPrograms.status, LoyaltyProgramStatus.ACTIVE)
+          eq(schema.loyaltyPrograms.active, true)
         ),
         orderBy: { createdAt: 'desc' },
       });
@@ -277,57 +270,15 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
 
   async getLoyaltyTransactionsByMember(memberId: number): Promise<LoyaltyTransaction[]> {
     try {
-      const query = db.query.loyaltyTransactions.findMany({
+      return await db.query.loyaltyTransactions.findMany({
         where: eq(schema.loyaltyTransactions.memberId, memberId),
-        orderBy: { transactionDate: 'desc' },
+        orderBy: { createdAt: 'desc' },
       });
-      return await query;
-      return await this.executeSqlWithMultipleResults(
-        query,
-        [],
-        this.transactionFormatter.formatResult.bind(this.transactionFormatter)
-      );
     } catch (error) {
       return this.handleError(error, 'getting loyalty transactions by member');
     }
   }
 
-  /**
-   * Helper method to get a store by ID
-   * 
-   * @param storeId ID of the store
-   * @returns The store or null if not found
-   */
-  private async getStoreById(storeId: number): Promise<any> {
-    try {
-      const result = await db.execute(
-        sql.raw(`SELECT * FROM stores WHERE id = ${storeId} LIMIT 1`)
-      );
-      
-      return result.rows?.[0] || null;
-    } catch (error) {
-      return null;
-    }
-  }
-  
-  /**
-   * Helper method to get a user by ID
-   * 
-   * @param userId ID of the user
-   * @returns The user or null if not found
-   */
-  private async getUserById(userId: number): Promise<any> {
-    try {
-      const result = await db.execute(
-        sql.raw(`SELECT * FROM users WHERE id = ${userId} LIMIT 1`)
-      );
-      
-      return result.rows?.[0] || null;
-    } catch (error) {
-      return null;
-    }
-  }
-  
   /**
    * Generate a unique membership ID
    *

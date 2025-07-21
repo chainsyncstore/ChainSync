@@ -195,10 +195,15 @@ export const loyaltyMemberSchema = createInsertSchema(schema.loyaltyMembers, {
   currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
 });
 
+// Create schema for loyalty transactions and programs
+export const loyaltyProgramSchema = loyaltyProgramInsertSchema;
+export const loyaltyTransactionSchema = createInsertSchema(schema.loyaltyTransactions);
+
 export const loyaltyValidation = {
   member: {
-    insert: (data: unknown) => validateEntity(loyaltyMemberSchema, data, 'loyalty_member'),
-    update: (data: unknown) => validateEntity(loyaltyMemberSchema.partial(), data, 'loyalty_member'),
+    schema: loyaltyMemberSchema,
+    insert: loyaltyMemberSchema,
+    update: loyaltyMemberSchema.partial(),
   },
   earnPoints: (data: unknown) => validateEntity(
     z.object({
@@ -218,7 +223,10 @@ export const loyaltyValidation = {
     }),
     data,
     'loyalty_redemption'
-  )
+  ),
+  programInsert: loyaltyProgramSchema,
+  programUpdate: loyaltyProgramSchema.partial(),
+  transactionInsert: loyaltyTransactionSchema,
 };
 
 // Subscription validation

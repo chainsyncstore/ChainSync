@@ -4,7 +4,6 @@
  * Refactored to use the enhanced base service, schema validation,
  * and formatter patterns for consistency and type safety.
  */
-import { EnhancedBaseService } from '@server/services/base/enhanced-service';
 import { TransactionFormatter, TransactionItemFormatter, TransactionPaymentFormatter } from './formatter';
 import { transactionValidation } from '@shared/schema-validation';
 import { ITransactionService } from './interface';
@@ -19,9 +18,10 @@ import {
   CreateTransactionPaymentParams,
   UpdateTransactionPaymentParams
 } from './types';
-import { TransactionServiceErrors } from './errors';
-import { db } from '@server/db';
-import { sql } from 'drizzle-orm';
+import db from '@server/database';
+import * as schema from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { EnhancedBaseService } from '@server/services/base/enhanced-service';
 
 export class EnhancedTransactionService extends EnhancedBaseService implements ITransactionService {
   private formatter = new TransactionFormatter();
@@ -29,99 +29,44 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
   private paymentFormatter = new TransactionPaymentFormatter();
 
   async createTransaction(params: CreateTransactionParams): Promise<Transaction> {
-    try {
-      const validated = transactionValidation.insert(params);
-      const tx = await this.rawInsertWithFormatting(
-        'transactions',
-        validated,
-        this.formatter.formatResult.bind(this.formatter)
-      );
-      return this.ensureExists(tx, 'Transaction');
-    } catch (error) {
-      return this.handleError(error, 'creating transaction');
-    }
+    const validated = transactionValidation.insert(params);
+    const [tx] = await db.insert(schema.transactions).values(validated).returning();
+    return this.formatter.formatResult(tx);
   }
 
-  async updateTransaction(id: number, params: UpdateTransactionParams): Promise<Transaction> {
-    try {
-      const validated = transactionValidation.update(params);
-      const tx = await this.rawUpdateWithFormatting(
-        'transactions',
-        validated,
-        `id = ${id}`,
-        this.formatter.formatResult.bind(this.formatter)
-      );
-      return this.ensureExists(tx, 'Transaction');
-    } catch (error) {
-      return this.handleError(error, 'updating transaction');
-    }
+  async updateTransaction(id: string, params: UpdateTransactionParams): Promise<Transaction> {
+    const validated = transactionValidation.update(params);
+    const [tx] = await db.update(schema.transactions).set(validated).where(eq(schema.transactions.id, Number(id))).returning();
+    return this.formatter.formatResult(tx);
   }
 
-  async getTransactionById(id: number): Promise<Transaction | null> {
-    try {
-      const query = `SELECT * FROM transactions WHERE id = ${id}`;
-      return await this.executeSqlWithFormatting(query, [], this.formatter.formatResult.bind(this.formatter));
-    } catch (error) {
-      return this.handleError(error, 'getting transaction by id');
-    }
+  async getTransactionById(id: string): Promise<Transaction | null> {
+    const tx = await db.query.transactions.findFirst({ where: eq(schema.transactions.id, Number(id)) });
+    return tx ? this.formatter.formatResult(tx) : null;
   }
 
   async createTransactionItem(params: CreateTransactionItemParams): Promise<TransactionItem> {
-    try {
-      const validated = transactionValidation.itemInsert(params);
-      const item = await this.rawInsertWithFormatting(
-        'transaction_items',
-        validated,
-        this.itemFormatter.formatResult.bind(this.itemFormatter)
-      );
-      return this.ensureExists(item, 'Transaction Item');
-    } catch (error) {
-      return this.handleError(error, 'creating transaction item');
-    }
+    const validated = transactionValidation.item.insert(params);
+    const [item] = await db.insert(schema.transactionItems).values(validated).returning();
+    return this.itemFormatter.formatResult(item);
   }
 
-  async updateTransactionItem(id: number, params: UpdateTransactionItemParams): Promise<TransactionItem> {
-    try {
-      const validated = transactionValidation.itemUpdate(params);
-      const item = await this.rawUpdateWithFormatting(
-        'transaction_items',
-        validated,
-        `id = ${id}`,
-        this.itemFormatter.formatResult.bind(this.itemFormatter)
-      );
-      return this.ensureExists(item, 'Transaction Item');
-    } catch (error) {
-      return this.handleError(error, 'updating transaction item');
-    }
+  async updateTransactionItem(id: string, params: UpdateTransactionItemParams): Promise<TransactionItem> {
+    const validated = transactionValidation.item.update(params);
+    const [item] = await db.update(schema.transactionItems).set(validated).where(eq(schema.transactionItems.id, Number(id))).returning();
+    return this.itemFormatter.formatResult(item);
   }
 
   async createTransactionPayment(params: CreateTransactionPaymentParams): Promise<TransactionPayment> {
-    try {
-      const validated = transactionValidation.paymentInsert(params);
-      const payment = await this.rawInsertWithFormatting(
-        'transaction_payments',
-        validated,
-        this.paymentFormatter.formatResult.bind(this.paymentFormatter)
-      );
-      return this.ensureExists(payment, 'Transaction Payment');
-    } catch (error) {
-      return this.handleError(error, 'creating transaction payment');
-    }
+    const validated = transactionValidation.payment.insert(params);
+    const [payment] = await db.insert(schema.transactionPayments).values(validated).returning();
+    return this.paymentFormatter.formatResult(payment);
   }
 
-  async updateTransactionPayment(id: number, params: UpdateTransactionPaymentParams): Promise<TransactionPayment> {
-    try {
-      const validated = transactionValidation.paymentUpdate(params);
-      const payment = await this.rawUpdateWithFormatting(
-        'transaction_payments',
-        validated,
-        `id = ${id}`,
-        this.paymentFormatter.formatResult.bind(this.paymentFormatter)
-      );
-      return this.ensureExists(payment, 'Transaction Payment');
-    } catch (error) {
-      return this.handleError(error, 'updating transaction payment');
-    }
+  async updateTransactionPayment(id: string, params: UpdateTransactionPaymentParams): Promise<TransactionPayment> {
+    const validated = transactionValidation.payment.update(params);
+    const [payment] = await db.update(schema.transactionPayments).set(validated).where(eq(schema.transactionPayments.id, Number(id))).returning();
+    return this.paymentFormatter.formatResult(payment);
   }
 
   // Additional methods for fetching items/payments by transaction can be added similarly
