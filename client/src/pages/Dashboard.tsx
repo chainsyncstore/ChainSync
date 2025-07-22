@@ -34,7 +34,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {storesLoading ? '...' : stores?.length || 0}
+              {storesLoading ? '...' : Array.isArray(stores) ? stores.length : 0}
             </div>
           </CardContent>
         </Card>
@@ -46,7 +46,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {usersLoading ? '...' : users?.length || 0}
+              {usersLoading ? '...' : Array.isArray(users) ? users.length : 0}
             </div>
           </CardContent>
         </Card>
@@ -58,7 +58,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {productsLoading ? '...' : products?.length || 0}
+              {productsLoading ? '...' : Array.isArray(products) ? products.length : 0}
             </div>
           </CardContent>
         </Card>
