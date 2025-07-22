@@ -1,41 +1,45 @@
 #!/usr/bin/env node
 
+/**
+ * Development server entry point for ChainSync
+ * This starts the integrated server with Vite middleware
+ */
+
 import { spawn } from 'child_process';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-console.log('🚀 Starting ChainSync Development Server...');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Start the integrated server that serves both frontend and backend
-const serverProcess = spawn('npx', ['tsx', 'server/integrated-index.ts'], {
-  cwd: process.cwd(),
+// Start the integrated server
+const server = spawn('tsx', ['watch', 'server/index.ts'], {
+  cwd: __dirname,
   stdio: 'inherit',
-  env: { 
-    ...process.env, 
-    PORT: '5000',
-    NODE_ENV: 'development'
+  env: {
+    ...process.env,
+    NODE_ENV: 'development',
+    PORT: '3000'
   }
 });
 
-console.log('Server starting on port 5000...');
-
-serverProcess.on('error', (err) => {
-  console.error('Failed to start server:', err);
+server.on('error', (error) => {
+  console.error('Failed to start development server:', error);
   process.exit(1);
 });
 
-serverProcess.on('close', (code) => {
-  console.log(`Server process exited with code ${code}`);
-  if (code !== 0) {
-    process.exit(code);
-  }
+server.on('close', (code) => {
+  console.log(`Development server exited with code ${code}`);
+  process.exit(code);
 });
 
-// Graceful shutdown
+// Handle process termination
 process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down ChainSync...');
-  serverProcess.kill('SIGINT');
+  console.log('\nShutting down development server...');
+  server.kill('SIGINT');
 });
 
 process.on('SIGTERM', () => {
-  serverProcess.kill('SIGTERM');
+  console.log('\nShutting down development server...');
+  server.kill('SIGTERM');
 });
