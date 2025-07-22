@@ -1093,7 +1093,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1138,7 +1138,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1183,7 +1183,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1228,7 +1228,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1273,7 +1273,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1318,7 +1318,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1363,7 +1363,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1408,7 +1408,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1453,7 +1453,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1498,7 +1498,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -1543,7 +1543,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -21213,7 +21213,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -21529,7 +21529,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -21845,7 +21845,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
@@ -22161,7 +22161,7 @@ export const inventoryItems = pgTable('inventory_items', {
   metadata: jsonb('metadata'),
 });
 
-export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+// duplicate definition removed
   inventory: one(inventory, {
     fields: [inventoryItems.inventoryId],
     references: [inventory.id],
