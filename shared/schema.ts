@@ -20,6 +20,14 @@ export const stores = pgTable('stores', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   location: text('location').notNull(),
+  address: text('address'),
+  city: text('city'),
+  state: text('state'),
+  country: text('country'),
+  phone: text('phone'),
+  email: text('email'),
+  timezone: text('timezone'),
+  status: text('status').default('active'),
   managerId: integer('manager_id'),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
@@ -38,8 +46,28 @@ export const products = pgTable('products', {
   brand: text('brand'),
   unit: text('unit').default('pcs'),
   isActive: boolean('is_active').default(true),
+  isPerishable: boolean('is_perishable').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Categories table
+export const categories = pgTable('categories', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Return Reasons table
+export const returnReasons = pgTable('return_reasons', {
+  id: serial('id').primaryKey(),
+  reason: text('reason').notNull(),
+  description: text('description'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Inventory table
@@ -124,6 +152,17 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
   updatedAt: true,
 });
 
+export const insertCategorySchema = createInsertSchema(categories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertReturnReasonSchema = createInsertSchema(returnReasons).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertStore = z.infer<typeof insertStoreSchema>;
@@ -131,6 +170,8 @@ export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type InsertReturnReason = z.infer<typeof insertReturnReasonSchema>;
 export type SubscriptionInsert = InsertSubscription; // Alias for compatibility
 
 export type SelectUser = typeof users.$inferSelect;
@@ -139,3 +180,5 @@ export type SelectProduct = typeof products.$inferSelect;
 export type SelectInventory = typeof inventory.$inferSelect;
 export type SelectTransaction = typeof transactions.$inferSelect;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
+export type SelectCategory = typeof categories.$inferSelect;
+export type SelectReturnReason = typeof returnReasons.$inferSelect;
