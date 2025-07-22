@@ -23,7 +23,7 @@ import { useMobile } from '@/hooks/use-mobile';
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  role: 'admin' | 'manager' | 'cashier';
+  role: 'admin' | 'manager' | 'cashier' | 'affiliate';
 }
 
 interface NavItemProps {

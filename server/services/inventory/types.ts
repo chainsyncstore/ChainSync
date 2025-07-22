@@ -222,7 +222,7 @@ export interface IInventoryService {
     limit: number;
   }>;
   adjustInventory(params: InventoryAdjustmentParams): Promise<boolean>;
-  addInventoryBatch(params: InventoryBatchParams): Promise<schema.InventoryBatch>;
+  addInventoryBatch(params: InventoryBatchParams): Promise<InventoryItem>;
   getBatchesByProduct(productId: number): Promise<schema.InventoryBatch[]>;
   getLowStockItems(storeId: number, limit?: number): Promise<schema.Inventory[]>;
   getInventoryValuation(storeId: number): Promise<{

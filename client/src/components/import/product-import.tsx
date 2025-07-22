@@ -59,8 +59,13 @@ import {
   AlertTriangle, 
   X,
   AlertCircle,
-  Store
+  Store as StoreIcon
 } from 'lucide-react';
+
+interface Store {
+  id: number;
+  name: string;
+}
 
 interface ValidationError {
   row: number;
@@ -113,7 +118,7 @@ export default function ProductImport() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   
   // Fetch stores the user can access
-  const storesQuery = useQuery({
+  const storesQuery = useQuery<Store[]>({
     queryKey: ['/api/stores'],
   });
   
@@ -398,7 +403,7 @@ export default function ProductImport() {
                   <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
                 </div>
               ) : (
-                storesQuery.data?.map((store: any) => (
+                storesQuery.data?.map((store) => (
                   <SelectItem key={store.id} value={store.id.toString()}>
                     {store.name}
                   </SelectItem>
@@ -733,7 +738,7 @@ export default function ProductImport() {
                   
                   {/* Store Selection Warning */}
                   {!selectedStoreId && (
-                    <Alert variant="warning">
+                    <Alert variant="default">
                       <AlertCircle className="h-4 w-4" />
                       <AlertTitle>Store Selection Required</AlertTitle>
                       <AlertDescription>
@@ -846,8 +851,8 @@ export default function ProductImport() {
                     <div className="border rounded-md p-4">
                       <p className="text-sm text-muted-foreground">Target Store</p>
                       <div className="flex items-center text-xl font-semibold">
-                        <Store className="h-4 w-4 mr-2 text-primary" />
-                        {storesQuery.data?.find((store: any) => 
+                        <StoreIcon className="h-4 w-4 mr-2 text-primary" />
+                        {storesQuery.data?.find((store) => 
                           store.id.toString() === selectedStoreId
                         )?.name || `Store ID: ${selectedStoreId}`}
                       </div>
@@ -909,7 +914,7 @@ export default function ProductImport() {
             <AlertDialogDescription>
               You are about to import {validProducts.length} products into{' '}
               <span className="font-medium">
-                {storesQuery.data?.find((store: any) => 
+                {storesQuery.data?.find((store) => 
                   store.id.toString() === selectedStoreId
                 )?.name || `Store ID: ${selectedStoreId}`}
               </span>.

@@ -17,7 +17,8 @@ export enum SubscriptionStatus {
   EXPIRED = 'expired',
   PAST_DUE = 'past_due',
   TRIAL = 'trial',
-  FAILED = 'failed'
+  FAILED = 'failed',
+  SUSPENDED = 'suspended'
 }
 
 export enum SubscriptionPlan {

@@ -100,7 +100,7 @@ export class InventoryService extends BaseService implements IInventoryService {
       });
       if (!existing) throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
 
-      const data = validateEntity(inventoryValidation.update, {
+      const data = validateEntity(inventoryValidation.update.parse, {
         ...params,
         updatedAt: new Date(),
       }, 'inventory');
@@ -125,9 +125,10 @@ export class InventoryService extends BaseService implements IInventoryService {
     productId: number,
   ): Promise<schema.Inventory | null> {
     try {
-      return await db.query.inventory.findFirst({
+      const inventory = await db.query.inventory.findFirst({
         where: eq(schema.inventory.productId, productId),
       });
+      return inventory ?? null;
     } catch (err) {
       return this.handleError(err, 'getInventoryByProduct');
     }
@@ -259,7 +260,7 @@ export class InventoryService extends BaseService implements IInventoryService {
           .where(eq(schema.inventory.id, inventory.id));
 
         /* ---------- Insert adjustment log ---------- */
-        await tx.insert(schema.inventoryTransactions).values({
+        await tx.insert(schema.inventoryLogs).values({
           inventoryId: inventory.id,
           quantity: params.quantity,
           previousQuantity: inventory.availableQuantity,
@@ -306,7 +307,7 @@ export class InventoryService extends BaseService implements IInventoryService {
 
   async addInventoryBatch(
     params: InventoryBatchParams,
-  ): Promise<schema.InventoryBatch> {
+  ): Promise<any> {
     try {
       return await db.transaction(async (tx) => {
         /* ---------- Ensure inventory exists / enable tracking ---------- */
@@ -350,7 +351,7 @@ export class InventoryService extends BaseService implements IInventoryService {
             costPerUnit: params.unitCost,
             receivedDate: params.purchaseDate,
             expiryDate: params.expiryDate,
-            supplier: params.supplier,
+            
             createdAt: new Date(),
             updatedAt: new Date(),
           })
@@ -363,7 +364,7 @@ export class InventoryService extends BaseService implements IInventoryService {
           quantity: params.quantity,
           transactionType: InventoryTransactionType.PURCHASE,
           reason: 'Batch added',
-          userId: params.performedBy,
+          userId: params.performedBy ?? 0,
           batchId: batch.id,
           referenceId: params.supplierReference,
           notes: params.notes,

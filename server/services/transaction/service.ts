@@ -14,7 +14,13 @@ import {
   RefundParams,
   PaymentMethod,
   TransactionType,
-  TransactionStatus
+  TransactionStatus,
+  CreateTransactionItemParams,
+  CreateTransactionPaymentParams,
+  TransactionItem,
+  TransactionPayment,
+  UpdateTransactionItemParams,
+  UpdateTransactionPaymentParams
 } from './types';
 import { ITransactionService } from './interface';
 import { db } from '@db';
@@ -45,6 +51,18 @@ export class TransactionService extends BaseService implements ITransactionServi
       service: 'TransactionService',
       component: 'transaction'
     });
+  }
+  createTransactionItem(params: CreateTransactionItemParams): Promise<TransactionItem> {
+    throw new Error('Method not implemented.');
+  }
+  updateTransactionItem(id: string, params: UpdateTransactionItemParams): Promise<TransactionItem> {
+    throw new Error('Method not implemented.');
+  }
+  createTransactionPayment(params: CreateTransactionPaymentParams): Promise<TransactionPayment> {
+    throw new Error('Method not implemented.');
+  }
+  updateTransactionPayment(id: string, params: UpdateTransactionPaymentParams): Promise<TransactionPayment> {
+    throw new Error('Method not implemented.');
   }
   
   /**
@@ -317,8 +335,9 @@ export class TransactionService extends BaseService implements ITransactionServi
   /**
    * Update a transaction with validated data
    */
-  async updateTransaction({ transactionId, ...params }: UpdateTransactionParams): Promise<schema.Transaction> {
+  async updateTransaction(id: string, params: UpdateTransactionParams): Promise<schema.Transaction> {
     try {
+      const transactionId = parseInt(id, 10);
       // Verify transaction exists
       const transaction = await db.query.transactions.findFirst({
         where: eq(schema.transactions.id, transactionId)
@@ -350,7 +369,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       
       // Validate status transition
       if (params.status) {
-        this.validateStatusTransition(transaction.status, params.status as string);
+        this.validateStatusTransition(transaction.status ?? "", params.status as string);
       }
       
       // Prepare transaction data with camelCase field names
@@ -614,8 +633,9 @@ export class TransactionService extends BaseService implements ITransactionServi
   // ---------------------------------------------------------------------
   // Additional interface methods
   // ---------------------------------------------------------------------
-  async getTransactionById(id: number): Promise<schema.Transaction | null> {
-    const transaction = await db.query.transactions.findFirst({ where: eq(schema.transactions.id, id) });
+  async getTransactionById(id: string): Promise<schema.Transaction | null> {
+    const transactionId = parseInt(id, 10);
+    const transaction = await db.query.transactions.findFirst({ where: eq(schema.transactions.id, transactionId) });
     return transaction ?? null;
   }
 
@@ -647,14 +667,14 @@ export class TransactionService extends BaseService implements ITransactionServi
     const { storeId, keyword, page = 1, limit = 20 } = params;
     const offset = (page - 1) * limit;
 
-    let where = eq(schema.transactions.storeId, storeId);
+    const wheres = [eq(schema.transactions.storeId, storeId)];
     if (keyword) {
       const kw = `%${keyword}%`;
-      where = and(where, or(like(schema.transactions.referenceId, kw), like(schema.transactions.notes, kw)));
+      wheres.push(or(like(schema.transactions.referenceId, kw), like(schema.transactions.notes, kw)) as any);
     }
 
-    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(where);
-    const transactions = await db.query.transactions.findMany({ where, offset, limit, orderBy: [desc(schema.transactions.createdAt)] });
+    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(and(...wheres));
+    const transactions = await db.query.transactions.findMany({ where: and(...wheres), offset, limit, orderBy: [desc(schema.transactions.createdAt)] });
     return { transactions, total: Number(count || 0), page, limit };
   }
 

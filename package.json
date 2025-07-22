@@ -45,6 +45,7 @@
     "// Linting and Type Checking": "",
     "lint": "eslint . --fix",
     "type-check": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
     "check": "npm run lint && npm run type-check",
     "// Health and Monitoring": "",
     "health": "node scripts/health-check.js",

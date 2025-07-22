@@ -52,6 +52,11 @@ interface PaymentMethodBreakdown {
   count: number;
 }
 
+interface Store {
+  id: number;
+  name: string;
+}
+
 interface SalesTrendsResponse {
   trendData: SalesTrend[];
   storeBreakdown: StoreBreakdown[];
@@ -80,7 +85,7 @@ export const SalesTrends = () => {
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
 
   // Fetch stores for the store filter
-  const { data: stores } = useQuery({
+  const { data: stores } = useQuery<Store[]>({
     queryKey: ['/api/stores'],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -452,7 +457,7 @@ export const SalesTrends = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all_stores">All Stores</SelectItem>
-                  {stores?.map((store: any) => (
+                  {stores?.map((store) => (
                     <SelectItem key={store.id} value={store.id.toString()}>
                       {store.name}
                     </SelectItem>

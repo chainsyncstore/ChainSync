@@ -90,6 +90,7 @@ export interface UpdateTransactionParams {
 
 export interface TransactionSearchParams {
   storeId: number;
+  keyword?: string;
   startDate?: Date;
   endDate?: Date;
   customerId?: number;

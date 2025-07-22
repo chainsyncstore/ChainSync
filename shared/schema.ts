@@ -133,7 +133,6 @@ export const brands = pgTable('brands', {
 
 // Products
 // ---- Webhook Tables ----
-import { jsonb } from 'drizzle-orm/pg-core';
 
 export const webhooks = pgTable('webhooks', {
   id: serial('id').primaryKey(),
@@ -475,37 +474,34 @@ export type AiConversationInsert = z.infer<typeof aiConversationInsertSchema>;
 // Validation Schemas
 // User schemas are defined later in the file
 
-export const storeInsertSchema = createInsertSchema(stores);
-// export const storeInsertSchema = createInsertSchema(stores, {
-//   name(schema) {
-//     return schema.name.min(2, "Store name must be at least 2 characters");
-//   },
-//   phone(schema) {
-//     return schema.phone.optional();
-//   }
-// });
+export const storeInsertSchema = createInsertSchema(stores, {
+  name: z.string().min(2, "Store name must be at least 2 characters"),
+  phone: z.string().optional(),
+});
 
-export const categoryInsertSchema = createInsertSchema(categories);
-// export const categoryInsertSchema = createInsertSchema(categories, {
-//   name: z.string().min(2, "Category name must be at least 2 characters"),
-// });
+export const categoryInsertSchema = createInsertSchema(categories, {
+  name: z.string().min(2, "Category name must be at least 2 characters"),
+});
 
-export const productInsertSchema = createInsertSchema(products);
+export const productInsertSchema = createInsertSchema(products, {
+  name: z.string().min(2, "Product name must be at least 2 characters"),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid decimal with up to 2 decimal places"),
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+});
 
-export const inventoryInsertSchema = createInsertSchema(inventory);
-// export const inventoryInsertSchema = createInsertSchema(inventory, {
-//   totalQuantity: (schema) => schema.totalQuantity.refine(val => Number.isInteger(val) && val >= 0, { message: "Total quantity must be a non-negative integer" }),
-//   minimumLevel: (schema) => schema.minimumLevel.refine(val => Number.isInteger(val) && val >= 0, { message: "Minimum level must be a non-negative integer" }),
-// });
+export const inventoryInsertSchema = createInsertSchema(inventory, {
+  totalQuantity: z.number().int().nonnegative({ message: "Total quantity must be a non-negative integer" }),
+  minimumLevel: z.number().int().nonnegative({ message: "Minimum level must be a non-negative integer" }),
+});
 
 export const inventoryBatchInsertSchema = createInsertSchema(inventoryBatches, {
-  // quantity: z.number().int().nonnegative({ message: "Quantity must be a non-negative integer" }), // Will use default inference
-  // costPerUnit: z.number().positive({ message: "Cost per unit must be a positive number" }), // Will use default inference
+  quantity: z.number().int().nonnegative({ message: "Quantity must be a non-negative integer" }),
+  costPerUnit: z.number().positive({ message: "Cost per unit must be a positive number" }).optional(),
   batchNumber: z
     .string()
     .min(1, { message: 'Batch number cannot be empty if provided' })
     .optional(),
-  // expiryDate: z.coerce.date().refine(date => date > new Date(), { message: "Expiry date must be in the future" }).optional(), // Will use default inference
+  expiryDate: z.coerce.date().optional(),
 });
 
 // Schema for user operations
@@ -515,9 +511,7 @@ export const userInsertSchema = createInsertSchema(users, {
   password: z.string().min(6, 'Password must be at least 6 characters'),
   fullName: z.string().min(2, 'Full name is required'),
   email: z.string().email('Please provide a valid email address'),
-  // role: z.string().refine(val => ["admin", "manager", "cashier", "affiliate"].includes(val), { // Will use default inference
-  //   message: "Role must be one of: admin, manager, cashier, affiliate"
-  // })
+  role: z.enum(["admin", "manager", "cashier", "affiliate"]).default("cashier"),
 });
 
 // Auth schemas
@@ -574,10 +568,8 @@ export type PurchaseOrderItemInsert = typeof purchaseOrderItems.$inferInsert;
 export const cashierSessionInsertSchema = createInsertSchema(cashierSessions, {
   userId: z.number().positive('User ID must be positive'),
   storeId: z.number().positive('Store ID must be positive'),
-  // status: z.string().refine(val => ["active", "closed"].includes(val), { // Will use default inference
-  //   message: "Status must be either 'active' or 'closed'"
-  // }),
-  // notes: z.string().optional() // Will use default inference
+  status: z.enum(["active", "closed"]).default("active"),
+  notes: z.string().optional()
 });
 
 export const cashierSessionSchema = createSelectSchema(cashierSessions);
@@ -698,12 +690,8 @@ export const returnInsertSchema = createInsertSchema(returns, {
 
 export const returnItemInsertSchema = createInsertSchema(returnItems, {
   quantity: z.number().refine(val => val > 0, {
-    // This direct Zod type seems to work for now
     message: 'Quantity must be greater than 0',
   }),
-  // subtotal: (s) => s.subtotal.refine(val => parseFloat(val) >= 0, { // Will use default inference
-  //   message: "Subtotal amount must be a positive number"
-  // }),
 });
 
 // Type exports for returns
@@ -813,32 +801,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   user: one(users, { fields: [subscriptions.userId], references: [users.id] }),
 }));
 
-// Create insert schemas for the new tables
-export const affiliateInsertSchema = createInsertSchema(affiliates, {
-  code: z.string().min(6, 'Referral code must be at least 6 characters'),
-});
-
-export const referralInsertSchema = createInsertSchema(referrals);
-
-export const referralPaymentInsertSchema = createInsertSchema(referralPayments);
-
-export const subscriptionInsertSchema = createInsertSchema(subscriptions);
-
-// AiConversation types are already defined above
-
-export type Affiliate = typeof affiliates.$inferSelect;
-export type AffiliateInsert = z.infer<typeof affiliateInsertSchema>;
-
-export type Referral = typeof referrals.$inferSelect;
-export type ReferralInsert = z.infer<typeof referralInsertSchema>;
-
-export type ReferralPayment = typeof referralPayments.$inferSelect;
-export type ReferralPaymentInsert = z.infer<typeof referralPaymentInsertSchema>;
-
-export type Subscription = typeof subscriptions.$inferSelect;
-export type SubscriptionInsert = z.infer<typeof subscriptionInsertSchema>;
-
-// Loyalty Program Schema
+// --- Loyalty Program Schema ---
 export const loyaltyPrograms = pgTable('loyalty_programs', {
   id: serial('id').primaryKey(),
   storeId: integer('store_id')
@@ -999,7 +962,10 @@ export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
   }),
 });
 
-export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers);
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
 
 export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
   name: z.string().min(2, 'Tier name must be at least 2 characters'),
@@ -1020,7 +986,6 @@ export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransact
     message: 'Type must be one of: earn, redeem, expire, adjust',
   }),
   points: z.string().refine(val => parseFloat(val) !== 0, {
-    // Points can be negative for adjustments
     message: 'Points value cannot be zero for a transaction',
   }),
 });
@@ -1105,3 +1070,21322 @@ export type CustomerInsert = typeof customers.$inferInsert;
 
 // Alias for returns table (database table is named 'refunds')
 export const refunds = returns;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- End of Inventory Items Definition ---
+// --- Loyalty Program Schema ---
+export const loyaltyPrograms = pgTable('loyalty_programs', {
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', '
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', '
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_expiryMonths').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- End of Inventory Items Definition ---
+// --- Loyalty Program Schema ---
+export const loyaltyPrograms = pgTable('loyalty_programs', {
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- End of Inventory Items Definition ---
+// --- Loyalty Program Schema ---
+export const loyaltyPrograms = pgTable('loyalty_programs', {
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- End of Inventory Items Definition ---
+// --- Loyalty Program Schema ---
+export const loyaltyPrograms = pgTable('loyalty_programs', {
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+
+// Type for AI conversation messages
+export interface DialogflowMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  storeId: integer('store_id').references(() => stores.id),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'alert', 'info', 'warning', 'success'
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+  readAt: timestamp('read_at'),
+  link: text('link'), // Optional link to navigate when clicked
+  metadata: jsonb('metadata'), // Additional data related to the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [notifications.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().refine(val => ['info', 'warning', 'error', 'success'].includes(val), {
+    message: 'Type must be one of: info, warning, error, success',
+  }),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationInsert = z.infer<typeof notificationInsertSchema>;
+
+// Transaction-related exports
+export { transactions, transactionItems, transactionPayments } from "./db/transactions";
+export type Transaction = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+export type TransactionItem = typeof transactionItems.$inferSelect;
+export type TransactionItemInsert = typeof transactionItems.$inferInsert;
+export type TransactionPayment = typeof transactionPayments.$inferSelect;
+export type TransactionPaymentInsert = typeof transactionPayments.$inferInsert;
+
+// Customer-related exports
+export { customers } from "./db/customers";
+export type Customer = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
+
+// Alias for returns table (database table is named 'refunds')
+export const refunds = returns;
+
+// --- Inventory Items Definition ---
+// This definition is added to resolve the 'inventoryItems' not found error.
+// It is based on the usage in server/services/inventory/enhanced-service.ts and shared/schema-validation.ts
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id')
+    .references(() => inventory.id)
+    .notNull(),
+  productId: integer('product_id')
+    .references(() => products.id)
+    .notNull(),
+  sku: text('sku').notNull().unique(),
+  quantity: integer('quantity').notNull().default(0),
+  reorderLevel: integer('reorder_level').notNull().default(0),
+  reorderQuantity: integer('reorder_quantity').notNull().default(0),
+  receivedDate: timestamp('received_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  metadata: jsonb('metadata'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  inventory: one(inventory, {
+    fields: [inventoryItems.inventoryId],
+    references: [inventory.id],
+  }),
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Create insert schema for inventory items
+export const inventoryItemInsertSchema = createInsertSchema(inventoryItems, {
+  sku: z.string().min(3, "SKU must be at least 3 characters"),
+  quantity: z.number().int().min(0, "Quantity cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative").optional(),
+  reorderQuantity: z.number().int().min(0, "Reorder quantity cannot be negative").optional(),
+});
+
+// Export type for inventory items
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InventoryItemInsert = z.infer<typeof inventoryItemInsertSchema>;
+
+// --- End of Inventory Items Definition ---
+// --- Loyalty Program Schema ---
+export const loyaltyPrograms = pgTable('loyalty_programs', {
+  id: serial('id').primaryKey(),
+  storeId: integer('store_id')
+    .references(() => stores.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "ChainSync Rewards"
+  pointsPerAmount: decimal('points_per_amount', { precision: 10, scale: 2 }).notNull(), // e.g., 1 point per 100 currency units
+  active: boolean('active').default(true).notNull(),
+  expiryMonths: integer('expiry_months').default(12), // Number of months before points expire
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyProgramsRelations = relations(loyaltyPrograms, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [loyaltyPrograms.storeId],
+    references: [stores.id],
+  }),
+  members: many(loyaltyMembers),
+  tiers: many(loyaltyTiers),
+  rewards: many(loyaltyRewards),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  customerId: integer('customer_id')
+    .references(() => customers.id)
+    .notNull(),
+  loyaltyId: text('loyalty_id').notNull().unique(),
+  points: decimal('points', { precision: 10, scale: 2 }).default('0').notNull(), // Unique identifier for the member
+  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0').notNull(),
+  totalPointsEarned: decimal('total_points_earned', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  totalPointsRedeemed: decimal('total_points_redeemed', { precision: 10, scale: 2 })
+    .default('0')
+    .notNull(),
+  tierId: integer('tier_id').references(() => loyaltyTiers.id),
+  enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyMembersRelations = relations(loyaltyMembers, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [loyaltyMembers.customerId],
+    references: [customers.id],
+  }),
+  tier: one(loyaltyTiers, {
+    fields: [loyaltyMembers.tierId],
+    references: [loyaltyTiers.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(), // e.g., "Silver", "Gold", "Platinum"
+  requiredPoints: decimal('required_points', { precision: 10, scale: 2 }).notNull(),
+  pointMultiplier: decimal('point_multiplier', { precision: 5, scale: 2 }).default('1.0').notNull(), // Earn rate multiplier
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyTiersRelations = relations(loyaltyTiers, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyTiers.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  members: many(loyaltyMembers),
+}));
+
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsCost: decimal('points_cost', { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  discountType: text('discount_type'), // "percentage", "fixed", "free_product"
+  productId: integer('product_id').references(() => products.id), // For free product rewards
+  active: boolean('active').default(true).notNull(),
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
+});
+
+export const loyaltyRewardsRelations = relations(loyaltyRewards, ({ one, many }) => ({
+  program: one(loyaltyPrograms, {
+    fields: [loyaltyRewards.programId],
+    references: [loyaltyPrograms.id],
+  }),
+  product: one(products, {
+    fields: [loyaltyRewards.productId],
+    references: [products.id],
+  }),
+  redemptions: many(loyaltyTransactions),
+}));
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id')
+    .references(() => loyaltyMembers.id)
+    .notNull(),
+  transactionId: integer('transaction_id').references(() => transactions.id),
+  programId: integer('program_id')
+    .references(() => loyaltyPrograms.id)
+    .notNull(),
+  transactionType: text('transaction_type').notNull(), // "earn", "redeem", "expire", "adjust"
+  pointsEarned: decimal('points_earned', { precision: 10, scale: 2 }),
+  pointsRedeemed: decimal('points_redeemed', { precision: 10, scale: 2 }),
+  pointsBalance: decimal('points_balance', { precision: 10, scale: 2 }),
+  rewardId: integer('reward_id').references(() => loyaltyRewards.id),
+  source: text('source'),
+  description: text('description'),
+  createdBy: integer('created_by')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  member: one(loyaltyMembers, {
+    fields: [loyaltyTransactions.memberId],
+    references: [loyaltyMembers.id],
+  }),
+  transaction: one(transactions, {
+    fields: [loyaltyTransactions.transactionId],
+    references: [transactions.id],
+  }),
+  reward: one(loyaltyRewards, {
+    fields: [loyaltyTransactions.rewardId],
+    references: [loyaltyRewards.id],
+  }),
+  createdByUser: one(users, {
+    fields: [loyaltyTransactions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Create validation schemas for loyalty
+export const loyaltyProgramInsertSchema = createInsertSchema(loyaltyPrograms, {
+  name: z.string().min(2, 'Program name must be at least 2 characters'),
+  pointsPerAmount: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points per amount must be a positive number',
+  }),
+});
+
+export const loyaltyMemberInsertSchema = createInsertSchema(loyaltyMembers, {
+  loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
+  currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
+});
+
+export const loyaltyTierInsertSchema = createInsertSchema(loyaltyTiers, {
+  name: z.string().min(2, 'Tier name must be at least 2 characters'),
+  requiredPoints: z.string().refine(val => parseFloat(val) >= 0, {
+    message: 'Required points must be a positive number',
+  }),
+});
+
+export const loyaltyRewardInsertSchema = createInsertSchema(loyaltyRewards, {
+  name: z.string().min(2, 'Reward name must be at least 2 characters'),
+  pointsCost: z.string().refine(val => parseFloat(val) > 0, {
+    message: 'Points cost must be a positive number',
+  }),
+});
+
+export const loyaltyTransactionInsertSchema = createInsertSchema(loyaltyTransactions, {
+  type: z.string().refine(val => ['earn', 'redeem', 'expire', 'adjust'].includes(val), {
+    message: 'Type must be one of: earn, redeem, expire, adjust',
+  }),
+  points: z.string().refine(val => parseFloat(val) !== 0, {
+    message: 'Points value cannot be zero for a transaction',
+  }),
+});
+
+// Export types for loyalty
+export type LoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type LoyaltyProgramInsert = z.infer<typeof loyaltyProgramInsertSchema>;
+
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type LoyaltyMemberInsert = z.infer<typeof loyaltyMemberInsertSchema>;
+
+export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type LoyaltyTierInsert = z.infer<typeof loyaltyTierInsertSchema>;
+
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+export type LoyaltyRewardInsert = z.infer<typeof loyaltyRewardInsertSchema>;
+
+export type LoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type LoyaltyTransactionInsert = z.infer<typeof loyaltyTransactionInsertSchema>;

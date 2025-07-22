@@ -85,8 +85,9 @@ export default function CategoryManagement() {
   });
 
   // Fetch categories
-  const { data: categories = [], isLoading } = useQuery({
+  const { data: categories, isLoading } = useQuery<Category[]>({
     queryKey: ['/api/products/categories'],
+    initialData: [],
   });
 
   // Add category mutation
@@ -287,7 +288,7 @@ export default function CategoryManagement() {
                       </TableCell>
                     </TableRow>
                   ) : categories && categories.length > 0 ? (
-                    categories.map((category: Category) => (
+                    categories.map((category) => (
                       <TableRow key={category.id}>
                         <TableCell>
                           {isEditing === category.id ? (
