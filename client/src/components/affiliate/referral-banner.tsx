@@ -43,8 +43,7 @@ export function ReferralBanner() {
     queryKey: ['/api/affiliates/verify', referralCode],
     queryFn: async () => {
       if (!referralCode) return { isValid: false, discount: 0, duration: 0 };
-      const response = await apiRequest('GET', `/api/affiliates/verify?code=${referralCode}`);
-      return response.json();
+      return await apiRequest('GET', `/api/affiliates/verify?code=${referralCode}`);
     },
     enabled: !!referralCode,
     refetchOnWindowFocus: false,

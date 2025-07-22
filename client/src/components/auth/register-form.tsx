@@ -71,12 +71,7 @@ export function RegisterForm() {
         storeId: values.storeId || null,
       };
       
-      const response = await apiRequest('POST', '/api/auth/register', userData);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-      return response.json();
+      return await apiRequest('POST', '/api/auth/register', userData);
     },
     onSuccess: async (data, variables) => {
       toast({

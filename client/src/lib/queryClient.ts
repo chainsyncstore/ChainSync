@@ -18,9 +18,33 @@ const queryClient = new QueryClient({
 
 export { queryClient };
 
-// Helper function for API requests
-export async function apiRequest(url: string, options: RequestInit = {}) {
+// Helper function for API requests - supports both old and new signatures
+export async function apiRequest(
+  methodOrUrl: string, 
+  urlOrOptions?: string | RequestInit, 
+  dataOrOptions?: any
+): Promise<any> {
+  // Handle different function signatures
+  let method: string;
+  let url: string;
+  let options: RequestInit = {};
+
+  if (typeof urlOrOptions === 'string') {
+    // Legacy signature: apiRequest(method, url, data)
+    method = methodOrUrl;
+    url = urlOrOptions;
+    if (dataOrOptions) {
+      options.body = JSON.stringify(dataOrOptions);
+    }
+  } else {
+    // New signature: apiRequest(url, options)
+    method = 'GET';
+    url = methodOrUrl;
+    options = urlOrOptions || {};
+  }
+
   const response = await fetch(url, {
+    method,
     ...options,
     headers: {
       'Content-Type': 'application/json',
