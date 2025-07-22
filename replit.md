@@ -1,0 +1,31 @@
+# ChainSync - All-in-One Retail Management Platform
+
+## Overview
+ChainSync is a comprehensive retail management platform designed for supermarkets and multi-store chains. The application provides inventory management, point-of-sale systems, analytics, AI-powered assistance, payment processing, affiliate programs, and more.
+
+**Current State:** Migrating from Replit Agent to standard Replit environment with fullstack_js template structure.
+
+## Project Architecture
+- **Frontend:** React + TypeScript with Vite, using shadcn/ui components, TanStack Query for data fetching, and Wouter for routing
+- **Backend:** Express.js server with TypeScript, Drizzle ORM for database operations, Redis for caching
+- **Database:** PostgreSQL with Neon serverless connection
+- **External Services:** 
+  - Stripe for payments
+  - SendGrid for emails
+  - Anthropic AI for assistant features
+  - Google Dialogflow for AI conversations
+  - Flutterwave & Paystack for payment processing
+
+## Recent Changes
+**2025-01-22:** Started migration from Replit Agent to standard Replit environment
+- Installing required dependencies and setting up fullstack_js structure
+- Restructuring project to follow modern full-stack patterns
+- Ensuring proper client/server separation for security
+
+## User Preferences
+- Focus on comprehensive functionality over simplification
+- Maintain existing complex features during migration
+- Prioritize data integrity and security practices
+
+## Migration Status
+Currently working through migration checklist in `.local/state/replit/agent/progress_tracker.md`

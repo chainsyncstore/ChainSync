@@ -1,212 +1,61 @@
-import express, { type Request, Response, NextFunction, Application } from "express";
-import { createRequestHandler, createErrorHandler, isMiddlewareFunction } from "./middleware/handler";
-import { registerRoutes } from "./routes";
+import express, { type Request, Response, NextFunction } from "express";
+import { createServer } from "http";
+import { router } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { setupSecureServer, enforceHttpsForPaymentRoutes } from "./config/https";
-import { enforceHttpsForDialogflowRoutes, verifyDialogflowConfig } from "./config/dialogflow-security";
-import { logNgrokInstructions } from "./config/ngrok";
-import { setupSecurity } from "../middleware/security";
-import { logger } from "./services/logger";
-import { env } from "./config/env";
-import { ServiceError } from "./services/base/base-service";
-import { applyRateLimiters } from "./middleware/rate-limiter";
-import { applyCORS } from "./middleware/cors";
-import { initializeDatabase } from "./database";
-import { initializeGlobals } from "@shared/db/types";
 
 const app = express();
+const server = createServer(app);
 
-// Initialize global database references
-initializeGlobals();
-
-// Initialize database connection
-await initializeDatabase();
-
-// Setup security middleware
-setupSecurity(app);
-
-// Apply middleware
-const corsMiddleware = createRequestHandler((req, res, next) => {
-  applyCORS(req, res, next);
-});
-const rateLimiterMiddleware = createRequestHandler(applyRateLimiters.applyRateLimiters);
-
-if (isMiddlewareFunction(corsMiddleware) && isMiddlewareFunction(rateLimiterMiddleware)) {
-  app.use(corsMiddleware);
-  app.use(rateLimiterMiddleware);
-}
-
-// Enforce HTTPS for secure routes in production
-const paymentRoutesMiddleware = createRequestHandler((req, res, next) => {
-  enforceHttpsForPaymentRoutes(req, res, next);
-});
-const dialogflowRoutesMiddleware = createRequestHandler((req, res, next) => {
-  enforceHttpsForDialogflowRoutes(req, res, next);
-});
-
-if (isMiddlewareFunction(paymentRoutesMiddleware) && isMiddlewareFunction(dialogflowRoutesMiddleware)) {
-  app.use(paymentRoutesMiddleware);
-  app.use(dialogflowRoutesMiddleware);
-}
-
-// Fallback logging for server startup errors
-process.on('uncaughtException', (err) => {
-  // eslint-disable-next-line no-console
-  console.error('Server failed to start:', err);
-  process.exit(1);
-});
-process.on('unhandledRejection', (err) => {
-  // eslint-disable-next-line no-console
-  console.error('Unhandled promise rejection:', err);
-  process.exit(1);
-});
-
-
-// Parse request bodies
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Error handling middleware
-const errorMiddleware = createErrorHandler((err, req, res, next) => {
-  logger.error(err.message, { stack: err.stack });
-
-  if (err instanceof Error) {
-    res.status(500).json({
-      success: false,
-      error: {
-        message: err.message,
-        details: err.stack
-      }
-    });
-    return;
-  }
-
-  next(err);
-});
-
-// Register error middleware as the last app.use
-app.use(errorMiddleware);
-
-if (isMiddlewareFunction(errorMiddleware)) {
-  app.use(errorMiddleware);
-}
-
-// Fallback error handler
-const fallbackMiddleware = createErrorHandler((err: any, req: Request, res: Response, next: NextFunction) => {
-  logger.error('Unknown error:', err);
-  res.status(500).json({
-    success: false,
-    error: {
-      message: 'Internal server error',
-      details: 'An unexpected error occurred'
-    }
-  });
-});
-
-if (isMiddlewareFunction(fallbackMiddleware)) {
-  app.use(fallbackMiddleware);
-}
-
-// Register routes
-registerRoutes(app);
-
-// Add error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error(err.message, { stack: err.stack });
-
-  if (err instanceof Error) {
-    return res.status(500).json({
-      success: false,
-      error: {
-        message: err.message,
-        details: err.stack
-      }
-    });
-  }
-
-  res.status(500).json({
-    success: false,
-    error: {
-      message: 'An unexpected error occurred'
-    }
-  });
-});
-
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
+// Request logging middleware
+app.use((req, _res, next) => {
+  log(`${req.method} ${req.url}`, 'req');
   next();
 });
 
-(async () => {
-  // Verify Dialogflow configuration on startup
-  const dialogflowConfigured = verifyDialogflowConfig();
-  if (dialogflowConfigured) {
-    log("Dialogflow configuration verified successfully");
+// Basic middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// CORS middleware
+app.use((_req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (_req.method === 'OPTIONS') {
+    res.sendStatus(200);
   } else {
-    log("Warning: Dialogflow not properly configured, will use fallback responses");
+    next();
   }
-  
-  // Create an HTTP or HTTPS server first
-  const { setupSecureServer } = await import('./config/https');
-  const httpServer = setupSecureServer(app);
-  
-  // Use the HTTP server with routes and Socket.io
-  const ioServer = await registerRoutes(app);
+});
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+// API routes
+app.use(router);
 
-    console.error("Server error:", err);
-    res.status(status).json({ message });
-    // Don't throw the error after handling it - this causes unhandled promise rejections
+// Error handling middleware
+// @ts-ignore
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  log(`Error: ${err.message}`, 'error');
+  res.status(500).json({ 
+    success: false, 
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' 
   });
+});
 
-  // Set up static file serving or Vite middleware based on environment
-  if (process.env.NODE_ENV === 'production') {
+const PORT = process.env.PORT || 5000;
+
+async function startServer() {
+  if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
-    await setupVite(app, httpServer);
-    // In development mode, show ngrok instructions for webhook testing
-    logNgrokInstructions();
+    await setupVite(app, server);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = process.env.PORT || 5000;
-  const host = '0.0.0.0';
-
-  httpServer.listen(Number(port), host, () => {
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
-    log(`Listening on ${protocol}://${host}:${port}`);
+  server.listen(Number(PORT), "0.0.0.0", () => {
+    log(`Server running on port ${PORT}`);
   });
-})();
+}
 
-export default app;
+startServer().catch((error) => {
+  log(`Failed to start server: ${error}`, 'error');
+  process.exit(1);
+});
