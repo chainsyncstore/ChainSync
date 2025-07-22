@@ -21,9 +21,7 @@ export default function PosPage() {
     queryKey: ['/api/stores', user?.storeId],
     queryFn: async () => {
       if (!user?.storeId) return null;
-      const res = await fetch(`/api/stores/${user.storeId}`);
-      if (!res.ok) return null;
-      return res.json();
+      return await apiRequest('GET', `/api/stores/${user.storeId}`);
     },
     enabled: !!user?.storeId && isOnline,
   });
@@ -31,10 +29,9 @@ export default function PosPage() {
   // Mutation for syncing offline transactions
   const syncMutation = useMutation({
     mutationFn: async (transactions: any[]) => {
-      const response = await apiRequest('POST', '/api/pos/sync-offline-transactions', {
+      return await apiRequest('POST', '/api/pos/sync-offline-transactions', {
         transactions
       });
-      return response.json();
     },
     onSuccess: (data) => {
       const syncedIds = data.results

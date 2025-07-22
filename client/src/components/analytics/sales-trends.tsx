@@ -52,11 +52,6 @@ interface PaymentMethodBreakdown {
   count: number;
 }
 
-interface Store {
-  id: number;
-  name: string;
-}
-
 interface SalesTrendsResponse {
   trendData: SalesTrend[];
   storeBreakdown: StoreBreakdown[];
@@ -85,7 +80,7 @@ export const SalesTrends = () => {
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
 
   // Fetch stores for the store filter
-  const { data: stores } = useQuery<Store[]>({
+  const { data: stores } = useQuery({
     queryKey: ['/api/stores'],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -116,12 +111,7 @@ export const SalesTrends = () => {
         url.searchParams.append('store', storeId);
       }
       
-      const response = await fetch(url.toString());
-      if (!response.ok) {
-        throw new Error('Failed to fetch sales trends');
-      }
-      
-      return await response.json();
+      return await apiRequest('GET', url.toString());
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -457,7 +447,7 @@ export const SalesTrends = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all_stores">All Stores</SelectItem>
-                  {stores?.map((store) => (
+                  {Array.isArray(stores) && stores.map((store: any) => (
                     <SelectItem key={store.id} value={store.id.toString()}>
                       {store.name}
                     </SelectItem>

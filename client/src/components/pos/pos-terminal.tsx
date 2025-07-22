@@ -50,8 +50,7 @@ export function PosTerminal() {
   // Create transaction mutation
   const createTransactionMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/pos/transactions', data);
-      return response.json();
+      return await apiRequest('POST', '/api/pos/transactions', data);
     },
     onSuccess: (data) => {
       setCompletedTransaction({

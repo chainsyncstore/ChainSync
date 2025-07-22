@@ -1,265 +1,40 @@
-import React, { useEffect, Suspense } from "react";
-import { Switch, Route, Router, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider, useAuth } from "@/providers/auth-provider";
-import { CurrencyProvider } from "@/providers/currency-provider";
-import { ErrorBoundary } from "@/sentry"; // Initialize Sentry
+import { Route, Switch } from 'wouter';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
+import { Toaster } from '@/components/ui/toaster';
 
-import LoginPage from "@/pages/login";
-import DashboardPage from "@/pages/dashboard";
-import StoresPage from "@/pages/stores";
-import AnalyticsPage from "@/pages/analytics";
-import InventoryPage from "@/pages/inventory";
-import UsersPage from "@/pages/users";
-import SettingsPage from "@/pages/settings";
-import PosPage from "@/pages/pos";
-import ForgotPasswordPage from "@/pages/forgot-password";
-import ResetPasswordPage from "@/pages/reset-password";
-import LandingPage from "@/pages/landing";
-import NotFound from "@/pages/not-found";
-import PaymentTestingPage from "@/pages/payment-testing";
-import LoyaltyPage from "@/pages/loyalty";
-import ImportPage from "@/pages/import";
-import ProductImportPage from "@/pages/product-import";
-import AddProductPage from "@/pages/add-product";
-import AssistantPage from "@/pages/assistant";
-import ProfilePage from "@/pages/profile";
+// Pages
+import Dashboard from '@/pages/Dashboard';
+import Products from '@/pages/Products';
+import Inventory from '@/pages/Inventory';
+import Sales from '@/pages/Sales';
+import Stores from '@/pages/Stores';
+import Users from '@/pages/Users';
 
-// Protected route component
-function ProtectedRoute({ component: Component, adminOnly = false, isManagerOrAdmin = false, ...rest }: any) {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const [, setLocation] = useLocation();
-
-  // Use effect for navigation after component mounts
-  useEffect(() => {
-    // Redirect to landing page if not authenticated
-    if (!isLoading && !isAuthenticated) {
-      setLocation("/");
-      return;
-    }
-
-    // Check for admin access if required
-    if (!isLoading && isAuthenticated && adminOnly && user?.role !== "admin") {
-      setLocation("/dashboard");
-      return;
-    }
-    
-    // Check for manager or admin access if required
-    if (!isLoading && isAuthenticated && isManagerOrAdmin && 
-        user?.role !== "admin" && user?.role !== "manager") {
-      setLocation("/dashboard");
-      return;
-    }
-  }, [isAuthenticated, isLoading, user, adminOnly, isManagerOrAdmin, setLocation]);
-
-  // Handle loading state
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  // Don't render during redirects
-  if (!isAuthenticated || (adminOnly && user?.role !== "admin")) {
-    return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
-  }
-
-  // Render component if authorized
-  return <Component {...rest} />;
-}
-
-function DefaultRoute() {
-  const { user, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
-  
-  // Use effect hook to handle navigation after render
-  useEffect(() => {
-    // If user is authenticated, redirect based on role
-    if (isAuthenticated && user) {
-      if (user.role === "cashier") {
-        setLocation("/pos");
-      } else {
-        setLocation("/dashboard");
-      }
-    }
-  }, [user, isAuthenticated, setLocation]);
-  
-  // If not authenticated, show the landing page
-  if (!isAuthenticated) {
-    return <LandingPage />;
-  }
-  
-  // Return a loading indicator while redirecting
-  return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
-}
-
-function DashboardRoute() {
-  return <ProtectedRoute component={DashboardPage} />;
-}
-
-function StoresRoute() {
-  return <ProtectedRoute component={StoresPage} />;
-}
-
-function AnalyticsRoute() {
-  return <ProtectedRoute component={AnalyticsPage} />;
-}
-
-function InventoryRoute() {
-  return <ProtectedRoute component={InventoryPage} />;
-}
-
-function UsersRoute() {
-  return <ProtectedRoute component={UsersPage} adminOnly={true} />;
-}
-
-function SettingsRoute() {
-  return <ProtectedRoute component={SettingsPage} />;
-}
-
-function PosRoute() {
-  return <ProtectedRoute component={PosPage} />;
-}
-
-function AffiliatesRoute() {
-  const AffiliatePage = React.lazy(() => import('./pages/affiliates'));
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <AffiliatePage />
-    </Suspense>
-  );
-}
-
-function SignupRoute() {
-  const SignupPage = React.lazy(() => import('./pages/signup'));
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <SignupPage />
-    </Suspense>
-  );
-}
-
-function PaymentTestingRoute() {
-  return <ProtectedRoute component={PaymentTestingPage} adminOnly={true} />;
-}
-
-function ReturnsRoute() {
-  const ReturnsPage = React.lazy(() => import('./pages/returns'));
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={ReturnsPage} />
-    </Suspense>
-  );
-}
-
-function LoyaltyRoute() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={LoyaltyPage} />
-    </Suspense>
-  );
-}
-
-function ImportRoute() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={ImportPage} isManagerOrAdmin={true} />
-    </Suspense>
-  );
-}
-
-function ProductImportRoute() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={ProductImportPage} isManagerOrAdmin={true} />
-    </Suspense>
-  );
-}
-
-function AddProductRoute() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={AddProductPage} isManagerOrAdmin={true} />
-    </Suspense>
-  );
-}
-
-function AssistantRoute() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={AssistantPage} />
-    </Suspense>
-  );
-}
-
-function ProfileRoute() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <ProtectedRoute component={ProfilePage} />
-    </Suspense>
-  );
-}
-
-function AppRoutes() {
-  return (
-    <Switch>
-      <Route path="/login" component={LoginPage} />
-      <Route path="/signup" component={SignupRoute} />
-      <Route path="/forgot-password" component={ForgotPasswordPage} />
-      <Route path="/reset-password" component={ResetPasswordPage} />
-      <Route path="/dashboard" component={DashboardRoute} />
-      <Route path="/stores" component={StoresRoute} />
-      <Route path="/analytics" component={AnalyticsRoute} />
-      <Route path="/inventory" component={InventoryRoute} />
-      <Route path="/users" component={UsersRoute} />
-      <Route path="/settings" component={SettingsRoute} />
-      <Route path="/pos" component={PosRoute} />
-      <Route path="/affiliates" component={AffiliatesRoute} />
-      <Route path="/returns" component={ReturnsRoute} />
-      <Route path="/loyalty" component={LoyaltyRoute} />
-      <Route path="/import" component={ImportRoute} />
-      <Route path="/product-import" component={ProductImportRoute} />
-      <Route path="/add-product" component={AddProductRoute} />
-      <Route path="/assistant" component={AssistantRoute} />
-      <Route path="/profile" component={ProfileRoute} />
-      <Route path="/payment-testing" component={PaymentTestingRoute} />
-      <Route path="/" component={DefaultRoute} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+// Layout
+import Layout from '@/components/Layout';
 
 function App() {
   return (
-    <ErrorBoundary fallback={({ error, resetError }) => (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-red-600 mb-4">Something went wrong</h2>
-          <p className="text-gray-600 mb-4">We're sorry, but something unexpected happened.</p>
-          <details className="mb-4">
-            <summary className="cursor-pointer text-sm text-gray-500">Error details</summary>
-            <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
-              {error instanceof Error ? error.message : String(error)}
-            </pre>
-          </details>
-          <button
-            onClick={resetError}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
-          >
-            Try again
-          </button>
-        </div>
-      </div>
-    )}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <CurrencyProvider>
-            <AppRoutes />
-            <Toaster />
-          </CurrencyProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <Layout>
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/products" component={Products} />
+          <Route path="/inventory" component={Inventory} />
+          <Route path="/sales" component={Sales} />
+          <Route path="/stores" component={Stores} />
+          <Route path="/users" component={Users} />
+          <Route>
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">404: Not Found</h1>
+              <p className="text-gray-600 dark:text-gray-400">The page you're looking for doesn't exist.</p>
+            </div>
+          </Route>
+        </Switch>
+      </Layout>
+      <Toaster />
+    </QueryClientProvider>
   );
 }
 

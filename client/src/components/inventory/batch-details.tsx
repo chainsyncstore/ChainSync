@@ -134,8 +134,7 @@ export function BatchDetails({ batch, product, onBatchUpdated, isManagerOrAdmin 
   const deleteBatchMutation = useMutation({
     mutationFn: async (force: boolean = false) => {
       const url = `/api/inventory/batches/${batch.id}${force ? '?force=true' : ''}`;
-      const res = await apiRequest('DELETE', url);
-      return await res.json();
+      return await apiRequest('DELETE', url);
     },
     onSuccess: () => {
       toast({ 

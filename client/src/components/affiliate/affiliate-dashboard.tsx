@@ -132,8 +132,7 @@ export function AffiliateDashboard() {
   // Register as affiliate mutation
   const registerAffiliateMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/affiliates/register', {});
-      return response.json();
+      return await apiRequest('POST', '/api/affiliates/register', {});
     },
     onSuccess: () => {
       toast({
@@ -160,8 +159,7 @@ export function AffiliateDashboard() {
       bankCode: string;
       paymentMethod: string;
     }) => {
-      const response = await apiRequest('POST', '/api/affiliates/bank-details', bankDetails);
-      return response.json();
+      return await apiRequest('POST', '/api/affiliates/bank-details', bankDetails);
     },
     onSuccess: () => {
       toast({

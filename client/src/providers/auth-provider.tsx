@@ -3,7 +3,12 @@ import { useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import type { AuthResponse } from '@shared/schema';
+// AuthResponse interface for API response
+interface AuthResponse {
+  authenticated: boolean;
+  user?: User;
+  message?: string;
+}
 
 // Define User interface for the auth context
 // We remove password for security reasons
@@ -130,8 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? `/api/auth/login?remember=true` 
         : '/api/auth/login';
       
-      const response = await apiRequest('POST', endpoint, loginCredentials);
-      const data = await response.json();
+      const data = await apiRequest('POST', endpoint, loginCredentials);
       
       if (!data.authenticated || !data.user) {
         throw new Error(data.message || 'Authentication failed');

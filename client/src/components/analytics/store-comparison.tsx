@@ -104,12 +104,7 @@ export const StoreComparison = () => {
         url.searchParams.append('endDate', endDate.toISOString());
       }
       
-      const response = await fetch(url.toString());
-      if (!response.ok) {
-        throw new Error('Failed to fetch store performance data');
-      }
-      
-      return await response.json();
+      return await apiRequest('GET', url.toString());
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

@@ -85,12 +85,7 @@ export default function AffiliatePage() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormValues) => {
-      const response = await apiRequest('POST', '/api/auth/login', data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-      return response.json();
+      return await apiRequest('POST', '/api/auth/login', data);
     },
     onSuccess: (data) => {
       // Call login with username and password from form data
@@ -118,18 +113,11 @@ export default function AffiliatePage() {
       const { confirmPassword, ...signupData } = data;
       
       // First attempt signup
-      const response = await apiRequest('POST', '/api/auth/signup', {
+      return await apiRequest('POST', '/api/auth/signup', {
         ...signupData,
         role: "affiliate", // Special role for affiliate-only users
         becomeAffiliate: true // Flag to automatically register as affiliate
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-      
-      return response.json();
     },
     onSuccess: (data) => {
       // Call login with username and password from form data

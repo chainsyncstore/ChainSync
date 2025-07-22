@@ -70,8 +70,7 @@ export function MinimumLevelDialog({
   
   const updateMinLevelMutation = useMutation({
     mutationFn: async (data: { inventoryId: number; minimumLevel: number }) => {
-      const res = await apiRequest('POST', '/api/inventory/minimum-level', data);
-      return res.json();
+      return await apiRequest('POST', '/api/inventory/minimum-level', data);
     },
     onSuccess: () => {
       toast({

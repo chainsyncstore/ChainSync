@@ -1,0 +1,50 @@
+2025-07-22T14:39:39.389104284Z To get access to the TypeScript compiler, tsc, from the command line either:
+2025-07-22T14:39:39.389107855Z 
+2025-07-22T14:39:39.389131125Z - Use npm install typescript to first add TypeScript to your project before using npx
+2025-07-22T14:39:39.389156586Z - Use yarn to avoid accidentally running code from un-installed packages
+2025-07-22T14:39:39.405589622Z Building client with explicit npx vite...
+2025-07-22T14:39:39.405610003Z + echo 'Building client with explicit npx vite...'
+2025-07-22T14:39:39.405616813Z + NODE_ENV=production
+2025-07-22T14:39:39.405618753Z + npx vite build
+2025-07-22T14:39:39.935616511Z failed to load config from /opt/render/project/src/vite.config.ts
+2025-07-22T14:39:39.935780665Z error during build:
+2025-07-22T14:39:39.935786506Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/render/project/src/node_modules/.vite-temp/vite.config.ts.timestamp-1753195179931-6d167760a0013.mjs
+2025-07-22T14:39:39.935789056Z     at new NodeError (node:internal/errors:405:5)
+2025-07-22T14:39:39.935790736Z     at packageResolve (node:internal/modules/esm/resolve:916:9)
+2025-07-22T14:39:39.935792406Z     at moduleResolve (node:internal/modules/esm/resolve:973:20)
+2025-07-22T14:39:39.935794596Z     at defaultResolve (node:internal/modules/esm/resolve:1193:11)
+2025-07-22T14:39:39.935796286Z     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:404:12)
+2025-07-22T14:39:39.935798006Z     at ModuleLoader.resolve (node:internal/modules/esm/loader:373:25)
+2025-07-22T14:39:39.935799756Z     at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:250:38)
+2025-07-22T14:39:39.935803446Z     at ModuleWrap.<anonymous> (node:internal/modules/esm/module_job:76:39)
+2025-07-22T14:39:39.935805236Z     at link (node:internal/modules/esm/module_job:75:36)
+2025-07-22T14:39:39.951477393Z + ls -la dist/server/
+2025-07-22T14:39:39.953586759Z total 8
+2025-07-22T14:39:39.953598169Z drwxr-sr-x 2 render render 4096 Jul 22 14:39 .
+2025-07-22T14:39:39.953601579Z drwxr-sr-x 3 render render 4096 Jul 22 14:39 ..
+2025-07-22T14:39:39.953749143Z + exit 0
+2025-07-22T14:39:59.1330171Z ==> Uploading build...
+2025-07-22T14:40:16.300796563Z ==> Uploaded in 9.3s. Compression took 7.9s
+2025-07-22T14:40:16.419043324Z ==> Build successful 🎉
+2025-07-22T14:40:31.327939396Z ==> Deploying...
+2025-07-22T14:41:24.42289447Z ==> Running 'npm run start'
+2025-07-22T14:41:27.315676524Z 
+2025-07-22T14:41:27.315705565Z > rest-express@1.0.0 start
+2025-07-22T14:41:27.315712565Z > node dist/server/index.js
+2025-07-22T14:41:27.315716955Z 
+2025-07-22T14:41:27.518534907Z node:internal/modules/cjs/loader:1143
+2025-07-22T14:41:27.518558837Z   throw err;
+2025-07-22T14:41:27.518563598Z   ^
+2025-07-22T14:41:27.518567607Z 
+2025-07-22T14:41:27.518574058Z Error: Cannot find module '/opt/render/project/src/dist/server/index.js'
+2025-07-22T14:41:27.518578298Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1140:15)
+2025-07-22T14:41:27.518583628Z     at Module._load (node:internal/modules/cjs/loader:981:27)
+2025-07-22T14:41:27.518588218Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+2025-07-22T14:41:27.518596758Z     at node:internal/main/run_main_module:28:49 {
+2025-07-22T14:41:27.518602699Z   code: 'MODULE_NOT_FOUND',
+2025-07-22T14:41:27.518607719Z   requireStack: []
+2025-07-22T14:41:27.518611639Z }
+2025-07-22T14:41:27.518615499Z 
+2025-07-22T14:41:27.518619459Z Node.js v18.20.0
+2025-07-22T14:41:28.570392065Z ==> Exited with status 1
+2025-07-22T14:41:28.585687745Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

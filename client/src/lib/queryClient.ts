@@ -1,75 +1,60 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const headers: Record<string, string> = {
-    "Accept": "application/json",
-    "Cache-Control": "no-cache, no-store",
-    "Pragma": "no-cache"
-  };
-  
-  if (data) {
-    headers["Content-Type"] = "application/json";
-  }
-  
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include", // Important: this ensures cookies are sent with the request
-    cache: "no-store" // Prevent caching of requests
-  });
-
-  await throwIfResNotOk(res);
-  return res;
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include", // Important: this ensures cookies are sent with the request
-      headers: {
-        "Accept": "application/json",
-        "Cache-Control": "no-cache, no-store",
-        "Pragma": "no-cache"
-      },
-      cache: "no-store" // Prevent caching of requests
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      console.log("401 response in query, returning null as configured");
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
-
-export const queryClient = new QueryClient({
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
-    },
-    mutations: {
-      retry: false,
+      queryFn: ({ queryKey }) => {
+        const url = queryKey[0] as string;
+        return fetch(url).then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        });
+      },
     },
   },
 });
+
+export { queryClient };
+
+// Helper function for API requests - supports both old and new signatures
+export async function apiRequest(
+  methodOrUrl: string, 
+  urlOrOptions?: string | RequestInit, 
+  dataOrOptions?: any
+): Promise<any> {
+  // Handle different function signatures
+  let method: string;
+  let url: string;
+  let options: RequestInit = {};
+
+  if (typeof urlOrOptions === 'string') {
+    // Legacy signature: apiRequest(method, url, data)
+    method = methodOrUrl;
+    url = urlOrOptions;
+    if (dataOrOptions) {
+      options.body = JSON.stringify(dataOrOptions);
+    }
+  } else {
+    // New signature: apiRequest(url, options)
+    method = 'GET';
+    url = methodOrUrl;
+    options = urlOrOptions || {};
+  }
+
+  const response = await fetch(url, {
+    method,
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+}
