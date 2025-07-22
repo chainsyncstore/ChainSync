@@ -111,12 +111,7 @@ export const SalesTrends = () => {
         url.searchParams.append('store', storeId);
       }
       
-      const response = await fetch(url.toString());
-      if (!response.ok) {
-        throw new Error('Failed to fetch sales trends');
-      }
-      
-      return await response.json();
+      return await apiRequest('GET', url.toString());
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

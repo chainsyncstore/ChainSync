@@ -120,8 +120,7 @@ export default function ProductImport() {
   // Upload and validate file
   const validateMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await apiRequest('POST', '/api/products/import/validate', formData);
-      return response.json();
+      return await apiRequest('POST', '/api/products/import/validate', formData);
     },
     onSuccess: (data) => {
       if (data.summary) {
@@ -165,8 +164,7 @@ export default function ProductImport() {
   // Import validated products
   const importMutation = useMutation({
     mutationFn: async (data: { products: ProductData[]; storeId: number; createCategories: boolean }) => {
-      const response = await apiRequest('POST', '/api/products/import/process', data);
-      return response.json();
+      return await apiRequest('POST', '/api/products/import/process', data);
     },
     onSuccess: (data) => {
       setImportResult(data);

@@ -179,10 +179,9 @@ export default function BarcodeScanner({ onProductFound, disabled = false }: Bar
     
     try {
       // Look up the product by barcode
-      const response = await apiRequest('GET', `/api/products/barcode/${encodeURIComponent(barcode)}`);
-      const data = await response.json();
+      const data = await apiRequest('GET', `/api/products/barcode/${encodeURIComponent(barcode)}`);
       
-      if (response.status === 400 && data.isExpired) {
+      if (data.status === 400 && data.isExpired) {
         // Product is expired
         if (errorBeep.current) errorBeep.current.play();
         

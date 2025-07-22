@@ -40,8 +40,7 @@ export function MessagePopover() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
-      const response = await apiRequest('POST', '/api/ai/chat', { message });
-      return response.json();
+      return await apiRequest('POST', '/api/ai/chat', { message });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/ai/conversation'] });
