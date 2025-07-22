@@ -1,26 +1,13 @@
 #!/usr/bin/env node
 
 import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import path from 'path';
 
 console.log('🚀 Starting ChainSync Development Server...');
 
-// Kill existing processes
-try {
-  spawn('pkill', ['-f', 'vite'], { stdio: 'ignore' });
-  spawn('pkill', ['-f', 'tsx.*server'], { stdio: 'ignore' });
-  await new Promise(resolve => setTimeout(resolve, 1000));
-} catch (e) {
-  // Ignore cleanup errors
-}
-
-// Start the integrated server
-const serverProcess = spawn('tsx', ['server/index.ts'], {
-  cwd: __dirname,
+// Start the integrated server that serves both frontend and backend
+const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
+  cwd: process.cwd(),
   stdio: 'inherit',
   env: { 
     ...process.env, 
