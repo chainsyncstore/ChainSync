@@ -70,6 +70,25 @@ export const transactions = pgTable('transactions', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Subscriptions table
+export const subscriptions = pgTable('subscriptions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  planId: text('plan_id').notNull(),
+  status: text('status', { enum: ['active', 'cancelled', 'expired'] }).default('active'),
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  endDate: timestamp('end_date'),
+  metadata: json('metadata'),
+  paymentMethod: text('payment_method'),
+  amount: decimal('amount', { precision: 10, scale: 2 }),
+  currency: text('currency').default('USD'),
+  referralCode: text('referral_code'),
+  autoRenew: boolean('auto_renew').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -99,15 +118,24 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   createdAt: true,
 });
 
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertStore = z.infer<typeof insertStoreSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type SubscriptionInsert = InsertSubscription; // Alias for compatibility
 
 export type SelectUser = typeof users.$inferSelect;
 export type SelectStore = typeof stores.$inferSelect;
 export type SelectProduct = typeof products.$inferSelect;
 export type SelectInventory = typeof inventory.$inferSelect;
 export type SelectTransaction = typeof transactions.$inferSelect;
+export type SelectSubscription = typeof subscriptions.$inferSelect;
