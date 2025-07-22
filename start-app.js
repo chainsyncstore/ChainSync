@@ -1,11 +1,9 @@
 #!/usr/bin/env node
-
 import { spawn } from 'child_process';
-import path from 'path';
 
-console.log('🚀 Starting ChainSync Development Server...');
+console.log('🚀 Starting ChainSync Application...');
 
-// Start the integrated server that serves both frontend and backend
+// Start the integrated server
 const serverProcess = spawn('npx', ['tsx', 'server/integrated-index.ts'], {
   cwd: process.cwd(),
   stdio: 'inherit',
@@ -16,16 +14,14 @@ const serverProcess = spawn('npx', ['tsx', 'server/integrated-index.ts'], {
   }
 });
 
-console.log('Server starting on port 5000...');
-
 serverProcess.on('error', (err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
 });
 
 serverProcess.on('close', (code) => {
-  console.log(`Server process exited with code ${code}`);
   if (code !== 0) {
+    console.log(`Server process exited with code ${code}`);
     process.exit(code);
   }
 });
