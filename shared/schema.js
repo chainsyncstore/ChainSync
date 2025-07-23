@@ -100,6 +100,7 @@ export const products = pgTable('products', {
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
 export const productsRelations = relations(products, ({ one, many }) => ({
     category: one(categories, {
         fields: [products.categoryId],
@@ -326,6 +327,7 @@ export const aiConversationSelectSchema = createSelectSchema(aiConversations, {
 // Validation Schemas
 // User schemas are defined later in the file
 export const storeInsertSchema = createInsertSchema(stores);
+export const insertStoreSchema = storeInsertSchema;
 // export const storeInsertSchema = createInsertSchema(stores, {
 //   name(schema) {
 //     return schema.name.min(2, "Store name must be at least 2 characters");
@@ -340,6 +342,7 @@ export const categoryInsertSchema = createInsertSchema(categories);
 // });
 export const productInsertSchema = createInsertSchema(products);
 export const inventoryInsertSchema = createInsertSchema(inventory);
+export const insertProductSchema = productInsertSchema;
 // export const inventoryInsertSchema = createInsertSchema(inventory, {
 //   totalQuantity: (schema) => schema.totalQuantity.refine(val => Number.isInteger(val) && val >= 0, { message: "Total quantity must be a non-negative integer" }),
 //   minimumLevel: (schema) => schema.minimumLevel.refine(val => Number.isInteger(val) && val >= 0, { message: "Minimum level must be a non-negative integer" }),
@@ -364,6 +367,7 @@ export const userInsertSchema = createInsertSchema(users, {
     //   message: "Role must be one of: admin, manager, cashier, affiliate"
     // })
 });
+export const insertUserSchema = userInsertSchema;
 // Auth schemas
 export const loginSchema = z.object({
     username: z.string().min(1, 'Username is required'),

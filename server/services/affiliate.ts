@@ -35,7 +35,7 @@ export async function generateReferralCode(userId: number): Promise<string> {
     }
 
     // Generate a base code from username or name
-    const baseCode = user.username
+    const baseCode = user.name
       .replace(/[^a-zA-Z0-9]/g, '')
       .substring(0, 5)
       .toUpperCase();
@@ -147,7 +147,7 @@ export async function trackReferral(
     await db
       .update(schema.affiliates)
       .set({
-        totalReferrals: affiliate.totalReferrals + 1,
+        totalReferrals: (affiliate.totalReferrals ?? 0) + 1,
         updatedAt: new Date(),
       })
       .where(eq(schema.affiliates.id, affiliate.id));
@@ -260,7 +260,7 @@ export async function processAffiliateCommission(
       return false;
     }
 
-    const newPendingEarnings = parseFloat(affiliate.pendingEarnings.toString()) + commissionAmount;
+    const newPendingEarnings = parseFloat(affiliate.pendingEarnings?.toString() ?? '0') + commissionAmount;
     await db
       .update(schema.affiliates)
       .set({
@@ -312,8 +312,7 @@ export async function processAffiliatePayout(
         currency: 'NGN', // Default to NGN
         status: 'pending',
         paymentMethod: affiliate.paymentMethod || 'paystack',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        // createdAt and updatedAt are handled by Drizzle by default for new inserts
       };
 
       const [payment] = await db.insert(schema.referralPayments).values(paymentData).returning();
@@ -362,12 +361,12 @@ export async function processAffiliatePayout(
 
       if (paymentSuccess) {
         // Update the affiliate's earnings
-        const totalEarnings = parseFloat(affiliate.totalEarnings.toString()) + pendingAmount;
+        const totalEarnings = parseFloat(affiliate.totalEarnings?.toString() ?? '0') + pendingAmount;
         await db
           .update(schema.affiliates)
           .set({
             totalEarnings: totalEarnings.toString(),
-            pendingEarnings: '0',
+            pendingEarnings: affiliate.pendingEarnings?.toString() ?? '0',
             updatedAt: new Date(),
           })
           .where(eq(schema.affiliates.id, affiliate.id));
@@ -477,8 +476,8 @@ export async function getAffiliateReferrals(userId: number): Promise<any[]> {
         signupDate: schema.referrals.signupDate,
         activationDate: schema.referrals.activationDate,
         expiryDate: schema.referrals.expiryDate,
-        username: schema.users.username,
-        fullName: schema.users.fullName,
+        username: schema.users.name, // Assuming 'name' is the correct field
+        fullName: schema.users.name, // Assuming 'name' is the correct field
       })
       .from(schema.referrals)
       .leftJoin(schema.users, eq(schema.referrals.referredUserId, schema.users.id))
