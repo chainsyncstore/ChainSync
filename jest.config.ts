@@ -5,7 +5,7 @@ const config: Config = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/tests/setup-test-env.ts'],
   moduleNameMapper: {
-    '^@db$': '<rootDir>/tests/__mocks__/db.js',
+        '^@db$': '<rootDir>/tests/__mocks__/db.js',
     '^@db/(.*)$': '<rootDir>/db/$1',
     // Mock external packages not included in test env
     '^@opentelemetry/sdk-node$': '<rootDir>/tests/__mocks__/otlp-sdk-node.js',
@@ -24,9 +24,21 @@ const config: Config = {
     '^@server/(.*)$': '<rootDir>/server/$1',
     '^@shared/(.*)$': '<rootDir>/shared/$1',
     '^@test/(.*)$': '<rootDir>/tests/$1',
+    '^(?:\\.\\./)*factories/(.*)\\.js$': '<rootDir>/tests/factories/$1.ts',
+    '^(?:\\.\\./)*factories/(.*)$': '<rootDir>/tests/factories/$1',
+    '^factories/(.*)$': '<rootDir>/tests/factories/$1',
+    '^@server/services/(.*)\\.js$': '<rootDir>/server/services/$1.ts',
+    '^@server/(.*)\\.js$': '<rootDir>/server/$1.ts',
+    '^@shared/(.*)\\.js$': '<rootDir>/shared/$1.ts',
+    '^\\./([A-Za-z0-9_-]+)\\.js$': '<rootDir>/shared/db/$1.ts',
+    '^@db/(.*)\\.js$': '<rootDir>/db/$1.ts',
+    '^\\.\\/middleware\\/security\\.js$': '<rootDir>/tests/__mocks__/security-middleware.js',
   },
   moduleDirectories: ['node_modules', '<rootDir>'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  modulePathIgnorePatterns: ['<rootDir>/dist'],
   transform: {
+    '^.+\\.jsx?$': 'babel-jest',
     '^.+\\.tsx?$': [
       'ts-jest',
       {

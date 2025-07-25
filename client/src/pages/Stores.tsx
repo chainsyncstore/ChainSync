@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import type { SelectStore } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,15 +10,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { insertStoreSchema, type InsertStore } from '@shared/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Plus, Store, MapPin } from 'lucide-react';
+import { Plus, Store, MapPin, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Stores() {
+  const [search, setSearch] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: stores, isLoading } = useQuery({
-    queryKey: ['/api/stores'],
+  const { data: stores = [], isLoading } = useQuery<SelectStore[]>({
+    queryKey: search ? [`/api/stores?search=${search}`] : ['/api/stores'],
   });
 
   const form = useForm<InsertStore>({
@@ -120,6 +122,18 @@ export default function Stores() {
         </Dialog>
       </div>
 
+      <div className="flex items-center space-x-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search stores..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
@@ -136,9 +150,9 @@ export default function Stores() {
             </Card>
           ))}
         </div>
-      ) : stores && stores.length > 0 ? (
+      ) : stores.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {stores.map((store: any) => (
+          {stores.map((store) => (
             <Card key={store.id}>
               <CardHeader>
                 <CardTitle className="flex items-center">

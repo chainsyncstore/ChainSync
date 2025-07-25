@@ -298,7 +298,7 @@ export class ImportExportService {
         worksheet.addRow(Object.values(row));
       });
 
-      return await workbook.xlsx.writeBuffer() as Buffer;
+      return await workbook.xlsx.writeBuffer() as unknown as Buffer;
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
     }
@@ -341,7 +341,7 @@ export class ImportExportService {
   private async parseExcel(buffer: Buffer): Promise<any[]> {
     try {
       const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(buffer);
+      await workbook.xlsx.load(buffer as unknown as Buffer);
       const worksheet = workbook.getWorksheet(1);
       if (!worksheet) {
         return [];

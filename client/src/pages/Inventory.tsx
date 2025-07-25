@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { SelectStore, SelectInventory } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,16 +8,16 @@ import { Package, AlertTriangle } from 'lucide-react';
 export default function Inventory() {
   const [selectedStore, setSelectedStore] = useState<number | null>(1);
 
-  const { data: stores } = useQuery({
+  const { data: stores = [], isLoading: isStoresLoading } = useQuery<SelectStore[]>({
     queryKey: ['/api/stores'],
   });
 
-  const { data: inventory, isLoading } = useQuery({
+  const { data: inventory = [], isLoading } = useQuery<SelectInventory[]>({
     queryKey: selectedStore ? [`/api/inventory?storeId=${selectedStore}`] : [],
     enabled: !!selectedStore,
   });
 
-  const { data: lowStock } = useQuery({
+  const { data: lowStock = [] } = useQuery<SelectInventory[]>({
     queryKey: selectedStore ? [`/api/inventory?lowStock=true&storeId=${selectedStore}`] : [],
     enabled: !!selectedStore,
   });
@@ -82,9 +83,9 @@ export default function Inventory() {
             </Card>
           ))}
         </div>
-      ) : inventory && inventory.length > 0 ? (
+      ) : inventory.length > 0 ? (
         <div className="space-y-4">
-          {inventory.map((item: any) => (
+          {inventory.map((item) => (
             <Card key={item.id}>
               <CardContent className="flex justify-between items-center py-4">
                 <div>

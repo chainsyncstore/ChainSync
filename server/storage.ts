@@ -225,6 +225,9 @@ class MemStorage implements IStorage {
       updatedAt: new Date(),
       batchTracking: inventory.batchTracking ?? false,
       currentUtilization: inventory.currentUtilization ?? 0,
+ totalQuantity: inventory.totalQuantity ?? inventory.quantity ?? 0,
+ availableQuantity: inventory.availableQuantity ?? inventory.quantity ?? 0,
+ minimumLevel: inventory.minimumLevel ?? inventory.minStock ?? 0,
     };
     this.inventory.set(newInventory.id, newInventory);
     return newInventory;

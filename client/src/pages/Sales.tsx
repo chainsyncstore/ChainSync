@@ -5,11 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, Receipt } from 'lucide-react';
 
 export default function Sales() {
-  const { data: transactions, isLoading } = useQuery({
+  const { data: transactions = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/transactions?storeId=1&limit=10'],
   });
 
-  const { data: salesData } = useQuery({
+  const { data: salesData = { totalSales: 0 }, isLoading: isSalesLoading } = useQuery<{ totalSales: number }>({
     queryKey: ['/api/analytics/sales?storeId=1'],
   });
 
@@ -42,7 +42,7 @@ export default function Sales() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? '...' : transactions?.length || 0}
+              {isLoading ? '...' : transactions.length}
             </div>
           </CardContent>
         </Card>
@@ -75,7 +75,7 @@ export default function Sales() {
                 </div>
               ))}
             </div>
-          ) : transactions && transactions.length > 0 ? (
+          ) : transactions.length > 0 ? (
             <div className="space-y-4">
               {transactions.map((transaction: any) => (
                 <div key={transaction.id} className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-4">

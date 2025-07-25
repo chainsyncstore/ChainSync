@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { StorePerformanceResponse, StoreWithMetrics, TopProduct } from '@/types/analytics';
 import { 
   Card,
   CardContent,
@@ -28,43 +29,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-// Type definitions
-interface TopProduct {
-  productId: number;
-  productName: string;
-  quantity: number;
-  total: number;
-}
-
-interface StoreMetrics {
-  totalRevenue: number;
-  averageTransaction: number;
-  transactionCount: number;
-}
-
-interface Store {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  phone: string;
-  metrics: StoreMetrics;
-  topProducts: TopProduct[];
-}
-
-interface GlobalMetrics {
-  totalRevenue: number;
-  averageTransaction: number;
-  transactionCount: number;
-}
-
-interface StorePerformanceResponse {
-  storePerformance: Store[];
-  globalMetrics: GlobalMetrics;
-  dateRangeDescription: string;
-}
+import { apiRequest } from '@/lib/queryClient';
 
 // Generate vibrant colors for charts
 const COLORS = [
@@ -107,6 +72,11 @@ export const StoreComparison = () => {
       return await apiRequest('GET', url.toString());
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    initialData: {
+      storePerformance: [],
+      globalMetrics: { totalRevenue: 0, averageTransaction: 0, transactionCount: 0 },
+      dateRangeDescription: 'Compare performance metrics across all store locations',
+    },
   });
 
   // Currency formatter
@@ -119,9 +89,9 @@ export const StoreComparison = () => {
 
   // Generate formatted data for revenue comparison chart
   const generateRevenueData = () => {
-    if (!storePerformance?.storePerformance) return [];
+    if (!storePerformance.storePerformance.length) return [];
 
-    return storePerformance.storePerformance.map((store, index) => ({
+    return storePerformance.storePerformance.map((store: StoreWithMetrics, index: number) => ({
       name: store.name,
       revenue: store.metrics.totalRevenue,
       color: COLORS[index % COLORS.length]
@@ -130,9 +100,9 @@ export const StoreComparison = () => {
 
   // Generate formatted data for average transaction comparison
   const generateAvgTransactionData = () => {
-    if (!storePerformance?.storePerformance) return [];
+    if (!storePerformance.storePerformance.length) return [];
 
-    return storePerformance.storePerformance.map((store, index) => ({
+    return storePerformance.storePerformance.map((store: StoreWithMetrics, index: number) => ({
       name: store.name,
       value: store.metrics.averageTransaction,
       color: COLORS[index % COLORS.length]
@@ -143,7 +113,7 @@ export const StoreComparison = () => {
   const renderRevenueChart = () => {
     const data = generateRevenueData();
     
-    if (data.length === 0) {
+    if (!data.length) {
       return (
         <div className="flex flex-col items-center justify-center h-64">
           <p className="text-muted-foreground">No data available for the selected period</p>
@@ -182,7 +152,7 @@ export const StoreComparison = () => {
             name="Revenue" 
             fill="#8884d8"
           >
-            {data.map((entry, index) => (
+            {data.map((entry: { color: string }, index: number) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Bar>
@@ -195,7 +165,7 @@ export const StoreComparison = () => {
   const renderAvgTransactionChart = () => {
     const data = generateAvgTransactionData();
     
-    if (data.length === 0) {
+    if (!data.length) {
       return (
         <div className="flex flex-col items-center justify-center h-64">
           <p className="text-muted-foreground">No data available for the selected period</p>
@@ -214,9 +184,9 @@ export const StoreComparison = () => {
             cy="50%"
             outerRadius={150}
             fill="#8884d8"
-            label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
+            label={(entry: { name: string; value: number }) => `${entry.name}: ${formatCurrency(entry.value)}`}
           >
-            {data.map((entry, index) => (
+            {data.map((entry: { color: string }, index: number) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
@@ -229,11 +199,11 @@ export const StoreComparison = () => {
 
   // Render store metrics
   const renderStoreMetrics = () => {
-    if (!storePerformance?.storePerformance) return null;
+    if (!storePerformance.storePerformance.length) return null;
 
     return (
       <div className="space-y-6">
-        {storePerformance.storePerformance.map((store) => (
+        {storePerformance.storePerformance.map((store: StoreWithMetrics) => (
           <Card key={store.id} className="overflow-hidden">
             <CardHeader className="bg-muted/50">
               <div className="flex items-start justify-between">
@@ -279,10 +249,10 @@ export const StoreComparison = () => {
                   {store.topProducts.length > 0 ? (
                     <ScrollArea className="h-28">
                       <ul className="space-y-1">
-                        {store.topProducts.map((product) => (
-                          <li key={product.productId} className="text-sm">
+                        {store.topProducts.map((product: TopProduct) => (
+                          <li key={product.id} className="text-sm">
                             <div className="flex justify-between">
-                              <span className="truncate">{product.productName}</span>
+                              <span className="truncate">{product.name}</span>
                               <span className="font-medium">{formatCurrency(product.total)}</span>
                             </div>
                             <div className="text-xs text-muted-foreground">
@@ -306,7 +276,7 @@ export const StoreComparison = () => {
 
   // Render global metrics
   const renderGlobalMetrics = () => {
-    if (!storePerformance?.globalMetrics) return null;
+    if (!storePerformance.globalMetrics) return null;
 
     const { globalMetrics } = storePerformance;
     
@@ -346,7 +316,7 @@ export const StoreComparison = () => {
         <CardHeader>
           <CardTitle>Store Performance Comparison</CardTitle>
           <CardDescription>
-            {storePerformance?.dateRangeDescription || 'Compare performance metrics across all store locations'}
+            {storePerformance.dateRangeDescription}
           </CardDescription>
         </CardHeader>
         <CardContent>

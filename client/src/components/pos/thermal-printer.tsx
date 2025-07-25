@@ -29,9 +29,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import * as escpos from '@/lib/escpos-commands';
+import { TransactionWithDetails } from '@/types/analytics';
 
 interface ThermalPrinterProps {
-  transaction: any;
+  transaction: TransactionWithDetails;
   onClose?: () => void;
 }
 
@@ -50,6 +51,7 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
   
   // Function to check if Web USB API is available and if printers are connected
   const checkPrinterAvailability = async () => {
+    // @ts-ignore
     if (!navigator.usb) {
       setPrinterStatus('not-available');
       return;
@@ -71,7 +73,7 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
   // Generate receipt data for the ESC/POS commands
   const generateReceiptData = () => {
     // Format the items for the receipt
-    const items = transaction.items.map((item: any) => ({
+    const items = (transaction.items as any[]).map((item: any) => ({
       name: item.name || item.product?.name || 'Unknown Product',
       quantity: item.quantity,
       unitPrice: parseFloat(item.unitPrice),
@@ -80,21 +82,21 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
     
     // Generate the receipt options
     const receiptOptions = {
-      storeName: transaction.store?.name || 'ChainSync Store',
-      storeAddress: transaction.store?.address || '',
-      storePhone: transaction.store?.phone || '',
-      transactionId: transaction.transactionId,
-      date: new Date(transaction.createdAt),
-      cashierName: transaction.cashier?.fullName || 'Cashier',
+      storeName: transaction.store?.name ?? 'ChainSync Store',
+      storeAddress: transaction.store?.address ?? '',
+      storePhone: transaction.store?.phone ?? '',
+      transactionId: transaction.id.toString(),
+      date: new Date(transaction.createdAt!),
+      cashierName: transaction.cashier?.name ?? 'Cashier',
       items,
       subtotal: parseFloat(transaction.subtotal),
-      tax: parseFloat(transaction.tax),
+      tax: parseFloat(transaction.tax ?? '0'),
       total: parseFloat(transaction.total),
       paymentMethod: transaction.paymentMethod,
-      customerName: transaction.customer?.fullName,
+      customerName: transaction.customer?.name,
       loyaltyPoints: transaction.pointsEarned ? {
         earned: transaction.pointsEarned,
-        balance: transaction.loyaltyMember?.points || transaction.pointsEarned
+        balance: transaction.loyaltyMember?.points ?? transaction.pointsEarned
       } : undefined,
       openDrawer,
       cutPaper: paperCut,
@@ -133,7 +135,7 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
     try {
       const receiptOptions = generateReceiptData();
       const commands = escpos.generateReceipt(receiptOptions);
-      escpos.downloadEscposCommands(commands, `receipt-${transaction.transactionId}.bin`);
+      escpos.downloadEscposCommands(commands, `receipt-${transaction.id}.bin`);
     } catch (error) {
       console.error('Error generating receipt commands:', error);
     }

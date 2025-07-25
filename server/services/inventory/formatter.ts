@@ -55,6 +55,9 @@ export class InventoryFormatter extends ResultFormatter<Inventory> {
       location: withDates.location || '',
       capacity: Number(withDates.capacity || 0),
       currentUtilization: Number(withDates.currentUtilization || 0),
+      totalQuantity: Number(withDates.totalQuantity ?? withDates.quantity ?? 0),
+      availableQuantity: Number(withDates.availableQuantity ?? withDates.quantity ?? 0),
+      minimumLevel: Number(withDates.minimumLevel ?? withDates.minStock ?? 0),
       isActive: Boolean(withDates.isActive),
       metadata: metadata
     };

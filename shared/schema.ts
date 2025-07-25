@@ -88,6 +88,10 @@ export const inventory = pgTable('inventory', {
   updatedAt: timestamp('updated_at').defaultNow(),
   batchTracking: boolean('batch_tracking').default(false),
   currentUtilization: integer('current_utilization').default(0),
+  // Aliases expected by legacy services ----------------------------------------------------------
+  totalQuantity: integer('total_quantity').default(0),
+  availableQuantity: integer('available_quantity').default(0),
+  minimumLevel: integer('minimum_level').default(0),
 });
 
 // Transactions table
@@ -386,6 +390,14 @@ export type SelectReturnReason = typeof returnReasons.$inferSelect;
 export type SelectReturn = typeof returns.$inferSelect;
 export type Inventory = typeof inventory.$inferSelect;
 export type InventoryBatch = typeof inventoryBatches.$inferSelect;
+
+// -----------------------------------------------------------------------------------------------
+// Legacy PascalCase aliases so older services using schema.Inventory work at runtime
+// -----------------------------------------------------------------------------------------------
+export const Inventory = inventory;
+export const InventoryBatch = inventoryBatches;
+export const Transactions = transactions;
+export const Returns = returns;
 /* ------------------------------------------------------------------ */
 /*  Affiliates                                                         */
 /* ------------------------------------------------------------------ */

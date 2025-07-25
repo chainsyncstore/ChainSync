@@ -40,5 +40,19 @@
       "@server/*": ["./server/*"],
       "@assets/*": ["./attached_assets/*"]
     }
-  }
+  },
+  "exclude": [
+    "dist",
+    "dist.bak",
+    "coverage",
+    "test",
+    "tests",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**",
+    "**/__mocks__/**",
+    "storybook-static"
+  ]
 }

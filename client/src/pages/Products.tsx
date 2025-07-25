@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { SelectProduct } from '@shared/schema';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,7 @@ export default function Products() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: products, isLoading } = useQuery({
+  const { data: products = [], isLoading } = useQuery<SelectProduct[]>({
     queryKey: search ? [`/api/products?search=${search}`] : ['/api/products'],
   });
 
@@ -29,8 +30,8 @@ export default function Products() {
       description: '',
       price: '',
       cost: '',
-      category: '',
-      brand: '',
+      categoryId: undefined,
+      brandId: undefined,
       barcode: '',
       unit: 'pcs',
       isActive: true,
@@ -115,12 +116,12 @@ export default function Products() {
 
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="categoryId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter category" {...field} />
+                        <Input type="number" placeholder="Enter category ID" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -183,9 +184,9 @@ export default function Products() {
             </Card>
           ))}
         </div>
-      ) : products && products.length > 0 ? (
+      ) : products.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((product: any) => (
+          {products.map((product: SelectProduct) => (
             <Card key={product.id}>
               <CardHeader>
                 <CardTitle className="text-lg">{product.name}</CardTitle>
@@ -193,10 +194,10 @@ export default function Products() {
               <CardContent>
                 <div className="space-y-2">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Category: {product.category || 'N/A'}
+                    Category: {product.categoryId || 'N/A'}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Brand: {product.brand || 'N/A'}
+                    Brand: {product.brandId || 'N/A'}
                   </p>
                   <p className="text-lg font-semibold text-green-600">
                     ${product.price}
