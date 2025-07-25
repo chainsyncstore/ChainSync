@@ -19,20 +19,18 @@
     "test:ci": "npm run test && npm run test:e2e -- --reporter=github",
     "// Development Scripts": "",
     "dev": "tsx watch server/index.ts",
-
-
-
     "// Build Scripts": "",
     "build": "npm run build:client && npm run build:server",
     "build:client": "npx vite build",
-    "build:server": "tsc -p tsconfig.server.json || echo TSC errors ignored && tsc-alias -p tsconfig.server.json --addExtensions .js",
+    "build:server": "tsc -p tsconfig.server.json",
+    "postbuild": "tsc-alias -p tsconfig.server.json",
     "build:staging": "cross-env NODE_ENV=staging npm run build",
     "build:production": "cross-env NODE_ENV=production npm run build",
     "// Runtime Scripts": "",
     "preview": "vite preview",
-    "start": "node dist/server/index.js",
-    "start:staging": "cross-env NODE_ENV=staging node dist/server/index.js",
-    "start:production": "cross-env NODE_ENV=production node dist/server/index.js",
+    "start": "node -r module-alias/register dist/server/index.js",
+    "start:staging": "cross-env NODE_ENV=staging node -r module-alias/register dist/server/index.js",
+    "start:production": "cross-env NODE_ENV=production node -r module-alias/register dist/server/index.js",
     "start:pm2": "pm2 start ecosystem.config.js --env production",
     "// Database Scripts": "",
     "db:push": "drizzle-kit push --force --config=./drizzle.config.ts",
@@ -138,6 +136,7 @@
     "kysely": "^0.28.3",
     "lucide-react": "^0.453.0",
     "memoizee": "^0.4.17",
+    "module-alias": "^2.2.3",
     "multer": "^1.4.5-lts.2",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.3",
@@ -163,6 +162,7 @@
     "swagger-ui-express": "^5.0.1",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
+    "tsconfig-paths": "^4.2.0",
     "vaul": "^1.1.0",
     "winston": "^3.17.0",
     "wouter": "^3.3.5",
@@ -231,5 +231,10 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "_moduleAliases": {
+    "@db": "dist/db",
+    "@shared": "dist/shared",
+    "@server": "dist/server"
   }
 }

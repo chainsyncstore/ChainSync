@@ -20,12 +20,16 @@
     "strict": false,
     "baseUrl": ".",
     "paths": {
-      "@db": ["./db"],
+      "@db": ["./db/index.ts"],
+      "@/*": ["./client/src/*"],
+      "@/components/*": ["./client/src/components/*"],
+      "@/lib/*": ["./client/src/lib/*"],
+      "@/providers/*": ["./client/src/providers/*"],
+      "@/pages/*": ["./client/src/pages/*"],
       "@db/*": ["./db/*"],
       "@shared/*": ["./shared/*"],
       "@server/*": ["./server/*"],
-      "@shared/schema": ["./shared/schema"],
-      "@shared/schema-helpers": ["./shared/schema-helpers"]
+      "@assets/*": ["./attached_assets/*"]
     }
   },
   "include": [
