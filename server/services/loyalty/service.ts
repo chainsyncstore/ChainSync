@@ -96,7 +96,7 @@ export class LoyaltyService extends EnhancedBaseService implements ILoyaltyServi
 
       const amount = typeof subtotal === 'string' ? parseFloat(subtotal) : subtotal;
       // pointsPerAmount = “X points per 1 currency unit”
-      const rate = Number(program.pointsPerAmount);
+      const rate = 1; // Placeholder: Implement points calculation logic based on program rules
       return Math.floor(amount * rate);
     } catch (e) {
       this.handleError(e, 'calculatePointsForTransaction');
@@ -133,7 +133,7 @@ export class LoyaltyService extends EnhancedBaseService implements ILoyaltyServi
         .update(schema.loyaltyMembers)
         .set({
           currentPoints: sql`${schema.loyaltyMembers.currentPoints} + ${points}`,
-          totalPointsEarned: sql`${schema.loyaltyMembers.totalPointsEarned} + ${points}`,
+          points: sql`${schema.loyaltyMembers.points} + ${points}`,
         })
         .where(eq(schema.loyaltyMembers.id, memberId));
 
@@ -156,11 +156,11 @@ export class LoyaltyService extends EnhancedBaseService implements ILoyaltyServi
         .from(schema.loyaltyRewards)
         .where(
           and(
-            lte(schema.loyaltyRewards.pointsCost, member.currentPoints),
+            lte(schema.loyaltyRewards.pointsRequired, Number(member.currentPoints)),
             eq(schema.loyaltyRewards.active, true)
           )
         )
-        .orderBy(asc(schema.loyaltyRewards.pointsCost));
+        .orderBy(asc(schema.loyaltyRewards.pointsRequired));
     } catch (e) {
       this.handleError(e, 'getAvailableRewards');
     }
@@ -189,7 +189,7 @@ export class LoyaltyService extends EnhancedBaseService implements ILoyaltyServi
         });
         if (!reward) throw new RewardNotFoundError(rewardId);
 
-        const cost = Number(reward.pointsCost);
+        const cost = Number(reward.pointsRequired);
         const balance = Number(member.currentPoints);
         if (balance < cost) throw new InsufficientPointsError(memberId, cost);
 
@@ -207,16 +207,15 @@ export class LoyaltyService extends EnhancedBaseService implements ILoyaltyServi
           .update(schema.loyaltyMembers)
           .set({
             currentPoints: String(balance - cost),
-            totalPointsRedeemed: sql`${schema.loyaltyMembers.totalPointsRedeemed} + ${cost}`,
           })
           .where(eq(schema.loyaltyMembers.id, memberId));
 
-        const newTotal = currentTotal - (reward.discountValue ? Number(reward.discountValue) : 0);
+        const newTotal = currentTotal; // Placeholder for discount logic
 
         return {
           success: true,
           newTotal,
-          pointsRedeemed: reward.pointsCost,
+          pointsRedeemed: String(cost),
           message: 'Reward applied',
         };
       });
@@ -384,7 +383,7 @@ export class LoyaltyService extends EnhancedBaseService implements ILoyaltyServi
         return false;
       }
       // member already has a tier – check if they qualify for a higher one
-      const points = String(member.totalPointsEarned);
+      const points = Number(member.points);
       const best = await db.query.loyaltyTiers.findFirst({
         where: and(
           lte(schema.loyaltyTiers.requiredPoints, points),

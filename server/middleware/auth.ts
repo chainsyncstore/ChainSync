@@ -78,14 +78,14 @@ export const authorizeRoles = (allowedRoles: string[]) => {
     
     // Set user object for downstream middleware and route handlers
     if (req.session.userRole) {
-      req.user = {
-        id: String(req.session.userId), // Convert number to string to match interface
-        role: req.session.userRole,
-        storeId: req.session.storeId,
-        name: req.session.fullName || '',
-        email: '' // Add email property
-      };
-    }
+        req.user = {
+          id: String(req.session.userId), // Convert number to string to match interface
+          role: req.session.userRole,
+          storeId: req.session.storeId,
+          name: req.session.fullName || '',
+          email: '' // Add email property
+        };
+      }
     
     next();
   };
@@ -295,11 +295,9 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
         where: eq(schema.users.id, req.session.userId),
         columns: {
           id: true,
-          username: true,
           email: true,
           role: true,
-          isActive: true,
-          lastLogin: true
+          isActive: true
         }
       });
       
@@ -336,7 +334,6 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
       if (user.isActive === false) {
         reqLogger.warn('Inactive user attempted access', {
           userId: user.id,
-          username: user.username,
           role: user.role,
           sessionID: req.sessionID
         });
@@ -366,20 +363,18 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
         });
         
         // Update session with current role
-        req.session.userRole = user.role;
+        req.session.userRole = user.role as string;
       }
       
       // Session is valid
       reqLogger.debug('User session validated', {
         userId: user.id,
-        username: user.username,
         role: user.role
       });
       
       // Update user context in request for downstream use
       (req as any).user = {
         id: user.id,
-        username: user.username,
         email: user.email,
         role: user.role
       };

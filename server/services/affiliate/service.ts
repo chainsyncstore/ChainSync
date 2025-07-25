@@ -29,7 +29,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         throw AffiliateServiceErrors.USER_NOT_FOUND;
       }
 
-      const baseCode = user.username.replace(/[^a-zA-Z0-9]/g, '').substring(0, 5).toUpperCase();
+      const baseCode = user.name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 5).toUpperCase();
       const randomString = randomBytes(3).toString('hex').toUpperCase();
       const referralCode = `${baseCode}${randomString}`;
 
@@ -68,7 +68,6 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       return affiliate ?? null;
     } catch (error) {
       this.handleError(error, 'Getting affiliate by user ID');
-      return null;
     }
   }
 
@@ -80,7 +79,6 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       return affiliate ?? null;
     } catch (error) {
       this.handleError(error, 'Getting affiliate by code');
-      return null;
     }
   }
 
@@ -204,7 +202,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
               account_bank: affiliate.bankCode!,
               account_number: affiliate.accountNumber!,
               amount: Number(paymentRow.amount),
-              currency: paymentRow.currency,
+              currency: paymentRow.currency ?? 'NGN',
               narration: `Affiliate Payout for ${affiliate.code}`,
               reference: `payout_${paymentRow.id}_${Date.now()}`
             }),
@@ -214,7 +212,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
           if (payment.status === 'success') {
             // mark as paid locally
             await db.update(schema.referralPayments)
-              .set({ status: 'paid', paymentDate: new Date() })
+              .set({ status: 'completed', paymentDate: new Date() })
               .where(eq(schema.referralPayments.id, paymentRow.id));
 
             // reduce pending earnings
@@ -222,7 +220,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
               .set({ pendingEarnings: sql`${schema.affiliates.pendingEarnings} - ${paymentRow.amount}` })
               .where(eq(schema.affiliates.id, paymentRow.affiliateId));
 
-            processed.push({ ...paymentRow, status: 'paid', paymentDate: new Date() } as any);
+            processed.push({ ...paymentRow, status: 'completed', paymentDate: new Date() } as any);
           }
         } catch (error) {
           // Log but continue processing other payouts
@@ -293,7 +291,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .where(
           and(
             eq(schema.referralPayments.affiliateId, affiliate.id),
-            eq(schema.referralPayments.status, 'paid'),
+            eq(schema.referralPayments.status, 'completed'),
           ),
         )
         .orderBy(desc(schema.referralPayments.paymentDate))
@@ -375,7 +373,10 @@ export class AffiliateService extends BaseService implements IAffiliateService {
 
       const updated = await db
         .update(schema.affiliates)
-        .set(bankDetails)
+        .set({
+          ...bankDetails,
+          paymentMethod: bankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual' | undefined,
+        })
         .where(eq(schema.affiliates.userId, userId))
         .returning();
 

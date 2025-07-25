@@ -1,5 +1,7 @@
 import { pgTable, text, integer, timestamp, boolean, json, decimal, uuid, serial } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
+import { customers } from './db/customers';
 import { z } from 'zod';
 
 // Users table
@@ -42,13 +44,17 @@ export const products = pgTable('products', {
   barcode: text('barcode').unique(),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
   cost: decimal('cost', { precision: 10, scale: 2 }),
-  category: text('category'),
-  brand: text('brand'),
+  categoryId: integer('category_id'),
+  brandId: integer('brand_id'),
   unit: text('unit').default('pcs'),
   isActive: boolean('is_active').default(true),
   isPerishable: boolean('is_perishable').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  storeId: integer('store_id').notNull(),
+  imageUrl: text('image_url'),
+  attributes: json('attributes'),
+  sku: text('sku').notNull(),
 });
 
 // Categories table
@@ -80,6 +86,8 @@ export const inventory = pgTable('inventory', {
   maxStock: integer('max_stock'),
   lastRestocked: timestamp('last_restocked'),
   updatedAt: timestamp('updated_at').defaultNow(),
+  batchTracking: boolean('batch_tracking').default(false),
+  currentUtilization: integer('current_utilization').default(0),
 });
 
 // Transactions table
@@ -125,6 +133,8 @@ export const loyaltyPrograms = pgTable('loyalty_programs', {
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  storeId: integer('store_id').notNull(),
+  active: boolean('active').default(true),
 });
 
 // Loyalty Members table
@@ -135,16 +145,44 @@ export const loyaltyMembers = pgTable('loyalty_members', {
   currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  programId: integer('program_id').notNull(),
+  customerId: integer('customer_id').notNull(),
+  points: integer('points').default(0),
 });
 
 // Loyalty Transactions table
 export const loyaltyTransactions = pgTable('loyalty_transactions', {
   id: serial('id').primaryKey(),
   memberId: integer('member_id').notNull(),
-  points: decimal('points', { precision: 10, scale: 2 }).notNull(),
+  programId: integer('program_id').notNull(),
+  pointsEarned: integer('points_earned').default(0),
+  pointsRedeemed: integer('points_redeemed').default(0),
+  pointsBalance: integer('points_balance').notNull(),
+  transactionType: text('transaction_type', { enum: ['earn', 'redeem'] }).notNull(),
   source: text('source').notNull(),
   transactionId: integer('transaction_id'),
+  description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Loyalty Tiers table
+export const loyaltyTiers = pgTable('loyalty_tiers', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id').notNull(),
+  name: text('name').notNull(),
+  requiredPoints: integer('required_points').notNull(),
+  multiplier: decimal('multiplier', { precision: 5, scale: 2 }).default('1.00'),
+  active: boolean('active').default(true),
+});
+
+// Loyalty Rewards table
+export const loyaltyRewards = pgTable('loyalty_rewards', {
+  id: serial('id').primaryKey(),
+  programId: integer('program_id').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  pointsRequired: integer('points_required').notNull(),
+  active: boolean('active').default(true),
 });
 
 // Transaction Items table
@@ -181,6 +219,14 @@ export const subscriptions = pgTable('subscriptions', {
   autoRenew: boolean('auto_renew').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Password Reset Tokens table
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  token: text('token').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
 });
 
 // Zod schemas for validation
@@ -229,6 +275,87 @@ export const insertReturnReasonSchema = createInsertSchema(returnReasons).omit({
   createdAt: true,
 });
 
+export const insertLoyaltyTierSchema = createInsertSchema(loyaltyTiers).omit({
+  id: true,
+});
+
+export const insertLoyaltyRewardSchema = createInsertSchema(loyaltyRewards).omit({
+  id: true,
+});
+
+export const inventoryBatches = pgTable('inventory_batches', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id').notNull(),
+  batchNumber: text('batch_number'),
+  expiryDate: timestamp('expiry_date'),
+  quantity: integer('quantity').notNull(),
+  receivedDate: timestamp('received_date'),
+  manufacturingDate: timestamp('manufacturing_date'),
+  costPerUnit: decimal('cost_per_unit', { precision: 10, scale: 2 }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const inventoryItems = pgTable('inventory_items', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id').notNull(),
+  productId: integer('product_id').notNull().references(() => products.id),
+  quantity: integer('quantity').notNull(),
+  sku: text('sku'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  metadata: json('metadata'),
+  receivedDate: timestamp('received_date'),
+  reorderLevel: integer('reorder_level'),
+  reorderQuantity: integer('reorder_quantity'),
+});
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+  product: one(products, {
+    fields: [inventoryItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export const inventoryTransactions = pgTable('inventory_transactions', {
+  id: serial('id').primaryKey(),
+  inventoryId: integer('inventory_id').notNull(),
+  itemId: integer('item_id'),
+  quantity: integer('quantity').notNull(),
+  type: text('type', { enum: ['in', 'out'] }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const webhooks = pgTable('webhooks', {
+  id: serial('id').primaryKey(),
+  url: text('url').notNull(),
+  secret: text('secret'),
+  events: json('events'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  storeId: integer('store_id').notNull(),
+});
+
+export const webhookEvents = pgTable('webhook_events', {
+  id: serial('id').primaryKey(),
+  webhookId: integer('webhook_id').notNull(),
+  event: text('event').notNull(),
+  payload: json('payload'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const webhookDeliveries = pgTable('webhook_deliveries', {
+  id: serial('id').primaryKey(),
+  webhookId: integer('webhook_id').notNull(),
+  eventId: integer('event_id').notNull(),
+  status: text('status', { enum: ['pending', 'success', 'failed', 'delivered', 'retrying'] }).default('pending'),
+  attempt: integer('attempt').default(1),
+  response: text('response'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // --- Compatibility type aliases for frontend ---
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 
@@ -239,6 +366,8 @@ export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type InsertReturnReason = z.infer<typeof insertReturnReasonSchema>;
+export type InsertLoyaltyTier = z.infer<typeof insertLoyaltyTierSchema>;
+export type InsertLoyaltyReward = z.infer<typeof insertLoyaltyRewardSchema>;
 export type SubscriptionInsert = InsertSubscription; // Alias for compatibility
 
 export type SelectUser = typeof users.$inferSelect;
@@ -247,8 +376,16 @@ export type SelectProduct = typeof products.$inferSelect;
 export type SelectInventory = typeof inventory.$inferSelect;
 export type SelectTransaction = typeof transactions.$inferSelect;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
+export type SelectLoyaltyProgram = typeof loyaltyPrograms.$inferSelect;
+export type SelectLoyaltyMember = typeof loyaltyMembers.$inferSelect;
+export type SelectLoyaltyTransaction = typeof loyaltyTransactions.$inferSelect;
+export type SelectLoyaltyTier = typeof loyaltyTiers.$inferSelect;
+export type SelectLoyaltyReward = typeof loyaltyRewards.$inferSelect;
 export type SelectCategory = typeof categories.$inferSelect;
 export type SelectReturnReason = typeof returnReasons.$inferSelect;
+export type SelectReturn = typeof returns.$inferSelect;
+export type Inventory = typeof inventory.$inferSelect;
+export type InventoryBatch = typeof inventoryBatches.$inferSelect;
 /* ------------------------------------------------------------------ */
 /*  Affiliates                                                         */
 /* ------------------------------------------------------------------ */

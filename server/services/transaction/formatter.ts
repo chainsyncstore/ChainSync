@@ -6,13 +6,12 @@
  */
 import { ResultFormatter } from '@shared/utils/service-helpers';
 import { 
-  Transaction, 
   TransactionItem, 
   TransactionPayment, 
   TransactionStatus,
-  PaymentStatus,
   PaymentMethod
 } from './types';
+import { SelectTransaction as Transaction } from '@shared/schema';
 
 /**
  * Formatter for transaction data from database to domain objects
@@ -47,22 +46,15 @@ export class TransactionFormatter extends ResultFormatter<Transaction> {
       id: Number(withDates.id),
       storeId: Number(withDates.storeId),
       userId: Number(withDates.userId),
-      cashierId: Number(withDates.cashierId || null),
-      customerName: withDates.customerName || '',
-      customerEmail: withDates.customerEmail || '',
-      customerPhone: withDates.customerPhone || '',
-      transactionNumber: String(withDates.transactionNumber),
-      status: (withDates.status || 'pending') as TransactionStatus,
+      customerId: Number(withDates.customerId || null),
+      status: (withDates.status || 'pending') as "pending" | "completed" | "cancelled" | null,
       subtotal: String(withDates.subtotal || '0.00'),
       tax: String(withDates.tax || '0.00'),
       discount: String(withDates.discount || '0.00'),
       total: String(withDates.total || '0.00'),
-      notes: withDates.notes || '',
-      channel: withDates.channel || 'in-store',
-      deviceId: withDates.deviceId || null,
-      reference: withDates.reference || null,
-      metadata: metadata
-    };
+      paymentMethod: (withDates.paymentMethod || 'cash') as "cash" | "card" | "mobile",
+      items: withDates.items || null,
+    } as Transaction;
   }
 }
 
@@ -99,20 +91,9 @@ export class TransactionItemFormatter extends ResultFormatter<TransactionItem> {
       id: Number(withDates.id),
       transactionId: Number(withDates.transactionId),
       productId: Number(withDates.productId),
-      inventoryItemId: Number(withDates.inventoryItemId || null),
-      name: String(withDates.name),
-      description: withDates.description || '',
-      sku: String(withDates.sku || ''),
       quantity: Number(withDates.quantity || 0),
-      unit: withDates.unit || 'each',
       unitPrice: String(withDates.unitPrice || '0.00'),
-      subtotal: String(withDates.subtotal || '0.00'),
-      tax: String(withDates.tax || '0.00'),
-      discount: String(withDates.discount || '0.00'),
-      total: String(withDates.total || '0.00'),
-      notes: withDates.notes || '',
-      metadata: metadata
-    };
+    } as TransactionItem;
   }
 }
 
@@ -149,15 +130,7 @@ export class TransactionPaymentFormatter extends ResultFormatter<TransactionPaym
       id: Number(withDates.id),
       transactionId: Number(withDates.transactionId),
       amount: String(withDates.amount || '0.00'),
-      method: (withDates.method || 'cash') as PaymentMethod,
-      status: (withDates.status || 'pending') as PaymentStatus,
-      reference: withDates.reference || '',
-      authorizationCode: withDates.authorizationCode || '',
-      receiptNumber: withDates.receiptNumber || '',
-      paymentProcessor: withDates.paymentProcessor || '',
-      processorTransactionId: withDates.processorTransactionId || null,
-      notes: withDates.notes || '',
-      metadata: metadata
-    };
+      method: (withDates.method || 'cash') as "cash" | "card" | "mobile",
+    } as TransactionPayment;
   }
 }

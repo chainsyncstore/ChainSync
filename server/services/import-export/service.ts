@@ -8,7 +8,7 @@ import { ImportExportRepository } from './repository';
 // import * as fs from 'fs'; // Unused
 // import * as path from 'path'; // Unused
 // import { promisify } from 'util'; // Unused
-import { Parser } from 'json2csv';
+import { parse as json2csv } from 'json2csv';
 import { parse } from 'csv-parse';
 import * as ExcelJS from 'exceljs';
 // import * as xlsx from 'xlsx'; // Unused
@@ -99,13 +99,13 @@ export class ImportExportService {
     }
   }
 
-  async importData(userId: number, data: any[], entityType: string, options?: {
+  async importData(userId: number, data: any[], entityType: string, options: {
     batchSize?: number;
     delimiter?: string;
     includeHeaders?: boolean;
     format?: string;
     filters?: Record<string, any>;
-  }): Promise<{
+  } = {}): Promise<{
     success: boolean;
     message: string;
     data?: any[];
@@ -262,13 +262,11 @@ export class ImportExportService {
   }): Promise<Buffer> {
     try {
       const config = {
-        format: options.format,
-        includeHeaders: options.includeHeaders,
+        fields: options.includeHeaders ? Object.keys(data[0]) : undefined,
         delimiter: options.delimiter || ','
       };
 
-      const parser = new Parser(config);
-      const csv = parser.stringify(data);
+      const csv = json2csv(data, config);
       return Buffer.from(csv, 'utf8');
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
@@ -345,11 +343,15 @@ export class ImportExportService {
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
       const worksheet = workbook.getWorksheet(1);
-      const row1 = worksheet.getRow(1).values;
-const headers = Array.isArray(row1) ? row1.slice(1) : [];
+      if (!worksheet) {
+        return [];
+      }
+      const row1 = worksheet.getRow(1).values as string[];
+      const headers = Array.isArray(row1) ? row1.slice(1) : [];
        
       const results: any[] = [];
-      worksheet.getRows(2, worksheet.rowCount).forEach(row => {
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
         const rowData: any = {};
         headers.forEach((header: any, index: number) => {
           if (header) {

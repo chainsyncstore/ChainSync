@@ -87,13 +87,13 @@ export class EnhancedInventoryService
       };
 
       const validated = validateEntity(
-        inventoryValidation.insert.parse,
+        inventoryValidation.insert,
         data,
         'inventory',
       );
 
       const [inv] = await db.insert(schema.inventory).values(validated).returning();
-      return this.ensureExists(inv, 'Inventory');
+      return this.ensureExists(inv as Inventory, 'Inventory');
     } catch (err) {
       return this.handleError(err, 'creating inventory');
     }
@@ -116,7 +116,7 @@ export class EnhancedInventoryService
       };
 
       const validated = validateEntity(
-        inventoryValidation.update.parse,
+        inventoryValidation.update,
         data,
         'inventory',
       );
@@ -127,7 +127,7 @@ export class EnhancedInventoryService
         .where(eq(schema.inventory.id, id))
         .returning();
 
-      return this.ensureExists(updated, 'Inventory');
+      return this.ensureExists(updated as Inventory, 'Inventory');
     } catch (err) {
       return this.handleError(err, 'updating inventory');
     }
@@ -139,9 +139,10 @@ export class EnhancedInventoryService
 
   async getInventoryById(id: number): Promise<Inventory | null> {
     try {
-      return db.query.inventory.findFirst({
+      const inventory = await db.query.inventory.findFirst({
         where: eq(schema.inventory.id, id),
       });
+      return inventory ? (inventory as Inventory) : null;
     } catch (err) {
       return this.handleError(err, 'getting inventory by ID');
     }
@@ -152,12 +153,13 @@ export class EnhancedInventoryService
     storeId?: number,
   ): Promise<Inventory | null> {
     try {
-      return db.query.inventory.findFirst({
+      const inventory = await db.query.inventory.findFirst({
         where: and(
           eq(schema.inventory.productId, productId),
           storeId ? eq(schema.inventory.storeId, storeId) : undefined,
         ),
       });
+      return inventory ? (inventory as Inventory) : null;
     } catch (err) {
       return this.handleError(err, 'getting inventory by product');
     }
@@ -190,7 +192,7 @@ export class EnhancedInventoryService
       };
 
       const validated = validateEntity(
-        inventoryValidation.itemInsert.parse,
+        inventoryValidation.itemInsert,
         data,
         'inventory_item',
       );
@@ -201,7 +203,7 @@ export class EnhancedInventoryService
         .returning();
 
       await this.updateInventoryUtilization(params.inventoryId);
-      return this.ensureExists(item, 'Inventory Item');
+      return this.ensureExists(item, 'Inventory Item') as unknown as InventoryItem;
     } catch (err) {
       return this.handleError(err, 'creating inventory item');
     }
@@ -227,7 +229,7 @@ export class EnhancedInventoryService
       };
 
       const validated = validateEntity(
-        inventoryValidation.itemUpdate.parse,
+        inventoryValidation.itemUpdate,
         data,
         'inventory_item',
       );
@@ -245,7 +247,7 @@ export class EnhancedInventoryService
         await this.updateInventoryUtilization(existing.inventoryId);
       }
 
-      return this.ensureExists(updated, 'Inventory Item');
+      return this.ensureExists(updated, 'Inventory Item') as unknown as InventoryItem;
     } catch (err) {
       return this.handleError(err, 'updating inventory item');
     }
@@ -253,9 +255,29 @@ export class EnhancedInventoryService
 
   async getInventoryItemById(id: number): Promise<InventoryItem | null> {
     try {
-      return db.query.inventoryItems.findFirst({
+      const item = await db.query.inventoryItems.findFirst({
         where: eq(schema.inventoryItems.id, id),
       });
+
+      if (!item) {
+        return null;
+      }
+
+      const product = await this.getProductById(item.productId);
+
+      return {
+        ...item,
+        sku: item.sku ?? undefined,
+        name: product?.name || '',
+        unit: product?.unit || '',
+        unitCost: product?.cost || '0',
+        isActive: product?.isActive || false,
+        reorderLevel: item.reorderLevel || 0,
+        reorderQuantity: item.reorderQuantity || 0,
+        createdAt: item.createdAt || new Date(),
+        updatedAt: item.updatedAt || new Date(),
+        metadata: item.metadata as Record<string, unknown>,
+      };
     } catch (err) {
       return this.handleError(err, 'getting inventory item by ID');
     }
@@ -269,9 +291,15 @@ export class EnhancedInventoryService
     params: InventoryAdjustmentParams,
   ): Promise<boolean> {
     try {
+      if (!params.inventoryId) {
+        throw new Error("inventoryId is required");
+      }
       const inventory = await this.getInventoryById(params.inventoryId);
       if (!inventory) throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
 
+      if (!params.itemId) {
+        throw new Error("itemId is required");
+      }
       const item = await this.getInventoryItemById(params.itemId);
       if (!item) throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
 
@@ -304,7 +332,7 @@ export class EnhancedInventoryService
       };
 
       const validated = validateEntity(
-        inventoryValidation.transactionInsert.parse,
+        inventoryValidation.transactionInsert,
         txData,
         'inventory_transaction',
       );
@@ -314,6 +342,9 @@ export class EnhancedInventoryService
         .values(validated)
         .returning();
 
+      if (!params.inventoryId) {
+        throw new Error("inventoryId is required");
+      }
       await this.updateInventoryUtilization(params.inventoryId);
       this.ensureExists(tx, 'Inventory Transaction');
       return true;
@@ -347,7 +378,7 @@ export class EnhancedInventoryService
         .where(eq(schema.inventory.id, id))
         .returning();
 
-      return updated;
+      return updated as Inventory;
     } catch (err) {
       console.error('Error updating inventory utilization:', err);
       return null;

@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
-import { router } from "./routes.js";
+import { registerRoutes } from "./routes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -39,7 +39,7 @@ app.use((_req, res, next) => {
 });
 
 // API routes
-app.use(router);
+registerRoutes(app);
 
 // Serve static files from client build directory
 const clientBuildPath = path.resolve(__dirname, '../client/dist');

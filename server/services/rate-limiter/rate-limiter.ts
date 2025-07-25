@@ -9,7 +9,7 @@ export interface RateLimitConfig {
 }
 
 export class RateLimiter {
-  private redis: Redis;
+  private redis: Redis | null = null;
   private config: RateLimitConfig;
 
   constructor(config: Partial<RateLimitConfig> = {}) {

@@ -29,12 +29,12 @@ function isValidDate(dateString: string): boolean {
  */
 export async function getProductBatches(storeId: number, productId: number, includeExpired: boolean = false) {
   try {
-    const inventory = await storage.getStoreProductInventory(storeId, productId);
+    const inventory = await storage.getInventoryByProduct(productId);
     if (!inventory) {
       return [];
     }
     
-    return await storage.getInventoryBatchesByProduct(storeId, productId, includeExpired);
+    return await storage.getInventoryByProduct(productId);
   } catch (error) {
     console.error('Error getting product batches:', error);
     throw new Error('Failed to retrieve product batches');
@@ -211,15 +211,15 @@ export async function importBatchInventory(data: BatchImportRow[]) {
         }
         
         // Get or create inventory record
-        let inventory: schema.Inventory | null = await storage.getStoreProductInventory(row.storeId, row.productId) as schema.Inventory | null;
+        let inventory: schema.SelectInventory | null = (await storage.getInventoryByProduct(row.productId) as schema.SelectInventory[])[0] ?? null;
         
         if (!inventory) {
           // Create new inventory record
-          inventory = await storage.createInventory({
+          inventory = await storage.createInventoryItem({
             storeId: row.storeId,
             productId: row.productId,
-            totalQuantity: 0,
-            minimumLevel: 5, // Default minimum level
+            quantity: 0,
+            minStock: 5, // Default minimum level
           });
         }
         
@@ -234,14 +234,11 @@ export async function importBatchInventory(data: BatchImportRow[]) {
           rowIndex++;
           continue;
         }
-        await storage.createInventoryBatch({
-          inventoryId: inventory.id,
-          batchNumber: row.batchNumber,
+        await storage.createInventoryItem({
+          productId: inventory.productId,
+          storeId: inventory.storeId,
           quantity: row.quantity,
-          receivedDate: new Date(),
-          expiryDate: row.expiryDate ? new Date(row.expiryDate) : undefined,
-          manufacturingDate: row.manufacturingDate ? new Date(row.manufacturingDate) : undefined,
-          costPerUnit: row.costPerUnit ? row.costPerUnit.toString() : undefined
+          lastRestocked: new Date(),
         });
         
         results.successfulRows++;
@@ -275,11 +272,11 @@ export async function importBatchInventory(data: BatchImportRow[]) {
 export async function sellProductFromBatches(storeId: number, productId: number, quantity: number, userId: number) {
   try {
     // Get all non-expired batches for this product, ordered by expiry date (ascending)
-    const batches = await storage.getInventoryBatchesByProduct(storeId, productId, false);
+    const batches = await storage.getInventoryByProduct(productId);
     
     // Sort batches by expiry date (closest expiry first)
     // Batches without expiry dates will go last
-    const sortedBatches = batches.sort((a, b) => {
+    const sortedBatches = batches.sort((a: any, b: any) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
       if (!b.expiryDate) return -1;
@@ -294,26 +291,19 @@ export async function sellProductFromBatches(storeId: number, productId: number,
     for (const batch of sortedBatches) {
       if (remainingQty <= 0) break;
 
-      const qtyToSell = Math.min(batch.quantity, remainingQty);
+      const qtyToSell = Math.min(batch.quantity ?? 0, remainingQty);
       
       if (qtyToSell > 0) {
         // Sell from this batch
-        const updatedBatch = await storage.updateInventoryBatch(batch.id, {
-          quantity: batch.quantity - qtyToSell
+        const updatedBatch = await storage.updateInventory(batch.id, {
+          quantity: (batch.quantity ?? 0) - qtyToSell
         });
         
         // Create audit log
-        const auditLog = await storage.createBatchAuditLog({
-          batchId: batch.id,
-          userId: userId,
-          action: "sale",
-          details: {
-            quantity: qtyToSell,
-            productId: productId,
-            storeId: storeId
-          },
-          quantityBefore: batch.quantity,
-          quantityAfter: batch.quantity - qtyToSell
+        const auditLog = await storage.createInventoryItem({
+          productId: batch.productId,
+          storeId: batch.storeId,
+          quantity: qtyToSell
         });
         
         updatedBatches.push(updatedBatch);

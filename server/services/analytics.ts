@@ -4,23 +4,6 @@ import { db } from "@db";
 import { desc, sql, eq, count } from "drizzle-orm"; // and, gte, lte removed
 
 /**
- * Get sales trend analysis data
- * @param storeId Optional store ID to filter by
- * @param startDate Optional start date to filter by
- * @param endDate Optional end date to filter by
- * @param groupBy How to group the data ('day', 'week', or 'month')
- * @returns Sales trend analysis data
- */
-export async function getSalesTrendsAnalysis(
-  storeId?: number, 
-  startDate?: Date, 
-  endDate?: Date, 
-  groupBy: 'day' | 'week' | 'month' = 'day'
-) {
-  return await storage.getSalesTrends(storeId, startDate, endDate, groupBy);
-}
-
-/**
  * Get store performance comparison data
  * @param startDate Optional start date to filter by
  * @param endDate Optional end date to filter by
@@ -65,7 +48,7 @@ export async function getStorePerformanceComparison(
           productId: schema.transactionItems.productId,
           productName: schema.products.name,
           quantity: sql`SUM(${schema.transactionItems.quantity})`,
-          total: sql`SUM(${schema.transactionItems.subtotal})`,
+          total: sql`SUM(${schema.transactionItems.unitPrice} * ${schema.transactionItems.quantity})`,
         })
         .from(schema.transactionItems)
         .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))

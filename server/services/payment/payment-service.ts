@@ -30,8 +30,8 @@ export class PaymentService {
         : null;
 
       // Initialize Flutterwave in test mode
-      this.flutterwave = this.config.flutterwave.secretKey
-        ? new Flutterwave(this.config.flutterwave.secretKey)
+      this.flutterwave = this.config.flutterwave.publicKey && this.config.flutterwave.secretKey
+        ? new Flutterwave(this.config.flutterwave.publicKey, this.config.flutterwave.secretKey)
         : null;
 
       this.logger.info('Payment providers initialized in test mode');

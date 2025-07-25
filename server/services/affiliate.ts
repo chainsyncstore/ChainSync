@@ -303,7 +303,7 @@ export async function processAffiliatePayout(
         continue;
       }
 
-      const pendingAmount = parseFloat(affiliate.pendingEarnings.toString());
+      const pendingAmount = parseFloat(affiliate.pendingEarnings?.toString() ?? '0');
 
       // Create a new payment record
       const paymentData: schema.ReferralPaymentInsert = {
@@ -441,8 +441,8 @@ export async function getAffiliateDashboardStats(userId: number): Promise<{
         pending: pendingReferrals,
       },
       earnings: {
-        total: affiliate.totalEarnings.toString(),
-        pending: affiliate.pendingEarnings.toString(),
+        total: affiliate.totalEarnings?.toString() ?? '0',
+        pending: affiliate.pendingEarnings?.toString() ?? '0',
         lastPayment: lastPayment
           ? {
               amount: lastPayment.amount.toString(),
@@ -552,6 +552,7 @@ export async function updateAffiliateBankDetails(
       .update(schema.affiliates)
       .set({
         ...bankDetails,
+        paymentMethod: bankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual' | undefined,
         updatedAt: new Date(),
       })
       .where(eq(schema.affiliates.id, affiliate.id))

@@ -117,16 +117,18 @@ router.use(sensitiveOpRateLimiter);
  */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { customerId, storeId, type, status, from, to } = req.query;
+    const { customerId, storeId, status, from, to } = req.query;
     const page = parseInt(req.query.page as string ?? '1', 10);
     const limit = parseInt(req.query.limit as string ?? '20', 10);
     const offset = (page - 1) * limit;
 
+    // Map query status to schema status enum
+    const mappedStatus = status === 'failed' || status === 'canceled' ? 'cancelled' : status;
+
     const conditions: (SQL<unknown> | undefined)[] = [
       customerId ? eq(schema.transactions.customerId, parseInt(customerId as string, 10)) : undefined,
       storeId ? eq(schema.transactions.storeId, parseInt(storeId as string, 10)) : undefined,
-      type ? eq(schema.transactions.status, type as string) : undefined,
-      status ? eq(schema.transactions.status, status as string) : undefined,
+      mappedStatus ? eq(schema.transactions.status, mappedStatus as 'pending' | 'completed' | 'cancelled') : undefined,
       from ? gte(schema.transactions.createdAt, new Date(from as string)) : undefined,
       to ? lte(schema.transactions.createdAt, new Date(to as string)) : undefined,
     ].filter((c): c is SQL<unknown> => !!c);
@@ -212,7 +214,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     // Get transaction with customer info
     const transaction = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.transactionId, parseInt(id, 10)),
+      where: eq(schema.transactions.id, parseInt(id, 10)),
       with: {
         customer: true,
         store: true
@@ -246,7 +248,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
 // Create transaction schema validation
 const createTransactionSchema = z.object({
-  customerId: z.string().uuid(),
+  userId: z.string().uuid(),
   storeId: z.string().uuid(),
   amount: z.number().positive(),
   type: z.enum(['purchase', 'refund', 'adjustment']),
@@ -355,30 +357,30 @@ const createTransactionSchema = z.object({
  */
 router.post('/', validateBody(createTransactionSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { customerId, storeId, amount, type, items, notes } = req.body;
+    const { userId, storeId, amount, type, items, notes } = req.body;
 
     const [transaction] = await db.insert(schema.transactions).values({
-      customerId: parseInt(customerId, 10),
+      userId: parseInt(userId, 10),
       storeId: parseInt(storeId, 10),
-      totalAmount: amount.toString(),
-      status: type,
-      notes,
+      total: amount.toString(), // Use 'total' instead of 'totalAmount'
+      status: 'pending', // Default status to 'pending'
+      paymentMethod: 'card', //TODO: get from request
+      subtotal: amount.toString(), //TODO: calculate from items
     }).returning();
 
     // Log transaction creation
     logger.info('Transaction created', {
-      transactionId: transaction.transactionId,
-      customerId,
+      transactionId: transaction.id, // Use transaction.id
+      userId,
       storeId,
       amount,
-      type,
-      userId: req.session.userId
+      type
     });
 
     if (items && items.length > 0) {
       const transactionItems = items.map((item: any) => ({
-        transactionId: transaction.transactionId,
-        productId: parseInt(item.id, 10),
+        transactionId: transaction.id, // Use transaction.id
+        productId: parseInt(item.id, 10), // Parse item.id to integer
         quantity: item.quantity,
         unitPrice: item.price.toString(),
       }));
@@ -387,17 +389,17 @@ router.post('/', validateBody(createTransactionSchema), async (req: Request, res
 
     if (type === 'purchase') {
       await queueTransactionForLoyalty({
-        transactionId: transaction.transactionId,
-        customerId: parseInt(customerId, 10),
-        storeId: parseInt(storeId, 10),
+        transactionId: String(transaction.id), // Use transaction.id
+        customerId: userId as string,
+        storeId: storeId as string,
         amount: amount,
         transactionDate: transaction.createdAt!.toISOString(),
         items,
       });
       
       logger.info('Loyalty processing queued', {
-        transactionId: transaction.transactionId,
-        customerId,
+        transactionId: transaction.id, // Use transaction.id
+        customerId: userId,
       });
     }
 
@@ -415,7 +417,7 @@ router.post('/', validateBody(createTransactionSchema), async (req: Request, res
 // Transaction update schema validation
 const updateTransactionSchema = z.object({
   status: z.enum(['pending', 'completed', 'failed', 'canceled']).optional(),
-  notes: z.string().optional()
+  // notes: z.string().optional() // Remove notes as it's not in the schema
 });
 
 /**
@@ -489,7 +491,7 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
 
     // Check if transaction exists
     const existingTransaction = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.transactionId, parseInt(id, 10))
+      where: eq(schema.transactions.id, parseInt(id, 10))
     });
 
     if (!existingTransaction) {
@@ -502,9 +504,9 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
     const [updatedTransaction] = await db.update(schema.transactions)
       .set({
         status: status ?? existingTransaction.status,
-        notes: notes ?? existingTransaction.notes,
+        // notes: notes ?? existingTransaction.notes, // Remove notes
       })
-      .where(eq(schema.transactions.transactionId, parseInt(id, 10)))
+      .where(eq(schema.transactions.id, parseInt(id, 10)))
       .returning();
 
     logger.info('Transaction updated', {

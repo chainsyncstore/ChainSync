@@ -113,9 +113,17 @@ class MemStorage implements IStorage {
       ...store,
       id: this.nextId.stores++,
       managerId: store.managerId || null,
-      isActive: store.isActive || true,
+      isActive: store.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
+      address: store.address ?? null,
+      city: store.city ?? null,
+      state: store.state ?? null,
+      country: store.country ?? null,
+      phone: store.phone ?? null,
+      email: store.email ?? null,
+      timezone: store.timezone ?? null,
+      status: store.status ?? 'active',
     };
     this.stores.set(newStore.id, newStore);
     return newStore;
@@ -147,15 +155,18 @@ class MemStorage implements IStorage {
     const newProduct: SelectProduct = {
       ...product,
       id: this.nextId.products++,
-      description: product.description || null,
-      barcode: product.barcode || null,
-      cost: product.cost || null,
-      category: product.category || null,
-      brand: product.brand || null,
-      unit: product.unit || 'pcs',
-      isActive: product.isActive || true,
+      description: product.description ?? null,
+      barcode: product.barcode ?? null,
+      cost: product.cost ?? null,
+      categoryId: product.categoryId ?? null,
+      brandId: product.brandId ?? null,
+      unit: product.unit ?? 'pcs',
+      isActive: product.isActive ?? true,
+      isPerishable: product.isPerishable ?? false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      imageUrl: product.imageUrl ?? null,
+      attributes: product.attributes ?? null,
     };
     this.products.set(newProduct.id, newProduct);
     return newProduct;
@@ -185,9 +196,7 @@ class MemStorage implements IStorage {
       product => 
         product.name.toLowerCase().includes(searchTerm) ||
         product.description?.toLowerCase().includes(searchTerm) ||
-        product.barcode?.includes(searchTerm) ||
-        product.category?.toLowerCase().includes(searchTerm) ||
-        product.brand?.toLowerCase().includes(searchTerm)
+        product.barcode?.includes(searchTerm)
     );
   }
 
@@ -209,11 +218,13 @@ class MemStorage implements IStorage {
     const newInventory: SelectInventory = {
       ...inventory,
       id: this.nextId.inventory++,
-      quantity: inventory.quantity || 0,
-      minStock: inventory.minStock || 0,
-      maxStock: inventory.maxStock || null,
-      lastRestocked: inventory.lastRestocked || null,
+      quantity: inventory.quantity ?? 0,
+      minStock: inventory.minStock ?? 0,
+      maxStock: inventory.maxStock ?? null,
+      lastRestocked: inventory.lastRestocked ?? null,
       updatedAt: new Date(),
+      batchTracking: inventory.batchTracking ?? false,
+      currentUtilization: inventory.currentUtilization ?? 0,
     };
     this.inventory.set(newInventory.id, newInventory);
     return newInventory;
@@ -263,11 +274,11 @@ class MemStorage implements IStorage {
     const newTransaction: SelectTransaction = {
       ...transaction,
       id: this.nextId.transactions++,
-      customerId: transaction.customerId || null,
-      tax: transaction.tax || '0',
-      discount: transaction.discount || '0',
-      status: transaction.status || 'pending',
-      items: transaction.items || null,
+      customerId: transaction.customerId ?? null,
+      tax: transaction.tax ?? '0',
+      discount: transaction.discount ?? '0',
+      status: transaction.status ?? 'pending',
+      items: transaction.items ?? null,
       createdAt: new Date(),
     };
     this.transactions.set(newTransaction.id, newTransaction);

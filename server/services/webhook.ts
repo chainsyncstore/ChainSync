@@ -72,7 +72,7 @@ export async function handlePaystackWebhook(
     // Find the transaction/order with this reference
     const results = await db.select()
       .from(transactions)
-      .where(eq(transactions.referenceId, reference));
+      .where(eq(transactions.id, Number(reference)));
     
     const order = results[0];
 
@@ -86,7 +86,7 @@ export async function handlePaystackWebhook(
     }
 
     // If order is already paid, avoid duplicate processing
-    if (order.paymentStatus === 'paid') {
+    if (order.status === 'completed') {
       return { 
         success: true, 
         message: 'Order already marked as paid', 
@@ -98,8 +98,7 @@ export async function handlePaystackWebhook(
     // Update the order status
     await db.update(transactions)
       .set({
-        paymentStatus: 'paid',
-        updatedAt: new Date()
+        status: 'completed',
       })
       .where(eq(transactions.id, order.id));
 
@@ -173,7 +172,7 @@ export async function handleFlutterwaveWebhook(
     // Find the transaction/order with this reference
     const results = await db.select()
       .from(transactions)
-      .where(eq(transactions.referenceId, reference));
+      .where(eq(transactions.id, Number(reference)));
     
     const order = results[0];
 
@@ -187,7 +186,7 @@ export async function handleFlutterwaveWebhook(
     }
 
     // If order is already paid, avoid duplicate processing
-    if (order.paymentStatus === 'paid') {
+    if (order.status === 'completed') {
       return { 
         success: true, 
         message: 'Order already marked as paid', 
@@ -199,8 +198,7 @@ export async function handleFlutterwaveWebhook(
     // Update the order status
     await db.update(transactions)
       .set({
-        paymentStatus: 'paid',
-        updatedAt: new Date()
+        status: 'completed',
       })
       .where(eq(transactions.id, order.id));
 

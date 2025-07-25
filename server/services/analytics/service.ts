@@ -2,7 +2,8 @@ import { BaseService } from '../base/base-service';
 import { AnalyticsConfig, AnalyticsServiceErrors, defaultAnalyticsConfig } from '../../config/analytics';
 import { CacheService } from '../cache';
 import { Redis } from 'ioredis';
-import { AppError, ErrorCode, ErrorCategory } from '../../../shared/errors';
+import { AppError, ErrorCode, ErrorCategory } from '../../../shared/types/errors';
+import { logger } from '../logger';
 import { db } from '../../db/connection';
 import * as schema from '../../../shared/schema';
 import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm';
@@ -14,7 +15,7 @@ export class AnalyticsService extends BaseService {
   private aggregationQueue: Array<Record<string, unknown>>;
 
   constructor(config: Partial<AnalyticsConfig> = {}) {
-    super();
+    super(logger);
     this.config = { ...defaultAnalyticsConfig, ...config };
     this.redis = new Redis(this.config.storage.connection as string);
     this.cache = new CacheService();
@@ -37,7 +38,7 @@ export class AnalyticsService extends BaseService {
       throw new AppError(
         'Invalid query parameters',
         ErrorCode.INVALID_FIELD_VALUE,
-        ErrorCategory.VALIDATION_ERROR
+        ErrorCategory.VALIDATION
       );
     }
   }
@@ -81,7 +82,7 @@ export class AnalyticsService extends BaseService {
           throw new AppError(
             'Unknown aggregation type',
             ErrorCode.INVALID_FIELD_VALUE,
-            ErrorCategory.VALIDATION_ERROR
+            ErrorCategory.VALIDATION
           );
       }
     } catch (error) {
@@ -184,9 +185,9 @@ export class AnalyticsService extends BaseService {
           const query = db
             .select({
               date: sql<string>`DATE(${schema.transactions.createdAt})`.as('date'),
-              totalSales: sql<number>`SUM(${schema.transactions.totalAmount})`.as('totalSales'),
+              totalSales: sql<number>`SUM(${schema.transactions.total})`.as('totalSales'),
               totalTransactions: sql<number>`COUNT(*)`.as('totalTransactions'),
-              averageTransaction: sql<number>`AVG(${schema.transactions.totalAmount})`.as('averageTransaction')
+              averageTransaction: sql<number>`AVG(${schema.transactions.total})`.as('averageTransaction')
             })
             .from(schema.transactions)
             .where(
@@ -303,15 +304,14 @@ export class AnalyticsService extends BaseService {
             .select({
               date: sql<string>`DATE(${schema.products.createdAt})`.as('date'),
               totalProducts: sql<number>`COUNT(*)`.as('totalProducts'),
-              inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.inventory.totalQuantity} > 0)`.as('inStock'),
-              outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.inventory.totalQuantity} = 0)`.as('outOfStock'),
+              inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.inventory.quantity} > 0)`.as('inStock'),
+              outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.inventory.quantity} = 0)`.as('outOfStock'),
               averagePrice: sql<number>`AVG(${schema.products.price})`.as('averagePrice')
             })
             .from(schema.products)
             .leftJoin(schema.inventory, eq(schema.products.id, schema.inventory.productId))
             .where(
               and(
-                eq(schema.products.storeId, storeId),
                 gte(schema.products.createdAt, startDate),
                 lte(schema.products.createdAt, endDate)
               )
@@ -368,10 +368,8 @@ export class AnalyticsService extends BaseService {
               activeMembers: sql<number>`COUNT(DISTINCT ${schema.loyaltyTransactions.memberId})`.as('activeMembers')
             })
             .from(schema.loyaltyTransactions)
-            .leftJoin(schema.loyaltyPrograms, eq(schema.loyaltyPrograms.id, schema.loyaltyTransactions.programId))
             .where(
               and(
-                eq(schema.loyaltyPrograms.storeId, storeId),
                 gte(schema.loyaltyTransactions.createdAt, startDate),
                 lte(schema.loyaltyTransactions.createdAt, endDate)
               )
@@ -430,7 +428,7 @@ export class AnalyticsService extends BaseService {
     throw new AppError(
       `Failed when ${context}`,
       ErrorCode.INTERNAL_SERVER_ERROR,
-      ErrorCategory.SERVER_ERROR,
+      ErrorCategory.SYSTEM,
       { originalError: error }
     );
   }

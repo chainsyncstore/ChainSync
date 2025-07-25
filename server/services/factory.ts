@@ -6,11 +6,18 @@
  */
 
 import { db } from '../db'; // or adjust the path as needed
-import { Logger } from '../logging';
+import { getLogger } from '../../src/logging';
 import Redis from 'ioredis';
 
-import { ServiceConfig } from './base/standard-service';
+import { BaseService } from './base/base-service';
 import { CacheService } from './cache';
+
+export type ServiceConfig = {
+  logger: ReturnType<typeof getLogger>;
+  db: typeof db;
+  cache?: CacheService;
+  redis?: Redis;
+};
 
 /**
  * Service factory for creating properly configured services
@@ -21,8 +28,8 @@ export class ServiceFactory {
 
   private constructor(
     private readonly config: {
-      logger: Logger;
-      db: DbConnection;
+      logger: ReturnType<typeof getLogger>;
+      db: typeof db;
       cache?: CacheService;
       redis?: Redis;
     }
@@ -32,8 +39,8 @@ export class ServiceFactory {
    * Get the singleton instance of the service factory
    */
   public static getInstance(config?: {
-    logger: Logger;
-    db: DbConnection;
+    logger: ReturnType<typeof getLogger>;
+    db: typeof db;
     cache?: CacheService;
     redis?: Redis;
   }): ServiceFactory {
@@ -131,8 +138,8 @@ export class ServiceFactory {
 export function getService<T>(
   serviceClass: new (config: ServiceConfig) => T,
   factoryConfig?: {
-    logger: Logger;
-    db: DbConnection;
+    logger: ReturnType<typeof getLogger>;
+    db: typeof db;
     cache?: CacheService;
     redis?: Redis;
   }
@@ -148,8 +155,8 @@ export function getServiceWithConfig<T>(
   serviceClass: new (config: ServiceConfig & Record<string, any>) => T,
   additionalConfig: Record<string, any>,
   factoryConfig?: {
-    logger: Logger;
-    db: DbConnection;
+    logger: ReturnType<typeof getLogger>;
+    db: typeof db;
     cache?: CacheService;
     redis?: Redis;
   }

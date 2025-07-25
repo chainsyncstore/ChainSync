@@ -57,7 +57,7 @@ export abstract class EnhancedBaseService extends BaseService {
     try {
       const result = await db.execute(sql.raw(query), params);
       const rows = result.rows || [];
-      return rows.map(row => formatter(row));
+      return rows.map((row: any) => formatter(row));
     } catch (error) {
       throw ServiceErrorHandler.handleError(error, 'executing SQL query with multiple results');
     }

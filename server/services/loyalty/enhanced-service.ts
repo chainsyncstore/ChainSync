@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import db from '../../database';
 import * as schema from '@shared/schema';
 import { loyaltyValidation } from '@shared/schema-validation';
@@ -98,7 +99,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
         throw new MemberAlreadyEnrolledError(params.customerId, params.programId);
       }
 
-      const validatedData = loyaltyValidation.memberInsert.parse({
+      const validatedData = loyaltyValidation.member.insert.parse({
         ...params,
         membershipId: this.generateMembershipId(params.customerId, params.programId),
       });
@@ -113,12 +114,12 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
   }
 
   async addPoints(params: AddPointsParams): Promise<LoyaltyTransaction> {
-    return db.transaction(async tx => {
+    return (db as NodePgDatabase<typeof schema>).transaction(async tx => {
       try {
         const member = await tx.query.loyaltyMembers.findFirst({
           where: eq(schema.loyaltyMembers.id, params.memberId),
           for: 'update',
-        });
+        } as any);
 
         if (!member) {
           throw new LoyaltyMemberNotFoundError(params.memberId);
@@ -157,12 +158,12 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
   }
 
   async redeemPoints(params: RedeemPointsParams): Promise<LoyaltyTransaction> {
-    return db.transaction(async tx => {
+    return (db as NodePgDatabase<typeof schema>).transaction(async tx => {
       try {
         const member = await tx.query.loyaltyMembers.findFirst({
           where: eq(schema.loyaltyMembers.id, params.memberId),
           for: 'update',
-        });
+        } as any);
 
         if (!member) {
           throw new LoyaltyMemberNotFoundError(params.memberId);

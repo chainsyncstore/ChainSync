@@ -730,7 +730,6 @@ export async function importInventoryData(data: any[], storeId: number): Promise
           name: row.name,
           description: row.description || existingProduct.description,
           price: row.price.toString(),
-          categoryId: categoryId,
           isPerishable: row.isPerishable || false
         }).where(eq(schema.products.id, existingProduct.id));
         
@@ -738,17 +737,17 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         
         if (inventoryItem) {
           await db.update(schema.inventory).set({
-            availableQuantity: row.quantity,
-            minimumLevel: row.minStockLevel || inventoryItem.minimumLevel,
-            lastStockUpdate: new Date()
+            quantity: row.quantity,
+            minStock: row.minStockLevel || inventoryItem.minStock,
+            lastRestocked: new Date()
           }).where(eq(schema.inventory.id, inventoryItem.id));
         } else {
           await db.insert(schema.inventory).values({
             storeId: storeId,
             productId: existingProduct.id,
-            availableQuantity: row.quantity,
-            minimumLevel: row.minStockLevel || 5,
-            lastStockUpdate: new Date()
+            quantity: row.quantity,
+            minStock: row.minStockLevel || 5,
+            lastRestocked: new Date()
           });
         }
       } else {
@@ -756,19 +755,18 @@ export async function importInventoryData(data: any[], storeId: number): Promise
           name: row.name,
           description: row.description || '',
           barcode: row.barcode,
-          sku: row.barcode,
           price: row.price.toString(),
-          storeId: storeId,
-          categoryId: categoryId,
-          isPerishable: row.isPerishable || false
+          isPerishable: row.isPerishable || false,
+          storeId,
+          sku: row.barcode,
         }).returning();
         
         await db.insert(schema.inventory).values({
           storeId: storeId,
           productId: newProduct.id,
-          availableQuantity: row.quantity,
-          minimumLevel: row.minStockLevel || 5,
-          lastStockUpdate: new Date()
+          quantity: row.quantity,
+          minStock: row.minStockLevel || 5,
+          lastRestocked: new Date()
         });
       }
       
@@ -811,31 +809,29 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
           currentPoints: row.points ? row.points.toString() : existingMember.currentPoints
         }).where(eq(schema.loyaltyMembers.id, existingMember.id));
         
-        const customer = await db.query.customers.findFirst({ where: eq(schema.customers.id, existingMember.customerId) });
-        if (customer) {
-          await db.update(schema.customers)
+        const user = await db.query.users.findFirst({ where: eq(schema.users.id, existingMember.userId) });
+        if (user) {
+          await db.update(schema.users)
             .set({
-              fullName: row.name || customer.fullName,
-              email: row.email || customer.email,
-              phone: row.phone || customer.phone,
+              name: row.name || user.name,
+              email: row.email || user.email,
               updatedAt: new Date()
             })
-            .where(eq(schema.customers.id, customer.id));
+            .where(eq(schema.users.id, user.id));
         }
       } else {
-        const [newCustomer] = await db.insert(schema.customers).values({
-          fullName: row.name,
+        const [newUser] = await db.insert(schema.users).values({
+          name: row.name,
           email: row.email || null,
-          phone: row.phone || null,
-          storeId: storeId
+          password: 'password', // Add a default password
         }).returning();
         
         await db.insert(schema.loyaltyMembers).values({
           loyaltyId: row.loyaltyId,
-          customerId: newCustomer.id,
-          programId: 1, // Assuming a default programId
+          userId: newUser.id,
           currentPoints: row.points ? row.points.toString() : "0",
-          enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : new Date()
+          programId: 1,
+          customerId: newUser.id,
         });
       }
       

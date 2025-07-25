@@ -23,10 +23,7 @@ export class ValidationService implements ValidationService {
       const invalidRecords: { record: any; errors: string[] }[] = [];
 
       if (!Array.isArray(data)) {
-        throw new AppError({
-          category: ErrorCategory.IMPORT_EXPORT,
-          message: 'Data must be an array'
-        });
+        throw new AppError('Data must be an array', ErrorCategory.IMPORT_EXPORT, 'INVALID_DATA');
       }
 
       for (const record of data) {
@@ -74,10 +71,7 @@ export class ValidationService implements ValidationService {
         invalidRecords
       };
     } catch (error) {
-      throw new AppError({
-        category: ErrorCategory.IMPORT_EXPORT,
-        message: error instanceof Error ? error.message : 'Validation failed'
-      });
+      throw new AppError(error instanceof Error ? error.message : 'Validation failed', ErrorCategory.IMPORT_EXPORT, 'VALIDATION_ERROR');
     }
   }
 }

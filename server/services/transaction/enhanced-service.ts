@@ -10,7 +10,6 @@ import { ITransactionService } from './interface';
 import {
   CreateTransactionParams,
   UpdateTransactionParams,
-  Transaction,
   TransactionItem,
   TransactionPayment,
   CreateTransactionItemParams,
@@ -18,6 +17,7 @@ import {
   CreateTransactionPaymentParams,
   UpdateTransactionPaymentParams
 } from './types';
+import { SelectTransaction as Transaction } from '@shared/schema';
 import db from '@server/database';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -29,13 +29,13 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
   private paymentFormatter = new TransactionPaymentFormatter();
 
   async createTransaction(params: CreateTransactionParams): Promise<Transaction> {
-    const validated = transactionValidation.insert(params);
+    const validated = transactionValidation.insert.parse(params);
     const [tx] = await db.insert(schema.transactions).values(validated).returning();
     return this.formatter.formatResult(tx);
   }
 
   async updateTransaction(id: string, params: UpdateTransactionParams): Promise<Transaction> {
-    const validated = transactionValidation.update(params);
+    const validated = transactionValidation.update.parse(params);
     const [tx] = await db.update(schema.transactions).set(validated).where(eq(schema.transactions.id, Number(id))).returning();
     return this.formatter.formatResult(tx);
   }
@@ -46,25 +46,25 @@ export class EnhancedTransactionService extends EnhancedBaseService implements I
   }
 
   async createTransactionItem(params: CreateTransactionItemParams): Promise<TransactionItem> {
-    const validated = transactionValidation.item.insert(params);
+    const validated = transactionValidation.item.insert.parse(params);
     const [item] = await db.insert(schema.transactionItems).values(validated).returning();
     return this.itemFormatter.formatResult(item);
   }
 
   async updateTransactionItem(id: string, params: UpdateTransactionItemParams): Promise<TransactionItem> {
-    const validated = transactionValidation.item.update(params);
+    const validated = transactionValidation.item.update.parse(params);
     const [item] = await db.update(schema.transactionItems).set(validated).where(eq(schema.transactionItems.id, Number(id))).returning();
     return this.itemFormatter.formatResult(item);
   }
 
   async createTransactionPayment(params: CreateTransactionPaymentParams): Promise<TransactionPayment> {
-    const validated = transactionValidation.payment.insert(params);
+    const validated = transactionValidation.payment.insert.parse(params);
     const [payment] = await db.insert(schema.transactionPayments).values(validated).returning();
     return this.paymentFormatter.formatResult(payment);
   }
 
   async updateTransactionPayment(id: string, params: UpdateTransactionPaymentParams): Promise<TransactionPayment> {
-    const validated = transactionValidation.payment.update(params);
+    const validated = transactionValidation.payment.update.parse(params);
     const [payment] = await db.update(schema.transactionPayments).set(validated).where(eq(schema.transactionPayments.id, Number(id))).returning();
     return this.paymentFormatter.formatResult(payment);
   }

@@ -4,12 +4,12 @@
  * This file defines the interfaces and types for the transaction service.
  */
 
-import { InferModel } from 'drizzle-orm';
+import { InferSelectModel } from 'drizzle-orm';
 import * as schema from '@shared/schema';
 
-export type Transaction = InferModel<typeof schema.transactions>;
-export type TransactionItem = InferModel<typeof schema.transactionItems>;
-export type TransactionPayment = InferModel<typeof schema.transactionPayments>;
+export type SelectTransaction = InferSelectModel<typeof schema.transactions>;
+export type TransactionItem = InferSelectModel<typeof schema.transactionItems>;
+export type TransactionPayment = InferSelectModel<typeof schema.transactionPayments>;
 
 export enum PaymentMethod {
   CASH = 'cash',

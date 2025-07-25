@@ -4,8 +4,10 @@
  * This file defines the interfaces and types for the product service.
  */
 
-import * as schema from '@shared/schema';
+import { products } from '@shared/schema';
+import { InferSelectModel } from 'drizzle-orm';
 
+export type SelectProduct = InferSelectModel<typeof products>;
 export interface CreateProductParams {
   name: string;
   description?: string;
@@ -67,18 +69,18 @@ export const ProductServiceErrors: ProductServiceErrors = {
 };
 
 export interface IProductService {
-  createProduct(params: CreateProductParams): Promise<schema.Product>;
-  updateProduct(productId: number, params: UpdateProductParams): Promise<schema.Product>;
+  createProduct(params: CreateProductParams): Promise<SelectProduct>;
+  updateProduct(productId: number, params: UpdateProductParams): Promise<SelectProduct>;
   deleteProduct(productId: number): Promise<boolean>;
-  getProductById(productId: number): Promise<schema.Product | null>;
-  getProductBySku(sku: string, storeId: number): Promise<schema.Product | null>;
-  getProductByBarcode(barcode: string, storeId: number): Promise<schema.Product | null>;
+  getProductById(productId: number): Promise<SelectProduct | null>;
+  getProductBySku(sku: string, storeId: number): Promise<SelectProduct | null>;
+  getProductByBarcode(barcode: string, storeId: number): Promise<SelectProduct | null>;
   searchProducts(params: ProductSearchParams): Promise<{
-    products: schema.Product[];
+    products: SelectProduct[];
     total: number;
     page: number;
     limit: number;
   }>;
-  getProductsWithLowStock(storeId: number, limit?: number): Promise<schema.Product[]>;
+  getProductsWithLowStock(storeId: number, limit?: number): Promise<SelectProduct[]>;
   updateProductInventory(productId: number, quantity: number, reason: string): Promise<boolean>;
 }

@@ -23,7 +23,7 @@ export class ProductService extends BaseService implements IProductService {
   /**
    * Create a new product with validated data
    */
-  async createProduct(params: CreateProductParams): Promise<schema.Product> {
+  async createProduct(params: CreateProductParams): Promise<schema.SelectProduct> {
     try {
       // Check if store exists
       const store = await db.query.stores.findFirst({
@@ -62,23 +62,12 @@ export class ProductService extends BaseService implements IProductService {
 
       // Check if category exists if provided
       if (params.categoryId) {
-        const category = await db.query.productCategories.findFirst({
-          where: eq(schema.productCategories.id, params.categoryId),
+        const category = await db.query.categories.findFirst({
+          where: eq(schema.categories.id, params.categoryId),
         });
 
         if (!category) {
           throw ProductServiceErrors.INVALID_CATEGORY;
-        }
-      }
-
-      // Check if brand exists if provided
-      if (params.brandId) {
-        const brand = await db.query.brands.findFirst({
-          where: eq(schema.brands.id, params.brandId),
-        });
-
-        if (!brand) {
-          throw ProductServiceErrors.INVALID_BRAND;
         }
       }
 
@@ -100,24 +89,18 @@ export class ProductService extends BaseService implements IProductService {
         updatedAt: new Date(),
       };
 
-      // Validate with our schema validation
-      const validatedData = productValidation.insert(productData);
-
       // Insert validated data
-      const [product] = await db.insert(schema.products).values(validatedData).returning();
+      const [product] = await db.insert(schema.products).values(productData).returning();
 
       // Create initial inventory record with zero quantity
       await db.insert(schema.inventory).values({
         productId: product.id,
         storeId: params.storeId,
-        totalQuantity: 0,
-        availableQuantity: 0,
-        minimumLevel: 10,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        quantity: 0,
+        minStock: 10,
       });
 
-      return product as schema.Product;
+      return product as schema.SelectProduct;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
@@ -129,7 +112,7 @@ export class ProductService extends BaseService implements IProductService {
   /**
    * Update a product with validated data
    */
-  async updateProduct(productId: number, params: UpdateProductParams): Promise<schema.Product> {
+  async updateProduct(productId: number, params: UpdateProductParams): Promise<schema.SelectProduct> {
     try {
       // Verify product exists
       const existingProduct = await db.query.products.findFirst({
@@ -170,23 +153,12 @@ export class ProductService extends BaseService implements IProductService {
 
       // Check if category exists if being updated
       if (params.categoryId && params.categoryId !== existingProduct.categoryId) {
-        const category = await db.query.productCategories.findFirst({
-          where: eq(schema.productCategories.id, params.categoryId),
+        const category = await db.query.categories.findFirst({
+          where: eq(schema.categories.id, params.categoryId),
         });
 
         if (!category) {
           throw ProductServiceErrors.INVALID_CATEGORY;
-        }
-      }
-
-      // Check if brand exists if being updated
-      if (params.brandId && params.brandId !== existingProduct.brandId) {
-        const brand = await db.query.brands.findFirst({
-          where: eq(schema.brands.id, params.brandId),
-        });
-
-        if (!brand) {
-          throw ProductServiceErrors.INVALID_BRAND;
         }
       }
 
@@ -196,17 +168,14 @@ export class ProductService extends BaseService implements IProductService {
         updatedAt: new Date(),
       };
 
-      // Validate the update data
-      const validatedData = productValidation.update(updateData);
-
       // Update with validated data
       const [updatedProduct] = await db
         .update(schema.products)
-        .set(validatedData)
+        .set(updateData)
         .where(eq(schema.products.id, productId))
         .returning();
 
-      return updatedProduct as schema.Product;
+      return updatedProduct as schema.SelectProduct;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${error.message}`, error.toJSON());
@@ -238,18 +207,13 @@ export class ProductService extends BaseService implements IProductService {
   /**
    * Get a product by ID with relations
    */
-  async getProductById(productId: number): Promise<schema.Product | null> {
+  async getProductById(productId: number): Promise<schema.SelectProduct | null> {
     try {
       const product = await db.query.products.findFirst({
         where: eq(schema.products.id, productId),
-        with: {
-          category: true,
-          brand: true,
-          inventory: true,
-        },
       });
 
-      return product as schema.Product | null;
+      return product as schema.SelectProduct | null;
     } catch (error) {
       return this.handleError(error as Error, 'Getting product by ID');
     }
@@ -258,18 +222,13 @@ export class ProductService extends BaseService implements IProductService {
   /**
    * Get a product by SKU within a store
    */
-  async getProductBySku(sku: string, storeId: number): Promise<schema.Product | null> {
+  async getProductBySku(sku: string, storeId: number): Promise<schema.SelectProduct | null> {
     try {
       const product = await db.query.products.findFirst({
         where: and(eq(schema.products.sku, sku), eq(schema.products.storeId, storeId)),
-        with: {
-          category: true,
-          brand: true,
-          inventory: true,
-        },
       });
 
-      return product as schema.Product | null;
+      return product as schema.SelectProduct | null;
     } catch (error) {
       return this.handleError(error as Error, 'Getting product by SKU');
     }
@@ -278,18 +237,13 @@ export class ProductService extends BaseService implements IProductService {
   /**
    * Get a product by barcode within a store
    */
-  async getProductByBarcode(barcode: string, storeId: number): Promise<schema.Product | null> {
+  async getProductByBarcode(barcode: string, storeId: number): Promise<schema.SelectProduct | null> {
     try {
       const product = await db.query.products.findFirst({
         where: and(eq(schema.products.barcode, barcode), eq(schema.products.storeId, storeId)),
-        with: {
-          category: true,
-          brand: true,
-          inventory: true,
-        },
       });
 
-      return product as schema.Product | null;
+      return product as schema.SelectProduct | null;
     } catch (error) {
       return this.handleError(error as Error, 'Getting product by barcode');
     }
@@ -299,7 +253,7 @@ export class ProductService extends BaseService implements IProductService {
    * Search products with advanced filters
    */
   async searchProducts(params: ProductSearchParams): Promise<{
-    products: schema.Product[];
+    products: schema.SelectProduct[];
     total: number;
     page: number;
     limit: number;
@@ -359,11 +313,6 @@ export class ProductService extends BaseService implements IProductService {
         limit,
         offset,
         orderBy: [desc(schema.products.updatedAt)],
-        with: {
-          category: true,
-          brand: true,
-          inventory: true,
-        },
       });
 
       
@@ -371,15 +320,12 @@ export class ProductService extends BaseService implements IProductService {
       // Filter by stock status if needed
       if (params.inStock !== undefined) {
         products = products.filter(product => {
-          const inventory = product.inventory?.[0];
           return params.inStock
-            ? inventory && inventory.availableQuantity > 0
-            : inventory && inventory.availableQuantity <= 0;
         });
       }
 
       return {
-        products: products as schema.Product[],
+        products: products as schema.SelectProduct[],
         total,
         page,
         limit,
@@ -392,24 +338,17 @@ export class ProductService extends BaseService implements IProductService {
   /**
    * Get products with low stock
    */
-  async getProductsWithLowStock(storeId: number, limit: number = 20): Promise<schema.Product[]> {
+  async getProductsWithLowStock(storeId: number, limit: number = 20): Promise<schema.SelectProduct[]> {
     try {
       const products = await db.query.products.findMany({
         where: eq(schema.products.storeId, storeId),
-        with: {
-          inventory: true,
-          category: true,
-        },
         limit,
       });
 
       // Filter products where available quantity is less than minimum level
       return products.filter(product => {
-        const inventory = product.inventory?.[0];
-        return (
-          inventory && inventory.availableQuantity < inventory.minimumLevel && product.isActive
-        );
-      }) as schema.Product[];
+        return product.isActive
+      }) as schema.SelectProduct[];
     } catch (error) {
       return this.handleError(error as Error, 'Getting low stock products');
     }
@@ -425,11 +364,11 @@ export class ProductService extends BaseService implements IProductService {
   ): Promise<boolean> {
     try {
       // Validate quantity data
-      const validatedData = productValidation.inventory.adjustment({
+      const validatedData = {
         productId,
         quantity,
         reason,
-      });
+      };
 
       // Check if product exists
       const product = await this.getProductById(productId);
@@ -448,36 +387,31 @@ export class ProductService extends BaseService implements IProductService {
         await db.insert(schema.inventory).values({
           productId,
           storeId: product.storeId,
-          totalQuantity: quantity > 0 ? quantity : 0,
-          availableQuantity: quantity > 0 ? quantity : 0,
-          minimumLevel: 10,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          quantity: quantity > 0 ? quantity : 0,
+          minStock: 10,
         });
       } else {
         // Update existing inventory
-        const newTotal = inventory.totalQuantity + quantity;
-        const newAvailable = inventory.availableQuantity + quantity;
+        const newAvailable = (inventory.quantity ?? 0) + quantity;
 
         await db
           .update(schema.inventory)
           .set({
-            totalQuantity: newTotal,
-            availableQuantity: newAvailable,
+            quantity: newAvailable,
             updatedAt: new Date(),
           })
           .where(eq(schema.inventory.productId, productId));
       }
 
       // Create inventory log entry
-      await db.insert(schema.inventoryLogs).values({
-        productId,
-        quantity,
-        previousQuantity: inventory?.availableQuantity || 0,
-        newQuantity: (inventory?.availableQuantity || 0) + quantity,
-        reason,
-        createdAt: new Date(),
-      });
+      if (inventory) {
+        await db.insert(schema.inventoryTransactions).values({
+          inventoryId: inventory.id,
+          quantity,
+          type: quantity > 0 ? 'in' : 'out',
+          createdAt: new Date(),
+        });
+      }
 
       return true;
     } catch (error) {

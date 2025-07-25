@@ -2,12 +2,11 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from '../../../db/index.js';
 import * as schema from '../../../shared/schema.js';
 import { BaseService } from '../base/service.js';
-import { 
-  IWebhookService, 
-  WebhookConfig, 
-  WebhookEvent, 
-  WebhookDelivery, 
-  WebhookDeliveryStatus,
+import {
+  IWebhookService,
+  WebhookConfig,
+  WebhookEvent,
+  WebhookDelivery,
   CreateWebhookParams,
   UpdateWebhookParams,
   WebhookEventType
@@ -20,7 +19,7 @@ import axios from 'axios';
 export class WebhookService extends BaseService implements IWebhookService {
   private static readonly MAX_RETRY_ATTEMPTS = 3;
   private static readonly RETRY_DELAY_MS = 1000;
-  
+
   async handlePaystackWebhook(
     signature: string,
     payload: string
@@ -38,10 +37,8 @@ export class WebhookService extends BaseService implements IWebhookService {
 
   async createWebhook(params: CreateWebhookParams): Promise<WebhookConfig> {
     try {
-      // Validate input
       const validatedData = webhookValidation.create(params);
-      
-      // Check for duplicate URL for the same store
+
       const existingWebhook = await db.query.webhooks.findFirst({
         where: and(
           eq(schema.webhooks.url, validatedData.url),
@@ -49,7 +46,7 @@ export class WebhookService extends BaseService implements IWebhookService {
           eq(schema.webhooks.isActive, true)
         )
       });
-      
+
       if (existingWebhook) {
         throw new AppError(
           'Webhook with this URL already exists for this store',
@@ -57,10 +54,9 @@ export class WebhookService extends BaseService implements IWebhookService {
           ErrorCategory.VALIDATION
         );
       }
-      
-      // Generate secret for webhook verification
+
       const secret = crypto.randomBytes(32).toString('hex');
-      
+
       const [webhook] = await db
         .insert(schema.webhooks)
         .values({
@@ -70,26 +66,24 @@ export class WebhookService extends BaseService implements IWebhookService {
           updatedAt: new Date()
         })
         .returning();
-      
+
       return webhook;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
       }
-      return this.handleError(error as Error, 'Creating webhook');
+      throw this.handleError(error as Error, 'Creating webhook');
     }
   }
-  
+
   async updateWebhook(id: number, params: UpdateWebhookParams): Promise<WebhookConfig> {
     try {
-      // Validate input
       const validatedData = webhookValidation.update(params);
-      
-      // Check if webhook exists
+
       const existingWebhook = await db.query.webhooks.findFirst({
         where: eq(schema.webhooks.id, id)
       });
-      
+
       if (!existingWebhook) {
         throw new AppError(
           'Webhook not found',
@@ -97,7 +91,7 @@ export class WebhookService extends BaseService implements IWebhookService {
           ErrorCategory.VALIDATION
         );
       }
-      
+
       const [updatedWebhook] = await db
         .update(schema.webhooks)
         .set({
@@ -106,22 +100,22 @@ export class WebhookService extends BaseService implements IWebhookService {
         })
         .where(eq(schema.webhooks.id, id))
         .returning();
-      
+
       return updatedWebhook;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
       }
-      return this.handleError(error as Error, 'Updating webhook');
+      throw this.handleError(error as Error, 'Updating webhook');
     }
   }
-  
+
   async deleteWebhook(id: number): Promise<boolean> {
     try {
       const existingWebhook = await db.query.webhooks.findFirst({
         where: eq(schema.webhooks.id, id)
       });
-      
+
       if (!existingWebhook) {
         throw new AppError(
           'Webhook not found',
@@ -129,8 +123,7 @@ export class WebhookService extends BaseService implements IWebhookService {
           ErrorCategory.VALIDATION
         );
       }
-      
-      // Soft delete
+
       await db
         .update(schema.webhooks)
         .set({
@@ -138,13 +131,13 @@ export class WebhookService extends BaseService implements IWebhookService {
           updatedAt: new Date()
         })
         .where(eq(schema.webhooks.id, id));
-      
+
       return true;
     } catch (error) {
-      return this.handleError(error as Error, 'Deleting webhook');
+      throw this.handleError(error as Error, 'Deleting webhook');
     }
   }
-  
+
   async getWebhookById(id: number): Promise<WebhookConfig | null> {
     try {
       const webhook = await db.query.webhooks.findFirst({
@@ -153,13 +146,13 @@ export class WebhookService extends BaseService implements IWebhookService {
           eq(schema.webhooks.isActive, true)
         )
       });
-      
+
       return webhook || null;
     } catch (error) {
-      return this.handleError(error as Error, 'Getting webhook by ID');
+      throw this.handleError(error as Error, 'Getting webhook by ID');
     }
   }
-  
+
   async getWebhooksByStore(storeId: number): Promise<WebhookConfig[]> {
     try {
       const webhooks = await db.query.webhooks.findMany({
@@ -169,16 +162,15 @@ export class WebhookService extends BaseService implements IWebhookService {
         ),
         orderBy: [desc(schema.webhooks.createdAt)]
       });
-      
+
       return webhooks;
     } catch (error) {
-      return this.handleError(error as Error, 'Getting webhooks by store');
+      throw this.handleError(error as Error, 'Getting webhooks by store');
     }
   }
-  
+
   async triggerWebhook(eventType: WebhookEventType, data: any, storeId: number): Promise<void> {
     try {
-      // Get active webhooks for this store and event type
       const webhooks = await db.query.webhooks.findMany({
         where: and(
           eq(schema.webhooks.storeId, storeId),
@@ -186,35 +178,31 @@ export class WebhookService extends BaseService implements IWebhookService {
           sql`${schema.webhooks.events} ? ${eventType}`
         )
       });
-      
-      // Create webhook event record
+
       const [event] = await db
         .insert(schema.webhookEvents)
         .values({
-          eventType,
-          data: JSON.stringify(data),
-          storeId,
+          webhookId: 0,
+          event: eventType,
+          payload: JSON.stringify(data),
           createdAt: new Date()
         })
         .returning();
-      
-      // Trigger each webhook
+
       for (const webhook of webhooks) {
         await this.deliverWebhook(webhook, event, data);
       }
     } catch (error) {
       console.error('Error triggering webhook:', error);
-      // Don't throw error to avoid breaking the main flow
     }
   }
-  
+
   private async deliverWebhook(webhook: WebhookConfig, event: WebhookEvent, data: any): Promise<void> {
     let attempt = 0;
     let lastError: Error | null = null;
-    
+
     while (attempt < WebhookService.MAX_RETRY_ATTEMPTS) {
       try {
-        // Create delivery record
         const [delivery] = await db
           .insert(schema.webhookDeliveries)
           .values({
@@ -225,38 +213,33 @@ export class WebhookService extends BaseService implements IWebhookService {
             createdAt: new Date()
           })
           .returning();
-        
-        // Generate signature
-        const signature = this.generateSignature(JSON.stringify(data), webhook.secret);
-        
-        // Make HTTP request
+
+        const signature = this.generateSignature(JSON.stringify(data), webhook.secret as string);
+
         const response = await axios.post(webhook.url, data, {
           headers: {
             'Content-Type': 'application/json',
             'X-Webhook-Signature': signature,
-            'X-Webhook-Event': event.eventType,
+            'X-Webhook-Event': event.event,
             'User-Agent': 'ChainSync-Webhook/1.0'
           },
           timeout: 30000
         });
-        
-        // Update delivery as successful
+
         await db
           .update(schema.webhookDeliveries)
           .set({
             status: 'delivered',
-            responseCode: response.status,
-            responseBody: JSON.stringify(response.data),
-            deliveredAt: new Date()
+            response: JSON.stringify(response.data),
+            updatedAt: new Date()
           })
           .where(eq(schema.webhookDeliveries.id, delivery.id));
-        
-        return; // Success, exit retry loop
+
+        return;
       } catch (error) {
         lastError = error as Error;
         attempt++;
-        
-        // Update delivery as failed
+
         const deliveryRecord = await db.query.webhookDeliveries.findFirst({
           where: and(
             eq(schema.webhookDeliveries.webhookId, webhook.id),
@@ -264,58 +247,53 @@ export class WebhookService extends BaseService implements IWebhookService {
             eq(schema.webhookDeliveries.attempt, attempt)
           )
         });
-        
+
         if (deliveryRecord) {
           await db
             .update(schema.webhookDeliveries)
             .set({
               status: attempt >= WebhookService.MAX_RETRY_ATTEMPTS ? 'failed' : 'retrying',
-              errorMessage: lastError?.message ?? null,
-              responseCode: axios.isAxiosError(error) ? error.response?.status : null
+              response: lastError?.message ?? null,
             })
             .where(eq(schema.webhookDeliveries.id, deliveryRecord.id));
         }
-        
-        // Wait before retry
+
         if (attempt < WebhookService.MAX_RETRY_ATTEMPTS) {
           await new Promise(resolve => setTimeout(resolve, WebhookService.RETRY_DELAY_MS * attempt));
         }
       }
     }
-    
+
     console.error(`Webhook delivery failed after ${WebhookService.MAX_RETRY_ATTEMPTS} attempts:`, lastError);
   }
-  
+
   private generateSignature(payload: string, secret: string): string {
     return crypto
       .createHmac('sha256', secret)
       .update(payload)
       .digest('hex');
   }
-  
+
   async getWebhookDeliveries(webhookId: number, limit = 50): Promise<WebhookDelivery[]> {
     try {
       const deliveries = await db.query.webhookDeliveries.findMany({
         where: eq(schema.webhookDeliveries.webhookId, webhookId),
         orderBy: [desc(schema.webhookDeliveries.createdAt)],
         limit,
-        with: {
-          event: true
-        }
       });
-      
-      return deliveries;
+
+      return deliveries as unknown as WebhookDelivery[];
     } catch (error) {
-      return this.handleError(error as Error, 'Getting webhook deliveries');
+      throw this.handleError(error as Error, 'Getting webhook deliveries');
     }
   }
-  
+
   async retryWebhookDelivery(deliveryId: number): Promise<boolean> {
     try {
       const delivery = await db.query.webhookDeliveries.findFirst({
         where: eq(schema.webhookDeliveries.id, deliveryId),
       });
-      
+
       if (!delivery) {
         throw new AppError(
           'Delivery not found',
@@ -323,8 +301,7 @@ export class WebhookService extends BaseService implements IWebhookService {
           ErrorCategory.VALIDATION
         );
       }
-      
-      // Fetch related webhook and event records
+
       const webhook = await db.query.webhooks.findFirst({
         where: eq(schema.webhooks.id, delivery.webhookId)
       });
@@ -340,15 +317,13 @@ export class WebhookService extends BaseService implements IWebhookService {
         );
       }
 
-      // Parse event data
-      const eventData = typeof event.data === 'string' ? JSON.parse(event.data as unknown as string) : event.data;
+      const eventData = event.payload ? JSON.parse(event.payload as string) : {};
 
-      // Retry delivery
       await this.deliverWebhook(webhook as WebhookConfig, event as WebhookEvent, eventData);
-      
+
       return true;
     } catch (error) {
-      return this.handleError(error as Error, 'Retrying webhook delivery');
+      throw this.handleError(error as Error, 'Retrying webhook delivery');
     }
   }
 }

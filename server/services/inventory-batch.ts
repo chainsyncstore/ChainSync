@@ -42,8 +42,8 @@ export async function addBatch(batchData: BatchData) {
       [inventory] = await db.insert(schema.inventory).values({
         storeId: batchData.storeId,
         productId: batchData.productId,
-        totalQuantity: 0,
-        minimumLevel: 5,
+        quantity: 0,
+        minStock: 5,
       }).returning();
     }
 
@@ -208,7 +208,7 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
   try {
     const batches = await getBatches(storeId, productId, false);
     
-    const sortedBatches = batches.sort((a, b) => {
+    const sortedBatches = batches.sort((a: any, b: any) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
       if (!b.expiryDate) return -1;
@@ -249,5 +249,5 @@ async function updateInventoryTotalQuantity(inventoryId: number) {
 
   const totalQuantity = Number(result[0].total) || 0;
 
-  await db.update(schema.inventory).set({ totalQuantity }).where(eq(schema.inventory.id, inventoryId));
+  await db.update(schema.inventory).set({ quantity: totalQuantity }).where(eq(schema.inventory.id, inventoryId));
 }

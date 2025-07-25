@@ -6,19 +6,28 @@
 
 import * as schema from '@shared/schema';
 
-export type Inventory = schema.Inventory & { batchTracking?: boolean; metadata?: Record<string, unknown> };
+export type Inventory = schema.SelectInventory & {
+  name?: string;
+  description?: string;
+  location?: string;
+  capacity?: number;
+  isActive?: boolean;
+  batchTracking?: boolean; 
+  metadata?: Record<string, unknown> 
+};
 
 
 export interface InventoryItem {
   id: number;
   inventoryId: number;
   productId: number;
+  sku?: string;
   name: string;
   description?: string;
   category?: string;
   quantity: number;
   unit: string;
-  unitCost: string;
+  unitCost?: string;
   reorderLevel?: number;
   reorderQuantity?: number;
   batchNumber?: string;
@@ -89,10 +98,13 @@ export type InventoryTransaction = {
   itemId?: number;
   productId: number;
   quantity: number;
-  unitCost?: string;
+  beforeQuantity: number;
+  afterQuantity: number;
+  unitCost: string;
+  totalCost: string;
   referenceId?: string;
   transactionType: InventoryTransactionType;
-  reason: string;
+  reason?: string;
   performedBy: number;
   metadata?: Record<string, unknown>;
   notes?: string;

@@ -246,7 +246,7 @@ export class PaymentService extends BaseService {
       }
 
       throw new AppError('payment', 'NO_PAYMENT_PROVIDER', 'No payment provider available for initialization', { provider });
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Payment initialization error:', error);
       throw error instanceof AppError ? error : new AppError('payment', 'PAYMENT_ERROR', 'An error occurred during payment initialization', { error: error.message });
     }
@@ -310,7 +310,7 @@ export class PaymentService extends BaseService {
       try {
         const result = await this.verifyPayment(reference);
         return result;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
         await new Promise(resolve => setTimeout(resolve, retryDelays[i]));
       }

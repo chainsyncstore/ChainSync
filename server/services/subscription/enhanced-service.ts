@@ -21,14 +21,14 @@ import {
   SubscriptionPlan,
   PaymentProvider,
   ProcessWebhookParams,
-  Subscription,
   ISubscriptionService,
   SubscriptionServiceErrors,
 } from './types';
 
 import { db } from '@server/db';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import * as schema from '@shared/schema';
+import { SelectSubscription } from '@shared/schema';
 
 export class EnhancedSubscriptionService
   extends EnhancedBaseService
@@ -42,37 +42,35 @@ export class EnhancedSubscriptionService
 
   async createSubscription(
     params: CreateSubscriptionParams,
-  ): Promise<Subscription> {
+  ): Promise<SelectSubscription> {
     try {
-      // Validate & transform
-      const validated = subscriptionValidation.insert(params);
+      const validated = subscriptionValidation.insert.parse(params);
       const data = prepareSubscriptionData(validated);
 
-      const subscription = await this.rawInsertWithFormatting(
-        'subscriptions',
-        data,
-        this.formatter.formatResult.bind(this.formatter),
-      );
+      const [subscription] = await db
+        .insert(schema.subscriptions)
+        .values(data as any)
+        .returning();
 
       return this.ensureExists(subscription, 'Subscription');
     } catch (err) {
       if (err instanceof SchemaValidationError) {
         console.error(`Validation error: ${err.message}`, err.toJSON());
       }
-      return this.handleError(err, 'creating subscription');
+      throw this.handleError(err as Error, 'creating subscription');
     }
   }
 
   async updateSubscription(
     subscriptionId: number,
     params: UpdateSubscriptionParams,
-  ): Promise<Subscription> {
+  ): Promise<SelectSubscription> {
     try {
       const existing = await this.getSubscriptionById(subscriptionId);
       if (!existing) throw SubscriptionServiceErrors.SUBSCRIPTION_NOT_FOUND;
 
       if (params.status && params.status !== existing.status) {
-        this.validateStatusTransition(existing.status, params.status);
+        this.validateStatusTransition(existing.status as SubscriptionStatus, params.status);
       }
 
       const updateData = {
@@ -83,19 +81,18 @@ export class EnhancedSubscriptionService
         updatedAt: new Date(),
       };
 
-      const validated = subscriptionValidation.update(updateData);
+      const validated = subscriptionValidation.update.parse(updateData);
       const prepared = prepareSubscriptionData(validated);
 
-      const updated = await this.rawUpdateWithFormatting(
-        'subscriptions',
-        prepared,
-        `id = ${subscriptionId}`,
-        this.formatter.formatResult.bind(this.formatter),
-      );
+      const [updated] = await db
+        .update(schema.subscriptions)
+        .set(prepared as any)
+        .where(eq(schema.subscriptions.id, subscriptionId))
+        .returning();
 
       return this.ensureExists(updated, 'Subscription');
     } catch (err) {
-      return this.handleError(err, 'updating subscription');
+      throw this.handleError(err as Error, 'updating subscription');
     }
   }
 
@@ -103,57 +100,48 @@ export class EnhancedSubscriptionService
   /*                               READ METHODS                                 */
   /* -------------------------------------------------------------------------- */
 
-  async getSubscriptionById(id: number): Promise<Subscription | null> {
+  async getSubscriptionById(id: number): Promise<SelectSubscription | null> {
     try {
-      return await this.executeSqlWithFormatting(
-        `SELECT * FROM subscriptions WHERE id = ${id}`,
-        [],
-        this.formatter.formatResult.bind(this.formatter),
-      );
+      const subscription = await db.query.subscriptions.findFirst({
+        where: eq(schema.subscriptions.id, id),
+      });
+      return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
-      return this.handleError(err, 'getting subscription by ID');
+      throw this.handleError(err as Error, 'getting subscription by ID');
     }
   }
 
-  async getSubscriptionByUser(userId: number): Promise<Subscription | null> {
+  async getSubscriptionByUser(userId: number): Promise<SelectSubscription | null> {
     try {
-      return await this.executeSqlWithFormatting(
-        `
-        SELECT * FROM subscriptions
-        WHERE user_id = ${userId}
-        ORDER BY created_at DESC
-        LIMIT 1
-      `,
-        [],
-        this.formatter.formatResult.bind(this.formatter),
-      );
+      const subscription = await db.query.subscriptions.findFirst({
+        where: eq(schema.subscriptions.userId, userId),
+        orderBy: desc(schema.subscriptions.createdAt),
+      });
+      return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
-      return this.handleError(err, 'getting subscription by user');
+      throw this.handleError(err as Error, 'getting subscription by user');
     }
   }
 
-  async getActiveSubscription(userId: number): Promise<Subscription | null> {
+  async getActiveSubscription(userId: number): Promise<SelectSubscription | null> {
     try {
-      return await this.executeSqlWithFormatting(
-        `
-        SELECT * FROM subscriptions
-        WHERE user_id = ${userId}
-          AND status = '${SubscriptionStatus.ACTIVE}'
-        ORDER BY created_at DESC
-        LIMIT 1
-      `,
-        [],
-        this.formatter.formatResult.bind(this.formatter),
-      );
+      const subscription = await db.query.subscriptions.findFirst({
+        where: and(
+          eq(schema.subscriptions.userId, userId),
+          eq(schema.subscriptions.status, 'active'),
+        ),
+        orderBy: desc(schema.subscriptions.createdAt),
+      });
+      return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
-      return this.handleError(err, 'getting active subscription');
+      throw this.handleError(err as Error, 'getting active subscription');
     }
   }
 
   async searchSubscriptions(
     params: SubscriptionSearchParams,
   ): Promise<{
-    subscriptions: Subscription[];
+    subscriptions: SelectSubscription[];
     total: number;
     page: number;
     limit: number;
@@ -167,21 +155,21 @@ export class EnhancedSubscriptionService
       if (params.userId)
         filters.push(eq(schema.subscriptions.userId, params.userId));
       if (params.plan)
-        filters.push(eq(schema.subscriptions.plan, params.plan));
+        filters.push(eq(schema.subscriptions.planId, params.plan));
       if (params.status)
-        filters.push(eq(schema.subscriptions.status, params.status));
+        filters.push(eq(schema.subscriptions.status, params.status as 'active' | 'cancelled' | 'expired'));
       if (params.startDate)
-        filters.push(gte(schema.subscriptions.startDate, params.startDate));
+        filters.push(gte(schema.subscriptions.currentPeriodStart, params.startDate));
       if (params.endDate)
-        filters.push(lte(schema.subscriptions.endDate, params.endDate));
+        filters.push(lte(schema.subscriptions.currentPeriodEnd, params.endDate));
       if (params.provider)
-        filters.push(eq(schema.subscriptions.paymentProvider, params.provider));
+        filters.push(eq(schema.subscriptions.paymentMethod, params.provider));
 
       const whereClause = filters.length ? and(...filters) : undefined;
 
-      const [countRow] = await db
+      const countResult = await db
         .select({
-          count: db.fn.count().mapWith(Number),
+          count: sql<number>`count(*)`.mapWith(Number),
         })
         .from(schema.subscriptions)
         .where(whereClause);
@@ -195,12 +183,12 @@ export class EnhancedSubscriptionService
 
       return {
         subscriptions: records.map((r) => this.formatter.formatResult(r)),
-        total: countRow?.count ?? 0,
+        total: countResult[0]?.count ?? 0,
         page,
         limit,
       };
     } catch (err) {
-      return this.handleError(err, 'searching subscriptions');
+      throw this.handleError(err as Error, 'searching subscriptions');
     }
   }
 
@@ -211,12 +199,12 @@ export class EnhancedSubscriptionService
   async cancelSubscription(
     subscriptionId: number,
     reason?: string,
-  ): Promise<Subscription> {
+  ): Promise<SelectSubscription> {
     try {
       const sub = await this.getSubscriptionById(subscriptionId);
       if (!sub) throw SubscriptionServiceErrors.SUBSCRIPTION_NOT_FOUND;
 
-      this.validateStatusTransition(sub.status, SubscriptionStatus.CANCELLED);
+      this.validateStatusTransition(sub.status as SubscriptionStatus, SubscriptionStatus.CANCELLED);
 
       const updated = await this.updateSubscription(subscriptionId, {
         status: SubscriptionStatus.CANCELLED,
@@ -225,16 +213,16 @@ export class EnhancedSubscriptionService
       // TODO: persist `reason` to an audit table if required.
       return updated;
     } catch (err) {
-      return this.handleError(err, 'cancelling subscription');
+      throw this.handleError(err as Error, 'cancelling subscription');
     }
   }
 
-  async renewSubscription(id: number): Promise<Subscription> {
+  async renewSubscription(id: number): Promise<SelectSubscription> {
     try {
       const sub = await this.getSubscriptionById(id);
       if (!sub) throw SubscriptionServiceErrors.SUBSCRIPTION_NOT_FOUND;
 
-      const newEnd = new Date(sub.endDate);
+      const newEnd = new Date(sub.endDate as Date);
       newEnd.setMonth(newEnd.getMonth() + 1);
 
       return await this.updateSubscription(id, {
@@ -242,7 +230,7 @@ export class EnhancedSubscriptionService
         status: SubscriptionStatus.ACTIVE,
       });
     } catch (err) {
-      return this.handleError(err, 'renewing subscription');
+      throw this.handleError(err as Error, 'renewing subscription');
     }
   }
 
@@ -262,7 +250,7 @@ export class EnhancedSubscriptionService
     const sub = await this.getActiveSubscription(userId);
     if (!sub) return false;
     if (!requiredPlan) return true;
-    return sub.plan === requiredPlan;
+    return sub.planId === requiredPlan;
   }
 
   /* -------------------------------------------------------------------------- */
@@ -280,24 +268,24 @@ export class EnhancedSubscriptionService
     // These could be optimized into a single SQL query; kept simple for clarity.
     const [totals] = await db
       .select({
-        total: db.fn.count().mapWith(Number),
+        total: sql<number>`count(*)`.mapWith(Number),
       })
       .from(schema.subscriptions);
 
     const [active] = await db
       .select({
-        total: db.fn.count().mapWith(Number),
+        total: sql<number>`count(*)`.mapWith(Number),
       })
       .from(schema.subscriptions)
-      .where(eq(schema.subscriptions.status, SubscriptionStatus.ACTIVE));
+      .where(eq(schema.subscriptions.status, 'active'));
 
     const plans = await db
       .select({
-        plan: schema.subscriptions.plan,
-        total: db.fn.count().mapWith(Number),
+        plan: schema.subscriptions.planId,
+        total: sql<number>`count(*)`.mapWith(Number),
       })
       .from(schema.subscriptions)
-      .groupBy(schema.subscriptions.plan);
+      .groupBy(schema.subscriptions.planId);
 
     // Placeholder revenue & churn; implement as required.
     return {

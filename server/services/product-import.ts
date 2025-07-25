@@ -291,7 +291,6 @@ export async function importProducts(
               await db.update(schema.inventory)
                 .set({
                   quantity: product.stock,
-                  expiryDate: product.expiryDate || inventory.expiryDate,
                   updatedAt: new Date(),
                 })
                 .where(eq(schema.inventory.id, inventory.id));
@@ -302,7 +301,6 @@ export async function importProducts(
                   productId: existingProduct.id,
                   storeId,
                   quantity: product.stock,
-                  expiryDate: product.expiryDate,
                 });
             }
           } else {
@@ -311,6 +309,7 @@ export async function importProducts(
               .values({
                 name: product.name,
                 sku: product.sku,
+                storeId,
                 categoryId: product.categoryId,
                 price: product.price,
                 description: product.description,
@@ -326,7 +325,6 @@ export async function importProducts(
                   productId: insertedProduct.id,
                   storeId,
                   quantity: product.stock,
-                  expiryDate: product.expiryDate,
                 });
             }
           }

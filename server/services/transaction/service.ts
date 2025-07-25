@@ -20,10 +20,11 @@ import {
   TransactionItem,
   TransactionPayment,
   UpdateTransactionItemParams,
-  UpdateTransactionPaymentParams
+  UpdateTransactionPaymentParams,
+  SelectTransaction
 } from './types';
 import { ITransactionService } from './interface';
-import { db } from '@db';
+import { db } from '../../db';
 import * as schema from '@shared/schema';
 import { eq, and, or, like, gte, lte, desc, asc, sql, between, inArray } from 'drizzle-orm';
 import { transactionValidation, SchemaValidationError } from '@shared/schema-validation';
@@ -75,7 +76,7 @@ export class TransactionService extends BaseService implements ITransactionServi
   /**
    * Create a new transaction with validated data
    */
-  async createTransaction(params: CreateTransactionParams): Promise<schema.Transaction> {
+  async createTransaction(params: CreateTransactionParams): Promise<SelectTransaction> {
     try {
       // Verify store exists
       const store = await db.query.stores.findFirst({
@@ -97,8 +98,8 @@ export class TransactionService extends BaseService implements ITransactionServi
       
       // Verify customer exists if provided
       if (params.customerId) {
-        const customer = await db.query.customers.findFirst({
-          where: eq(schema.customers.id, params.customerId)
+        const customer = await db.query.users.findFirst({
+          where: eq(schema.users.id, params.customerId)
         });
         
         if (!customer) {
@@ -121,16 +122,16 @@ export class TransactionService extends BaseService implements ITransactionServi
       }
       
       // Create product lookup map for faster access
-      const productMap = new Map<number, schema.Product>();
+      const productMap = new Map<number, schema.SelectProduct & { inventory: schema.SelectInventory | null }>();
       products.forEach(product => productMap.set(product.id, product));
       
       // Validate stock availability if this is a sale
       if (params.type === TransactionType.SALE) {
         for (const item of params.items) {
           const product = productMap.get(item.productId);
-          const inventory = (product as any)?.inventory?.[0];
+          const inventory = (product as any)?.inventory;
           
-          if (!inventory || inventory.availableQuantity < item.quantity) {
+          if (!inventory || inventory.quantity < item.quantity) {
             throw TransactionServiceErrors.INSUFFICIENT_STOCK;
           }
         }
@@ -143,33 +144,12 @@ export class TransactionService extends BaseService implements ITransactionServi
       
       // Start a transaction to ensure data integrity
       return await db.transaction(async (tx) => {
-        // Prepare transaction data with camelCase field names
-        const transactionData = {
-          storeId: params.storeId,
-          customerId: params.customerId,
-          userId: params.userId,
-          type: params.type,
-          subtotal: params.subtotal,
-          tax: params.tax,
-          discount: params.discount || '0.00',
-          total: params.total,
-          paymentMethod: params.paymentMethod,
-          status: TransactionStatus.COMPLETED,
-          notes: params.notes || '',
-          reference: params.reference,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
+        const validatedTransactionData = transactionValidation.insert.parse(params) as typeof schema.transactions.$inferInsert;
         
-        // Validate transaction data
-        const validatedTransactionData = transactionValidation.insert(transactionData);
-        
-        // Insert transaction
         const [transaction] = await tx.insert(schema.transactions)
           .values(validatedTransactionData)
           .returning();
         
-        // Insert transaction items
         for (const item of params.items) {
           const product = productMap.get(item.productId);
           
@@ -186,14 +166,11 @@ export class TransactionService extends BaseService implements ITransactionServi
             updatedAt: new Date()
           };
           
-          // Validate item data
-          const validatedItemData = transactionValidation.item.insert(itemData);
+          const validatedItemData = transactionValidation.item.insert.parse(itemData);
           
-          // Insert item
           await tx.insert(schema.transactionItems)
             .values(validatedItemData);
           
-          // Update inventory if this is a sale
           if (params.type === TransactionType.SALE) {
             await this.inventoryService.adjustInventory({
               productId: item.productId,
@@ -201,7 +178,7 @@ export class TransactionService extends BaseService implements ITransactionServi
               reason: `Sale - Transaction #${transaction.id}`,
               transactionType: InventoryTransactionType.SALE,
               userId: params.userId,
-              referenceId: (transaction as any).referenceId || undefined
+              referenceId: transaction.id.toString()
             });
           }
         }
@@ -229,12 +206,10 @@ export class TransactionService extends BaseService implements ITransactionServi
               updatedAt: new Date()
             };
             
-            // Validate payment data
-            const validatedPaymentData = transactionValidation.payment.insert(paymentData);
+            const validatedPaymentData = transactionValidation.payment.insert.parse(paymentData);
             
-            // Insert payment
             await tx.insert(schema.transactionPayments)
-              .values(validatedPaymentData);
+              .values(validatedPaymentData as any);
           }
         }
         
@@ -335,10 +310,9 @@ export class TransactionService extends BaseService implements ITransactionServi
   /**
    * Update a transaction with validated data
    */
-  async updateTransaction(id: string, params: UpdateTransactionParams): Promise<schema.Transaction> {
+  async updateTransaction(id: string, params: UpdateTransactionParams): Promise<SelectTransaction> {
     try {
       const transactionId = parseInt(id, 10);
-      // Verify transaction exists
       const transaction = await db.query.transactions.findFirst({
         where: eq(schema.transactions.id, transactionId)
       });
@@ -358,8 +332,8 @@ export class TransactionService extends BaseService implements ITransactionServi
       
       // Verify customer exists if provided
       if (params.customerId) {
-        const customer = await db.query.customers.findFirst({
-          where: eq(schema.customers.id, params.customerId)
+        const customer = await db.query.users.findFirst({
+          where: eq(schema.users.id, params.customerId)
         });
         
         if (!customer) {
@@ -380,7 +354,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       };
       
       // Validate transaction data
-      const validatedTransactionData = transactionValidation.update(transactionData);
+      const validatedTransactionData = transactionValidation.update.parse(params) as Partial<typeof schema.transactions.$inferInsert>;
       
       // Update transaction
       const [updatedTransaction] = await db.update(schema.transactions)
@@ -397,7 +371,7 @@ export class TransactionService extends BaseService implements ITransactionServi
   /**
    * Process a refund for a transaction
    */
-  async processRefund(params: RefundParams): Promise<schema.Return> {
+  async processRefund(params: RefundParams): Promise<schema.SelectReturn> {
     try {
       // Verify transaction exists
       const transaction = await db.query.transactions.findFirst({
@@ -419,8 +393,8 @@ export class TransactionService extends BaseService implements ITransactionServi
       
       // Verify customer exists if provided
       if (params.customerId) {
-        const customer = await db.query.customers.findFirst({
-          where: eq(schema.customers.id, params.customerId)
+        const customer = await db.query.users.findFirst({
+          where: eq(schema.users.id, params.customerId)
         });
         
         if (!customer) {
@@ -447,7 +421,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         };
         
         // Validate refund data
-        const validatedRefundData = transactionValidation.refund.insert(refundData);
+        const validatedRefundData = transactionValidation.refund.insert.parse(params);
         
         // Insert refund
         const [refund] = await tx.insert(schema.returns)
@@ -475,14 +449,14 @@ export class TransactionService extends BaseService implements ITransactionServi
             reason: `Refund - Return #${refund.id}`,
             
             userId: params.userId,
-            reference: refund.refundId
+            reference: refund.id
           };
           
           // Update inventory
           await this.inventoryService.adjustInventory({
             ...refundItemData,
             transactionType: InventoryTransactionType.RETURN,
-            referenceId: (refund as any).referenceId || undefined
+            referenceId: (refund as any).id || undefined
           });
         }
         
@@ -548,10 +522,10 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Get sales totals
       const [salesResult] = await db
         .select({
-          totalSales: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status} = '${TransactionType.SALE}' THEN ${schema.transactions.totalAmount} ELSE 0 END), 0)`,
-          totalReturns: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status} = '${TransactionType.RETURN}' THEN ${schema.transactions.totalAmount} ELSE 0 END), 0)`,
-          saleCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionType.SALE}' THEN ${schema.transactions.id} END)`,
-          returnCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionType.RETURN}' THEN ${schema.transactions.id} END)`
+          totalSales: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.COMPLETED}' THEN ${schema.transactions.total} ELSE 0 END), 0)`,
+          totalReturns: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.REFUNDED}' THEN ${schema.transactions.total} ELSE 0 END), 0)`,
+          saleCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.COMPLETED}' THEN ${schema.transactions.id} END)`,
+          returnCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.REFUNDED}' THEN ${schema.transactions.id} END)`
         })
         .from(schema.transactions)
         .where(dateFilter);
@@ -571,7 +545,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       const salesByPaymentMethod = await db
         .select({
           method: schema.transactions.paymentMethod,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.totalAmount}::numeric), 0)`,
+          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
           count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
@@ -585,7 +559,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       const salesByHourOfDay = await db
         .select({
           hour: sql<number>`EXTRACT(HOUR FROM ${schema.transactions.createdAt})`,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.totalAmount}::numeric), 0)`,
+          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
           count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
@@ -600,7 +574,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       const salesByDayOfWeek = await db
         .select({
           day: sql<number>`EXTRACT(DOW FROM ${schema.transactions.createdAt})`,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.totalAmount}::numeric), 0)`,
+          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
           count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
@@ -633,13 +607,13 @@ export class TransactionService extends BaseService implements ITransactionServi
   // ---------------------------------------------------------------------
   // Additional interface methods
   // ---------------------------------------------------------------------
-  async getTransactionById(id: string): Promise<schema.Transaction | null> {
+  async getTransactionById(id: string): Promise<SelectTransaction | null> {
     const transactionId = parseInt(id, 10);
     const transaction = await db.query.transactions.findFirst({ where: eq(schema.transactions.id, transactionId) });
     return transaction ?? null;
   }
 
-  async getTransactionsByStore(storeId: number, page = 1, limit = 20): Promise<{ transactions: schema.Transaction[]; total: number; page: number; limit: number }> {
+  async getTransactionsByStore(storeId: number, page = 1, limit = 20): Promise<{ transactions: SelectTransaction[]; total: number; page: number; limit: number }> {
     const offset = (page - 1) * limit;
     const transactions = await db.query.transactions.findMany({
       where: eq(schema.transactions.storeId, storeId),
@@ -651,7 +625,7 @@ export class TransactionService extends BaseService implements ITransactionServi
     return { transactions, total: Number(count || 0), page, limit };
   }
 
-  async getTransactionsByCustomer(customerId: number, page = 1, limit = 20): Promise<{ transactions: schema.Transaction[]; total: number; page: number; limit: number }> {
+  async getTransactionsByCustomer(customerId: number, page = 1, limit = 20): Promise<{ transactions: SelectTransaction[]; total: number; page: number; limit: number }> {
     const offset = (page - 1) * limit;
     const transactions = await db.query.transactions.findMany({
       where: eq(schema.transactions.customerId, customerId),
@@ -663,14 +637,14 @@ export class TransactionService extends BaseService implements ITransactionServi
     return { transactions, total: Number(count || 0), page, limit };
   }
 
-  async searchTransactions(params: TransactionSearchParams): Promise<{ transactions: schema.Transaction[]; total: number; page: number; limit: number }> {
+  async searchTransactions(params: TransactionSearchParams): Promise<{ transactions: SelectTransaction[]; total: number; page: number; limit: number }> {
     const { storeId, keyword, page = 1, limit = 20 } = params;
     const offset = (page - 1) * limit;
 
-    const wheres = [eq(schema.transactions.storeId, storeId)];
+    const wheres: (ReturnType<typeof eq> | ReturnType<typeof or>)[] = [eq(schema.transactions.storeId, storeId)];
     if (keyword) {
       const kw = `%${keyword}%`;
-      wheres.push(or(like(schema.transactions.referenceId, kw), like(schema.transactions.notes, kw)) as any);
+      wheres.push(or(like(sql`cast(${schema.transactions.id} as text)`, kw)));
     }
 
     const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(and(...wheres));

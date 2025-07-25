@@ -208,7 +208,7 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
     serveStatic(app);
   } else {
-    await setupVite(app, httpServer);
+    await setupVite(app, httpServer.server);
     // In development mode, show ngrok instructions for webhook testing
     logNgrokInstructions();
   }
@@ -219,7 +219,7 @@ app.use((req, res, next) => {
   const port = process.env.PORT || 5000;
   const host = '0.0.0.0';
 
-  httpServer.listen(Number(port), host, () => {
+  httpServer.server.listen(Number(port), host, () => {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
     log(`Listening on ${protocol}://${host}:${port}`);

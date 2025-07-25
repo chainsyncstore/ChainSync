@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { ImportExportErrorCode } from '../../../shared/types/import-export-errors';
 
 // Base schema for all import/export data
 export const baseSchema = z.object({
