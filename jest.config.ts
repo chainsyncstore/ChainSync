@@ -27,6 +27,7 @@ const config: Config = {
     '^(?:\\.\\./)*factories/(.*)\\.js$': '<rootDir>/tests/factories/$1.ts',
     '^(?:\\.\\./)*factories/(.*)$': '<rootDir>/tests/factories/$1',
     '^factories/(.*)$': '<rootDir>/tests/factories/$1',
+    '^@server/services/loyalty\\.js$': '<rootDir>/server/services/loyalty.ts',
     '^@server/services/(.*)\\.js$': '<rootDir>/server/services/$1.ts',
     '^@server/(.*)\\.js$': '<rootDir>/server/$1.ts',
     '^@shared/(.*)\\.js$': '<rootDir>/shared/$1.ts',
