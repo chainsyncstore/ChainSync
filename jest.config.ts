@@ -30,7 +30,6 @@ const config: Config = {
     '^@server/services/(.*)\\.js$': '<rootDir>/server/services/$1.ts',
     '^@server/(.*)\\.js$': '<rootDir>/server/$1.ts',
     '^@shared/(.*)\\.js$': '<rootDir>/shared/$1.ts',
-    '^\\./([A-Za-z0-9_-]+)\\.js$': '<rootDir>/shared/db/$1.ts',
     '^@db/(.*)\\.js$': '<rootDir>/db/$1.ts',
     '^\\.\\/middleware\\/security\\.js$': '<rootDir>/tests/__mocks__/security-middleware.js',
   },
