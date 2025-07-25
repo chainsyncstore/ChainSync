@@ -4,8 +4,8 @@ import { jest } from '@jest/globals';
 
 // Define the shape of the payment provider
 export interface MockPaymentProvider {
-  charge: jest.Mock<Promise<{ success: boolean; transactionId: string }>, [amount: number, cardToken: string]>;
-  refund: jest.Mock<Promise<{ success: boolean; refundId: string }>, [transactionId: string, amount?: number]>;
+  charge: jest.Mock;
+  refund: jest.Mock;
 }
 
 // Factory to create a new mock payment provider, allowing overrides

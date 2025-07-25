@@ -7,10 +7,9 @@ import { z } from 'zod';
 import { getLogger } from '../../src/logging';
 import { db } from '../../db';
 import * as schema from '@shared/schema';
+import { eq, gte, lte, desc, count, and, SQL } from 'drizzle-orm';
 import { queueTransactionForLoyalty } from '../../src/queue/processors/loyalty';
-import { cacheable } from '../../src/cache/redis';
 
-// Get logger for transactions routes
 const logger = getLogger().child({ component: 'transactions-api' });
 
 // Create router
@@ -118,62 +117,48 @@ router.use(sensitiveOpRateLimiter);
  */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { customerId, storeId, type, status, from, to } = req.query;
-    const page = parseInt(req.query.page as string || '1', 10);
-    const limit = parseInt(req.query.limit as string || '20', 10);
+    const { customerId, storeId, status, from, to } = req.query;
+    const page = parseInt(req.query.page as string ?? '1', 10);
+    const limit = parseInt(req.query.limit as string ?? '20', 10);
     const offset = (page - 1) * limit;
 
-    // Build query based on filters
-    let query = db.select().from(schema.transactions);
+    // Map query status to schema status enum
+    const mappedStatus = status === 'failed' || status === 'canceled' ? 'cancelled' : status;
 
-    if (customerId) {
-      query = query.where(eq(schema.transactions.customerId, customerId as string));
-    }
+    const conditions: (SQL<unknown> | undefined)[] = [
+      customerId ? eq(schema.transactions.customerId, parseInt(customerId as string, 10)) : undefined,
+      storeId ? eq(schema.transactions.storeId, parseInt(storeId as string, 10)) : undefined,
+      mappedStatus ? eq(schema.transactions.status, mappedStatus as 'pending' | 'completed' | 'cancelled') : undefined,
+      from ? gte(schema.transactions.createdAt, new Date(from as string)) : undefined,
+      to ? lte(schema.transactions.createdAt, new Date(to as string)) : undefined,
+    ].filter((c): c is SQL<unknown> => !!c);
 
-    if (storeId) {
-      query = query.where(eq(schema.transactions.storeId, storeId as string));
-    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    if (type) {
-      query = query.where(eq(schema.transactions.type, type as string));
-    }
+    const totalQuery = db.select({ count: count() }).from(schema.transactions).where(whereClause);
+    const [{ count: total }] = await totalQuery;
 
-    if (status) {
-      query = query.where(eq(schema.transactions.status, status as string));
-    }
-
-    if (from) {
-      query = query.where(gte(schema.transactions.createdAt, new Date(from as string)));
-    }
-
-    if (to) {
-      query = query.where(lte(schema.transactions.createdAt, new Date(to as string)));
-    }
-
-    // Get total count for pagination
-    const countQuery = db.select({ count: count() }).from(schema.transactions);
-    const [{ count: total }] = await countQuery;
-
-    // Get paginated results
-    const transactions = await query
+    const transactionsQuery = db.select().from(schema.transactions).where(whereClause)
       .limit(limit)
       .offset(offset)
       .orderBy(desc(schema.transactions.createdAt));
 
-    // Return transactions with pagination info
+    const transactions = await transactionsQuery;
+
     res.json({
       transactions,
       pagination: {
         total,
         pages: Math.ceil(total / limit),
         page,
-        limit
-      }
+        limit,
+      },
     });
   } catch (error) {
-    logger.error('Error getting transactions', error instanceof Error ? error : new Error(String(error)), {
+    logger.error('Error getting transactions', {
+      error: error instanceof Error ? error.message : String(error),
       userId: req.session.userId,
-      query: req.query
+      query: req.query,
     });
     next(error);
   }
@@ -229,7 +214,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     // Get transaction with customer info
     const transaction = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.id, id),
+      where: eq(schema.transactions.id, parseInt(id, 10)),
       with: {
         customer: true,
         store: true
@@ -243,20 +228,19 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    // Get loyalty updates related to this transaction
-    const loyaltyUpdates = await db.select()
-      .from(schema.loyaltyUpdates)
-      .where(eq(schema.loyaltyUpdates.transactionId, id));
+    const loyaltyTransactions = await db.query.loyaltyTransactions.findMany({
+      where: eq(schema.loyaltyTransactions.transactionId, parseInt(id, 10)),
+    });
 
-    // Return transaction with related data
     res.json({
       ...transaction,
-      loyaltyUpdates
+      loyaltyTransactions,
     });
   } catch (error) {
-    logger.error('Error getting transaction', error instanceof Error ? error : new Error(String(error)), {
+    logger.error('Error getting transaction', {
+      error: error instanceof Error ? error.message : String(error),
       userId: req.session.userId,
-      transactionId: req.params.id
+      transactionId: req.params.id,
     });
     next(error);
   }
@@ -264,7 +248,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
 // Create transaction schema validation
 const createTransactionSchema = z.object({
-  customerId: z.string().uuid(),
+  userId: z.string().uuid(),
   storeId: z.string().uuid(),
   amount: z.number().positive(),
   type: z.enum(['purchase', 'refund', 'adjustment']),
@@ -273,9 +257,9 @@ const createTransactionSchema = z.object({
     name: z.string(),
     quantity: z.number().int().positive(),
     price: z.number().positive(),
-    categoryId: z.string().optional()
+    categoryId: z.string().optional(),
   })).optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 });
 
 /**
@@ -373,69 +357,58 @@ const createTransactionSchema = z.object({
  */
 router.post('/', validateBody(createTransactionSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { customerId, storeId, amount, type, items, notes } = req.body;
+    const { userId, storeId, amount, type, items, notes } = req.body;
 
-    // Create transaction
-    const [transaction] = await db.insert(schema.transactions)
-      .values({
-        customerId,
-        storeId,
-        amount,
-        type,
-        status: 'completed',
-        notes,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
+    const [transaction] = await db.insert(schema.transactions).values({
+      userId: parseInt(userId, 10),
+      storeId: parseInt(storeId, 10),
+      total: amount.toString(), // Use 'total' instead of 'totalAmount'
+      status: 'pending', // Default status to 'pending'
+      paymentMethod: 'card', //TODO: get from request
+      subtotal: amount.toString(), //TODO: calculate from items
+    }).returning();
 
     // Log transaction creation
     logger.info('Transaction created', {
-      transactionId: transaction.id,
-      customerId,
+      transactionId: transaction.id, // Use transaction.id
+      userId,
       storeId,
       amount,
-      type,
-      userId: req.session.userId
+      type
     });
 
-    // Store transaction items if provided
     if (items && items.length > 0) {
-      await db.insert(schema.transactionItems)
-        .values(items.map(item => ({
-          transactionId: transaction.id,
-          itemId: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          categoryId: item.categoryId,
-          createdAt: new Date()
-        })));
+      const transactionItems = items.map((item: any) => ({
+        transactionId: transaction.id, // Use transaction.id
+        productId: parseInt(item.id, 10), // Parse item.id to integer
+        quantity: item.quantity,
+        unitPrice: item.price.toString(),
+      }));
+      await db.insert(schema.transactionItems).values(transactionItems);
     }
 
-    // Queue loyalty processing for purchases
     if (type === 'purchase') {
       await queueTransactionForLoyalty({
-        transactionId: transaction.id,
-        customerId,
-        storeId,
-        amount,
-        transactionDate: transaction.createdAt.toISOString(),
-        items
+        transactionId: String(transaction.id), // Use transaction.id
+        customerId: userId as string,
+        storeId: storeId as string,
+        amount: amount,
+        transactionDate: transaction.createdAt!.toISOString(),
+        items,
       });
       
       logger.info('Loyalty processing queued', {
-        transactionId: transaction.id,
-        customerId
+        transactionId: transaction.id, // Use transaction.id
+        customerId: userId,
       });
     }
 
-    // Return created transaction
     res.status(201).json(transaction);
   } catch (error) {
-    logger.error('Error creating transaction', error instanceof Error ? error : new Error(String(error)), {
+    logger.error('Error creating transaction', {
+      error: error instanceof Error ? error.message : String(error),
       userId: req.session.userId,
-      body: req.body
+      body: req.body,
     });
     next(error);
   }
@@ -444,7 +417,7 @@ router.post('/', validateBody(createTransactionSchema), async (req: Request, res
 // Transaction update schema validation
 const updateTransactionSchema = z.object({
   status: z.enum(['pending', 'completed', 'failed', 'canceled']).optional(),
-  notes: z.string().optional()
+  // notes: z.string().optional() // Remove notes as it's not in the schema
 });
 
 /**
@@ -518,7 +491,7 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
 
     // Check if transaction exists
     const existingTransaction = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.id, id)
+      where: eq(schema.transactions.id, parseInt(id, 10))
     });
 
     if (!existingTransaction) {
@@ -528,30 +501,27 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
       });
     }
 
-    // Update transaction
     const [updatedTransaction] = await db.update(schema.transactions)
       .set({
         status: status ?? existingTransaction.status,
-        notes: notes ?? existingTransaction.notes,
-        updatedAt: new Date()
+        // notes: notes ?? existingTransaction.notes, // Remove notes
       })
-      .where(eq(schema.transactions.id, id))
+      .where(eq(schema.transactions.id, parseInt(id, 10)))
       .returning();
 
-    // Log transaction update
     logger.info('Transaction updated', {
       transactionId: id,
       status,
-      userId: req.session.userId
+      userId: req.session.userId,
     });
 
-    // Return updated transaction
     res.json(updatedTransaction);
   } catch (error) {
-    logger.error('Error updating transaction', error instanceof Error ? error : new Error(String(error)), {
+    logger.error('Error updating transaction', {
+      error: error instanceof Error ? error.message : String(error),
       userId: req.session.userId,
       transactionId: req.params.id,
-      body: req.body
+      body: req.body,
     });
     next(error);
   }

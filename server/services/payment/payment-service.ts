@@ -1,18 +1,17 @@
 import Paystack from 'paystack-node';
 import Flutterwave from 'flutterwave-node-v3';
-import type { Logger } from '../../../src/logging/Logger';
-import { ConsoleLogger } from '../../../src/logging/Logger';
+import { Logger, ConsoleLogger } from '../../../src/logging/Logger';
 import { PaymentProviderConfig, PaymentVerificationResponse, PaymentAnalytics, PaymentWebhookRequest, PaymentStatus, PaymentInitializationResponse, FlutterwavePaymentRequest } from './payment-types';
 
 export class PaymentService {
   private readonly paystack: any;
   private readonly flutterwave: any;
   private readonly config: PaymentProviderConfig;
-  private logger: Logger = ConsoleLogger;
+  private logger: Logger = new ConsoleLogger();
 
   constructor() {
     // Default logger is ConsoleLogger, can be swapped via setLogger()
-    this.logger = ConsoleLogger;
+    this.logger = new ConsoleLogger();
     this.config = {
       paystack: {
         secretKey: process.env.PAYSTACK_SECRET_KEY || '',
@@ -31,16 +30,13 @@ export class PaymentService {
         : null;
 
       // Initialize Flutterwave in test mode
-      this.flutterwave = this.config.flutterwave.secretKey
-        ? new Flutterwave(this.config.flutterwave.secretKey)
+      this.flutterwave = this.config.flutterwave.publicKey && this.config.flutterwave.secretKey
+        ? new Flutterwave(this.config.flutterwave.publicKey, this.config.flutterwave.secretKey)
         : null;
 
       this.logger.info('Payment providers initialized in test mode');
     } catch (error: unknown) {
-      this.logger.error('Error initializing payment providers:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      this.logger.error('Error initializing payment providers:', error as Error, {});
       this.paystack = null;
       this.flutterwave = null;
       throw new Error('Failed to initialize payment providers');
@@ -52,19 +48,6 @@ export class PaymentService {
    */
   setLogger(customLogger: Logger) {
     this.logger = customLogger;
-  }
-
-  /**
-   * Example: Loyalty accrual logic (to be called after payment success)
-   * Skips accrual for refunded/failed/flagged transactions and logs with structured fields.
-   */
-  async handleLoyaltyAccrual({ transactionId, customerId, status, flagged }: { transactionId: string, customerId: number, status: string, flagged?: boolean }) {
-    if (status === 'refunded' || status === 'failed' || flagged) {
-      this.logger.info('Loyalty accrual skipped', { transactionId, customerId, reason: status === 'refunded' ? 'refunded' : status === 'failed' ? 'failed' : 'flagged', timestamp: new Date().toISOString() });
-      return;
-    }
-    // ...call loyalty accrual logic here
-    this.logger.info('Loyalty accrued', { transactionId, customerId, status, timestamp: new Date().toISOString() });
   }
 
   async initializePayment(
@@ -91,7 +74,7 @@ export class PaymentService {
         provider: 'paystack'
       };
     } catch (error: unknown) {
-      this.logger.error('Error initializing payment:', error);
+      this.logger.error('Error initializing payment:', error as Error);
       throw new Error('Failed to initialize payment');
     }
   }
@@ -115,7 +98,7 @@ export class PaymentService {
         timestamp: new Date(data.paid_at)
       };
     } catch (error: unknown) {
-      this.logger.error('Error verifying payment:', error);
+      this.logger.error('Error verifying payment:', error as Error);
       throw new Error('Failed to verify payment');
     }
   }
@@ -137,7 +120,7 @@ export class PaymentService {
         provider: 'flutterwave'
       };
     } catch (error: unknown) {
-      this.logger.error('Error processing Flutterwave payment:', error);
+      this.logger.error('Error processing Flutterwave payment:', error as Error);
       throw new Error('Failed to process Flutterwave payment');
     }
   }
@@ -160,7 +143,7 @@ export class PaymentService {
         message: 'Payment failed'
       };
     } catch (error: unknown) {
-      this.logger.error('Error handling webhook:', error);
+      this.logger.error('Error handling webhook:', error as Error);
       throw new Error('Failed to process webhook');
     }
   }
@@ -176,10 +159,10 @@ export class PaymentService {
         to: new Date().toISOString()
       });
 
-      const transactions = response.data.data;
+      const transactions = response.data;
       const totalTransactions = transactions.length;
-      const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-      const successCount = transactions.filter(t => t.status === 'success').length;
+      const totalAmount = transactions.reduce((sum: number, t: any) => sum + t.amount, 0);
+      const successCount = transactions.filter((t: any) => t.status === 'success').length;
       const successRate = totalTransactions > 0 ? (successCount / totalTransactions) * 100 : 0;
       const failedTransactions = totalTransactions - successCount;
 
@@ -190,7 +173,7 @@ export class PaymentService {
         failedTransactions
       };
     } catch (error: unknown) {
-      this.logger.error('Error getting analytics:', error);
+      this.logger.error('Error getting analytics:', error as Error);
       throw new Error('Failed to get analytics');
     }
   }

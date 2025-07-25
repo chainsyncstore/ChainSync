@@ -112,10 +112,9 @@ export default function ImportPage() {
     formData.append('dataType', dataType);
     
     try {
-      const response = await apiRequest('POST', '/api/import/analyze', formData, {
-        headers: {
-          // Don't set Content-Type with FormData, browser will set it with boundary
-        },
+      const response = await apiRequest('/api/import/analyze', {
+        method: 'POST',
+        body: formData,
       });
       
       if (!response.ok) {
@@ -143,7 +142,7 @@ export default function ImportPage() {
         title: 'File analyzed successfully',
         description: `Found ${data.data.length} rows of data`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error analyzing file:', error);
       toast({
         title: 'Error analyzing file',
@@ -168,10 +167,13 @@ export default function ImportPage() {
     setIsValidating(true);
     
     try {
-      const response = await apiRequest('POST', '/api/import/validate', {
-        data: originalData,
-        mapping: finalMappings,
-        dataType,
+      const response = await apiRequest('/api/import/validate', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: originalData,
+          mapping: finalMappings,
+          dataType,
+        }),
       });
       
       if (!response.ok) {
@@ -188,7 +190,7 @@ export default function ImportPage() {
         description: `${result.importedRows} of ${result.totalRows} rows are valid`,
         variant: result.success ? 'default' : 'destructive',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error validating data:', error);
       toast({
         title: 'Error validating data',
@@ -214,10 +216,13 @@ export default function ImportPage() {
     setIsImporting(true);
     
     try {
-      const response = await apiRequest('POST', '/api/import/process', {
-        data: validationResult?.mappedData,
-        dataType,
-        storeId: selectedStore,
+      const response = await apiRequest('/api/import/process', {
+        method: 'POST',
+        body: JSON.stringify({
+          data: validationResult?.mappedData,
+          dataType,
+          storeId: selectedStore,
+        }),
       });
       
       if (!response.ok) {
@@ -241,7 +246,7 @@ export default function ImportPage() {
         title: 'Import completed',
         description: `Successfully imported ${result.importedRows} of ${result.totalRows} rows`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error importing data:', error);
       toast({
         title: 'Error importing data',
@@ -258,15 +263,16 @@ export default function ImportPage() {
     if (!validationResult) return;
     
     try {
-      const response = await apiRequest('POST', '/api/import/error-report', {
-        validationResult,
-        dataType
-      }, {
+      const response = await apiRequest('/api/import/error-report', {
+        method: 'POST',
+        body: JSON.stringify({
+          validationResult,
+          dataType
+        }),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'text/csv',
         },
-        responseType: 'blob',
       });
       
       if (!response.ok) {
@@ -289,7 +295,7 @@ export default function ImportPage() {
         title: 'Error report downloaded',
         description: 'The error report has been downloaded as a CSV file',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error downloading error report:', error);
       toast({
         title: 'Error downloading report',

@@ -9,7 +9,7 @@ export interface ErrorContext {
   userId?: number;
   requestId?: string;
   attempt?: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface RetryOptions {
@@ -71,7 +71,7 @@ export class ErrorHandler extends EventEmitter {
       try {
         return await operation();
       } catch (error) {
-        lastError = error;
+        lastError = error as Error;
         this.handleError(error, { ...context, attempt });
 
         if (attempt === retryConfig.maxAttempts) {
@@ -88,8 +88,8 @@ export class ErrorHandler extends EventEmitter {
       errorObj = lastError;
     } else if (typeof lastError === 'string') {
       errorObj = new Error(lastError);
-    } else if (lastError && typeof lastError === 'object' && lastError !== null && 'message' in lastError && typeof (lastError as any).message === 'string') {
-      errorObj = new Error(String((lastError as any).message));
+    } else if (lastError && typeof lastError === 'object' && lastError !== null && 'message' in lastError && typeof (lastError as { message: unknown }).message === 'string') {
+      errorObj = new Error(String((lastError as { message: string }).message));
     }
 
     if (!errorObj) {
@@ -103,12 +103,12 @@ export class ErrorHandler extends EventEmitter {
     const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
     
     // If we have an object with a message, use that
-    if (error && typeof error === 'object' && 'message' in error) {
-      errorObj.message = (error as any).message;
+    if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+      errorObj.message = (error as { message: string }).message;
     }
 
     // Ensure we have a proper Error object
-    const errorInstance: Error = errorObj instanceof Error ? errorObj : new Error(String((errorObj as any).message || 'Unknown error'));
+    const errorInstance: Error = errorObj instanceof Error ? errorObj : new Error(String((errorObj as { message: string } | null)?.message || 'Unknown error'));
 
     const enhancedError = this.enrichError(errorInstance, context);
 
@@ -210,7 +210,7 @@ export class ErrorHandler extends EventEmitter {
     category: ErrorCategory,
     retryable: boolean = false,
     retryDelay: number = 0,
-    context?: any
+    context?: Record<string, unknown>
   ): AppError {
     return new AppError(
       message,
@@ -230,7 +230,7 @@ export class ErrorHandler extends EventEmitter {
   static getRetryDelay(error: Error): number {
     if (error instanceof AppError) {
       // Access the retryAfter property which exists on AppError
-      return (error as any).retryAfter || 0;
+      return error.retryAfter || 0;
     }
     return 0;
   }

@@ -1,13 +1,7 @@
-/**
- * Subscription Service Types
- * 
- * This file defines the interfaces and types for the subscription service,
- * ensuring proper standardization between code and database schema.
- */
+import { subscriptions } from '@shared/schema';
+import { InferSelectModel } from 'drizzle-orm';
 
-import * as schema from '@shared/schema';
-
-export type Subscription = schema.Subscription;
+export type SelectSubscription = InferSelectModel<typeof subscriptions>;
 
 export enum SubscriptionStatus {
   ACTIVE = 'active',
@@ -17,7 +11,8 @@ export enum SubscriptionStatus {
   EXPIRED = 'expired',
   PAST_DUE = 'past_due',
   TRIAL = 'trial',
-  FAILED = 'failed'
+  FAILED = 'failed',
+  SUSPENDED = 'suspended'
 }
 
 export enum SubscriptionPlan {
@@ -100,19 +95,19 @@ export const SubscriptionServiceErrors: SubscriptionServiceErrors = {
 };
 
 export interface ISubscriptionService {
-  createSubscription(params: CreateSubscriptionParams): Promise<schema.Subscription>;
-  updateSubscription(subscriptionId: number, params: UpdateSubscriptionParams): Promise<schema.Subscription>;
-  getSubscriptionById(subscriptionId: number): Promise<schema.Subscription | null>;
-  getSubscriptionByUser(userId: number): Promise<schema.Subscription | null>;
-  getActiveSubscription(userId: number): Promise<schema.Subscription | null>;
+  createSubscription(params: CreateSubscriptionParams): Promise<SelectSubscription>;
+  updateSubscription(subscriptionId: number, params: UpdateSubscriptionParams): Promise<SelectSubscription>;
+  getSubscriptionById(subscriptionId: number): Promise<SelectSubscription | null>;
+  getSubscriptionByUser(userId: number): Promise<SelectSubscription | null>;
+  getActiveSubscription(userId: number): Promise<SelectSubscription | null>;
   searchSubscriptions(params: SubscriptionSearchParams): Promise<{
-    subscriptions: schema.Subscription[];
+    subscriptions: SelectSubscription[];
     total: number;
     page: number;
     limit: number;
   }>;
-  cancelSubscription(subscriptionId: number, reason?: string): Promise<schema.Subscription>;
-  renewSubscription(subscriptionId: number): Promise<schema.Subscription>;
+  cancelSubscription(subscriptionId: number, reason?: string): Promise<SelectSubscription>;
+  renewSubscription(subscriptionId: number): Promise<SelectSubscription>;
   processWebhook(params: ProcessWebhookParams): Promise<boolean>;
   validateSubscriptionAccess(userId: number, requiredPlan?: SubscriptionPlan | string): Promise<boolean>;
   getSubscriptionMetrics(): Promise<{

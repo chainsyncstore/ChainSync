@@ -1,34 +1,21 @@
 import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
 
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
-import { FileUploadConfig } from '../config/file-upload';
-import { FileUploadProgress, ProgressSubscription } from './types/file-upload';
-import { logger } from './utils/logger';
-import { FileUtils } from './utils/file-utils';
-import { UploadMetricsTracker } from './utils/logger';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
+import { FileUploadConfig } from '../config/file-upload.js';
+import { FileUploadProgress, ProgressSubscription } from './types/file-upload.js';
+import { logger } from './utils/logger.js';
+import { FileUtils } from './utils/file-utils.js';
+import { UploadMetricsTracker } from './utils/logger.js';
 import { LRUCache } from 'lru-cache';
-import * as fs from 'fs';
-import * as crypto from 'crypto';
-import sanitize from 'sanitize-filename';
+// import * as fs from 'fs'; // Unused
+// import * as crypto from 'crypto'; // Unused
+// import sanitize from 'sanitize-filename'; // Unused
 import { fileTypeFromBuffer } from 'file-type';
 import uuidv4 from 'uuid';
 import * as path from 'path';
 
 // Type definitions
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: string;
-        [key: string]: any;
-      };
-      progressId?: string;
-      files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
-    }
-  }
-}
 
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
@@ -36,6 +23,7 @@ interface MulterRequest extends Request {
     [fieldname: string]: Express.Multer.File[];
   } | Express.Multer.File[];
   user?: any;
+  progressId?: string;
 }
 
 // File upload configuration
@@ -70,11 +58,12 @@ const progressCache = new LRUCache<string, FileUploadProgress>({
 
 const subscriptionCache = new Map<string, ProgressSubscription[]>();
 
+/*
 // Multer instance
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: fileUploadConfig.maxFileSize,
+// const upload = multer({ // Unused
+//   storage: multer.memoryStorage(),
+//   limits: {
+//     fileSize: fileUploadConfig.maxFileSize,
     files: fileUploadConfig.maxFiles
   },
   fileFilter: async (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
@@ -144,6 +133,7 @@ const upload = multer({
   }
 });
 
+*/
 // File upload middleware class
 export class FileUploadMiddleware {
   private static instance: FileUploadMiddleware;
@@ -470,7 +460,9 @@ export class FileUploadMiddleware {
       const subscriptions = subscriptionCache.get(progressId) || [];
       for (const sub of subscriptions) {
         try {
-          sub.onProgress(progressData);
+          if (sub && sub.onProgress) {
+            sub.onProgress(progressData);
+          }
         } catch (err) {
           console.error('Failed to notify subscriber:', err instanceof Error ? err.message : String(err));
         }
@@ -526,7 +518,7 @@ export class FileUploadMiddleware {
 
       // Send initial progress
       const progressData = progressCache.get(progressId);
-      if (progressData) {
+      if (progressData && subscription && subscription.onProgress) {
         subscription.onProgress(progressData);
       }
     } catch (subscriptionError: unknown) {

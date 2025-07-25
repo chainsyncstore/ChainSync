@@ -116,11 +116,7 @@ export default function BatchInventoryPage() {
   // Import batches mutation
   const importMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await fetch('/api/inventory/batches/import', {
-        method: 'POST',
-        body: formData
-      });
-      return await response.json() as BatchImportResponse;
+      return await apiRequest('POST', '/api/inventory/batches/import', formData) as BatchImportResponse;
     },
     onSuccess: (data) => {
       if (data.success) {
@@ -149,8 +145,7 @@ export default function BatchInventoryPage() {
   // Add batch mutation
   const addBatchMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/inventory/batches', data);
-      return await response.json();
+      return await apiRequest('POST', '/api/inventory/batches', data);
     },
     onSuccess: () => {
       toast({

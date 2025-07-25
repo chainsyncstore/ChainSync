@@ -6,19 +6,28 @@
 
 import * as schema from '@shared/schema';
 
-export type Inventory = schema.Inventory & { batchTracking?: boolean; metadata?: Record<string, unknown> };
+export type Inventory = schema.SelectInventory & {
+  name?: string;
+  description?: string;
+  location?: string;
+  capacity?: number;
+  isActive?: boolean;
+  batchTracking?: boolean; 
+  metadata?: Record<string, unknown> 
+};
 
 
 export interface InventoryItem {
   id: number;
   inventoryId: number;
   productId: number;
+  sku?: string;
   name: string;
   description?: string;
   category?: string;
   quantity: number;
   unit: string;
-  unitCost: string;
+  unitCost?: string;
   reorderLevel?: number;
   reorderQuantity?: number;
   batchNumber?: string;
@@ -26,6 +35,7 @@ export interface InventoryItem {
   supplier?: string;
   isActive: boolean;
   metadata?: Record<string, unknown>;
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +60,7 @@ export interface CreateInventoryItemParams {
   supplier?: string;
   isActive?: boolean;
   metadata?: Record<string, unknown>;
+  notes?: string;
 }
 
 export interface UpdateInventoryItemParams {
@@ -66,9 +77,41 @@ export interface UpdateInventoryItemParams {
   supplier?: string;
   isActive?: boolean;
   metadata?: Record<string, unknown>;
+  notes?: string;
 }
 
+export enum InventoryTransactionType {
+  PURCHASE = 'purchase',
+  SALE = 'sale',
+  RECEIVE = 'receive',
+  RETURN = 'return',
+  DAMAGE = 'damage',
+  LOSS = 'loss',
+  TRANSFER = 'transfer',
+  ADJUSTMENT = 'adjustment',
+  COUNT = 'count'
+}
 
+export type InventoryTransaction = {
+  id: number;
+  inventoryId: number;
+  itemId?: number;
+  productId: number;
+  quantity: number;
+  beforeQuantity: number;
+  afterQuantity: number;
+  unitCost: string;
+  totalCost: string;
+  referenceId?: string;
+  transactionType: InventoryTransactionType;
+  reason?: string;
+  performedBy: number;
+  metadata?: Record<string, unknown>;
+  notes?: string;
+  createdAt: Date;
+};
+
+// Alias to maintain backwards compatibility
 export enum InventoryAdjustmentType {
   PURCHASE = 'purchase',
   SALE = 'sale',
@@ -87,43 +130,63 @@ export interface CreateInventoryParams {
   availableQuantity: number;
   minimumLevel: number;
   batchTracking?: boolean;
+  currentUtilization?: number;
+  metadata?: Record<string, unknown>;
+  name?: string;
+  description?: string;
 }
-
 export interface UpdateInventoryParams {
   totalQuantity?: number;
   availableQuantity?: number;
   minimumLevel?: number;
   batchTracking?: boolean;
+  currentUtilization?: number;
+  metadata?: Record<string, unknown>;
+  notes?: string;
 }
-
 export interface InventoryAdjustmentParams {
+  inventoryId?: number;
+  itemId?: number;
   productId: number;
   quantity: number;
+  unitCost?: string;
   reason: string;
-  type: InventoryAdjustmentType;
+  transactionType: InventoryTransactionType;
   userId: number;
   batchId?: number;
-  cost?: string;
+  referenceId?: string;
+  performedBy?: number;
+  metadata?: Record<string, unknown>;
   notes?: string;
-  reference?: string;
 }
+  
 
 export interface InventoryBatchParams {
+  inventoryId?: number;
   productId: number;
   storeId: number;
   quantity: number;
-  cost: string;
+  unitCost: string;
   purchaseDate: Date;
+  manufactureDate?: Date;
   expiryDate?: Date;
   batchNumber?: string;
+  sku?: string;
+  unit?: string;
+  supplier?: string;
   supplierReference?: string;
+  referenceId?: string;
+  performedBy?: number;
+  metadata?: Record<string, unknown>;
   notes?: string;
-  userId: number;
 }
+  
 
 export interface InventorySearchParams {
   storeId: number;
   query?: string;
+  productId?: number;
+  keyword?: string;
   categoryId?: number;
   lowStock?: boolean;
   outOfStock?: boolean;
@@ -171,7 +234,7 @@ export interface IInventoryService {
     limit: number;
   }>;
   adjustInventory(params: InventoryAdjustmentParams): Promise<boolean>;
-  addInventoryBatch(params: InventoryBatchParams): Promise<schema.InventoryBatch>;
+  addInventoryBatch(params: InventoryBatchParams): Promise<InventoryItem>;
   getBatchesByProduct(productId: number): Promise<schema.InventoryBatch[]>;
   getLowStockItems(storeId: number, limit?: number): Promise<schema.Inventory[]>;
   getInventoryValuation(storeId: number): Promise<{

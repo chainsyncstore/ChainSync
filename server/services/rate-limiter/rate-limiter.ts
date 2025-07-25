@@ -9,40 +9,18 @@ export interface RateLimitConfig {
 }
 
 export class RateLimiter {
-  private redis: Redis;
+  private redis: Redis | null = null;
   private config: RateLimitConfig;
 
   constructor(config: Partial<RateLimitConfig> = {}) {
     this.config = {
       window: config.window ?? 60, // 1 minute
       maxRequests: config.maxRequests ?? 60,
-      redisUrl: config.redisUrl ?? process.env.REDIS_URL || '',
+      redisUrl: config.redisUrl ?? (process.env.REDIS_URL || ''),
     };
 
     if (this.config.redisUrl) {
       this.redis = new Redis(this.config.redisUrl);
-    }
-  }
-
-  private async withRedis<T>(callback: () => Promise<T>): Promise<T> {
-    if (!this.redis) {
-      throw new AppError(
-        'Redis not configured',
-        ErrorCode.CONFIGURATION_ERROR,
-        ErrorCategory.SYSTEM
-      );
-    }
-
-    try {
-      return await callback();
-    } catch (error) {
-      throw new AppError(
-        'Redis error',
-        ErrorCode.INTERNAL_SERVER_ERROR,
-        ErrorCategory.SYSTEM,
-        true,
-        5000
-      );
     }
   }
 
@@ -55,23 +33,16 @@ export class RateLimiter {
       const key = this.generateKey(userId);
 
       if (this.redis) {
-        const [count, expiry] = await this.withRedis(() =>
-          this.redis.multi()
-            .get(key)
-            .ttl(key)
-            .exec()
-        );
+        const result = await this.redis.multi().get(key).ttl(key).exec();
+        const count = result && result[0] && Number(result[0][1]);
+        const expiry = result && result[1] && Number(result[1][1]);
 
-        if (expiry[1] === -1) {
+        if (expiry === -1) {
           // Key exists but has no expiry
-          throw new AppError(
-            'Invalid rate limit state',
-            ErrorCode.INTERNAL_SERVER_ERROR,
-            ErrorCategory.SYSTEM
-          );
+          await this.redis.expire(key, this.config.window);
         }
 
-        if (count[1] >= this.config.maxRequests) {
+        if (count && count >= this.config.maxRequests) {
           return true;
         }
       }
@@ -81,9 +52,7 @@ export class RateLimiter {
       throw new AppError(
         'Rate limit check failed',
         ErrorCode.INTERNAL_SERVER_ERROR,
-        ErrorCategory.SYSTEM,
-        true,
-        5000
+        ErrorCategory.SYSTEM
       );
     }
   }
@@ -93,20 +62,16 @@ export class RateLimiter {
       const key = this.generateKey(userId);
 
       if (this.redis) {
-        await this.withRedis(() =>
-          this.redis.multi()
-            .incr(key)
-            .expire(key, this.config.window)
-            .exec()
-        );
+        const multi = this.redis.multi();
+        multi.incr(key);
+        multi.expire(key, this.config.window);
+        await multi.exec();
       }
     } catch (error) {
       throw new AppError(
         'Rate limit increment failed',
         ErrorCode.INTERNAL_SERVER_ERROR,
-        ErrorCategory.SYSTEM,
-        true,
-        5000
+        ErrorCategory.SYSTEM
       );
     }
   }
@@ -116,13 +81,8 @@ export class RateLimiter {
       const key = this.generateKey(userId);
 
       if (this.redis) {
-        const [count] = await this.withRedis(() =>
-          this.redis.multi()
-            .get(key)
-            .exec()
-        );
-
-        const remaining = this.config.maxRequests - (parseInt(count[1]) || 0);
+        const count = await this.redis.get(key);
+        const remaining = this.config.maxRequests - (parseInt(count!) || 0);
         return Math.max(0, remaining);
       }
 
@@ -131,9 +91,7 @@ export class RateLimiter {
       throw new AppError(
         'Failed to get remaining requests',
         ErrorCode.INTERNAL_SERVER_ERROR,
-        ErrorCategory.SYSTEM,
-        true,
-        5000
+        ErrorCategory.SYSTEM
       );
     }
   }
@@ -143,15 +101,13 @@ export class RateLimiter {
       const key = this.generateKey(userId);
 
       if (this.redis) {
-        await this.withRedis(() => this.redis.del(key));
+        await this.redis.del(key);
       }
     } catch (error) {
       throw new AppError(
         'Failed to reset rate limit',
         ErrorCode.INTERNAL_SERVER_ERROR,
-        ErrorCategory.SYSTEM,
-        true,
-        5000
+        ErrorCategory.SYSTEM
       );
     }
   }
@@ -159,9 +115,9 @@ export class RateLimiter {
   async cleanup(): Promise<void> {
     try {
       if (this.redis) {
-        const keys = await this.withRedis(() => this.redis.keys('rate-limit:*'));
+        const keys = await this.redis.keys('rate-limit:*');
         if (keys.length > 0) {
-          await this.withRedis(() => this.redis.del(keys));
+          await this.redis.del(keys);
         }
       }
     } catch (error) {

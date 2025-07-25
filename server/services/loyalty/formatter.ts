@@ -41,15 +41,8 @@ export class LoyaltyProgramFormatter extends ResultFormatter<LoyaltyProgram> {
       storeId: Number(withDates.storeId),
       name: String(withDates.name),
       description: withDates.description || '',
-      status: (withDates.status || 'active') as LoyaltyProgramStatus,
-      pointsPerPurchase: Number(withDates.pointsPerPurchase || 0),
-      minimumPurchase: String(withDates.minimumPurchase || '0.00'),
-      pointsValue: String(withDates.pointsValue || '0.01'),
-      tierLevels: withDates.tierLevels || [],
-      rules: withDates.rules || {},
-      isActive: Boolean(withDates.isActive),
-      metadata: metadata
-    };
+      active: Boolean(withDates.active),
+    } as LoyaltyProgram;
   }
 }
 
@@ -86,14 +79,11 @@ export class LoyaltyMemberFormatter extends ResultFormatter<LoyaltyMember> {
       id: Number(withDates.id),
       programId: Number(withDates.programId),
       userId: Number(withDates.userId),
-      membershipId: String(withDates.membershipId || ''),
+      loyaltyId: String(withDates.loyaltyId || ''),
       points: Number(withDates.points || 0),
-      tierLevel: Number(withDates.tierLevel || 1),
-      totalSpent: String(withDates.totalSpent || '0.00'),
-      lifetimePoints: Number(withDates.lifetimePoints || 0),
-      isActive: Boolean(withDates.isActive),
-      metadata: metadata
-    };
+      currentPoints: String(withDates.currentPoints || '0.00'),
+      customerId: Number(withDates.customerId),
+    } as LoyaltyMember;
   }
 }
 
@@ -133,11 +123,10 @@ export class LoyaltyTransactionFormatter extends ResultFormatter<LoyaltyTransact
       pointsEarned: Number(withDates.pointsEarned || 0),
       pointsRedeemed: Number(withDates.pointsRedeemed || 0),
       pointsBalance: Number(withDates.pointsBalance || 0),
-      transactionType: String(withDates.transactionType || 'earn'),
-      referenceId: withDates.referenceId || null,
+      transactionType: (withDates.transactionType || 'earn') as "earn" | "redeem",
+      source: String(withDates.source || ''),
+      transactionId: withDates.transactionId || null,
       description: withDates.description || '',
-      amount: String(withDates.amount || '0.00'),
-      metadata: metadata
-    };
+    } as LoyaltyTransaction;
   }
 }

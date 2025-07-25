@@ -2,9 +2,9 @@ import { parse as csvParse } from 'csv-parse/sync';
 import { stringify as csvStringify } from 'csv-stringify/sync';
 import * as xlsx from 'xlsx';
 import { storage } from '../storage';
-import * as schema from '@shared/schema';
-import { eq } from 'drizzle-orm';
-import { db } from '@db/index';
+import * as schema from '../../shared/schema';
+import { eq, and } from 'drizzle-orm';
+import { db } from '../../db';
 import { SessionsClient } from '@google-cloud/dialogflow';
 import { enhanceValidationWithAI } from './import-ai';
 
@@ -158,9 +158,9 @@ export async function processImportFile(
     } else {
       throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error parsing file:', error);
-    throw new Error(`Failed to parse file: ${error.message || 'Unknown error'}`);
+    throw new Error(`Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
   if (parsedData.length === 0) {
@@ -238,7 +238,7 @@ export async function validateInventoryData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'inventory');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -487,7 +487,7 @@ export async function validateLoyaltyData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'loyalty');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error enhancing validation with AI:", error);
     // Continue with basic validation results if AI enhancement fails
   }
@@ -704,10 +704,9 @@ export async function importInventoryData(data: any[], storeId: number): Promise
     lastUpdated: new Date()
   };
   
-  // Get all categories for category name matching
-  const categories = await storage.getAllCategories();
+  const categories = await db.query.categories.findMany();
   const categoryMap = new Map<string, number>();
-  categories.forEach(category => {
+  categories.forEach((category: any) => {
     categoryMap.set(category.name.toLowerCase(), category.id);
   });
   
@@ -716,7 +715,6 @@ export async function importInventoryData(data: any[], storeId: number): Promise
     const rowNumber = i + 1;
     
     try {
-      // Resolve category ID if it's a name
       let categoryId = row.categoryId;
       if (typeof categoryId === 'string' && isNaN(parseInt(categoryId, 10))) {
         const matchedCategoryId = categoryMap.get(categoryId.toLowerCase());
@@ -726,57 +724,52 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         categoryId = matchedCategoryId;
       }
       
-      // Check if product already exists by barcode
-      const existingProduct = await storage.getProductByBarcode(row.barcode);
+      const existingProduct = await db.query.products.findFirst({ where: eq(schema.products.barcode, row.barcode) });
       
       if (existingProduct) {
-        // Update existing product
-        await storage.updateProduct(existingProduct.id, {
+        await db.update(schema.products).set({
           name: row.name,
           description: row.description || existingProduct.description,
           price: row.price.toString(),
           categoryId: categoryId,
           isPerishable: row.isPerishable || false
-        });
+        }).where(eq(schema.products.id, existingProduct.id));
         
-        // Update inventory for specific store
-        const inventoryItem = await storage.getStoreProductInventory(storeId, existingProduct.id);
+        const inventoryItem = await db.query.inventory.findFirst({ where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, existingProduct.id)) });
         
         if (inventoryItem) {
-          // Update existing inventory
-          await storage.updateInventory(inventoryItem.id, {
+          await db.update(schema.inventory).set({
             quantity: row.quantity,
-            minStockLevel: row.minStockLevel || inventoryItem.minStockLevel,
-            lastUpdated: new Date()
-          });
+            minStock: row.minStockLevel || inventoryItem.minStock,
+            lastRestocked: new Date()
+          }).where(eq(schema.inventory.id, inventoryItem.id));
         } else {
-          // Create new inventory entry for this store/product
           await db.insert(schema.inventory).values({
             storeId: storeId,
             productId: existingProduct.id,
             quantity: row.quantity,
-            minStockLevel: row.minStockLevel || 5,
-            lastUpdated: new Date()
+            minStock: row.minStockLevel || 5,
+            lastRestocked: new Date()
           });
         }
       } else {
-        // Create new product
         const [newProduct] = await db.insert(schema.products).values({
           name: row.name,
           description: row.description || '',
           barcode: row.barcode,
           price: row.price.toString(),
           categoryId: categoryId,
-          isPerishable: row.isPerishable || false
+          isPerishable: row.isPerishable || false,
+          storeId,
+          sku: row.barcode,
         }).returning();
         
-        // Create inventory entry for this store/product
         await db.insert(schema.inventory).values({
           storeId: storeId,
           productId: newProduct.id,
           quantity: row.quantity,
-          minStockLevel: row.minStockLevel || 5,
-          lastUpdated: new Date()
+          minStock: row.minStockLevel || 5,
+          lastRestocked: new Date()
         });
       }
       
@@ -812,49 +805,37 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
     const rowNumber = i + 1;
     
     try {
-      // Check if loyalty member already exists
-      const existingMember = await storage.getLoyaltyMemberByLoyaltyId(row.loyaltyId);
+      const existingMember = await db.query.loyaltyMembers.findFirst({ where: eq(schema.loyaltyMembers.loyaltyId, row.loyaltyId) });
       
       if (existingMember) {
-        // Update existing member
-        await storage.updateLoyaltyMember(existingMember.id, {
+        await db.update(schema.loyaltyMembers).set({
           currentPoints: row.points ? row.points.toString() : existingMember.currentPoints
-        });
+        }).where(eq(schema.loyaltyMembers.id, existingMember.id));
         
-        // Get and update customer
-        const customer = await storage.getCustomerById(existingMember.customerId);
+        const customer = await db.query.users.findFirst({ where: eq(schema.users.id, existingMember.userId) });
         if (customer) {
-          await db.update(schema.customers)
+          await db.update(schema.users)
             .set({
               name: row.name || customer.name,
               email: row.email || customer.email,
-              phone: row.phone || customer.phone,
               updatedAt: new Date()
             })
-            .where(eq(schema.customers.id, customer.id));
+            .where(eq(schema.users.id, customer.id));
         }
       } else {
-        // Create new customer
-        const customerData: schema.CustomerInsert = {
+        const [newUser] = await db.insert(schema.users).values({
           name: row.name,
           email: row.email || null,
-          phone: row.phone || null,
-          storeId: storeId
-        };
+          password: 'password' //TODO: generate random password
+        }).returning();
         
-        // Create customer first, then loyalty member
-        const customer = await storage.createCustomer(customerData);
-        
-        // Create new loyalty member linked to customer
-        const memberData: schema.LoyaltyMemberInsert = {
+        await db.insert(schema.loyaltyMembers).values({
           loyaltyId: row.loyaltyId,
-          customerId: customer.id,
-          tierId: null, // Default tier - can be updated later
+          userId: newUser.id,
           currentPoints: row.points ? row.points.toString() : "0",
-          enrollmentDate: row.enrollmentDate ? new Date(row.enrollmentDate) : new Date()
-        };
-        
-        await storage.createLoyaltyMember(memberData);
+          programId: 1,
+          customerId: newUser.id,
+        });
       }
       
       result.importedRows++;
@@ -949,7 +930,7 @@ async function getColumnMappingSuggestions(
   try {
     const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
     return enhancedSuggestions;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("Error enhancing mappings with AI:", error);
     // If AI enhancement fails, return the basic pattern matching results
     return suggestions;
@@ -1021,7 +1002,7 @@ async function enhanceMappingsWithAI(
     const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
     
     return improvedMappings;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error using Dialogflow for column mapping:", error);
     return initialSuggestions;
   }

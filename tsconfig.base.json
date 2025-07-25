@@ -15,12 +15,10 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
-    "noEmit": true,
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2020"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
@@ -31,6 +29,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
+      "@db": ["./db/index.ts"],
       "@/*": ["./client/src/*"],
       "@/components/*": ["./client/src/components/*"],
       "@/lib/*": ["./client/src/lib/*"],
@@ -41,5 +40,19 @@
       "@server/*": ["./server/*"],
       "@assets/*": ["./attached_assets/*"]
     }
-  }
+  },
+  "exclude": [
+    "dist",
+    "dist.bak",
+    "coverage",
+    "test",
+    "tests",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**",
+    "**/__mocks__/**",
+    "storybook-static"
+  ]
 }

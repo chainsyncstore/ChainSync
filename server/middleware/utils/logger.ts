@@ -1,6 +1,4 @@
 import { createLogger, format, transports } from 'winston';
-import { FileUploadProgress } from '../types/index';
-import { ErrorCategory, ErrorCode } from '../types/error';
 
 const { combine, timestamp, json, printf } = format;
 

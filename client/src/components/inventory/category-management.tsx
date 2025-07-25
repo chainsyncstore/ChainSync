@@ -44,6 +44,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { apiRequest } from '@/lib/queryClient';
 
 // Category schema
 const categorySchema = z.object({
@@ -92,18 +93,7 @@ export default function CategoryManagement() {
   // Add category mutation
   const addCategoryMutation = useMutation({
     mutationFn: async (data: CategoryFormValues) => {
-      const response = await fetch('/api/products/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add category');
-      }
-      
-      return response.json();
+      return await apiRequest('POST', '/api/products/categories', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products/categories'] });
@@ -125,18 +115,7 @@ export default function CategoryManagement() {
   // Update category mutation
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: CategoryFormValues }) => {
-      const response = await fetch(`/api/products/categories/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update category');
-      }
-      
-      return response.json();
+      return await apiRequest('PATCH', `/api/products/categories/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products/categories'] });
@@ -158,16 +137,7 @@ export default function CategoryManagement() {
   // Delete category mutation
   const deleteCategoryMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/products/categories/${id}`, {
-        method: 'DELETE'
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete category');
-      }
-      
-      return response.json();
+      return await apiRequest('DELETE', `/api/products/categories/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products/categories'] });
@@ -286,7 +256,7 @@ export default function CategoryManagement() {
                         Loading categories...
                       </TableCell>
                     </TableRow>
-                  ) : categories && categories.length > 0 ? (
+                  ) : Array.isArray(categories) && categories.length > 0 ? (
                     categories.map((category: Category) => (
                       <TableRow key={category.id}>
                         <TableCell>

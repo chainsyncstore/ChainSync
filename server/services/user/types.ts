@@ -1,10 +1,7 @@
-/**
- * User Service Types
- * 
- * This file defines the interfaces and types for the user service.
- */
+import { users } from '@shared/schema';
+import { InferSelectModel } from 'drizzle-orm';
 
-import * as schema from '@shared/schema';
+export type SelectUser = InferSelectModel<typeof users>;
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -51,13 +48,13 @@ export const UserServiceErrors: UserServiceErrors = {
 };
 
 export interface IUserService {
-  createUser(params: CreateUserParams): Promise<schema.User>;
-  updateUser(userId: number, params: UpdateUserParams): Promise<schema.User>;
+  createUser(params: CreateUserParams): Promise<SelectUser>;
+  updateUser(userId: number, params: UpdateUserParams): Promise<SelectUser>;
   deleteUser(userId: number): Promise<boolean>;
-  getUserById(userId: number): Promise<schema.User | null>;
-  getUserByUsername(username: string): Promise<schema.User | null>;
-  getUserByEmail(email: string): Promise<schema.User | null>;
-  validateCredentials(username: string, password: string): Promise<schema.User | null>;
+  getUserById(userId: number): Promise<SelectUser | null>;
+  getUserByUsername(username: string): Promise<SelectUser | null>;
+  getUserByEmail(email: string): Promise<SelectUser | null>;
+  validateCredentials(username: string, password: string): Promise<SelectUser | null>;
   changePassword(userId: number, currentPassword: string, newPassword: string): Promise<boolean>;
   resetPassword(token: string, newPassword: string): Promise<boolean>;
   requestPasswordReset(email: string): Promise<string>;

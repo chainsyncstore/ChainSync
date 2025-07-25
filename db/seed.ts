@@ -1,5 +1,5 @@
-import { db } from "./index";
-import * as schema from "@shared/schema";
+import { db } from "./index.js";
+import * as schema from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
 
@@ -108,7 +108,7 @@ async function seed() {
 
     const createdStores = await Promise.all(
       stores.map(async (store) => {
-        const [created] = await db.insert(schema.stores).values(store).returning();
+        const [created] = await db.insert(schema.stores).values({ ...store, location: `${store.address}, ${store.city}` }).returning();
         return created;
       })
     );
@@ -120,9 +120,8 @@ async function seed() {
     // Admin user (no store assigned)
     // Use type assertion to bypass TypeScript schema validation 
     const adminUser = {
-      username: "admin",
+      name: "admin",
       password: passwordHash,
-      fullName: "Chain Admin",
       email: "admin@chainsync.com",
       role: "admin"
       // storeId is optional so we can omit it for admin
@@ -131,12 +130,11 @@ async function seed() {
 
     // Create store managers
     await Promise.all(
-      createdStores.map(async (store, index) => {
+      createdStores.map(async (store: { id: number; }, index: number) => {
         // Use type assertion to bypass TypeScript schema validation
         const managerUser = {
-          username: `manager${index + 1}`,
+          name: `manager${index + 1}`,
           password: passwordHash,
-          fullName: `Manager ${index + 1}`,
           email: `manager${index + 1}@chainsync.com`,
           role: "manager",
           storeId: store.id
@@ -151,9 +149,8 @@ async function seed() {
       
       // Create each cashier individually instead of as an array with type assertion
       const cashier1 = {
-        username: `cashier${storeIndex * 2 + 1}`,
+        name: `cashier${storeIndex * 2 + 1}`,
         password: passwordHash,
-        fullName: `Cashier ${storeIndex * 2 + 1}`,
         email: `cashier${storeIndex * 2 + 1}@chainsync.com`,
         role: "cashier",
         storeId: store.id
@@ -161,9 +158,8 @@ async function seed() {
       await db.insert(schema.users).values(cashier1 as any);
       
       const cashier2 = {
-        username: `cashier${storeIndex * 2 + 2}`,
+        name: `cashier${storeIndex * 2 + 2}`,
         password: passwordHash,
-        fullName: `Cashier ${storeIndex * 2 + 2}`,
         email: `cashier${storeIndex * 2 + 2}@chainsync.com`,
         role: "cashier",
         storeId: store.id
@@ -179,7 +175,7 @@ async function seed() {
         description: "Bunch of fresh organic bananas",
         sku: "SKU-5011001",
         barcode: "5011001",
-        categoryId: createdCategories.find(c => c.name === "Produce")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Produce")!.id,
         price: "1.99",
         cost: "0.89",
         isPerishable: true
@@ -189,7 +185,7 @@ async function seed() {
         description: "1 gallon of whole milk",
         sku: "SKU-5011002",
         barcode: "5011002",
-        categoryId: createdCategories.find(c => c.name === "Dairy")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Dairy")!.id,
         price: "3.49",
         cost: "2.10",
         isPerishable: true
@@ -199,7 +195,7 @@ async function seed() {
         description: "Fresh baked sourdough bread",
         sku: "SKU-5011003",
         barcode: "5011003",
-        categoryId: createdCategories.find(c => c.name === "Bakery")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Bakery")!.id,
         price: "4.99",
         cost: "2.50",
         isPerishable: true
@@ -209,7 +205,7 @@ async function seed() {
         description: "1 pound of 80/20 ground beef",
         sku: "SKU-5011004",
         barcode: "5011004",
-        categoryId: createdCategories.find(c => c.name === "Meat & Seafood")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Meat & Seafood")!.id,
         price: "5.99",
         cost: "3.75",
         isPerishable: true
@@ -219,7 +215,7 @@ async function seed() {
         description: "2 liter bottle of cola",
         sku: "SKU-5011005",
         barcode: "5011005",
-        categoryId: createdCategories.find(c => c.name === "Beverages")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Beverages")!.id,
         price: "2.49",
         cost: "1.20",
         isPerishable: false
@@ -229,7 +225,7 @@ async function seed() {
         description: "8oz bag of potato chips",
         sku: "SKU-5011006",
         barcode: "5011006",
-        categoryId: createdCategories.find(c => c.name === "Snacks")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Snacks")!.id,
         price: "3.99",
         cost: "1.75",
         isPerishable: false
@@ -239,7 +235,7 @@ async function seed() {
         description: "10.5oz can of condensed soup",
         sku: "SKU-5011007",
         barcode: "5011007",
-        categoryId: createdCategories.find(c => c.name === "Canned Goods")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Canned Goods")!.id,
         price: "1.79",
         cost: "0.95",
         isPerishable: false
@@ -249,7 +245,7 @@ async function seed() {
         description: "12-inch frozen pepperoni pizza",
         sku: "SKU-5011008",
         barcode: "5011008",
-        categoryId: createdCategories.find(c => c.name === "Frozen Foods")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Frozen Foods")!.id,
         price: "6.99",
         cost: "3.50",
         isPerishable: false
@@ -259,7 +255,7 @@ async function seed() {
         description: "Fresh red apples",
         sku: "SKU-5011009",
         barcode: "5011009",
-        categoryId: createdCategories.find(c => c.name === "Produce")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Produce")!.id,
         price: "0.79",
         cost: "0.35",
         isPerishable: true
@@ -269,7 +265,7 @@ async function seed() {
         description: "6oz container of Greek yogurt",
         sku: "SKU-5011010",
         barcode: "5011010",
-        categoryId: createdCategories.find(c => c.name === "Dairy")!.id,
+        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Dairy")!.id,
         price: "1.29",
         cost: "0.70",
         isPerishable: true
@@ -278,7 +274,7 @@ async function seed() {
 
     const createdProducts = await Promise.all(
       products.map(async (product) => {
-        const [created] = await db.insert(schema.products).values(product).returning();
+        const [created] = await db.insert(schema.products).values({...product, storeId: 1, sku: `SKU-${Math.random()}`}).returning();
         return created;
       })
     );
@@ -302,29 +298,29 @@ async function seed() {
         const inventoryData = {
           storeId: store.id,
           productId: product.id,
-          totalQuantity: adjustedQuantity,
-          minimumLevel: product.isPerishable ? 15 : 10,
-          lastStockUpdate: new Date()
+          quantity: adjustedQuantity,
+          minStock: product.isPerishable ? 15 : 10,
+          lastRestocked: new Date()
         };
         
         // Use type assertion to bypass TypeScript schema validation
         const [inventoryItem] = await db.insert(schema.inventory).values(inventoryData as any).returning();
         
         // If product is perishable, create a batch entry
-        if (product.isPerishable) {
-          // Use type assertion to overcome TypeScript schema mismatch errors
-          const batchData = {
-            inventoryId: inventoryItem.id,
-            batchNumber: `BATCH-${Math.floor(Math.random() * 1000)}`,
-            quantity: adjustedQuantity,
-            expiryDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000), // Random date within 30 days
-            manufacturingDate: new Date(Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000), // Random date within past 15 days
-            receivedDate: new Date()
-          };
+        // if (product.isPerishable) {
+        //   // Use type assertion to overcome TypeScript schema mismatch errors
+        //   const batchData = {
+        //     inventoryId: inventoryItem.id,
+        //     batchNumber: `BATCH-${Math.floor(Math.random() * 1000)}`,
+        //     quantity: adjustedQuantity,
+        //     expiryDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000), // Random date within 30 days
+        //     manufacturingDate: new Date(Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000), // Random date within past 15 days
+        //     receivedDate: new Date()
+        //   };
           
-          // Cast to any to bypass TypeScript checking since we know the schema is correct
-          await db.insert(schema.inventoryBatches).values(batchData as any);
-        }
+        //   // Cast to any to bypass TypeScript checking since we know the schema is correct
+        //   await db.insert(schema.inventoryBatches).values(batchData as any);
+        // }
       }
     }
 
@@ -337,7 +333,7 @@ async function seed() {
     });
 
     // Group cashiers by store
-    const cashiersByStore = cashiers.reduce((acc, cashier) => {
+    const cashiersByStore = cashiers.reduce((acc: Record<number, typeof cashiers>, cashier) => {
       if (!cashier.storeId) return acc;
       if (!acc[cashier.storeId]) acc[cashier.storeId] = [];
       acc[cashier.storeId].push(cashier);
@@ -382,16 +378,14 @@ async function seed() {
         
         // Insert transaction with type assertion to bypass TypeScript schema validation
         const transactionData = {
-          transactionId,
           storeId: store.id,
-          cashierId: cashier.id,
+          userId: cashier.id,
           subtotal: subtotal.toFixed(2),
           tax: tax.toFixed(2),
           total: total.toFixed(2),
-          paymentMethod: Math.random() > 0.3 ? "credit_card" : "cash",
-          paymentStatus: "paid",
-          isOfflineTransaction: Math.random() > 0.9, // 10% chance of being offline
-          syncedAt: Math.random() > 0.9 ? null : new Date(),
+          paymentMethod: Math.random() > 0.3 ? "card" : "cash",
+          status: "completed",
+          items: transactionItems,
           createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000) // Random time in the last 24 hours
         };
         const [transaction] = await db.insert(schema.transactions).values(transactionData as any).returning();
@@ -409,16 +403,16 @@ async function seed() {
         // Update inventory
         for (const item of transactionItems) {
           const inventory = await db.query.inventory.findFirst({
-            where: (inv, { and, eq }) => 
-              and(eq(inv.storeId, store.id), eq(inv.productId, item.productId))
+            where: (inventory, { and, eq }) =>
+              and(eq(inventory.storeId, store.id), eq(inventory.productId, item.productId))
           });
           
           if (inventory) {
             await db
               .update(schema.inventory)
-              .set({ 
-                totalQuantity: Math.max(0, inventory.totalQuantity - item.quantity),
-                lastStockUpdate: new Date()
+              .set({
+                quantity: Math.max(0, (inventory.quantity ?? 0) - item.quantity),
+                updatedAt: new Date()
               })
               .where(
                 eq(schema.inventory.id, inventory.id)

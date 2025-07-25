@@ -1,35 +1,37 @@
 // test/integration/customer.integration.test.ts
-// Integration test for Customer model using in-memory SQLite DB and test tagging
-import { PrismaClient } from '@prisma/client';
+// Integration test for Customer model using Drizzle ORM
+import { db } from '../../db';
+import * as schema from '@shared/schema';
 import { makeMockCustomer } from '../factories/customer';
 import { test, describe } from '../testTags';
-
-const prisma = new PrismaClient();
+import { eq } from 'drizzle-orm';
 
 describe.integration('Customer Integration', () => {
-  beforeAll(async () => {
-    await prisma.$connect();
-  });
-
-  afterAll(async () => {
-    await prisma.$disconnect();
-  });
+  // No need for beforeAll/afterAll with Drizzle connection management
 
   beforeEach(async () => {
-    await prisma.customer.deleteMany(); // Clean slate for each test
+    // Clean the customers table before each test
+    await db.delete(schema.customers);
   });
 
   test.integration('should create and fetch a customer', async () => {
-    const mockData = makeMockCustomer({ name: 'Alice', email: 'alice@example.com' });
-    const created = await prisma.customer.create({ data: mockData });
-    expect(created).toMatchObject({
-      name: 'Alice',
-      email: 'alice@example.com',
-    });
+    const mockData = makeMockCustomer({ fullName: 'Alice', email: 'alice@example.com' });
 
-    const fetched = await prisma.customer.findUnique({ where: { id: created.id } });
-    expect(fetched).not.toBeNull();
-    expect(fetched?.name).toBe('Alice');
-    expect(fetched?.email).toBe('alice@example.com');
+    // Create a customer
+    const [created] = await db.insert(schema.customers).values(mockData).returning();
+
+    expect(created).toBeDefined();
+    expect(created.fullName).toBe('Alice');
+    expect(created.email).toBe('alice@example.com');
+
+    // Fetch the customer
+    const [fetched] = await db
+      .select()
+      .from(schema.customers)
+      .where(eq(schema.customers.id, created.id));
+
+    expect(fetched).toBeDefined();
+    expect(fetched.fullName).toBe('Alice');
+    expect(fetched.email).toBe('alice@example.com');
   });
 });

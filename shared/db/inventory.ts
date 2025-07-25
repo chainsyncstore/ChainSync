@@ -1,4 +1,4 @@
-import { pgTable, text, integer, decimal, timestamp, index, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, decimal, timestamp, index, unique, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -17,7 +17,9 @@ export const inventory = pgTable("inventory", {
   storeId: integer("store_id").references(() => stores.id).notNull(),
   productId: integer("product_id").references(() => products.id).notNull(),
   totalQuantity: integer("total_quantity").notNull().default(0),
+  availableQuantity: integer("available_quantity").notNull().default(0),
   minimumLevel: integer("minimum_level").notNull().default(0),
+  batchTracking: boolean("batch_tracking").notNull().default(false),
   status: text("status", { enum: inventoryStatus.options }).notNull().default("available"),
 }, (table) => ({
   storeProductIndex: index("idx_inventory_store_product").on(table.storeId, table.productId),
@@ -29,17 +31,12 @@ export const inventory = pgTable("inventory", {
 
 // Zod schemas for inventory
 export const inventoryInsertSchema = createInsertSchema(inventory, {
-  // Refine specific fields that need it upfront, like FKs requiring .positive()
-  storeId: (_s) => z.number().int().positive("Store ID must be a positive integer"),
-  productId: (_s) => z.number().int().positive("Product ID must be a positive integer"),
-  // Let drizzle-zod infer totalQuantity, minimumLevel, and status from the table schema initially.
-}).extend({
-  // Now, explicitly define the desired schema for fields, effectively overriding/refining the inferred one.
-  totalQuantity: z.number().int().min(0, "Total quantity cannot be negative"), 
+  storeId: z.number().int().positive("Store ID must be a positive integer"),
+  productId: z.number().int().positive("Product ID must be a positive integer"),
+  totalQuantity: z.number().int().min(0, "Total quantity cannot be negative"),
+  availableQuantity: z.number().int().min(0, "Available quantity cannot be negative"),
   minimumLevel: z.number().int().min(0, "Minimum level cannot be negative"),
-  // status is pgEnum, drizzle-zod should infer it correctly as z.enum. If specific insert logic
-  // (e.g. .optional() for insert) is needed beyond the enum itself, it could be added here.
-  // For now, assuming direct enum inference is sufficient.
+  batchTracking: z.boolean().default(false),
 });
 
 export const inventorySelectSchema = createSelectSchema(inventory);

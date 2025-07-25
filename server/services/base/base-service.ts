@@ -1,8 +1,8 @@
-import { Logger } from '../logger';
+import { logger as Logger } from '../logger';
 import { db } from '@db';
 
 export abstract class BaseService {
-  protected constructor(protected readonly logger: Logger) {}
+  protected constructor(protected readonly logger: typeof Logger) {}
 
   protected async withTransaction<T>(
     callback: (trx: any) => Promise<T>

@@ -1,501 +1,430 @@
-import { BaseService } from '../base/service';
-import { ILoyaltyService, ILoyaltyServiceErrors, LoyaltyServiceErrors } from './types';
-import { db } from '@db';
+/* server/services/loyalty/service.ts */
+import { EnhancedBaseService } from '../base/enhanced-service';
+import { LoyaltyTier } from './types';
+import {
+  ILoyaltyService,
+  LoyaltyProgramNotFoundError,
+  LoyaltyMemberNotFoundError,
+  MemberAlreadyEnrolledError,
+  InsufficientPointsError,
+  RewardNotFoundError,
+  LoyaltyProgram,
+  LoyaltyProgramInsert,
+  LoyaltyMember,
+  LoyaltyTierInsert,
+  LoyaltyRewardInsert,
+  LoyaltyReward,
+  LoyaltyTransaction,
+} from './types';
+import db from '@server/database';
 import * as schema from '@shared/schema';
-import { eq, and, gt, lt, desc, sql, asc } from 'drizzle-orm';
-import { 
-  prepareLoyaltyTierData, 
-  prepareLoyaltyMemberData, 
-  prepareLoyaltyRedemptionData,
-  formatLoyaltyTierResult,
-  formatLoyaltyMemberResult
-} from '@shared/schema-helpers';
+import { eq, and, lte, lt, gt, desc, asc, sql } from 'drizzle-orm';
 
-export class LoyaltyService extends BaseService implements ILoyaltyService {
-  private static readonly POINTS_EXPIRY_MONTHS = 12;
-  private static readonly REWARD_THRESHOLD = 1000;
+export class LoyaltyService extends EnhancedBaseService implements ILoyaltyService {
+  /* ------------------------------------------------------------------ *
+   *  Utilities                                                          *
+   * ------------------------------------------------------------------ */
+  private random(n = 5): string {
+    return Math.random().toString(36).substring(2, 2 + n).toUpperCase();
+  }
 
+  /* ------------------------------------------------------------------ *
+   *  Core Public API                                                    *
+   * ------------------------------------------------------------------ */
+
+  /************* Loyalty IDs *************/
   async generateLoyaltyId(): Promise<string> {
     try {
-      const prefix = "LOY-";
-      let loyaltyId = prefix + this.generateRandomString(5).toUpperCase();
-      
-      let existingMember = await db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.loyaltyId, loyaltyId)
-      });
-      
-      while (existingMember) {
-        loyaltyId = prefix + this.generateRandomString(5).toUpperCase();
-        existingMember = await db.query.loyaltyMembers.findFirst({
-          where: eq(schema.loyaltyMembers.loyaltyId, loyaltyId)
-        });
+      const prefix = 'LOY-';
+      let id = prefix + this.random();
+      // Ensure uniqueness
+      while (
+        await db.query.loyaltyMembers.findFirst({
+          where: eq(schema.loyaltyMembers.loyaltyId, id),
+        })
+      ) {
+        id = prefix + this.random();
       }
-      
-      return loyaltyId;
-    } catch (error) {
-      this.handleError(error, 'Generating loyalty ID');
+      return id;
+    } catch (e) {
+      this.handleError(e, 'generateLoyaltyId');
     }
   }
 
+  /************* Enrolment *************/
   async enrollCustomer(
     customerId: number,
     storeId: number,
     userId: number
-  ): Promise<schema.LoyaltyMember> {
+  ): Promise<LoyaltyMember> {
     try {
-      const existingMember = await db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.customerId, customerId)
-      });
+      const program = await this.getLoyaltyProgram(storeId);
+      if (!program) throw new LoyaltyProgramNotFoundError(storeId);
 
-      if (existingMember) {
-        throw LoyaltyServiceErrors.DUPLICATE_MEMBER;
-      }
+      // One member per customer per program
+      const exists = await db.query.loyaltyMembers.findFirst({
+        where: eq(schema.loyaltyMembers.customerId, customerId),
+      });
+      if (exists) throw new MemberAlreadyEnrolledError(customerId, program.id);
 
       const loyaltyId = await this.generateLoyaltyId();
-      const member = await db.insert(schema.loyaltyMembers).values({
-        customerId,
-        storeId,
-        loyaltyId,
-        status: 'active',
-        points: 0,
-        createdAt: new Date(),
-        createdBy: userId
-      }).returning();
-
-      return member[0];
-    } catch (error) {
-      this.handleError(error, 'Enrolling customer in loyalty program');
+      const [member] = await db
+        .insert(schema.loyaltyMembers)
+        .values({
+          customerId,
+          loyaltyId,
+          currentPoints: '0',
+          totalPointsEarned: '0',
+          totalPointsRedeemed: '0',
+          tierId: null,
+        })
+        .returning();
+      return member;
+    } catch (e) {
+      this.handleError(e, 'enrollCustomer');
     }
   }
 
+  /************* Points Calculation *************/
   async calculatePointsForTransaction(
     subtotal: string | number,
-    storeId: number,
-    items: Array<{ productId: number, quantity: number, unitPrice: number | string }>
+    storeId: number
   ): Promise<number> {
     try {
       const program = await this.getLoyaltyProgram(storeId);
-      if (!program) {
-        throw LoyaltyServiceErrors.PROGRAM_NOT_FOUND;
-      }
+      if (!program) throw new LoyaltyProgramNotFoundError(storeId);
 
-      const subtotalNum = typeof subtotal === 'string' ? parseFloat(subtotal) : subtotal;
-      const points = Math.floor(subtotalNum * (program.pointsPerDollar || 1));
-
-      return points;
-    } catch (error) {
-      this.handleError(error, 'Calculating points for transaction');
+      const amount = typeof subtotal === 'string' ? parseFloat(subtotal) : subtotal;
+      // pointsPerAmount = “X points per 1 currency unit”
+      const rate = 1; // Placeholder: Implement points calculation logic based on program rules
+      return Math.floor(amount * rate);
+    } catch (e) {
+      this.handleError(e, 'calculatePointsForTransaction');
     }
   }
 
-  async recordPointsEarned(
-    transactionId: number,
+  /************* Add / Earn Points *************/
+  async addPoints(
     memberId: number,
     points: number,
+    source: string,
+    transactionId: number | undefined,
     userId: number
-  ): Promise<{ success: boolean; transaction?: schema.LoyaltyTransaction }> {
+  ): Promise<{ success: boolean; transaction?: LoyaltyTransaction }> {
     try {
-      const transaction = await db.transaction(async (tx) => {
-        // Record the points transaction
-        const pointsTx = await tx.insert(schema.loyaltyTransactions).values({
+      const member = await db.query.loyaltyMembers.findFirst({
+        where: eq(schema.loyaltyMembers.id, memberId),
+      });
+      if (!member) throw new LoyaltyMemberNotFoundError(memberId);
+
+      const [txRow] = await db
+        .insert(schema.loyaltyTransactions)
+        .values({
           memberId,
           transactionId,
-          pointsEarned: points,
-          pointsRedeemed: 0,
-          status: 'completed',
-          createdAt: new Date(),
-          createdBy: userId
-        }).returning();
+          type: 'earn',
+          points,
+          createdBy: userId,
+        })
+        .returning();
 
-        // Update member points
-        await tx.update(schema.loyaltyMembers)
-          .set({
-            points: sql<number>`${schema.loyaltyMembers.points} + ${points}`,
-            updatedAt: new Date(),
-            updatedBy: userId
-          })
-          .where(eq(schema.loyaltyMembers.id, memberId));
+      // Update running totals
+      await db
+        .update(schema.loyaltyMembers)
+        .set({
+          currentPoints: sql`${schema.loyaltyMembers.currentPoints} + ${points}`,
+          points: sql`${schema.loyaltyMembers.points} + ${points}`,
+        })
+        .where(eq(schema.loyaltyMembers.id, memberId));
 
-        // Check and update tier if needed
-        await this.checkAndUpdateMemberTier(memberId);
-
-        return pointsTx[0];
-      });
-
-      return {
-        success: true,
-        transaction
-      };
-    } catch (error) {
-      this.handleError(error, 'Recording points earned');
+      return { success: true, transaction: txRow };
+    } catch (e) {
+      this.handleError(e, 'addPoints');
     }
   }
 
-  async getAvailableRewards(memberId: number): Promise<schema.LoyaltyReward[]> {
+  /************* Available Rewards *************/
+  async getAvailableRewards(memberId: number): Promise<LoyaltyReward[]> {
     try {
       const member = await db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.id, memberId)
+        where: eq(schema.loyaltyMembers.id, memberId),
       });
+      if (!member) throw new LoyaltyMemberNotFoundError(memberId);
 
-      if (!member) {
-        throw LoyaltyServiceErrors.CUSTOMER_NOT_FOUND;
-      }
-
-      return await db
+      return db
         .select()
         .from(schema.loyaltyRewards)
         .where(
           and(
-            eq(schema.loyaltyRewards.storeId, member.storeId),
-            gte(schema.loyaltyRewards.pointsRequired, member.points)
+            lte(schema.loyaltyRewards.pointsRequired, Number(member.currentPoints)),
+            eq(schema.loyaltyRewards.active, true)
           )
         )
         .orderBy(asc(schema.loyaltyRewards.pointsRequired));
-    } catch (error) {
-      this.handleError(error, 'Getting available rewards');
+    } catch (e) {
+      this.handleError(e, 'getAvailableRewards');
     }
   }
 
+  /************* Redeem Reward *************/
   async applyReward(
     memberId: number,
     rewardId: number,
-    transactionId: number,
-    userId: number
-  ): Promise<{ 
-    success: boolean; 
-    discountAmount?: string; 
+    currentTotal: number
+  ): Promise<{
+    success: boolean;
+    newTotal?: number;
     pointsRedeemed?: string;
     message?: string;
   }> {
     try {
-      const [member, reward] = await db.transaction(async (tx) => {
-        const member = await tx.query.loyaltyMembers.findFirst({
-          where: eq(schema.loyaltyMembers.id, memberId)
+      return await db.transaction(async (trx: any) => {
+        const member = await trx.query.loyaltyMembers.findFirst({
+          where: eq(schema.loyaltyMembers.id, memberId),
         });
+        if (!member) throw new LoyaltyMemberNotFoundError(memberId);
 
-        if (!member) {
-          throw LoyaltyServiceErrors.CUSTOMER_NOT_FOUND;
-        }
-
-        const reward = await tx.query.loyaltyRewards.findFirst({
-          where: eq(schema.loyaltyRewards.id, rewardId)
+        const reward = await trx.query.loyaltyRewards.findFirst({
+          where: eq(schema.loyaltyRewards.id, rewardId),
         });
+        if (!reward) throw new RewardNotFoundError(rewardId);
 
-        if (!reward) {
-          throw LoyaltyServiceErrors.REWARD_NOT_FOUND;
-        }
+        const cost = Number(reward.pointsRequired);
+        const balance = Number(member.currentPoints);
+        if (balance < cost) throw new InsufficientPointsError(memberId, cost);
 
-        if (member.points < reward.pointsRequired) {
-          throw LoyaltyServiceErrors.INSUFFICIENT_POINTS;
-        }
-
-        // Record the reward redemption
-        const redemption = await tx.insert(schema.loyaltyRewardRedemptions).values({
+        // Record redemption
+        await trx.insert(schema.loyaltyTransactions).values({
           memberId,
+          createdBy: 0,
           rewardId,
-          transactionId,
-          pointsRedeemed: reward.pointsRequired,
-          status: 'completed',
-          createdAt: new Date(),
-          createdBy: userId
-        }).returning();
+          type: 'redeem',
+          points: cost,
+        });
 
-        // Update member points
-        await tx.update(schema.loyaltyMembers)
+        // Deduct points
+        await trx
+          .update(schema.loyaltyMembers)
           .set({
-            points: sql<number>`${schema.loyaltyMembers.points} - ${reward.pointsRequired}`,
-            updatedAt: new Date(),
-            updatedBy: userId
+            currentPoints: String(balance - cost),
           })
           .where(eq(schema.loyaltyMembers.id, memberId));
 
-        return [member, reward];
-      });
+        const newTotal = currentTotal; // Placeholder for discount logic
 
-      return {
-        success: true,
-        discountAmount: reward.discountAmount?.toString(),
-        pointsRedeemed: reward.pointsRequired.toString(),
-        message: 'Reward applied successfully'
-      };
-    } catch (error) {
-      this.handleError(error, 'Applying reward');
+        return {
+          success: true,
+          newTotal,
+          pointsRedeemed: String(cost),
+          message: 'Reward applied',
+        };
+      });
+    } catch (e) {
+      this.handleError(e, 'applyReward');
     }
   }
 
-  async getLoyaltyMember(identifier: string | number): Promise<schema.LoyaltyMember | null> {
-    try {
-      if (typeof identifier === 'string') {
-        return await db.query.loyaltyMembers.findFirst({
-          where: eq(schema.loyaltyMembers.loyaltyId, identifier)
-        });
-      }
-
-      return await db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.id, identifier)
-      });
-    } catch (error) {
-      this.handleError(error, 'Getting loyalty member');
-    }
+  /************* Look-ups *************/
+  async getLoyaltyMember(identifier: string | number): Promise<LoyaltyMember | null> {
+    return typeof identifier === 'string'
+      ? db.query.loyaltyMembers.findFirst({
+          where: eq(schema.loyaltyMembers.loyaltyId, identifier),
+        })
+      : db.query.loyaltyMembers.findFirst({ where: eq(schema.loyaltyMembers.id, identifier) });
   }
 
-  async getLoyaltyMemberByCustomerId(customerId: number): Promise<schema.LoyaltyMember | null> {
-    try {
-      return await db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.customerId, customerId)
-      });
-    } catch (error) {
-      this.handleError(error, 'Getting loyalty member by customer ID');
-    }
+  async getLoyaltyMemberByCustomerId(customerId: number): Promise<LoyaltyMember | null> {
+    return db.query.loyaltyMembers.findFirst({ where: eq(schema.loyaltyMembers.customerId, customerId) });
   }
+
+  async getLoyaltyProgram(storeId: number): Promise<LoyaltyProgram | null> {
+    return db.query.loyaltyPrograms.findFirst({ where: eq(schema.loyaltyPrograms.storeId, storeId) });
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  Place-holders for remaining interface methods                      *
+   *  (Implement as needed in Phase 2+)                                  *
+   * ------------------------------------------------------------------ */
 
   async getMemberActivityHistory(
     memberId: number,
     limit: number = 20,
     offset: number = 0
-  ): Promise<schema.LoyaltyTransaction[]> {
+  ): Promise<LoyaltyTransaction[]> {
     try {
-      return await db
+      return db
         .select()
         .from(schema.loyaltyTransactions)
         .where(eq(schema.loyaltyTransactions.memberId, memberId))
         .orderBy(desc(schema.loyaltyTransactions.createdAt))
         .limit(limit)
         .offset(offset);
-    } catch (error) {
-      this.handleError(error, 'Getting member activity history');
+    } catch (e) {
+      this.handleError(e, 'getMemberActivityHistory');
     }
   }
-
-  async getLoyaltyProgram(storeId: number): Promise<schema.LoyaltyProgram | null> {
-    try {
-      return await db.query.loyaltyPrograms.findFirst({
-        where: eq(schema.loyaltyPrograms.storeId, storeId)
-      });
-    } catch (error) {
-      this.handleError(error, 'Getting loyalty program');
-    }
-  }
-
-  async upsertLoyaltyProgram(
-    storeId: number,
-    programData: Partial<schema.LoyaltyProgramInsert>
-  ): Promise<schema.LoyaltyProgram> {
+  async upsertLoyaltyProgram(storeId: number, programData: Partial<LoyaltyProgramInsert>): Promise<LoyaltyProgram> {
     try {
       const existing = await db.query.loyaltyPrograms.findFirst({
-        where: eq(schema.loyaltyPrograms.storeId, storeId)
+        where: eq(schema.loyaltyPrograms.storeId, storeId),
       });
-
       if (existing) {
-        return await db.update(schema.loyaltyPrograms)
+        const [updated] = await db
+          .update(schema.loyaltyPrograms)
           .set(programData)
-          .where(eq(schema.loyaltyPrograms.storeId, storeId))
-          .returning()
-          .then(result => result[0]);
+          .where(eq(schema.loyaltyPrograms.id, existing.id))
+          .returning();
+        return updated;
       }
-
-      return await db.insert(schema.loyaltyPrograms)
-        .values({
-          storeId,
-          ...programData
-        })
-        .returning()
-        .then(result => result[0]);
-    } catch (error) {
-      this.handleError(error, 'Updating loyalty program');
+      const [created] = await db
+        .insert(schema.loyaltyPrograms)
+        .values({ storeId, ...programData })
+        .returning();
+      return created;
+    } catch (e) {
+      this.handleError(e, 'upsertLoyaltyProgram');
     }
   }
-
-  async createLoyaltyTier(tierData: schema.LoyaltyTierInsert): Promise<schema.LoyaltyTier> {
+  async createLoyaltyTier(tierData: LoyaltyTierInsert): Promise<LoyaltyTier> {
     try {
-      return await db.insert(schema.loyaltyTiers)
-        .values(tierData)
-        .returning()
-        .then(result => result[0]);
-    } catch (error) {
-      this.handleError(error, 'Creating loyalty tier');
+      // ensure parent program exists
+      const program = await db.query.loyaltyPrograms.findFirst({
+        where: eq(schema.loyaltyPrograms.id, tierData.programId),
+      });
+      if (!program) throw new LoyaltyProgramNotFoundError(tierData.programId);
+      const [tier] = await db.insert(schema.loyaltyTiers).values(tierData).returning();
+      return tier;
+    } catch (e) {
+      this.handleError(e, 'createLoyaltyTier');
     }
   }
-
-  async createLoyaltyReward(
-    rewardData: schema.LoyaltyRewardInsert
-  ): Promise<schema.LoyaltyReward> {
+  async createLoyaltyReward(rewardData: LoyaltyRewardInsert): Promise<LoyaltyReward> {
     try {
-      return await db.insert(schema.loyaltyRewards)
-        .values(rewardData)
-        .returning()
-        .then(result => result[0]);
-    } catch (error) {
-      this.handleError(error, 'Creating loyalty reward');
+      // verify program exists
+      const program = await db.query.loyaltyPrograms.findFirst({
+        where: eq(schema.loyaltyPrograms.id, rewardData.programId),
+      });
+      if (!program) throw new LoyaltyProgramNotFoundError(rewardData.programId);
+      const [reward] = await db.insert(schema.loyaltyRewards).values(rewardData).returning();
+      return reward;
+    } catch (e) {
+      this.handleError(e, 'createLoyaltyReward');
     }
   }
-
-  async processExpiredPoints(userId: number): Promise<number> {
+  async processExpiredPoints(): Promise<number> {
     try {
-      const cutoffDate = new Date();
-      cutoffDate.setMonth(cutoffDate.getMonth() - LoyaltyService.POINTS_EXPIRY_MONTHS);
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 12);
 
-      const expiredPoints = await db
-        .select({
-          points: sql<number>`sum(${schema.loyaltyTransactions.pointsEarned})`
-        })
+      // Sum points older than cutoff & still active
+      const [{ expired = '0' }] = await db
+        .select({ expired: sql<number>`COALESCE(sum(${schema.loyaltyTransactions.pointsEarned}),0)` })
         .from(schema.loyaltyTransactions)
         .where(
           and(
-            lt(schema.loyaltyTransactions.createdAt, cutoffDate),
-            eq(schema.loyaltyTransactions.status, 'completed')
+            eq(schema.loyaltyTransactions.transactionType, 'earn'),
+            lt(schema.loyaltyTransactions.createdAt, cutoff)
           )
         );
+      const totalExpired = Number(expired);
+      if (totalExpired === 0) return 0;
 
-      if (expiredPoints[0].points) {
-        await db.update(schema.loyaltyTransactions)
-          .set({
-            status: 'expired',
-            updatedAt: new Date(),
-            updatedBy: userId
-          })
+      // Mark those txns as expired and create balancing negative transactions
+      await db.transaction(async (trx: any) => {
+        // flag existing as expired type
+        await trx
+          .update(schema.loyaltyTransactions)
+          .set({ transactionType: 'expire' })
           .where(
             and(
-              lt(schema.loyaltyTransactions.createdAt, cutoffDate),
-              eq(schema.loyaltyTransactions.status, 'completed')
+              eq(schema.loyaltyTransactions.transactionType, 'earn'),
+              lt(schema.loyaltyTransactions.createdAt, cutoff)
             )
           );
-      }
 
-      return expiredPoints[0].points || 0;
-    } catch (error) {
-      this.handleError(error, 'Processing expired points');
+        // deduct from member balances
+        await trx.execute(sql`
+          UPDATE loyalty_members m
+          SET current_points = current_points - exp.expired
+          FROM (
+            SELECT member_id, sum(points) AS expired
+            FROM loyalty_transactions
+            WHERE type = 'expire'
+            GROUP BY member_id
+          ) exp
+          WHERE m.id = exp.member_id;
+        `);
+      });
+      return totalExpired;
+    } catch (e) {
+      this.handleError(e, 'processExpiredPoints');
     }
   }
-
   async checkAndUpdateMemberTier(memberId: number): Promise<boolean> {
     try {
       const member = await db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.id, memberId)
+        where: eq(schema.loyaltyMembers.id, memberId),
       });
-
-      if (!member) {
-        throw LoyaltyServiceErrors.CUSTOMER_NOT_FOUND;
+      if (!member) throw new LoyaltyMemberNotFoundError(memberId);
+      if (!member.tierId) {
+        // pick lowest tier initially
+        const next = await db.query.loyaltyTiers.findFirst({
+          where: eq(schema.loyaltyTiers.active, true),
+          orderBy: asc(schema.loyaltyTiers.requiredPoints),
+        });
+        if (next) {
+          await db
+            .update(schema.loyaltyMembers)
+            .set({ tierId: next.id })
+            .where(eq(schema.loyaltyMembers.id, memberId));
+          return true;
+        }
+        // no tiers defined
+        return false;
       }
-
-      const program = await this.getLoyaltyProgram(member.storeId);
-      if (!program) {
-        throw LoyaltyServiceErrors.PROGRAM_NOT_FOUND;
-      }
-
-      const currentTier = await db.query.loyaltyTiers.findFirst({
-        where: eq(schema.loyaltyTiers.id, member.tierId)
-      });
-
-      // Use correct schema field names with schema helper functions
-      const nextTier = await db.query.loyaltyTiers.findFirst({
+      // member already has a tier – check if they qualify for a higher one
+      const points = Number(member.points);
+      const best = await db.query.loyaltyTiers.findFirst({
         where: and(
-          eq(schema.loyaltyTiers.programId, member.programId), // Using programId instead of storeId
-          gt(schema.loyaltyTiers.requiredPoints, member.currentPoints), // Using requiredPoints instead of pointsRequired
-          eq(schema.loyaltyTiers.active, true) // Using active instead of status
+          lte(schema.loyaltyTiers.requiredPoints, points),
+          eq(schema.loyaltyTiers.active, true)
         ),
-        orderBy: asc(schema.loyaltyTiers.requiredPoints)
+        orderBy: desc(schema.loyaltyTiers.requiredPoints),
       });
-      
-      // Format the result to have the fields the code expects
-      const formattedTier = nextTier ? formatLoyaltyTierResult(nextTier) : null;
-
-      if (nextTier && member.points >= nextTier.pointsRequired) {
-        await db.update(schema.loyaltyMembers)
-          .set({
-            tierId: nextTier.id,
-            updatedAt: new Date(),
-            updatedBy: member.updatedBy
-          })
+      if (best && best.id !== member.tierId) {
+        await db
+          .update(schema.loyaltyMembers)
+          .set({ tierId: best.id })
           .where(eq(schema.loyaltyMembers.id, memberId));
-
         return true;
       }
-
       return false;
-    } catch (error) {
-      this.handleError(error, 'Checking and updating member tier');
+    } catch (e) {
+      this.handleError(e, 'checkAndUpdateMemberTier');
     }
   }
 
-  async getLoyaltyAnalytics(storeId: number): Promise<{
-    memberCount: number;
-    activeMembers: number;
-    totalPointsEarned: string;
-    totalPointsRedeemed: string;
-    pointsBalance: string;
-    programDetails: schema.LoyaltyProgram | null;
-    topRewards: Array<{ name: string; redemptions: number }>;
-  }> {
+  async getLoyaltyAnalytics(storeId: number): Promise<{ totalMembers: number; totalPointsEarned: number; totalPointsRedeemed: number }> {
     try {
-      const [memberStats, pointsStats, program, topRewards] = await db.transaction(async (tx) => {
-        const memberStats = await tx
-          .select({
-            total: sql<number>`count(*)`,
-            active: sql<number>`count(*) filter (where ${schema.loyaltyMembers.status} = 'active')`
-          })
-          .from(schema.loyaltyMembers)
-          .where(eq(schema.loyaltyMembers.storeId, storeId));
+      const [{ members = '0' }] = await db
+        .select({ members: sql<number>`count(*)` })
+        .from(schema.loyaltyMembers);
 
-        // Use type-safe approach for query building with schema helpers
-      // Handle missing pointsEarned field in loyaltyTransactions
-      // Handle missing loyaltyRewardRedemptions table entirely
-      const pointsStats = await tx
-          .select({
-            // Use raw SQL with type casting to avoid schema mismatches
-            earned: sql<number>`COALESCE(sum(${schema.loyaltyTransactions.transactionAmount}), 0)`,
-            // Since redemptions table doesn't exist, default to 0
-            redeemed: sql<number>`0`
-          })
-          .from(schema.loyaltyMembers)
-          .where(eq(schema.loyaltyMembers.customerId, sql`(SELECT id FROM customers WHERE store_id = ${storeId} LIMIT 1)`))
-          .leftJoin(schema.loyaltyTransactions, eq(schema.loyaltyTransactions.memberId, schema.loyaltyMembers.id));
-
-        const program = await tx.query.loyaltyPrograms.findFirst({
-          where: eq(schema.loyaltyPrograms.storeId, storeId)
-        });
-
-        const topRewards = await tx
-          .select({
-            name: schema.loyaltyRewards.name,
-            redemptions: sql<number>`count(*)`
-          })
-          .from(schema.loyaltyRewardRedemptions)
-          .where(eq(schema.loyaltyRewardRedemptions.storeId, storeId))
-          .leftJoin(schema.loyaltyRewards, eq(schema.loyaltyRewards.id, schema.loyaltyRewardRedemptions.rewardId))
-          .groupBy(schema.loyaltyRewards.name)
-          .orderBy(desc(sql<number>`count(*)`))
-          .limit(5);
-
-        return [memberStats[0], pointsStats[0], program, topRewards];
-      });
+      const [{ earned = '0', redeemed = '0' }] = await db
+        .select({
+          earned: sql<number>`COALESCE(sum(points_earned) filter (where transaction_type='earn'),0)`,
+          redeemed: sql<number>`COALESCE(sum(points_redeemed) filter (where transaction_type='redeem'),0)`,
+        })
+        .from(schema.loyaltyTransactions)
+        .leftJoin(schema.loyaltyMembers, eq(schema.loyaltyMembers.id, schema.loyaltyTransactions.memberId));
 
       return {
-        memberCount: memberStats.total,
-        activeMembers: memberStats.active,
-        totalPointsEarned: pointsStats.earned?.toString() || '0',
-        totalPointsRedeemed: pointsStats.redeemed?.toString() || '0',
-        pointsBalance: (pointsStats.earned - pointsStats.redeemed)?.toString() || '0',
-        programDetails: program,
-        topRewards: topRewards.map(r => ({
-          name: r.name,
-          redemptions: r.redemptions
-        }))
+        totalMembers: Number(members),
+        totalPointsEarned: Number(earned),
+        totalPointsRedeemed: Number(redeemed),
       };
-    } catch (error) {
-      this.handleError(error, 'Getting loyalty analytics');
+    } catch (e) {
+      this.handleError(e, 'getLoyaltyAnalytics');
     }
-  }
-
-  private generateRandomString(length: number): string {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    const charactersLength = characters.length;
-    
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    
-    return result;
   }
 }

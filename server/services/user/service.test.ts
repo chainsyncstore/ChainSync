@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { UserService } from './service';
 import { UserServiceErrors, UserRole } from './types';
-import { db } from '@db';
+import { db } from '../../../db/index.js';
 import * as schema from '@shared/schema';
 import { SchemaValidationError } from '@shared/schema-validation';
 import * as bcrypt from 'bcrypt';
@@ -35,7 +35,7 @@ jest.mock('@shared/schema-validation', () => ({
     passwordReset: jest.fn(data => data)
   },
   SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: any) {
+    constructor(message: string, options?: Record<string, unknown>) {
       super(message);
       this.name = 'SchemaValidationError';
     }
@@ -131,7 +131,7 @@ describe('UserService', () => {
           throw new SchemaValidationError('Invalid user data');
         });
       
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       
       await expect(userService.createUser(validUserData))
         .rejects.toThrow();
@@ -153,7 +153,7 @@ describe('UserService', () => {
         fullName: 'Test User',
         email: 'test@example.com',
         role: 'cashier'
-      } as any);
+      } as schema.User);
       
       // Mock db.update for lastLogin update
       (db.update as jest.Mock).mockReturnValue({
@@ -188,7 +188,7 @@ describe('UserService', () => {
         id: 1,
         username: 'testuser',
         password: 'hashed_password'
-      } as any);
+      } as schema.User);
       
       // Mock bcrypt.compare to return false
       (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);

@@ -312,7 +312,7 @@ export default function SignupPage() {
         navigate('/login');
       }
     },
-    onError: (error: ApiError) => {
+    onError: (error: any) => {
       // Handle field-specific errors
       if (error.field) {
         setErrors(prev => ({

@@ -36,19 +36,28 @@ export class InventoryFormatter extends ResultFormatter<Inventory> {
     // Convert date strings to Date objects
     const withDates = this.formatDates(
       base, 
-      ['createdAt', 'updatedAt', 'lastAuditDate']
+      ['updatedAt', 'lastRestocked']
     );
     
     // Format the inventory with specific type handling
     return {
-      ...withDates,
       id: Number(withDates.id),
       storeId: Number(withDates.storeId),
+      productId: Number(withDates.productId),
+      quantity: Number(withDates.quantity),
+      minStock: Number(withDates.minStock),
+      maxStock: Number(withDates.maxStock),
+      lastRestocked: withDates.lastRestocked,
+      updatedAt: withDates.updatedAt,
+      batchTracking: withDates.batchTracking,
       name: String(withDates.name),
       description: withDates.description || '',
       location: withDates.location || '',
       capacity: Number(withDates.capacity || 0),
       currentUtilization: Number(withDates.currentUtilization || 0),
+      totalQuantity: Number(withDates.totalQuantity ?? withDates.quantity ?? 0),
+      availableQuantity: Number(withDates.availableQuantity ?? withDates.quantity ?? 0),
+      minimumLevel: Number(withDates.minimumLevel ?? withDates.minStock ?? 0),
       isActive: Boolean(withDates.isActive),
       metadata: metadata
     };
@@ -79,12 +88,11 @@ export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
     // Convert date strings to Date objects
     const withDates = this.formatDates(
       base, 
-      ['createdAt', 'updatedAt', 'expiryDate', 'manufactureDate', 'receivedDate']
+      ['createdAt', 'updatedAt', 'receivedDate']
     );
     
     // Format the inventory item with specific type handling
     return {
-      ...withDates,
       id: Number(withDates.id),
       inventoryId: Number(withDates.inventoryId),
       productId: Number(withDates.productId),
@@ -101,7 +109,10 @@ export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
       serialNumber: withDates.serialNumber || '',
       supplier: withDates.supplier || '',
       isActive: Boolean(withDates.isActive),
-      metadata: metadata
+      createdAt: withDates.createdAt,
+      updatedAt: withDates.updatedAt,
+      metadata: metadata,
+      notes: withDates.notes,
     };
   }
 }
@@ -130,15 +141,15 @@ export class InventoryTransactionFormatter extends ResultFormatter<InventoryTran
     // Convert date strings to Date objects
     const withDates = this.formatDates(
       base, 
-      ['createdAt', 'updatedAt', 'transactionDate']
+      ['createdAt']
     );
     
     // Format the inventory transaction with specific type handling
     return {
-      ...withDates,
       id: Number(withDates.id),
       inventoryId: Number(withDates.inventoryId),
       itemId: Number(withDates.itemId),
+      productId: Number(withDates.productId),
       transactionType: String(withDates.transactionType || 'receive') as InventoryTransactionType,
       quantity: Number(withDates.quantity || 0),
       beforeQuantity: Number(withDates.beforeQuantity || 0),
@@ -148,7 +159,9 @@ export class InventoryTransactionFormatter extends ResultFormatter<InventoryTran
       referenceId: withDates.referenceId || null,
       notes: withDates.notes || '',
       performedBy: Number(withDates.performedBy || 0),
-      metadata: metadata
+      createdAt: withDates.createdAt,
+      metadata: metadata,
+      reason: withDates.reason,
     };
   }
 }

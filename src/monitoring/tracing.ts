@@ -94,7 +94,7 @@ export function initTracing() {
         .catch(err => logger.error('Error shutting down OpenTelemetry SDK', err));
     });
   } catch (error) {
-    logger.error('Failed to initialize OpenTelemetry tracing', error);
+    logger.error('Failed to initialize OpenTelemetry tracing', error as Error);
   }
 }
 
@@ -126,7 +126,7 @@ export function getCurrentTraceContext() {
       };
     }
   } catch (error) {
-    logger.debug('Error getting trace context', error);
+    logger.debug('Error getting trace context', { error: error as Error });
   }
   
   return undefined;
@@ -147,7 +147,7 @@ export function traceContextMiddleware(req: Request, res: Response, next: NextFu
       res.setHeader('X-Trace-ID', traceContext.traceId);
     }
   } catch (error) {
-    logger.debug('Error in trace context middleware', error);
+    logger.debug('Error in trace context middleware', { error: error as Error });
   }
   
   next();
@@ -177,7 +177,7 @@ export async function withSpan<T>(name: string, fn: () => Promise<T>): Promise<T
       }
     });
   } catch (error) {
-    logger.debug(`Error creating span for ${name}`, error);
+    logger.debug(`Error creating span for ${name}`, { error: error as Error });
     return await fn();
   }
 }

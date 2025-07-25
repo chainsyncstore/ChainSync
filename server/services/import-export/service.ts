@@ -1,35 +1,36 @@
-import { Request, Express } from 'express';
-import * as multer from 'multer';
+// import { Request, Express } from 'express'; // Unused
+// import * as multer from 'multer'; // Unused
 import { AppError, ErrorCategory } from '@shared/types/errors';
-import { ImportExportConfig, ImportExportServiceErrors, ImportExportProgress, ImportExportResult, ImportExportOptions, ExportOptions, ValidationOptions } from './types';
+// ImportExportServiceErrors, ImportExportProgress removed
+import { ImportExportConfig, ImportExportResult, ImportExportOptions, ExportOptions, ValidationOptions } from './types';
 import { ValidationService as ValidationServiceImpl } from './validation';
 import { ImportExportRepository } from './repository';
-import * as fs from 'fs';
-import * as path from 'path';
-import { promisify } from 'util';
-import { Parser } from 'json2csv';
+// import * as fs from 'fs'; // Unused
+// import * as path from 'path'; // Unused
+// import { promisify } from 'util'; // Unused
+import { parse as json2csv } from 'json2csv';
 import { parse } from 'csv-parse';
 import * as ExcelJS from 'exceljs';
-import * as xlsx from 'xlsx';
+// import * as xlsx from 'xlsx'; // Unused
 
 // Helper function to chunk arrays
-type Chunk<T> = T[][];
+// type Chunk<T> = T[][]; // Unused
 
-function chunkArray<T>(array: T[], size: number): Chunk<T> {
-  if (!Array.isArray(array)) {
-    throw new Error('Input must be an array');
-  }
-  if (typeof size !== 'number' || size <= 0) {
-    throw new Error('Size must be a positive number');
-  }
+// function chunkArray<T>(array: T[], size: number): Chunk<T> { // Unused
+//   if (!Array.isArray(array)) {
+//     throw new Error('Input must be an array');
+//   }
+//   if (typeof size !== 'number' || size <= 0) {
+//     throw new Error('Size must be a positive number');
+//   }
 
-  return array.reduce((chunks, item, index) => {
-    const chunkIndex = Math.floor(index / size);
-    if (!chunks[chunkIndex]) chunks[chunkIndex] = [];
-    chunks[chunkIndex].push(item);
-    return chunks;
-  }, [] as Chunk<T>);
-}
+//   return array.reduce((chunks, item, index) => {
+//     const chunkIndex = Math.floor(index / size);
+//     if (!chunks[chunkIndex]) chunks[chunkIndex] = [];
+//     chunks[chunkIndex].push(item);
+//     return chunks;
+//   }, [] as Chunk<T>);
+// }
 
 export class ImportExportService {
   private config: {
@@ -98,13 +99,13 @@ export class ImportExportService {
     }
   }
 
-  async importData(userId: number, data: any[], entityType: string, options?: {
+  async importData(userId: number, data: any[], entityType: string, options: {
     batchSize?: number;
     delimiter?: string;
     includeHeaders?: boolean;
     format?: string;
     filters?: Record<string, any>;
-  }): Promise<{
+  } = {}): Promise<{
     success: boolean;
     message: string;
     data?: any[];
@@ -261,13 +262,11 @@ export class ImportExportService {
   }): Promise<Buffer> {
     try {
       const config = {
-        format: options.format,
-        includeHeaders: options.includeHeaders,
+        fields: options.includeHeaders ? Object.keys(data[0]) : undefined,
         delimiter: options.delimiter || ','
       };
 
-      const parser = new Parser(config);
-      const csv = parser.stringify(data);
+      const csv = json2csv(data, config);
       return Buffer.from(csv, 'utf8');
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
@@ -299,7 +298,7 @@ export class ImportExportService {
         worksheet.addRow(Object.values(row));
       });
 
-      return await workbook.xlsx.writeBuffer() as Buffer;
+      return await workbook.xlsx.writeBuffer() as unknown as Buffer;
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
     }
@@ -342,13 +341,17 @@ export class ImportExportService {
   private async parseExcel(buffer: Buffer): Promise<any[]> {
     try {
       const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(buffer);
+      await workbook.xlsx.load(buffer as unknown as Buffer);
       const worksheet = workbook.getWorksheet(1);
-      const row1 = worksheet.getRow(1).values;
-const headers = Array.isArray(row1) ? row1.slice(1) : [];
+      if (!worksheet) {
+        return [];
+      }
+      const row1 = worksheet.getRow(1).values as string[];
+      const headers = Array.isArray(row1) ? row1.slice(1) : [];
        
       const results: any[] = [];
-      worksheet.getRows(2, worksheet.rowCount).forEach(row => {
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
         const rowData: any = {};
         headers.forEach((header: any, index: number) => {
           if (header) {
@@ -371,9 +374,9 @@ const headers = Array.isArray(row1) ? row1.slice(1) : [];
     }
   }
 
-  private getConfig(): ImportExportConfig {
-    return {
-      batchSize: 100
-    };
-  }
+  // private getConfig(): ImportExportConfig { // Unused
+  //   return {
+  //     batchSize: 100
+  //   };
+  // }
 }

@@ -1,6 +1,6 @@
 // jest.setup.ts
 // Global test setup for Jest
-import { makeMockDb } from './test/factories/db';
+import { makeMockDb } from './tests/factories/db';
 
 // Optionally, set up global mocks or utilities here
 // Example: global.makeMockDb = makeMockDb;

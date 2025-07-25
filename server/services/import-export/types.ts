@@ -1,5 +1,5 @@
 import { AppError, ErrorCategory } from '@shared/types/errors';
-import { Express } from 'express';
+// import { Express } from 'express'; // Unused
 
 // Use Express types instead of custom File interface
 declare global {

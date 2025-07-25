@@ -1,25 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../../db';
+import { db } from '../../db/index.js';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { getLogger, getRequestLogger } from '../../src/logging';
+import { getLogger, getRequestLogger } from '../../src/logging/index.js';
 
 // Get centralized logger for auth middleware
 const logger = getLogger().child({ component: 'auth-middleware' });
 
 // Define user interface for express requests
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string | number; // Allow both string and number types for ID
-        role: string;
-        storeId?: number;
-        name: string;
-      };
-    }
-  }
-}
 
 declare module 'express-session' {
   interface SessionData {
@@ -73,7 +61,7 @@ export const authorizeRoles = (allowedRoles: string[]) => {
       return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
     }
     
-    if (!allowedRoles.includes(req.session.userRole)) {
+    if (!req.session.userRole || !allowedRoles.includes(req.session.userRole)) {
       reqLogger.warn('Forbidden access attempt', {
         path: req.path,
         method: req.method,
@@ -89,12 +77,15 @@ export const authorizeRoles = (allowedRoles: string[]) => {
     }
     
     // Set user object for downstream middleware and route handlers
-    req.user = {
-      id: String(req.session.userId), // Convert number to string to match interface
-      role: req.session.userRole,
-      storeId: req.session.storeId,
-      name: req.session.fullName || ''
-    };
+    if (req.session.userRole) {
+        req.user = {
+          id: String(req.session.userId), // Convert number to string to match interface
+          role: req.session.userRole,
+          storeId: req.session.storeId,
+          name: req.session.fullName || '',
+          email: '' // Add email property
+        };
+      }
     
     next();
   };
@@ -188,7 +179,7 @@ export const isCashierOrAbove = (req: Request, res: Response, next: NextFunction
   }
   
   const validRoles = ['cashier', 'manager', 'admin'];
-  if (!validRoles.includes(req.session.userRole)) {
+  if (!req.session.userRole || !validRoles.includes(req.session.userRole)) {
     reqLogger.warn('Forbidden access attempt', {
       path: req.path,
       method: req.method,
@@ -304,11 +295,9 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
         where: eq(schema.users.id, req.session.userId),
         columns: {
           id: true,
-          username: true,
           email: true,
           role: true,
-          isActive: true,
-          lastLogin: true
+          isActive: true
         }
       });
       
@@ -345,7 +334,6 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
       if (user.isActive === false) {
         reqLogger.warn('Inactive user attempted access', {
           userId: user.id,
-          username: user.username,
           role: user.role,
           sessionID: req.sessionID
         });
@@ -375,20 +363,18 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
         });
         
         // Update session with current role
-        req.session.userRole = user.role;
+        req.session.userRole = user.role as string;
       }
       
       // Session is valid
       reqLogger.debug('User session validated', {
         userId: user.id,
-        username: user.username,
         role: user.role
       });
       
       // Update user context in request for downstream use
       (req as any).user = {
         id: user.id,
-        username: user.username,
         email: user.email,
         role: user.role
       };

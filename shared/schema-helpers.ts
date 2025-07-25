@@ -162,7 +162,7 @@ export const refundItems = {
   // Use the actual schema.returnItems for all refund item operations
   ...schema.returnItems,
   // Add any missing properties expected by the code
-  returnReasonId: schema.returnItems.refundId,
+  returnReasonId: schema.returnItems.returnId,
 };
 
 // Helper function for formatting refund query results

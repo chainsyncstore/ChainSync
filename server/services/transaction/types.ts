@@ -4,7 +4,12 @@
  * This file defines the interfaces and types for the transaction service.
  */
 
+import { InferSelectModel } from 'drizzle-orm';
 import * as schema from '@shared/schema';
+
+export type SelectTransaction = InferSelectModel<typeof schema.transactions>;
+export type TransactionItem = InferSelectModel<typeof schema.transactionItems>;
+export type TransactionPayment = InferSelectModel<typeof schema.transactionPayments>;
 
 export enum PaymentMethod {
   CASH = 'cash',
@@ -28,6 +33,11 @@ export enum TransactionType {
   WITHDRAWAL = 'WITHDRAWAL',
   ADJUSTMENT = 'ADJUSTMENT'
 }
+
+export type CreateTransactionItemParams = Omit<TransactionItem, 'id' | 'transactionId' | 'createdAt' | 'updatedAt'>;
+export type UpdateTransactionItemParams = Partial<CreateTransactionItemParams>;
+export type CreateTransactionPaymentParams = Omit<TransactionPayment, 'id' | 'transactionId' | 'createdAt' | 'updatedAt'>;
+export type UpdateTransactionPaymentParams = Partial<CreateTransactionPaymentParams>;
 
 export enum TransactionStatus {
   PENDING = 'pending',
@@ -69,6 +79,7 @@ export interface CreateTransactionParams {
 }
 
 export interface UpdateTransactionParams {
+  userId: number;
   transactionId: number;
   customerId?: number;
   type?: TransactionType;
@@ -79,6 +90,7 @@ export interface UpdateTransactionParams {
 
 export interface TransactionSearchParams {
   storeId: number;
+  keyword?: string;
   startDate?: Date;
   endDate?: Date;
   customerId?: number;
@@ -103,6 +115,7 @@ export interface RefundParams {
   refundMethod: PaymentMethod;
   fullRefund?: boolean;
   items?: Array<{
+    productId: number;
     transactionItemId: number;
     quantity: number;
     unitPrice: string;
@@ -124,6 +137,7 @@ export interface TransactionServiceErrors {
   PAYMENT_VALIDATION_FAILED: Error;
   INVALID_PAYMENT_AMOUNT: Error;
   INVALID_TRANSACTION_STATUS: Error;
+  INVALID_REFUND_AMOUNT: Error;
 }
 
 export const TransactionServiceErrors: TransactionServiceErrors = {
@@ -137,53 +151,6 @@ export const TransactionServiceErrors: TransactionServiceErrors = {
   INSUFFICIENT_STOCK: new Error("Insufficient stock available"),
   PAYMENT_VALIDATION_FAILED: new Error("Payment validation failed"),
   INVALID_PAYMENT_AMOUNT: new Error("Invalid payment amount"),
-  INVALID_TRANSACTION_STATUS: new Error("Invalid transaction status")
+  INVALID_TRANSACTION_STATUS: new Error("Invalid transaction status"),
+  INVALID_REFUND_AMOUNT: new Error("Invalid refund amount")
 };
-
-export interface ITransactionService {
-  createTransaction(params: CreateTransactionParams): Promise<schema.Transaction>;
-  updateTransaction(transactionId: number, params: UpdateTransactionParams): Promise<schema.Transaction>;
-  getTransactionById(transactionId: number): Promise<schema.Transaction | null>;
-  getTransactionsByStore(storeId: number, page?: number, limit?: number): Promise<{
-    transactions: schema.Transaction[];
-    total: number;
-    page: number;
-    limit: number;
-  }>;
-  getTransactionsByCustomer(customerId: number, page?: number, limit?: number): Promise<{
-    transactions: schema.Transaction[];
-    total: number;
-    page: number;
-    limit: number;
-  }>;
-  searchTransactions(params: TransactionSearchParams): Promise<{
-    transactions: schema.Transaction[];
-    total: number;
-    page: number;
-    limit: number;
-  }>;
-  processRefund(params: RefundParams): Promise<schema.Return>;
-  getTransactionAnalytics(storeId: number, startDate?: Date, endDate?: Date): Promise<{
-    totalSales: string;
-    totalRefunds: string;
-    netSales: string;
-    averageTransactionValue: string;
-    transactionCount: number;
-    refundCount: number;
-    salesByPaymentMethod: Array<{
-      method: PaymentMethod;
-      amount: string;
-      count: number;
-    }>;
-    salesByHourOfDay: Array<{
-      hour: number;
-      amount: string;
-      count: number;
-    }>;
-    salesByDayOfWeek: Array<{
-      day: number;
-      amount: string;
-      count: number;
-    }>;
-  }>;
-}

@@ -1,5 +1,5 @@
-import { PaymentService } from '../../../../server/services/payment/payment-service';
-import { ConsoleLogger } from '../../../../src/logging/Logger';
+import { PaymentService } from '@server/services/payment';
+import { ConsoleLogger } from '../../../src/logging/Logger.js';
 
 describe('PaymentService Loyalty Logger Integration', () => {
   let paymentService: PaymentService;
@@ -16,7 +16,11 @@ describe('PaymentService Loyalty Logger Integration', () => {
 
   it('should log and skip loyalty accrual for refunded transactions', async () => {
     loggerSpy = jest.spyOn(ConsoleLogger, 'info');
-    await paymentService.handleLoyaltyAccrual({ transactionId: 'TXN1', customerId: 42, status: 'refunded' });
+    await paymentService.handleLoyaltyAccrual({
+      transactionId: 'TXN1',
+      customerId: 42,
+      status: 'refunded',
+    });
     expect(loggerSpy).toHaveBeenCalledWith(
       expect.stringContaining('Loyalty accrual skipped'),
       expect.objectContaining({ transactionId: 'TXN1', customerId: 42, reason: 'refunded' })
@@ -25,7 +29,11 @@ describe('PaymentService Loyalty Logger Integration', () => {
 
   it('should log and skip loyalty accrual for failed transactions', async () => {
     loggerSpy = jest.spyOn(ConsoleLogger, 'info');
-    await paymentService.handleLoyaltyAccrual({ transactionId: 'TXN2', customerId: 99, status: 'failed' });
+    await paymentService.handleLoyaltyAccrual({
+      transactionId: 'TXN2',
+      customerId: 99,
+      status: 'failed',
+    });
     expect(loggerSpy).toHaveBeenCalledWith(
       expect.stringContaining('Loyalty accrual skipped'),
       expect.objectContaining({ transactionId: 'TXN2', customerId: 99, reason: 'failed' })
@@ -34,7 +42,12 @@ describe('PaymentService Loyalty Logger Integration', () => {
 
   it('should log and skip loyalty accrual for flagged transactions', async () => {
     loggerSpy = jest.spyOn(ConsoleLogger, 'info');
-    await paymentService.handleLoyaltyAccrual({ transactionId: 'TXN3', customerId: 77, status: 'success', flagged: true });
+    await paymentService.handleLoyaltyAccrual({
+      transactionId: 'TXN3',
+      customerId: 77,
+      status: 'success',
+      flagged: true,
+    });
     expect(loggerSpy).toHaveBeenCalledWith(
       expect.stringContaining('Loyalty accrual skipped'),
       expect.objectContaining({ transactionId: 'TXN3', customerId: 77, reason: 'flagged' })
@@ -43,7 +56,11 @@ describe('PaymentService Loyalty Logger Integration', () => {
 
   it('should log loyalty accrual for successful transaction', async () => {
     loggerSpy = jest.spyOn(ConsoleLogger, 'info');
-    await paymentService.handleLoyaltyAccrual({ transactionId: 'TXN4', customerId: 55, status: 'success' });
+    await paymentService.handleLoyaltyAccrual({
+      transactionId: 'TXN4',
+      customerId: 55,
+      status: 'success',
+    });
     expect(loggerSpy).toHaveBeenCalledWith(
       expect.stringContaining('Loyalty accrued'),
       expect.objectContaining({ transactionId: 'TXN4', customerId: 55, status: 'success' })

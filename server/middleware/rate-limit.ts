@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import rateLimit, { Options } from 'express-rate-limit';
-import { getLogger } from '../../src/logging';
+import { getLogger } from '../../src/logging/index.js';
 import Redis from 'ioredis';
 
 // Get centralized logger for rate limiting middleware
@@ -46,7 +46,9 @@ const createRedisStore = () => {
             redisClient.expire(key, ttlSeconds);
           }
           
-          cb(null, result);
+          if (result !== undefined) {
+            cb(null, result);
+          }
         });
       },
       decrement: (key: string) => {
@@ -65,7 +67,7 @@ const createRedisStore = () => {
       }
     };
   } catch (error) {
-    logger.error('Failed to initialize Redis rate-limit store', error);
+    logger.error('Failed to initialize Redis rate-limit store', error as Error);
     return null;
   }
 };
@@ -102,7 +104,7 @@ function createRateLimiter(options: Partial<Options>) {
       return (req.ip || '127.0.0.1');
     },
     // Add structured logging
-    handler: (req: Request, res: Response, next: NextFunction, options: Options) => {
+    handler: (req: Request, res: Response, next: NextFunction, options: any) => {
       const reqLogger = (req as any).logger || logger;
       
       reqLogger.warn('Rate limit exceeded', {
@@ -120,7 +122,7 @@ function createRateLimiter(options: Partial<Options>) {
              process.env.NODE_ENV !== 'production';
     },
     // Use Redis store in production if available
-    store: redisStore || undefined,
+    store: redisStore as any,
     // Add custom options
     ...options
   });
@@ -173,12 +175,12 @@ export const userRateLimiter: RequestHandler = createRateLimiter({
   max: 300, // limit each user to 300 requests per hour
   // Use user ID instead of IP for authenticated users
   keyGenerator: (req: Request) => {
-    return req.session.userId ? 
-      `user_${req.session.userId}` : 
+    return (req.session as any).userId ?
+      `user_${(req.session as any).userId}` :
       (req.ip || '127.0.0.1');
   },
   skip: (req: Request) => {
     // Skip if user is admin or manager
-    return req.session.userRole === 'admin' || req.session.userRole === 'manager';
+    return (req.session as any).userRole === 'admin' || (req.session as any).userRole === 'manager';
   }
 });

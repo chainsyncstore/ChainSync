@@ -29,6 +29,12 @@ build
 .temp
 .tmp
 
+# Build artefacts
+/dist.bak
+/playwright-report
+/test-results
+/coverage
+
 # Logs
 logs
 *.log
@@ -129,3 +135,8 @@ server/public
 # Compressed files
 *.tar.gz
 *.zip
+
+# Backup and temporary files
+dist.bak/
+lint-errors.txt
+package-lock.json.bak

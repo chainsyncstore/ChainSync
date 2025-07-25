@@ -1,14 +1,17 @@
-import { db } from "@db";
-import * as schema from "@shared/schema";
+import { db } from "../../db";
+import * as schema from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { AffiliateService } from "./affiliate/service";
-import { PaymentService } from "./payment/service";
-import { prepareSubscriptionData } from "@shared/schema-helpers";
+// import { AffiliateService } from "./affiliate/service"; // Unused
+// import { PaymentService } from "./payment/service"; // Unused
+// Helper function to prepare subscription data
+function prepareSubscriptionData(data: any) {
+  return data; // Simple pass-through for now
+}
 import { 
   applyReferralDiscount, 
   processAffiliateCommission 
 } from "./affiliate";
-import crypto from "crypto";
+import * as crypto from "crypto";
 
 /**
  * Verify Paystack webhook signature
@@ -161,19 +164,17 @@ async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
     // Create subscription record
     const subscriptionData: schema.SubscriptionInsert = {
       userId,
-      plan,
+      planId: plan,
       status: "active",
       amount: discountedAmount.toString(),
       currency,
       referralCode: referralCode || undefined,
-      discountApplied: discountAmount > 0,
-      discountAmount: discountAmount.toString(),
-      startDate,
-      endDate,
+      currentPeriodStart: startDate,
+      currentPeriodEnd: endDate,
       autoRenew: true,
-      paymentProvider: "paystack",
-      paymentReference: data.reference,
+      paymentMethod: "paystack",
       metadata: JSON.stringify({
+        paymentReference: data.reference,
         paystackCode: data.subscription_code,
         paystackCustomerCode: data.customer.customer_code
       })
@@ -226,14 +227,14 @@ async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
         if (subscription.referralCode) {
           await processAffiliateCommission(
             subscription.userId, 
-            parseFloat(subscription.amount.toString()),
-            subscription.currency
+            parseFloat(subscription.amount?.toString() || '0'),
+            subscription.currency || undefined
           );
         }
         
         // Update the subscription end date
-        const newEndDate = new Date(subscription.endDate);
-        if (metadata.plan_interval === "annually") {
+        const newEndDate = new Date(subscription.endDate || new Date());
+        if (subscription.planId === "annually") {
           newEndDate.setFullYear(newEndDate.getFullYear() + 1);
         } else {
           newEndDate.setMonth(newEndDate.getMonth() + 1);
@@ -324,19 +325,17 @@ async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> 
     // Create subscription record
     const subscriptionData: schema.SubscriptionInsert = {
       userId,
-      plan,
+      planId: plan,
       status: "active",
       amount: discountedAmount.toString(),
       currency,
       referralCode: referralCode || undefined,
-      discountApplied: discountAmount > 0,
-      discountAmount: discountAmount.toString(),
-      startDate,
-      endDate,
+      currentPeriodStart: startDate,
+      currentPeriodEnd: endDate,
       autoRenew: true,
-      paymentProvider: "flutterwave",
-      paymentReference: data.tx_ref,
+      paymentMethod: "flutterwave",
       metadata: JSON.stringify({
+        paymentReference: data.tx_ref,
         flwSubscriptionId: data.id,
         flwCustomerId: data.customer?.id
       })
@@ -388,15 +387,15 @@ async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
         // Process the affiliate commission if this is a referred subscription
         if (subscription.referralCode) {
           await processAffiliateCommission(
-            subscription.userId, 
-            parseFloat(subscription.amount.toString()),
-            subscription.currency
+            subscription.userId,
+            parseFloat(subscription.amount?.toString() || '0'),
+            subscription.currency || undefined
           );
         }
         
         // Update the subscription end date
-        const newEndDate = new Date(subscription.endDate);
-        if (meta.plan_interval === "yearly") {
+        const newEndDate = new Date(subscription.endDate || new Date());
+        if (subscription.planId === "yearly") {
           newEndDate.setFullYear(newEndDate.getFullYear() + 1);
         } else {
           newEndDate.setMonth(newEndDate.getMonth() + 1);

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,11 +27,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
     queryKey: ['/api/products/search', searchTerm],
     queryFn: async () => {
       if (searchTerm.length < 2) return [];
-      const response = await fetch(`/api/products/search?q=${encodeURIComponent(searchTerm)}`);
-      if (!response.ok) {
-        throw new Error('Failed to search products');
-      }
-      return response.json();
+      return await apiRequest('GET', `/api/products/search?q=${encodeURIComponent(searchTerm)}`);
     },
     enabled: searchTerm.length >= 2,
   });
@@ -41,12 +38,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
     // This endpoint may not exist yet, fallback to getting all products
     queryFn: async () => {
       try {
-        const response = await fetch('/api/products/popular');
-        if (!response.ok) {
-          console.log('Popular products endpoint not available, fetching all products instead');
-          throw new Error('Popular products endpoint not available');
-        }
-        return response.json();
+        return await apiRequest('GET', '/api/products/popular');
       } catch (error) {
         console.log('Error fetching popular products:', error);
         throw error;
@@ -58,11 +50,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
   const allProductsQuery = useQuery({
     queryKey: ['/api/products'],
     queryFn: async () => {
-      const response = await fetch('/api/products');
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
-      }
-      return response.json();
+      return await apiRequest('GET', '/api/products');
     },
     enabled: !popularProductsQuery.data && popularProductsQuery.isError,
   });

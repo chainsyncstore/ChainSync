@@ -59,7 +59,7 @@ export function getAlertThresholds() {
   Object.keys(thresholds).forEach(key => {
     const envKey = `ALERT_${key}`;
     if (process.env[envKey] && !isNaN(Number(process.env[envKey]))) {
-      thresholds[key] = Number(process.env[envKey]);
+      (thresholds as any)[key] = Number(process.env[envKey]);
     }
   });
   

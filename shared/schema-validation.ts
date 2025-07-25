@@ -64,7 +64,7 @@ export function validateEntity<T>(schema: z.ZodType<T>, data: unknown, entityNam
         {
           code: `INVALID_${entityName.toUpperCase()}`,
           issues: error.errors,
-          path: error.errors[0]?.path,
+          path: error.errors[0]?.path as string[],
           field: error.errors[0]?.path.join('.')
         }
       );
@@ -77,7 +77,7 @@ export function validateEntity<T>(schema: z.ZodType<T>, data: unknown, entityNam
 // ------------------------------------------------
 
 // User validation schema
-export const userSchema = createInsertSchema(schema.users, {
+export const userSchema = createInsertSchema(schema.users).extend({
   username: z.string().min(3, "Username must be at least 3 characters").max(50),
   email: z.string().email("Invalid email format"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -86,40 +86,64 @@ export const userSchema = createInsertSchema(schema.users, {
 });
 
 export const userValidation = {
-  insert: (data: unknown) => validateEntity(userSchema, data, 'user'),
+  insert: userSchema,
   // Additional validation rules for specific operations
-  update: (data: unknown) => validateEntity(
-    userSchema.partial().omit({ password: true }), 
-    data, 
-    'user'
-  ),
-  passwordReset: (data: unknown) => validateEntity(
-    z.object({
-      password: z.string().min(8, "Password must be at least 8 characters"),
-      confirmPassword: z.string()
-    }).refine(data => data.password === data.confirmPassword, {
-      message: "Passwords do not match",
-      path: ["confirmPassword"]
-    }),
-    data,
-    'password_reset'
-  )
+  update: userSchema.partial().omit({ password: true }),
+  passwordReset: z.object({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string()
+  }).refine(data => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"]
+  }),
 };
 
 // Product validation schema
-export const productSchema = createInsertSchema(schema.products, {
+export const productSchema = createInsertSchema(schema.products).extend({
   name: z.string().min(2, "Product name must be at least 2 characters"),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid decimal with up to 2 decimal places"),
   sku: z.string().min(3, "SKU must be at least 3 characters"),
 });
 
+// Schema for inventory adjustment related to products
+const inventoryAdjustmentSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int(),
+  reason: z.string().min(2, "Reason must be at least 2 characters"),
+});
+
+// Webhook validation schemas
+export const webhookValidation = {
+  create: (data: unknown) => validateEntity(
+    z.object({
+      url: z.string().url(),
+      storeId: z.number().int().positive(),
+      events: z.array(z.string()).min(1),
+    }),
+    data,
+    'webhook'
+  ),
+  update: (data: unknown) => validateEntity(
+    z.object({
+      url: z.string().url().optional(),
+      events: z.array(z.string()).optional(),
+      isActive: z.boolean().optional(),
+    }),
+    data,
+    'webhook'
+  ),
+};
+
 export const productValidation = {
-  insert: (data: unknown) => validateEntity(productSchema, data, 'product'),
-  update: (data: unknown) => validateEntity(productSchema.partial(), data, 'product'),
+  insert: productSchema,
+  update: productSchema.partial(),
+  inventory: {
+    adjustment: inventoryAdjustmentSchema,
+  },
 };
 
 // Inventory validation schema
-export const inventorySchema = createInsertSchema(schema.inventory, {
+export const inventorySchema = createInsertSchema(schema.inventory).extend({
   totalQuantity: z.number().int().min(0, "Quantity cannot be negative"),
   minimumLevel: z.number().int().min(0, "Minimum level cannot be negative"),
 });
@@ -139,54 +163,59 @@ export const inventoryItemSchema = z.object({
 });
 
 export const inventoryValidation = {
-  insert: (data: unknown) => validateEntity(inventorySchema, data, 'inventory'),
-  update: (data: unknown) => validateEntity(inventorySchema.partial(), data, 'inventory'),
+  insert: inventorySchema,
+  update: inventorySchema.partial(),
   // Add specific operation for inventory adjustments
-  adjustment: (data: unknown) => validateEntity(
-    z.object({
-      inventoryId: z.number().int().positive(),
-      quantity: z.number().int(),
-      reason: z.string().min(1, "Reason is required"),
-      userId: z.number().int().positive()
-    }),
-    data,
-    'inventory_adjustment'
-  ),
+  adjustment: z.object({
+    inventoryId: z.number().int().positive(),
+    quantity: z.number().int(),
+    reason: z.string().min(1, "Reason is required"),
+    userId: z.number().int().positive()
+  }),
   // Inventory Item validation
-  itemInsert: (data: unknown) => validateEntity(inventoryItemSchema, data, 'inventory_item'),
-  itemUpdate: (data: unknown) => validateEntity(inventoryItemSchema.partial(), data, 'inventory_item'),
+  itemInsert: inventoryItemSchema,
+  itemUpdate: inventoryItemSchema.partial(),
+  transactionInsert: z.object({
+    inventoryId: z.number().int().positive(),
+    itemId: z.number().int().positive(),
+    quantity: z.number().int(),
+    type: z.enum(['in', 'out']),
+  }),
 };
 
 // Loyalty module validation
-export const loyaltyMemberSchema = createInsertSchema(schema.loyaltyMembers, {
+export const loyaltyMemberSchema = createInsertSchema(schema.loyaltyMembers).extend({
   loyaltyId: z.string().min(5, "Loyalty ID must be at least 5 characters"),
   currentPoints: z.string().regex(/^\d+(\.\d{1,2})?$/, "Points must be a valid decimal"),
 });
 
+// Create schema for loyalty transactions and programs
+export const loyaltyProgramInsertSchema = createInsertSchema(schema.loyaltyPrograms);
+export const loyaltyProgramSchema = loyaltyProgramInsertSchema;
+export const loyaltyTransactionSchema = createInsertSchema(schema.loyaltyTransactions).extend({
+  description: z.string().optional(),
+});
+
 export const loyaltyValidation = {
   member: {
-    insert: (data: unknown) => validateEntity(loyaltyMemberSchema, data, 'loyalty_member'),
-    update: (data: unknown) => validateEntity(loyaltyMemberSchema.partial(), data, 'loyalty_member'),
+    schema: loyaltyMemberSchema,
+    insert: loyaltyMemberSchema,
+    update: loyaltyMemberSchema.partial(),
   },
-  earnPoints: (data: unknown) => validateEntity(
-    z.object({
-      memberId: z.number().int().positive(),
-      points: z.number().positive("Points must be a positive number"),
-      transactionId: z.string().optional(),
-      source: z.string()
-    }),
-    data,
-    'loyalty_transaction'
-  ),
-  redeemPoints: (data: unknown) => validateEntity(
-    z.object({
-      memberId: z.number().int().positive(),
-      points: z.number().positive("Points must be a positive number"),
-      rewardId: z.number().int().positive(),
-    }),
-    data,
-    'loyalty_redemption'
-  )
+  earnPoints: z.object({
+    memberId: z.number().int().positive(),
+    points: z.number().positive("Points must be a positive number"),
+    transactionId: z.string().optional(),
+    source: z.string()
+  }),
+  redeemPoints: z.object({
+    memberId: z.number().int().positive(),
+    points: z.number().positive("Points must be a positive number"),
+    rewardId: z.number().int().positive(),
+  }),
+  programInsert: loyaltyProgramSchema,
+  programUpdate: loyaltyProgramSchema.partial(),
+  transactionInsert: loyaltyTransactionSchema,
 };
 
 // Subscription validation
@@ -211,87 +240,71 @@ const subscriptionBase = {
 export const subscriptionSchema = z.object(subscriptionBase);
 
 export const subscriptionValidation = {
-  insert: (data: unknown) => validateEntity(subscriptionSchema, data, 'subscription'),
-  update: (data: unknown) => validateEntity(subscriptionSchema.partial(), data, 'subscription'),
-  cancel: (data: unknown) => validateEntity(
-    z.object({
-      subscriptionId: z.number().int().positive(),
-      reason: z.string().optional(),
-    }),
-    data,
-    'subscription_cancellation'
-  ),
-  webhook: (data: unknown) => validateEntity(
-    z.object({
-      provider: z.enum(["paystack", "flutterwave", "stripe"]),
-      event: z.string(),
-      data: z.any(),
-      reference: z.string().optional(),
-    }),
-    data,
-    'subscription_webhook'
-  )
+  insert: subscriptionSchema,
+  update: subscriptionSchema.partial(),
+  cancel: z.object({
+    subscriptionId: z.number().int().positive(),
+    reason: z.string().optional(),
+  }),
+  webhook: z.object({
+    provider: z.enum(["paystack", "flutterwave", "stripe"]),
+    event: z.string(),
+    data: z.any(),
+    reference: z.string().optional(),
+  }),
 };
 
 // Transaction validation
-export const transactionSchema = createInsertSchema(schema.transactions, {
-  transactionId: z.string().min(5, "Transaction ID must be at least 5 characters"),
-  subtotal: z.coerce.number().nonnegative({ message: "Subtotal must be a non-negative number" }),
+export const transactionSchema = createInsertSchema(schema.transactions).extend({
+  total: z.string().regex(/^\d+(\.\d{1,2})?$/, "Total amount must be a valid decimal"),
   paymentMethod: z.string().min(1, "Payment method is required"),
-  type: z.enum(["SALE", "RETURN"]),
+  status: z.string().min(1, "Status is required"),
 });
 
 // Transaction item schema
-export const transactionItemSchema = createInsertSchema(schema.transactionItems, {
+export const transactionItemSchema = createInsertSchema(schema.transactionItems).extend({
   quantity: z.number().int().positive("Quantity must be positive"),
   unitPrice: z.string().regex(/^\d+(\.\d{1,2})?$/, "Unit price must be a valid decimal"),
-  subtotal: z.string().regex(/^\d+(\.\d{1,2})?$/, "Subtotal must be a valid decimal"),
 });
 
-// Transaction payment schema (assuming payments table exists in schema)
-export const transactionPaymentSchema = schema.payments
-  ? createInsertSchema(schema.payments, {
+// Transaction payment schema
+export const transactionPaymentSchema = createInsertSchema(schema.transactionPayments).extend({
       amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Amount must be a valid decimal"),
-      method: z.string().min(1, "Payment method is required"),
-    })
-  : z.object({ amount: z.string(), method: z.string() });
+      method: z.string().min(1, "Payment method is required") as any,
+    });
 
-export const transactionValidation = {
-  insert: (data: unknown) => validateEntity(transactionSchema, data, 'transaction'),
-  update: (data: unknown) => validateEntity(transactionSchema.partial(), data, 'transaction'),
-  item: {
-    insert: (data: unknown) => validateEntity(transactionItemSchema, data, 'transaction_item'),
-    update: (data: unknown) => validateEntity(transactionItemSchema.partial(), data, 'transaction_item'),
-  },
-  payment: {
-    insert: (data: unknown) => validateEntity(transactionPaymentSchema, data, 'transaction_payment'),
-    update: (data: unknown) => validateEntity(transactionPaymentSchema.partial(), data, 'transaction_payment'),
-  },
-  refund: {
-    insert: (data: unknown) => validateEntity(returnSchema, data, 'return'),
-    update: (data: unknown) => validateEntity(returnSchema.partial(), data, 'return'),
-  },
-};
-
-// Return/refund validation
-export const returnSchema = createInsertSchema(schema.returns, {
+export const returnSchema = createInsertSchema(schema.returns).extend({
   refundId: z.string().min(5, "Refund ID must be at least 5 characters"),
   total: z.string().regex(/^\d+(\.\d{1,2})?$/, "Total must be a valid decimal"),
   refundMethod: z.enum(["cash", "credit_card", "store_credit"]),
 });
 
+export const transactionValidation = {
+  insert: transactionSchema,
+  update: transactionSchema.partial(),
+  item: {
+    insert: transactionItemSchema,
+    update: transactionItemSchema.partial(),
+  },
+  payment: {
+    insert: transactionPaymentSchema,
+    update: transactionPaymentSchema.partial(),
+  },
+  refund: {
+    insert: returnSchema,
+    update: returnSchema.partial(),
+  },
+};
+
+// Return/refund validation
 export const returnValidation = {
-  insert: (data: unknown) => validateEntity(returnSchema, data, 'return'),
-  update: (data: unknown) => validateEntity(returnSchema.partial(), data, 'return'),
-  processItem: (data: unknown) => validateEntity(
-    z.object({
-      returnId: z.number().int().positive(),
-      productId: z.number().int().positive(),
-      quantity: z.number().int().positive(),
-      unitPrice: z.string().regex(/^\d+(\.\d{1,2})?$/, "Unit price must be a valid decimal"),
-      isRestocked: z.boolean().optional(),
-    }),
-    data,
-    'return_item'
-  )
+  insert: returnSchema,
+  update: returnSchema.partial(),
+  processItem: z.object({
+    returnId: z.number().int().positive(),
+    productId: z.number().int().positive(),
+    quantity: z.number().int().positive(),
+    unitPrice: z.string().regex(/^\d+(\.\d{1,2})?$/, "Unit price must be a valid decimal"),
+    isRestocked: z.boolean().optional(),
+  }),
 };

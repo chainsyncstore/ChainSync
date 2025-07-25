@@ -1,13 +1,8 @@
 import Paystack from 'paystack-node';
 import Flutterwave from 'flutterwave-node-v3';
 import { db } from '../../db';
-import * as schema from '@shared/schema';
+import * as schema from '../../shared/schema';
 import { eq } from 'drizzle-orm';
-
-// Type safety for error handling
-interface ErrorWithMessage {
-  message: string;
-}
 
 // Type declaration for modules without types
 // This is a simpler approach that avoids augmentation issues
@@ -250,7 +245,7 @@ export async function processSubscriptionPayment(
   amount: number,
   reference: string,
   provider: string
-): Promise<schema.Subscription> {
+): Promise<schema.SelectSubscription> {
   try {
     // Get plan details
     const planTiers: {[key: string]: {name: string, storeLimit: number, features: string[]}} = {
@@ -282,13 +277,13 @@ export async function processSubscriptionPayment(
     // Create subscription in database
     const subscriptionData: schema.SubscriptionInsert = {
       userId,
-      plan: planId,
+      planId: planId,
       amount: amount.toString(), // Convert to string for decimal column
       status: 'active',
-      paymentReference: reference,
-      paymentProvider: provider,
-      startDate,
-      endDate,
+      paymentMethod: provider,
+      referralCode: reference,
+      currentPeriodStart: startDate,
+      currentPeriodEnd: endDate,
       autoRenew: true,
       // Store plan features and store limit in metadata as JSON
       metadata: JSON.stringify({

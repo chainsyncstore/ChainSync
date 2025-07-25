@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ReceiptPrint from './receipt-print';
 import ThermalPrinter from './thermal-printer';
+import { SelectStore, SelectUser, SelectLoyaltyMember } from '@shared/schema';
+import { TransactionWithDetails } from '@/types/analytics';
 
 // Interface for transaction data
 interface TransactionItem {
@@ -25,32 +27,21 @@ interface Transaction {
   id: number;
   transactionId: string;
   storeId: number;
+  userId: number;
   cashierId: number;
   customerId?: number;
   loyaltyMemberId?: number;
   subtotal: string;
   tax: string;
+  discount?: string | null;
   total: string;
   paymentMethod: string;
   status: string;
-  createdAt: string;
-  store?: {
-    name: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    phone?: string;
-  };
-  cashier?: {
-    fullName: string;
-  };
-  customer?: {
-    fullName: string;
-  };
-  loyaltyMember?: {
-    id: number;
-    points: number;
-  };
+  createdAt: Date;
+  store?: SelectStore;
+  cashier?: SelectUser;
+  customer?: SelectUser;
+  loyaltyMember?: SelectLoyaltyMember;
   items: TransactionItem[];
   pointsEarned?: number;
 }
@@ -73,9 +64,9 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
     storeAddress: transaction.store?.address 
       ? `${transaction.store.address}, ${transaction.store.city || ''}, ${transaction.store.state || ''}`
       : undefined,
-    storePhone: transaction.store?.phone,
+    storePhone: transaction.store?.phone ?? undefined,
     date: new Date(transaction.createdAt),
-    cashierName: transaction.cashier?.fullName || 'Cashier',
+    cashierName: transaction.cashier?.name || 'Cashier',
     items: transaction.items.map(item => ({
       name: item.productName,
       quantity: item.quantity,
@@ -84,12 +75,13 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
     })),
     subtotal: parseFloat(transaction.subtotal),
     tax: parseFloat(transaction.tax),
+    discount: parseFloat(transaction.discount ?? '0'),
     total: parseFloat(transaction.total),
     paymentMethod: transaction.paymentMethod,
-    customerName: transaction.customer?.fullName,
+    customerName: transaction.customer?.name,
     loyaltyPoints: transaction.pointsEarned ? {
       earned: transaction.pointsEarned,
-      balance: transaction.loyaltyMember?.points || transaction.pointsEarned,
+      balance: transaction.loyaltyMember?.points ?? transaction.pointsEarned,
     } : undefined,
   };
 
@@ -114,10 +106,12 @@ export const TransactionReceipt: React.FC<TransactionReceiptProps> = ({
           </TabsContent>
           
           <TabsContent value="thermal" className="py-4">
-            <ThermalPrinter
-              transaction={transaction}
-              onClose={onClose}
-            />
+            {transaction.store && (
+              <ThermalPrinter
+                transaction={transaction as TransactionWithDetails}
+                onClose={onClose}
+              />
+            )}
           </TabsContent>
         </Tabs>
         

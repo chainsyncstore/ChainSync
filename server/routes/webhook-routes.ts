@@ -83,9 +83,14 @@ router.post('/dialogflow', async (req, res) => {
           const lowStockItems = await storage.getLowStockItems(storeId);
           
           if (lowStockItems.length > 0) {
+            const products = await Promise.all(
+              lowStockItems.map(item => storage.getProductById(item.productId))
+            );
+            const productMap = new Map(products.filter(p => p).map((p: any) => [p.id, p.name]));
+
             const itemsText = lowStockItems
               .slice(0, 5)
-              .map(item => `${item.product.name} (${item.totalQuantity} units)`)
+              .map(item => `${productMap.get(item.productId) || 'Unknown Product'} (${item.quantity} units)`)
               .join(', ');
               
             fulfillmentText = `You have ${lowStockItems.length} items with low stock. Top items: ${itemsText}`;

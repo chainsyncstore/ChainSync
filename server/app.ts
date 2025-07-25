@@ -3,40 +3,40 @@ import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import { Pool } from 'pg';
-import { createClient } from 'redis';
+// import { createClient } from 'redis'; // Unused
 import { RedisStore } from 'connect-redis';
 import path from 'path';
 
 // Import logging and error handling
-import { setupLogging, setupGlobalErrorHandlers } from '../src/logging/setup';
-import { getLogger } from '../src/logging';
-import { requestLogger, errorLogger } from '../src/logging/middleware';
+import { setupLogging, setupGlobalErrorHandlers } from '../src/logging/setup.js';
+import { getLogger } from '../src/logging/index.js';
+import { requestLogger, errorLogger } from '../src/logging/middleware.js';
 
 // Import security middleware
-import { securityHeaders, csrfProtection, generateCsrfToken, validateContentType } from './middleware/security';
-import { rateLimitMiddleware, authRateLimiter, sensitiveOpRateLimiter } from './middleware/rate-limit';
-import { isAuthenticated, validateSession } from './middleware/auth';
-import { validateBody } from './middleware/validation';
+import { securityHeaders, csrfProtection, generateCsrfToken, validateContentType } from './middleware/security.js';
+import { rateLimitMiddleware, authRateLimiter, sensitiveOpRateLimiter } from './middleware/rate-limit.js';
+import { isAuthenticated, validateSession } from './middleware/auth.js';
+import { validateBody } from './middleware/validation.js';
 
 // Import cache and job queue
-import { initRedis, getRedisClient } from '../src/cache/redis';
-import { initializeApp, registerHealthChecks } from '../src/startup';
+import { initRedis, getRedisClient } from '../src/cache/redis.js';
+import { initializeApp, registerHealthChecks } from '../src/startup.js';
 
 // Import routes
-import healthRoutes, { setDbPool } from './routes/health';
-import transactionRoutes from './routes/transactions';
-import monitoringRoutes from './routes/monitoring';
-import adminDashboardRoutes from './routes/admin-dashboard';
+import healthRoutes, { setDbPool } from './routes/health.js';
+import transactionRoutes from './routes/transactions.js';
+import monitoringRoutes from './routes/monitoring.js';
+import adminDashboardRoutes from './routes/admin-dashboard.js';
 // Import your actual route files when they're ready
 // import authRoutes from './routes/auth';
 // import customerRoutes from './routes/customers';
 
 // Import Swagger documentation
-import setupSwagger from './swagger';
+import setupSwagger from './swagger.js';
 
 // Import monitoring
-import { configureSentry } from '../src/monitoring/sentryIntegration';
-import { initializeHealthChecks, initializeTracing } from '../src/monitoring/setup';
+import { configureSentry } from '../src/monitoring/sentryIntegration.js';
+import { initializeHealthChecks, initializeTracing } from '../src/monitoring/setup.js';
 
 // Set up global error handlers
 setupGlobalErrorHandlers();

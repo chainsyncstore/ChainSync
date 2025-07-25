@@ -1,5 +1,5 @@
-import { db } from "./index";
-import * as schema from "@shared/schema";
+import { db } from "./index.js";
+import * as schema from "@shared/schema.js";
 
 async function seedReturnReasons() {
   try {
@@ -17,32 +17,32 @@ async function seedReturnReasons() {
     console.log("Creating return reasons...");
     const returnReasons = [
       {
-        name: "Damaged Product",
+        reason: "Damaged Product",
         description: "Product was damaged or defective",
         active: true
       },
       {
-        name: "Changed Mind",
+        reason: "Changed Mind",
         description: "Customer changed their mind about the purchase",
         active: true
       },
       {
-        name: "Wrong Item",
+        reason: "Wrong Item",
         description: "Customer received the wrong item",
         active: true
       },
       {
-        name: "Expired Product",
+        reason: "Expired Product",
         description: "Product was expired or spoiled",
         active: true
       },
       {
-        name: "Incorrect Price",
+        reason: "Incorrect Price",
         description: "Item was priced incorrectly at time of sale",
         active: true
       },
       {
-        name: "Quality Issues",
+        reason: "Quality Issues",
         description: "Product quality did not meet customer expectations",
         active: true
       }

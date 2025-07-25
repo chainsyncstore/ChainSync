@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { type SelectStore as Store } from '@shared/schema';
 import { 
   Card,
   CardContent,
@@ -26,11 +27,11 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiRequest } from '@/lib/queryClient';
 import { formatCurrency } from '@/lib/utils';
 import { useCurrency } from '@/providers/currency-provider';
 
-// Type definitions
-interface SalesTrend {
+interface TrendData {
   dateGroup: string;
   totalSales: number;
   transactionCount: number;
@@ -53,7 +54,7 @@ interface PaymentMethodBreakdown {
 }
 
 interface SalesTrendsResponse {
-  trendData: SalesTrend[];
+  trendData: TrendData[];
   storeBreakdown: StoreBreakdown[];
   totals: {
     totalSales: number;
@@ -80,17 +81,19 @@ export const SalesTrends = () => {
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
 
   // Fetch stores for the store filter
-  const { data: stores } = useQuery({
+  const { data: stores } = useQuery<Store[]>({
     queryKey: ['/api/stores'],
+    queryFn: () => apiRequest('GET', '/api/stores'),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    initialData: [],
   });
 
   // Fetch sales trend data
-  const { 
-    data: salesTrends, 
-    isLoading, 
-    isError, 
-    refetch 
+  const {
+    data: salesTrends,
+    isLoading,
+    isError,
+    refetch,
   } = useQuery<SalesTrendsResponse>({
     queryKey: ['/api/analytics/sales-trends', startDate, endDate, groupBy, storeId],
     queryFn: async () => {
@@ -111,21 +114,23 @@ export const SalesTrends = () => {
         url.searchParams.append('store', storeId);
       }
       
-      const response = await fetch(url.toString());
-      if (!response.ok) {
-        throw new Error('Failed to fetch sales trends');
-      }
-      
-      return await response.json();
+      return await apiRequest('GET', url.toString());
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    initialData: {
+      trendData: [],
+      storeBreakdown: [],
+      totals: { totalSales: 0, transactionCount: 0, averageTransaction: 0 },
+      paymentMethodBreakdown: [],
+      dateRangeDescription: 'Select date range to analyze sales trends',
+    },
   });
 
   const { currency } = useCurrency();
 
   // Display data with the chosen chart type
   const renderChart = () => {
-    if (!salesTrends?.trendData || salesTrends.trendData.length === 0) {
+    if (!salesTrends.trendData.length) {
       return (
         <div className="flex flex-col items-center justify-center h-64">
           <p className="text-muted-foreground">No data available for the selected period</p>
@@ -134,7 +139,7 @@ export const SalesTrends = () => {
     }
 
     // Format data for displaying in chart
-    const chartData = salesTrends.trendData.map(item => ({
+    const chartData = salesTrends.trendData.map((item: TrendData) => ({
       ...item,
       formattedDate: formatDateLabel(item.dateGroup, groupBy)
     }));
@@ -246,7 +251,7 @@ export const SalesTrends = () => {
 
   // Store breakdown card
   const renderStoreBreakdown = () => {
-    if (!salesTrends?.storeBreakdown || salesTrends.storeBreakdown.length === 0) {
+    if (!salesTrends.storeBreakdown.length) {
       return null;
     }
 
@@ -268,7 +273,7 @@ export const SalesTrends = () => {
                 </tr>
               </thead>
               <tbody>
-                {salesTrends.storeBreakdown.map((store) => (
+                {salesTrends.storeBreakdown.map((store: StoreBreakdown) => (
                   <tr key={store.storeId} className="border-t">
                     <td className="p-2">{store.storeName}</td>
                     <td className="text-right p-2">{formatCurrency(store.totalSales)}</td>
@@ -286,7 +291,7 @@ export const SalesTrends = () => {
 
   // Payment method breakdown card
   const renderPaymentMethodBreakdown = () => {
-    if (!salesTrends?.paymentMethodBreakdown || salesTrends.paymentMethodBreakdown.length === 0) {
+    if (!salesTrends.paymentMethodBreakdown.length) {
       return null;
     }
 
@@ -308,7 +313,7 @@ export const SalesTrends = () => {
                 </tr>
               </thead>
               <tbody>
-                {salesTrends.paymentMethodBreakdown.map((method) => (
+                {salesTrends.paymentMethodBreakdown.map((method: PaymentMethodBreakdown) => (
                   <tr key={method.paymentMethodId} className="border-t">
                     <td className="p-2">{method.paymentMethodName}</td>
                     <td className="text-right p-2">{formatCurrency(method.total)}</td>
@@ -330,7 +335,7 @@ export const SalesTrends = () => {
 
   // Render totals card
   const renderTotals = () => {
-    if (!salesTrends?.totals) {
+    if (!salesTrends.totals) {
       return null;
     }
 
@@ -370,7 +375,7 @@ export const SalesTrends = () => {
         <CardHeader>
           <CardTitle>Sales Trends</CardTitle>
           <CardDescription>
-            {salesTrends?.dateRangeDescription || 'Select date range to analyze sales trends'}
+            {salesTrends.dateRangeDescription}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -452,7 +457,7 @@ export const SalesTrends = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all_stores">All Stores</SelectItem>
-                  {stores?.map((store: any) => (
+                  {stores.map((store) => (
                     <SelectItem key={store.id} value={store.id.toString()}>
                       {store.name}
                     </SelectItem>

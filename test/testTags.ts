@@ -3,23 +3,37 @@
 // Usage: import { test, describe } from './testTags';
 
 // TypeScript interface for tagged test functions
-interface TaggedTest {
+// This interface was recursive, causing a stack overflow.
+// It has been simplified to be non-recursive.
+interface SimpleTaggedTest {
   (name: string, fn: jest.ProvidesCallback, timeout?: number): void;
-  unit: TaggedTest;
-  integration: TaggedTest;
 }
 
-// Helper to add a tag prefix to test/describe names
-function withTag(tag: string, base: typeof global.test): TaggedTest {
-  const tagged: any = (name: string, fn: jest.ProvidesCallback, timeout?: number) =>
+interface TaggedTest extends SimpleTaggedTest {
+  unit: SimpleTaggedTest;
+  integration: SimpleTaggedTest;
+}
+
+// Helper to create a function that prepends a tag.
+function createTaggedFn(tag: string, base: typeof global.test): SimpleTaggedTest {
+  return (name: string, fn: jest.ProvidesCallback, timeout?: number) =>
     base(`[${tag}] ${name}`, fn, timeout);
-  tagged.unit = withTag('unit', tagged);
-  tagged.integration = withTag('integration', tagged);
-  return tagged;
+}
+
+// Create the main export that has .unit and .integration properties.
+function createWrapper(base: typeof global.test): TaggedTest {
+  // The base function is tagged with 'unit' by default, as in the original implementation.
+  const main: any = createTaggedFn('unit', base);
+
+  // The properties are simple tagged functions, not recursive structures.
+  main.unit = createTaggedFn('unit', base);
+  main.integration = createTaggedFn('integration', base);
+
+  return main;
 }
 
 // Export tagged test and describe wrappers
-export const test: TaggedTest = withTag('unit', global.test) as TaggedTest;
-export const describe: TaggedTest = withTag('unit', global.describe) as TaggedTest;
+export const test: TaggedTest = createWrapper(global.test);
+export const describe: TaggedTest = createWrapper(global.describe as any);
 
 // Now you can use test.unit(), test.integration(), etc.

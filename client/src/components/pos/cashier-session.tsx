@@ -54,8 +54,7 @@ export function CashierSessionManager() {
   // Start session mutation
   const startSessionMutation = useMutation({
     mutationFn: async (data: { storeId: number; notes?: string }) => {
-      const response = await apiRequest('POST', '/api/pos/cashier-sessions/start', data);
-      return response.json();
+      return await apiRequest('POST', '/api/pos/cashier-sessions/start', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/pos/cashier-sessions/active'] });
@@ -78,8 +77,7 @@ export function CashierSessionManager() {
   // End session mutation
   const endSessionMutation = useMutation({
     mutationFn: async (data: { sessionId: number; notes?: string }) => {
-      const response = await apiRequest('POST', '/api/pos/cashier-sessions/end', data);
-      return response.json();
+      return await apiRequest('POST', '/api/pos/cashier-sessions/end', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/pos/cashier-sessions/active'] });
@@ -107,8 +105,8 @@ export function CashierSessionManager() {
     return formatDuration(durationMs);
   };
 
-  const activeSession = activeSessionQuery.data?.session as CashierSession | undefined;
-  const stores = storesQuery.data || [];
+  const activeSession = (activeSessionQuery.data as any)?.session as CashierSession | undefined;
+  const stores = Array.isArray(storesQuery.data) ? storesQuery.data : [];
 
   const handleStartSession = () => {
     if (!selectedStore) {
@@ -137,7 +135,7 @@ export function CashierSessionManager() {
 
   // Set default store selection if user only has one store
   useEffect(() => {
-    if (storesQuery.data?.length === 1 && !selectedStore) {
+    if (Array.isArray(storesQuery.data) && storesQuery.data.length === 1 && !selectedStore) {
       setSelectedStore(storesQuery.data[0].id.toString());
     }
   }, [storesQuery.data, selectedStore]);

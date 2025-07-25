@@ -1,23 +1,30 @@
 // test/integration/inventoryItem.integration.test.ts
-import { PrismaClient } from '@prisma/client';
+import { db } from '../../db';
+import * as schema from '@shared/schema';
 import { makeMockInventoryItem } from '../factories/inventoryItem';
 import { test, describe } from '../testTags';
-
-const prisma = new PrismaClient();
+import { eq } from 'drizzle-orm';
 
 describe.integration('InventoryItem Integration', () => {
-  beforeAll(async () => { await prisma.$connect(); });
-  afterAll(async () => { await prisma.$disconnect(); });
-  beforeEach(async () => { await prisma.inventory.deleteMany(); });
+  beforeEach(async () => {
+    await db.delete(schema.inventory);
+  });
 
   test.integration('should create and fetch an inventory item', async () => {
     const mockItem = makeMockInventoryItem({ totalQuantity: 42, minimumLevel: 5 });
-    const created = await prisma.inventory.create({ data: mockItem });
-    expect(created).toMatchObject({ totalQuantity: 42, minimumLevel: 5 });
+    const [created] = await db.insert(schema.inventory).values(mockItem).returning();
 
-    const fetched = await prisma.inventory.findUnique({ where: { id: created.id } });
-    expect(fetched).not.toBeNull();
-    expect(fetched?.totalQuantity).toBe(42);
-    expect(fetched?.minimumLevel).toBe(5);
+    expect(created).toBeDefined();
+    expect(created.totalQuantity).toBe(42);
+    expect(created.minimumLevel).toBe(5);
+
+    const [fetched] = await db
+      .select()
+      .from(schema.inventory)
+      .where(eq(schema.inventory.id, created.id));
+
+    expect(fetched).toBeDefined();
+    expect(fetched.totalQuantity).toBe(42);
+    expect(fetched.minimumLevel).toBe(5);
   });
 });

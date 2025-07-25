@@ -93,7 +93,7 @@ export function NotificationPopover() {
   // Show example notifications if none exist
   const notifications = notificationsData.notifications.length > 0 
     ? notificationsData.notifications 
-    : [
+    : ([
         {
           id: 1,
           title: 'Low Stock Alert',
@@ -119,7 +119,7 @@ export function NotificationPopover() {
           isRead: false,
           createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
         },
-      ];
+      ] as Notification[]);
   
   return (
     <Popover open={open} onOpenChange={setOpen}>

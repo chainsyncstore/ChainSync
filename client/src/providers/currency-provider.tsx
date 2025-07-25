@@ -75,7 +75,7 @@ const getInitialCurrency = async (): Promise<CurrencyCode> => {
 };
 
 // Provider component
-const CurrencyProvider = ({ children }: { children: ReactNode }) => {
+export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   // Start with a valid initial currency that exists in our list
   const [currency, setCurrencyState] = useState<CurrencyCode>('USD');
   const [isDetectingLocation, setIsDetectingLocation] = useState<boolean>(true);
@@ -147,12 +147,10 @@ const CurrencyProvider = ({ children }: { children: ReactNode }) => {
 };
 
 // Hook to use the currency context
-const useCurrency = (): CurrencyContextType => {
+export const useCurrency = (): CurrencyContextType => {
   const context = useContext(CurrencyContext);
   if (context === undefined) {
     throw new Error('useCurrency must be used within a CurrencyProvider');
   }
   return context;
 };
-
-export { CurrencyProvider, useCurrency };

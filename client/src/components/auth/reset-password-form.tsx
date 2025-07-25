@@ -48,11 +48,10 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const { data: tokenValidationData, isLoading: isValidatingToken } = useQuery({
     queryKey: ["/api/auth/validate-reset-token", token],
     queryFn: async () => {
-      const response = await apiRequest(
+      return await apiRequest(
         "GET",
         `/api/auth/validate-reset-token/${token}`
       );
-      return response.json();
     },
     enabled: !!token,
   });
@@ -69,8 +68,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   // Define mutation for password reset
   const resetPasswordMutation = useMutation({
     mutationFn: async (data: { token: string; password: string }) => {
-      const response = await apiRequest("POST", "/api/auth/reset-password", data);
-      return response.json();
+      return await apiRequest("POST", "/api/auth/reset-password", data);
     },
     onSuccess: () => {
       setResetComplete(true);
