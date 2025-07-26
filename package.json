@@ -175,14 +175,17 @@
     "tailwindcss": "^3.4.1",
     "postcss": "^8.4.33",
     "autoprefixer": "^10.4.17",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
     
-    "@tailwindcss/aspect-ratio": "^0.4.2",
-    "@tailwindcss/forms": "^0.5.10",
-    "@tailwindcss/typography": "^0.5.16",
+    
+    
+    
     "@types/connect-pg-simple": "^7.0.3",
     "@types/dotenv": "^6.1.1",
     "@types/express": "4.17.21",
