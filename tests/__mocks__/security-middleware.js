@@ -1,8 +1,15 @@
 // Mock implementations of security middleware used in production code.
-export const securityHeaders = (req, res, next) => next();
-export const csrfProtection = (req, res, next) => next();
-export const generateCsrfToken = (req, res, next) => {
+const securityHeaders = (req, res, next) => next();
+const csrfProtection = (req, res, next) => next();
+const generateCsrfToken = (req, res, next) => {
   req.csrfToken = () => 'mock-token';
   next();
 };
-export const validateContentType = (req, res, next) => next();
+const validateContentType = (req, res, next) => next();
+
+module.exports = {
+  securityHeaders,
+  csrfProtection,
+  generateCsrfToken,
+  validateContentType,
+};

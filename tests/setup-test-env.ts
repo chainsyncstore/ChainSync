@@ -13,6 +13,9 @@ process.env.JWT_SECRET = 'test-secret-key';
 process.env.API_URL = 'http://localhost:3000';
 process.env.CLIENT_URL = 'http://localhost:5173';
 
+// Ensure Prisma mock is loaded so global prisma getter is defined
+import '@prisma/client';
+
 // Mock the database connection
 jest.mock('../server/database', () => ({
   db: {
@@ -84,7 +87,9 @@ jest.mock('../server/database', () => ({
 }));
 
 // Mock schema validation
-jest.mock('../shared/schema-validation', () => ({
+jest.mock('../shared/schema-validation', () => {
+  const actual = jest.requireActual('../shared/schema-validation');
+  return {
   userValidation: {
     insert: jest.fn().mockImplementation(data => data),
     update: jest.fn().mockImplementation(data => data)
@@ -112,8 +117,10 @@ jest.mock('../shared/schema-validation', () => ({
   transactionValidation: {
     insert: jest.fn().mockImplementation(data => data),
     update: jest.fn().mockImplementation(data => data)
-  }
-}));
+  },
+  SchemaValidationError: actual.SchemaValidationError,
+ }; 
+});
 
 // Fix the ServiceError reference in the loyalty module
 jest.mock('../server/services/loyalty/types', () => {

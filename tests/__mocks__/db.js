@@ -35,6 +35,10 @@ function registerTable(tableObj) {
   }
 }
 
+function raw(expr){
+  return { __raw: expr };
+}
+
 function table(name) {
   if (!_legacyStore[name]) _legacyStore[name] = [];
   return _legacyStore[name]; // legacy per-model store
@@ -43,8 +47,10 @@ function table(name) {
 function makeModelProxy(modelName) {
   return {
     async create({ data }) {
-      const rec = { ...data, id: data.id ?? table(modelName).length + 1 };
-      table(modelName).push(rec);
+      const rows = table(modelName);
+      const recId = data.id ?? rows.length + 1;
+      const rec = { ...data, id: recId };
+      rows.push(rec);
       return rec;
     },
     async findMany({ where = {} } = {}) {
@@ -61,7 +67,12 @@ function makeModelProxy(modelName) {
     },
     async update({ where = {}, data = {} }) {
       const rows = await this.findMany({ where });
-      target.forEach(row => applyData(row, data));
+      rows.forEach(row => {
+        Object.entries(data).forEach(([k,v])=>{
+          if(v && v.__raw){ _applyRawExpression(row,k,v.__raw); }
+          else { row[k]=v; }
+        });
+      });
       return rows[0] ?? null;
     },
   };
@@ -96,7 +107,11 @@ function applyData(row, data) {
       processed.loyaltyPoints = Math.max((row.loyaltyPoints || 0) - delta, 0);
     }
   }
-  Object.assign(row, processed);
+  // Handle Drizzle raw expressions
+  Object.entries(processed).forEach(([k,v])=>{
+    if(v && v.__raw){ _applyRawExpression(row,k,v.__raw); }
+    else { row[k] = v; }
+  });
 }
 
 // ---- Drizzle-lite builder helpers ----
@@ -145,10 +160,17 @@ function selectBuilder() {
       const rows = getRows(tableObj);
       return {
         where(_predicate) {
+          let results = rows;
           if (typeof _predicate === 'function') {
-            return rows.filter(_predicate);
+            results = rows.filter(_predicate);
           }
-          return rows;
+          return {
+            limit(n){
+              return results.slice(0, n);
+            },
+            all: () => results,
+            *[Symbol.iterator]() { for(const r of results) yield r; }
+          };
         },
         limit(n) {
           return rows.slice(0, n);
@@ -197,6 +219,10 @@ const baseDb = {
   raw,
   raw: sql => sql,
   query: queryProxy,
+  table,
+  insert,
+  update,
+  raw,
 };
 
 const db = new Proxy(baseDb, {
@@ -216,6 +242,75 @@ const db = new Proxy(baseDb, {
 
 function raw(sql) {
   return sql; // passthrough helper for tests
+}
+
+function _applyRawExpression(row, key, expr){
+  // Very naive SQL-like parser for patterns like '"loyalty_points" + 9' or '"loyalty_points" - 4'
+  const addMatch = expr.match(/\+\s*(\d+)/);
+  const subMatch = expr.match(/-\s*(\d+)/);
+  if(addMatch){
+    const inc = parseInt(addMatch[1],10);
+    row[key] = (row[key] || 0) + inc;
+    return;
+  }
+  if(subMatch){
+    const dec = parseInt(subMatch[1],10);
+    row[key] = Math.max((row[key] || 0) - dec, 0);
+    return;
+  }
+  const greatestMatch = expr.match(/GREATEST\("loyalty_points" - (\d+), 0\)/);
+  if(greatestMatch){
+    const dec = parseInt(greatestMatch[1],10);
+    row[key] = Math.max((row[key]||0)-dec,0);
+    return;
+  }
+}
+
+// Insert builder
+function insert(tableObj){
+  return {
+    values(vals){
+      const rows = getRows(tableObj);
+      const recId = vals.id ?? rows.length+1;
+      const rec = { ...vals, id: recId };
+      rows.push(rec);
+      return {
+        returning(){ return [rec]; }
+      };
+    }
+  };
+}
+
+function update(tableObj){
+  return {
+    set(data){
+      return {
+        where(predicate){
+          const rows = getRows(tableObj).filter(row=>predicate(row));
+          rows.forEach(row=>{
+            Object.entries(data).forEach(([k,v])=>{
+              if(v && v.__raw){ _applyRawExpression(row,k,v.__raw); }
+              else { row[k]=v; }
+            });
+          });
+          return {
+            returning(){ return rows; }
+          };
+        }
+      };
+    }
+  };
+}
+
+function del(tableObj){
+  return {
+    where(predicate){
+      const rows = getRows(tableObj);
+      const remaining = rows.filter(row=>!predicate(row));
+      _objectStore.set(tableObj, remaining);
+      return { returning(){ return []; } };
+    }
+  };
 }
 
 module.exports = { db, default: db };
