@@ -1,10 +1,11 @@
 #!/bin/bash
-set -e  # fail immediately on any error
+set -e
+
+echo "📦 Installing dependencies with npm..."
+npm install
 
 echo "🛠 Building Vite client..."
 npm run build:client
 
-echo "🧠 Compiling server TypeScript..."
+echo "🔨 Building server (tsc + tsc-alias)..."
 npm run build:server
-
-echo "✅ Build completed successfully!"
