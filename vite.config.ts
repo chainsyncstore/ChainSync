@@ -10,7 +10,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@': path.resolve(__dirname, './client/src'),
       '@components': path.resolve(__dirname, './client/src/components'),
+      '@shared': path.resolve(__dirname, './shared'),
     },
   },
 });
