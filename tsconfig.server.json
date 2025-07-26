@@ -1,53 +1,20 @@
 {
-  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": ".",
-    "module": "ESNext",
     "target": "ES2020",
-    "moduleResolution": "Bundler",
-    "sourceMap": true,
+    "module": "CommonJS",
+    "outDir": "dist/server",
+    "rootDir": "server",
+    "strict": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "noEmit": false,
-    "emitDeclarationOnly": false,
-    "types": ["node"],
-    "allowJs": false,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "noEmitOnError": false,
     "forceConsistentCasingInFileNames": true,
-    "strict": false,
+    "skipLibCheck": false,
     "baseUrl": ".",
     "paths": {
-      "@db": ["./db/index.ts"],
-      "@/*": ["./client/src/*"],
-      "@/components/*": ["./client/src/components/*"],
-      "@/lib/*": ["./client/src/lib/*"],
-      "@/providers/*": ["./client/src/providers/*"],
-      "@/pages/*": ["./client/src/pages/*"],
-      "@db/*": ["./db/*"],
-      "@shared/*": ["./shared/*"],
-      "@server/*": ["./server/*"],
-      "@assets/*": ["./attached_assets/*"]
-    }
+      "@utils/": ["server/utils/"],
+      "@services/": ["server/services/"]
+    },
+    "noEmitOnError": true
   },
-  "include": [
-    "server/**/*.ts",
-    "db/**/*.ts",
-    "shared/**/*.ts",
-    "types/**/*.d.ts",
-    "**/*.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "dist.bak",
-    "coverage",
-    "playwright-report",
-    "test-results",
-    "client",
-    "**/*.test.*",
-    "**/*.spec.*"
-  ]
+  "include": ["server/*/"],
+  "exclude": ["node_modules", "dist"]
 }
