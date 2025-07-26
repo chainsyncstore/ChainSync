@@ -1,11 +1,15 @@
+"use strict";
 /**
  * Database Migration for Schema Standardization
  *
  * This migration standardizes field names across the database to follow
  * the new naming conventions defined in our schema style guide.
  */
-import { sql } from 'kysely';
-export async function up(db) {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.up = up;
+exports.down = down;
+const kysely_1 = require("kysely");
+async function up(db) {
     // Standardize loyalty module field names
     await db.schema
         .alterTable('loyalty_tiers')
@@ -26,13 +30,13 @@ export async function up(db) {
     // Standardize subscription module field names
     await db.schema
         .alterTable('subscriptions')
-        .addColumn('end_date', sql `timestamp with time zone`)
-        .addColumn('is_active', sql `boolean DEFAULT true`)
+        .addColumn('end_date', (0, kysely_1.sql) `timestamp with time zone`)
+        .addColumn('is_active', (0, kysely_1.sql) `boolean DEFAULT true`)
         .execute();
     // Add missing timestamps to ensure consistency
     await db.schema
         .alterTable('loyalty_transactions')
-        .addColumnIfNotExists('updated_at', sql `timestamp with time zone`)
+        .addColumn('updated_at', (0, kysely_1.sql) `timestamp with time zone`)
         .execute();
     // Add consistent boolean defaults
     await db.schema
@@ -49,11 +53,11 @@ export async function up(db) {
     for (const table of tables) {
         await db.schema
             .alterTable(table)
-            .addColumnIfNotExists('updated_at', sql `timestamp with time zone`)
+            .addColumn('updated_at', (0, kysely_1.sql) `timestamp with time zone`)
             .execute();
     }
 }
-export async function down(db) {
+async function down(db) {
     // Revert loyalty module field names
     await db.schema
         .alterTable('loyalty_tiers')
@@ -100,4 +104,3 @@ export async function down(db) {
             .execute();
     }
 }
-//# sourceMappingURL=20250523_standardize_schema.js.map

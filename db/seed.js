@@ -1,12 +1,47 @@
-import { db } from "./index";
-import * as schema from "@shared/schema";
-import { eq } from "drizzle-orm";
-import * as bcrypt from "bcrypt";
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+const index_js_1 = require("./index.js");
+const schema = __importStar(require("../shared/schema.js"));
+const drizzle_orm_1 = require("drizzle-orm");
+const bcrypt = __importStar(require("bcrypt"));
 async function seed() {
     try {
         console.log("🌱 Starting seed process...");
         // Check if any users exist already
-        const existingUsers = await db.query.users.findMany({ limit: 1 });
+        const existingUsers = await index_js_1.db.query.users.findMany({ limit: 1 });
         if (existingUsers.length > 0) {
             console.log("Database already has users, skipping seed.");
             return;
@@ -24,7 +59,7 @@ async function seed() {
             { name: "Frozen Foods", description: "Frozen meals, vegetables, and desserts" }
         ];
         const createdCategories = await Promise.all(categories.map(async (category) => {
-            const [created] = await db.insert(schema.categories).values(category).returning();
+            const [created] = await index_js_1.db.insert(schema.categories).values(category).returning();
             return created;
         }));
         // Create stores
@@ -98,7 +133,7 @@ async function seed() {
             }
         ];
         const createdStores = await Promise.all(stores.map(async (store) => {
-            const [created] = await db.insert(schema.stores).values(store).returning();
+            const [created] = await index_js_1.db.insert(schema.stores).values({ ...store, location: `${store.address}, ${store.city}` }).returning();
             return created;
         }));
         // Create users with hashed passwords
@@ -107,49 +142,45 @@ async function seed() {
         // Admin user (no store assigned)
         // Use type assertion to bypass TypeScript schema validation 
         const adminUser = {
-            username: "admin",
+            name: "admin",
             password: passwordHash,
-            fullName: "Chain Admin",
             email: "admin@chainsync.com",
             role: "admin"
             // storeId is optional so we can omit it for admin
         };
-        await db.insert(schema.users).values(adminUser);
+        await index_js_1.db.insert(schema.users).values(adminUser);
         // Create store managers
         await Promise.all(createdStores.map(async (store, index) => {
             // Use type assertion to bypass TypeScript schema validation
             const managerUser = {
-                username: `manager${index + 1}`,
+                name: `manager${index + 1}`,
                 password: passwordHash,
-                fullName: `Manager ${index + 1}`,
                 email: `manager${index + 1}@chainsync.com`,
                 role: "manager",
                 storeId: store.id
             };
-            await db.insert(schema.users).values(managerUser);
+            await index_js_1.db.insert(schema.users).values(managerUser);
         }));
         // Create cashiers (2 per store)
         for (const store of createdStores) {
             const storeIndex = createdStores.indexOf(store);
             // Create each cashier individually instead of as an array with type assertion
             const cashier1 = {
-                username: `cashier${storeIndex * 2 + 1}`,
+                name: `cashier${storeIndex * 2 + 1}`,
                 password: passwordHash,
-                fullName: `Cashier ${storeIndex * 2 + 1}`,
                 email: `cashier${storeIndex * 2 + 1}@chainsync.com`,
                 role: "cashier",
                 storeId: store.id
             };
-            await db.insert(schema.users).values(cashier1);
+            await index_js_1.db.insert(schema.users).values(cashier1);
             const cashier2 = {
-                username: `cashier${storeIndex * 2 + 2}`,
+                name: `cashier${storeIndex * 2 + 2}`,
                 password: passwordHash,
-                fullName: `Cashier ${storeIndex * 2 + 2}`,
                 email: `cashier${storeIndex * 2 + 2}@chainsync.com`,
                 role: "cashier",
                 storeId: store.id
             };
-            await db.insert(schema.users).values(cashier2);
+            await index_js_1.db.insert(schema.users).values(cashier2);
         }
         // Create products
         console.log("Creating products...");
@@ -159,7 +190,7 @@ async function seed() {
                 description: "Bunch of fresh organic bananas",
                 sku: "SKU-5011001",
                 barcode: "5011001",
-                categoryId: createdCategories.find(c => c.name === "Produce").id,
+                categoryId: createdCategories.find((c) => c.name === "Produce").id,
                 price: "1.99",
                 cost: "0.89",
                 isPerishable: true
@@ -169,7 +200,7 @@ async function seed() {
                 description: "1 gallon of whole milk",
                 sku: "SKU-5011002",
                 barcode: "5011002",
-                categoryId: createdCategories.find(c => c.name === "Dairy").id,
+                categoryId: createdCategories.find((c) => c.name === "Dairy").id,
                 price: "3.49",
                 cost: "2.10",
                 isPerishable: true
@@ -179,7 +210,7 @@ async function seed() {
                 description: "Fresh baked sourdough bread",
                 sku: "SKU-5011003",
                 barcode: "5011003",
-                categoryId: createdCategories.find(c => c.name === "Bakery").id,
+                categoryId: createdCategories.find((c) => c.name === "Bakery").id,
                 price: "4.99",
                 cost: "2.50",
                 isPerishable: true
@@ -189,7 +220,7 @@ async function seed() {
                 description: "1 pound of 80/20 ground beef",
                 sku: "SKU-5011004",
                 barcode: "5011004",
-                categoryId: createdCategories.find(c => c.name === "Meat & Seafood").id,
+                categoryId: createdCategories.find((c) => c.name === "Meat & Seafood").id,
                 price: "5.99",
                 cost: "3.75",
                 isPerishable: true
@@ -199,7 +230,7 @@ async function seed() {
                 description: "2 liter bottle of cola",
                 sku: "SKU-5011005",
                 barcode: "5011005",
-                categoryId: createdCategories.find(c => c.name === "Beverages").id,
+                categoryId: createdCategories.find((c) => c.name === "Beverages").id,
                 price: "2.49",
                 cost: "1.20",
                 isPerishable: false
@@ -209,7 +240,7 @@ async function seed() {
                 description: "8oz bag of potato chips",
                 sku: "SKU-5011006",
                 barcode: "5011006",
-                categoryId: createdCategories.find(c => c.name === "Snacks").id,
+                categoryId: createdCategories.find((c) => c.name === "Snacks").id,
                 price: "3.99",
                 cost: "1.75",
                 isPerishable: false
@@ -219,7 +250,7 @@ async function seed() {
                 description: "10.5oz can of condensed soup",
                 sku: "SKU-5011007",
                 barcode: "5011007",
-                categoryId: createdCategories.find(c => c.name === "Canned Goods").id,
+                categoryId: createdCategories.find((c) => c.name === "Canned Goods").id,
                 price: "1.79",
                 cost: "0.95",
                 isPerishable: false
@@ -229,7 +260,7 @@ async function seed() {
                 description: "12-inch frozen pepperoni pizza",
                 sku: "SKU-5011008",
                 barcode: "5011008",
-                categoryId: createdCategories.find(c => c.name === "Frozen Foods").id,
+                categoryId: createdCategories.find((c) => c.name === "Frozen Foods").id,
                 price: "6.99",
                 cost: "3.50",
                 isPerishable: false
@@ -239,7 +270,7 @@ async function seed() {
                 description: "Fresh red apples",
                 sku: "SKU-5011009",
                 barcode: "5011009",
-                categoryId: createdCategories.find(c => c.name === "Produce").id,
+                categoryId: createdCategories.find((c) => c.name === "Produce").id,
                 price: "0.79",
                 cost: "0.35",
                 isPerishable: true
@@ -249,14 +280,14 @@ async function seed() {
                 description: "6oz container of Greek yogurt",
                 sku: "SKU-5011010",
                 barcode: "5011010",
-                categoryId: createdCategories.find(c => c.name === "Dairy").id,
+                categoryId: createdCategories.find((c) => c.name === "Dairy").id,
                 price: "1.29",
                 cost: "0.70",
                 isPerishable: true
             }
         ];
         const createdProducts = await Promise.all(products.map(async (product) => {
-            const [created] = await db.insert(schema.products).values(product).returning();
+            const [created] = await index_js_1.db.insert(schema.products).values({ ...product, storeId: 1, sku: `SKU-${Math.random()}` }).returning();
             return created;
         }));
         // Create inventory for each product in each store
@@ -275,33 +306,33 @@ async function seed() {
                 const inventoryData = {
                     storeId: store.id,
                     productId: product.id,
-                    totalQuantity: adjustedQuantity,
-                    minimumLevel: product.isPerishable ? 15 : 10,
-                    lastStockUpdate: new Date()
+                    quantity: adjustedQuantity,
+                    minStock: product.isPerishable ? 15 : 10,
+                    lastRestocked: new Date()
                 };
                 // Use type assertion to bypass TypeScript schema validation
-                const [inventoryItem] = await db.insert(schema.inventory).values(inventoryData).returning();
+                const [inventoryItem] = await index_js_1.db.insert(schema.inventory).values(inventoryData).returning();
                 // If product is perishable, create a batch entry
-                if (product.isPerishable) {
-                    // Use type assertion to overcome TypeScript schema mismatch errors
-                    const batchData = {
-                        inventoryId: inventoryItem.id,
-                        batchNumber: `BATCH-${Math.floor(Math.random() * 1000)}`,
-                        quantity: adjustedQuantity,
-                        expiryDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000), // Random date within 30 days
-                        manufacturingDate: new Date(Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000), // Random date within past 15 days
-                        receivedDate: new Date()
-                    };
-                    // Cast to any to bypass TypeScript checking since we know the schema is correct
-                    await db.insert(schema.inventoryBatches).values(batchData);
-                }
+                // if (product.isPerishable) {
+                //   // Use type assertion to overcome TypeScript schema mismatch errors
+                //   const batchData = {
+                //     inventoryId: inventoryItem.id,
+                //     batchNumber: `BATCH-${Math.floor(Math.random() * 1000)}`,
+                //     quantity: adjustedQuantity,
+                //     expiryDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000), // Random date within 30 days
+                //     manufacturingDate: new Date(Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000), // Random date within past 15 days
+                //     receivedDate: new Date()
+                //   };
+                //   // Cast to any to bypass TypeScript checking since we know the schema is correct
+                //   await db.insert(schema.inventoryBatches).values(batchData as any);
+                // }
             }
         }
         // Create sample transactions
         console.log("Creating sample transactions...");
         // Get all cashiers
-        const cashiers = await db.query.users.findMany({
-            where: eq(schema.users.role, "cashier")
+        const cashiers = await index_js_1.db.query.users.findMany({
+            where: (0, drizzle_orm_1.eq)(schema.users.role, "cashier")
         });
         // Group cashiers by store
         const cashiersByStore = cashiers.reduce((acc, cashier) => {
@@ -344,37 +375,35 @@ async function seed() {
                 const total = subtotal + tax;
                 // Insert transaction with type assertion to bypass TypeScript schema validation
                 const transactionData = {
-                    transactionId,
                     storeId: store.id,
-                    cashierId: cashier.id,
+                    userId: cashier.id,
                     subtotal: subtotal.toFixed(2),
                     tax: tax.toFixed(2),
                     total: total.toFixed(2),
-                    paymentMethod: Math.random() > 0.3 ? "credit_card" : "cash",
-                    paymentStatus: "paid",
-                    isOfflineTransaction: Math.random() > 0.9, // 10% chance of being offline
-                    syncedAt: Math.random() > 0.9 ? null : new Date(),
+                    paymentMethod: Math.random() > 0.3 ? "card" : "cash",
+                    status: "completed",
+                    items: transactionItems,
                     createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000) // Random time in the last 24 hours
                 };
-                const [transaction] = await db.insert(schema.transactions).values(transactionData).returning();
+                const [transaction] = await index_js_1.db.insert(schema.transactions).values(transactionData).returning();
                 // Insert transaction items
-                await Promise.all(transactionItems.map(item => db.insert(schema.transactionItems).values({
+                await Promise.all(transactionItems.map(item => index_js_1.db.insert(schema.transactionItems).values({
                     ...item,
                     transactionId: transaction.id
                 })));
                 // Update inventory
                 for (const item of transactionItems) {
-                    const inventory = await db.query.inventory.findFirst({
-                        where: (inv, { and, eq }) => and(eq(inv.storeId, store.id), eq(inv.productId, item.productId))
+                    const inventory = await index_js_1.db.query.inventory.findFirst({
+                        where: (inventory, { and, eq }) => and(eq(inventory.storeId, store.id), eq(inventory.productId, item.productId))
                     });
                     if (inventory) {
-                        await db
+                        await index_js_1.db
                             .update(schema.inventory)
                             .set({
-                            totalQuantity: Math.max(0, inventory.totalQuantity - item.quantity),
-                            lastStockUpdate: new Date()
+                            quantity: Math.max(0, (inventory.quantity ?? 0) - item.quantity),
+                            updatedAt: new Date()
                         })
-                            .where(eq(schema.inventory.id, inventory.id));
+                            .where((0, drizzle_orm_1.eq)(schema.inventory.id, inventory.id));
                     }
                 }
             }
@@ -386,4 +415,3 @@ async function seed() {
     }
 }
 seed();
-//# sourceMappingURL=seed.js.map

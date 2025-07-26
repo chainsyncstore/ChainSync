@@ -1,25 +1,35 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.runMigrations = runMigrations;
+exports.createMigration = createMigration;
+exports.applyMigration = applyMigration;
+exports.getMigrationHistory = getMigrationHistory;
 // db/migrations/setup.ts
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { db } from '../index';
-import path from 'path';
-import fs from 'fs';
-import { getLogger } from '../../src/logging';
-const logger = getLogger().child({ component: 'db-migrations' });
+const migrator_1 = require("drizzle-orm/postgres-js/migrator");
+const drizzle_orm_1 = require("drizzle-orm");
+const index_js_1 = require("../index.js");
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const index_js_2 = require("../../src/logging/index.js");
+const logger = (0, index_js_2.getLogger)().child({ component: 'db-migrations' });
 /**
  * Run database migrations
  * This should be called when the application starts
  */
-export async function runMigrations() {
-    const migrationsFolder = path.join(__dirname, '../migrations');
+async function runMigrations() {
+    const migrationsFolder = path_1.default.join(__dirname, '../migrations');
     // Check if migrations folder exists
-    if (!fs.existsSync(migrationsFolder)) {
+    if (!fs_1.default.existsSync(migrationsFolder)) {
         logger.warn(`Migrations folder not found at ${migrationsFolder}`);
         return;
     }
     try {
         logger.info('Running database migrations...');
         // Run migrations
-        await migrate(db, { migrationsFolder });
+        await (0, migrator_1.migrate)(index_js_1.db, { migrationsFolder });
         logger.info('Database migrations completed successfully');
     }
     catch (error) {
@@ -39,18 +49,18 @@ export async function runMigrations() {
  * @param name Migration name
  * @returns Path to the created migration file
  */
-export function createMigration(name) {
+function createMigration(name) {
     const timestamp = new Date().toISOString().replace(/[-T:.Z]/g, '');
     const migrationName = `${timestamp}_${name.replace(/\s+/g, '_').toLowerCase()}`;
-    const migrationsFolder = path.join(__dirname, '../migrations');
+    const migrationsFolder = path_1.default.join(__dirname, '../migrations');
     // Create migrations folder if it doesn't exist
-    if (!fs.existsSync(migrationsFolder)) {
-        fs.mkdirSync(migrationsFolder, { recursive: true });
+    if (!fs_1.default.existsSync(migrationsFolder)) {
+        fs_1.default.mkdirSync(migrationsFolder, { recursive: true });
     }
     // Create migration file
-    const migrationPath = path.join(migrationsFolder, `${migrationName}.sql`);
+    const migrationPath = path_1.default.join(migrationsFolder, `${migrationName}.sql`);
     // Create empty migration file
-    fs.writeFileSync(migrationPath, `-- Migration: ${name}\n-- Created at: ${new Date().toISOString()}\n\n-- Write your SQL migration here\n`);
+    fs_1.default.writeFileSync(migrationPath, `-- Migration: ${name}\n-- Created at: ${new Date().toISOString()}\n\n-- Write your SQL migration here\n`);
     return migrationPath;
 }
 /**
@@ -59,16 +69,16 @@ export function createMigration(name) {
  *
  * @param migrationPath Path to migration file
  */
-export async function applyMigration(migrationPath) {
+async function applyMigration(migrationPath) {
     try {
         // Read migration file
-        const sql = fs.readFileSync(migrationPath, 'utf8');
+        const sql = fs_1.default.readFileSync(migrationPath, 'utf8');
         // Execute SQL
-        await db.execute(sql);
-        logger.info(`Applied migration: ${path.basename(migrationPath)}`);
+        await index_js_1.db.execute(sql);
+        logger.info(`Applied migration: ${path_1.default.basename(migrationPath)}`);
     }
     catch (error) {
-        logger.error(`Failed to apply migration: ${path.basename(migrationPath)}`, error instanceof Error ? error : new Error(String(error)));
+        logger.error(`Failed to apply migration: ${path_1.default.basename(migrationPath)}`, error instanceof Error ? error : new Error(String(error)));
         throw error;
     }
 }
@@ -76,11 +86,11 @@ export async function applyMigration(migrationPath) {
  * Get migration history
  * Returns the list of applied migrations from the database
  */
-export async function getMigrationHistory() {
+async function getMigrationHistory() {
     try {
         // This assumes you have a migrations table
         // You might need to adjust this based on how drizzle stores migration history
-        const result = await db.execute(sql `SELECT * FROM __drizzle_migrations ORDER BY executed_at DESC`);
+        const result = await index_js_1.db.execute((0, drizzle_orm_1.sql) `SELECT * FROM __drizzle_migrations ORDER BY executed_at DESC`);
         return result.rows.map((row) => row.migration_name);
     }
     catch (error) {
@@ -89,4 +99,3 @@ export async function getMigrationHistory() {
         return [];
     }
 }
-//# sourceMappingURL=setup.js.map

@@ -1,3 +1,6 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ServiceErrorHandler = exports.ResultFormatter = void 0;
 /**
  * Service Helper Utilities
  *
@@ -5,13 +8,13 @@
  * These helpers promote consistent patterns for result formatting, error handling, and
  * database operations.
  */
-import { fromDatabaseFields } from './field-mapping';
-import { ErrorCode } from '../types/errors';
-import { AppError } from '../types/errors';
+const field_mapping_1 = require("./field-mapping");
+const errors_1 = require("../types/errors");
+const errors_2 = require("../types/errors");
 /**
  * Abstract base class for formatting database results into domain objects
  */
-export class ResultFormatter {
+class ResultFormatter {
     /**
      * Format multiple database result rows into domain objects
      *
@@ -49,7 +52,7 @@ export class ResultFormatter {
     baseFormat(dbResult) {
         if (!dbResult)
             return {};
-        return fromDatabaseFields(dbResult);
+        return (0, field_mapping_1.fromDatabaseFields)(dbResult);
     }
     /**
      * Format date fields from strings to Date objects
@@ -76,10 +79,11 @@ export class ResultFormatter {
         return obj;
     }
 }
+exports.ResultFormatter = ResultFormatter;
 /**
  * Error handler utility for standardized error handling in services
  */
-export class ServiceErrorHandler {
+class ServiceErrorHandler {
     /**
      * Standard error handler for service methods
      *
@@ -88,9 +92,9 @@ export class ServiceErrorHandler {
      * @param defaultErrorCode Error code to use if not an AppError
      * @throws Always throws an AppError with consistent formatting
      */
-    static handleError(error, operation, defaultErrorCode = ErrorCode.INTERNAL_SERVER_ERROR) {
+    static handleError(error, operation, defaultErrorCode = errors_1.ErrorCode.INTERNAL_SERVER_ERROR) {
         console.error(`Error ${operation}:`, error);
-        if (error instanceof AppError) {
+        if (error instanceof errors_2.AppError) {
             throw error;
         }
         let message;
@@ -101,7 +105,7 @@ export class ServiceErrorHandler {
             message = `Error ${operation}: Unknown error`;
         }
         // Use generic category for default errors
-        throw new AppError(message, defaultErrorCode === ErrorCode.NOT_FOUND ? 'NOT_FOUND' : 'INTERNAL_SERVER_ERROR', defaultErrorCode);
+        throw new errors_2.AppError(message, defaultErrorCode === errors_1.ErrorCode.NOT_FOUND ? 'NOT_FOUND' : 'INTERNAL_SERVER_ERROR', defaultErrorCode);
     }
     /**
      * Check if a result exists, throw a NOT_FOUND error if not
@@ -112,11 +116,11 @@ export class ServiceErrorHandler {
      * @returns The result if it exists
      * @throws AppError if result doesn't exist
      */
-    static ensureExists(result, entityName, errorCode = ErrorCode.NOT_FOUND) {
+    static ensureExists(result, entityName, errorCode = errors_1.ErrorCode.NOT_FOUND) {
         if (!result) {
-            throw new AppError(`${entityName} not found`, 'NOT_FOUND', errorCode);
+            throw new errors_2.AppError(`${entityName} not found`, 'NOT_FOUND', errorCode);
         }
         return result;
     }
 }
-//# sourceMappingURL=service-helpers.js.map
+exports.ServiceErrorHandler = ServiceErrorHandler;

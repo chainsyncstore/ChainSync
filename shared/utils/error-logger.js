@@ -1,24 +1,27 @@
-import { createLogger, format, transports } from 'winston';
-const { combine, timestamp, label, printf } = format;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.logInfo = exports.logWarning = exports.logError = exports.logger = void 0;
+const winston_1 = require("winston");
+const { combine, timestamp, label, printf } = winston_1.format;
 const myFormat = printf(({ level, message, label, timestamp, ...meta }) => {
     return `${timestamp} [${label}] ${level}: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''}`;
 });
-export const logger = createLogger({
+exports.logger = (0, winston_1.createLogger)({
     level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
     format: combine(label({ label: 'chain-sync' }), timestamp(), myFormat),
     transports: [
-        new transports.File({ filename: 'error.log', level: 'error' }),
-        new transports.File({ filename: 'combined.log' }),
+        new winston_1.transports.File({ filename: 'error.log', level: 'error' }),
+        new winston_1.transports.File({ filename: 'combined.log' }),
     ],
 });
 if (process.env.NODE_ENV !== 'production') {
-    logger.add(new transports.Console({
+    exports.logger.add(new winston_1.transports.Console({
         format: combine(label({ label: 'chain-sync' }), timestamp(), myFormat),
     }));
 }
-export const logError = (error, context = 'unknown') => {
+const logError = (error, context = 'unknown') => {
     const appError = error;
-    logger.error('Error occurred', {
+    exports.logger.error('Error occurred', {
         context,
         code: appError.code,
         category: appError.category,
@@ -30,10 +33,12 @@ export const logError = (error, context = 'unknown') => {
         retryAfter: appError.retryAfter,
     });
 };
-export const logWarning = (message, context = 'unknown') => {
-    logger.warn(message, { context });
+exports.logError = logError;
+const logWarning = (message, context = 'unknown') => {
+    exports.logger.warn(message, { context });
 };
-export const logInfo = (message, context = 'unknown') => {
-    logger.info(message, { context });
+exports.logWarning = logWarning;
+const logInfo = (message, context = 'unknown') => {
+    exports.logger.info(message, { context });
 };
-//# sourceMappingURL=error-logger.js.map
+exports.logInfo = logInfo;

@@ -1,72 +1,75 @@
-import { pgTable, text, boolean, integer, timestamp, index } from "drizzle-orm/pg-core";
-import { z } from "zod";
-import { baseTable } from "./base";
-import { relations } from "drizzle-orm";
-import { initializeGlobals } from "./types";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createPasswordResetTokenSchema = exports.passwordResetTokenInsertSchema = exports.passwordResetTokensRelations = exports.userLoginSchema = exports.userUpdateSchema = exports.userInsertSchema = exports.usersRelations = exports.passwordResetTokens = exports.users = exports.userRoleSchema = exports.UserRole = void 0;
+const pg_core_1 = require("drizzle-orm/pg-core");
+const zod_1 = require("zod");
+const base_js_1 = require("./base.js");
+const drizzle_orm_1 = require("drizzle-orm");
+const types_js_1 = require("./types.js");
 // User roles enum
-export const UserRole = {
+exports.UserRole = {
     ADMIN: "admin",
     MANAGER: "manager",
     CASHIER: "cashier",
     AFFILIATE: "affiliate"
 };
-export const userRoleSchema = z.enum([
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.CASHIER,
-    UserRole.AFFILIATE
+exports.userRoleSchema = zod_1.z.enum([
+    exports.UserRole.ADMIN,
+    exports.UserRole.MANAGER,
+    exports.UserRole.CASHIER,
+    exports.UserRole.AFFILIATE
 ]);
 // Initialize global references
-initializeGlobals();
+(0, types_js_1.initializeGlobals)();
 // Define tables
-export const users = pgTable("users", {
-    ...baseTable,
-    username: text("username").notNull().unique(),
-    password: text("password").notNull(),
-    fullName: text("full_name").notNull(),
-    email: text("email").notNull().unique(),
-    role: text("role", { enum: Object.values(UserRole) })
+exports.users = (0, pg_core_1.pgTable)("users", {
+    ...base_js_1.baseTable,
+    username: (0, pg_core_1.text)("username").notNull().unique(),
+    password: (0, pg_core_1.text)("password").notNull(),
+    fullName: (0, pg_core_1.text)("full_name").notNull(),
+    email: (0, pg_core_1.text)("email").notNull().unique(),
+    role: (0, pg_core_1.text)("role", { enum: Object.values(exports.UserRole) })
         .notNull()
-        .default(UserRole.CASHIER),
-    storeId: integer("store_id").references(/* Will be set in relations */ () => ({}.id), { onDelete: "set null" }),
-    lastLogin: timestamp("last_login"),
+        .default(exports.UserRole.CASHIER),
+    storeId: (0, pg_core_1.integer)("store_id").references(/* Will be set in relations */ () => ({}.id), { onDelete: "set null" }),
+    lastLogin: (0, pg_core_1.timestamp)("last_login"),
 }, (table) => ({
-    usernameIndex: index("idx_users_username").on(table.username),
-    emailIndex: index("idx_users_email").on(table.email),
-    roleIndex: index("idx_users_role").on(table.role),
-    storeIndex: index("idx_users_store").on(table.storeId)
+    usernameIndex: (0, pg_core_1.index)("idx_users_username").on(table.username),
+    emailIndex: (0, pg_core_1.index)("idx_users_email").on(table.email),
+    roleIndex: (0, pg_core_1.index)("idx_users_role").on(table.role),
+    storeIndex: (0, pg_core_1.index)("idx_users_store").on(table.storeId)
 }));
-export const passwordResetTokens = pgTable("password_reset_tokens", {
-    ...baseTable,
-    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    token: text("token").notNull().unique(),
-    expiresAt: timestamp("expires_at").notNull(),
-    used: boolean("used").notNull().default(false),
+exports.passwordResetTokens = (0, pg_core_1.pgTable)("password_reset_tokens", {
+    ...base_js_1.baseTable,
+    userId: (0, pg_core_1.integer)("user_id").notNull().references(() => exports.users.id, { onDelete: "cascade" }),
+    token: (0, pg_core_1.text)("token").notNull().unique(),
+    expiresAt: (0, pg_core_1.timestamp)("expires_at").notNull(),
+    used: (0, pg_core_1.boolean)("used").notNull().default(false),
 }, (table) => ({
-    userIdIndex: index("idx_password_reset_tokens_user_id").on(table.userId),
-    tokenIndex: index("idx_password_reset_tokens_token").on(table.token)
+    userIdIndex: (0, pg_core_1.index)("idx_password_reset_tokens_user_id").on(table.userId),
+    tokenIndex: (0, pg_core_1.index)("idx_password_reset_tokens_token").on(table.token)
 }));
 // User relations
-export const usersRelations = relations(users, ({ one, many }) => ({
+exports.usersRelations = (0, drizzle_orm_1.relations)(exports.users, ({ one, many }) => ({
     store: one(global.stores, {
-        fields: [users.storeId],
+        fields: [exports.users.storeId],
         references: [global.stores.id],
     }),
-    passwordResetTokens: many(passwordResetTokens),
+    passwordResetTokens: many(exports.passwordResetTokens),
 }));
-import { createInsertSchema } from "drizzle-zod"; // Added import
+const drizzle_zod_1 = require("drizzle-zod"); // Added import
 // Validation schemas
-export const userInsertSchema = createInsertSchema(users)
+exports.userInsertSchema = (0, drizzle_zod_1.createInsertSchema)(exports.users)
     .extend({
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    password: z.string().min(8, "Password must be at least 8 characters"), // Input validation, hashing handled separately
-    fullName: z.string().min(1, "Full name is required"),
-    email: z.string().email("Invalid email"),
-    role: userRoleSchema.optional(), // DB has default
-    storeId: z.number().int().positive().optional().nullable(), // Nullable FK
+    username: zod_1.z.string().min(3, "Username must be at least 3 characters"),
+    password: zod_1.z.string().min(8, "Password must be at least 8 characters"), // Input validation, hashing handled separately
+    fullName: zod_1.z.string().min(1, "Full name is required"),
+    email: zod_1.z.string().email("Invalid email"),
+    role: exports.userRoleSchema.optional(), // DB has default
+    storeId: zod_1.z.number().int().positive().optional().nullable(), // Nullable FK
     // lastLogin will be inferred as optional by createInsertSchema or excluded if not in NewUser
 });
-export const userUpdateSchema = userInsertSchema
+exports.userUpdateSchema = exports.userInsertSchema
     .omit({
     username: true, // Typically username is not updatable or handled specially
     password: true, // Password updates should have a separate flow/schema
@@ -74,29 +77,28 @@ export const userUpdateSchema = userInsertSchema
     // role: true, // Role changes might be restricted
 })
     .partial(); // Makes all remaining fields optional for update
-export const userLoginSchema = z.object({
-    username: z.string().min(1, "Username is required"),
-    password: z.string().min(1, "Password is required"),
+exports.userLoginSchema = zod_1.z.object({
+    username: zod_1.z.string().min(1, "Username is required"),
+    password: zod_1.z.string().min(1, "Password is required"),
 });
 // Password reset token relations
-export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
-    user: one(users, {
-        fields: [passwordResetTokens.userId],
-        references: [users.id],
+exports.passwordResetTokensRelations = (0, drizzle_orm_1.relations)(exports.passwordResetTokens, ({ one }) => ({
+    user: one(exports.users, {
+        fields: [exports.passwordResetTokens.userId],
+        references: [exports.users.id],
         relationName: "passwordResetTokens"
     }),
 }));
 // Validation schemas for Password Reset Tokens
-export const passwordResetTokenInsertSchema = createInsertSchema(passwordResetTokens)
+exports.passwordResetTokenInsertSchema = (0, drizzle_zod_1.createInsertSchema)(exports.passwordResetTokens)
     .extend({
-    userId: z.number().int().positive(), // Non-null FK
-    token: z.string().min(32, "Token must be at least 32 characters"),
-    expiresAt: z.date(),
-    used: z.boolean().optional(), // DB has default
+    userId: zod_1.z.number().int().positive(), // Non-null FK
+    token: zod_1.z.string().min(32, "Token must be at least 32 characters"),
+    expiresAt: zod_1.z.date(),
+    used: zod_1.z.boolean().optional(), // DB has default
 });
-export const createPasswordResetTokenSchema = passwordResetTokenInsertSchema.pick({
+exports.createPasswordResetTokenSchema = exports.passwordResetTokenInsertSchema.pick({
     userId: true,
     token: true,
     expiresAt: true
 });
-//# sourceMappingURL=users.js.map

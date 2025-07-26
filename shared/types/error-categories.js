@@ -1,4 +1,7 @@
-export const ErrorCategory = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ErrorCategory = void 0;
+exports.ErrorCategory = {
     INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
     NOT_FOUND: 'NOT_FOUND',
     BAD_REQUEST: 'BAD_REQUEST',
@@ -15,4 +18,3 @@ export const ErrorCategory = {
     GATEWAY_TIMEOUT: 'GATEWAY_TIMEOUT',
     SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE'
 };
-//# sourceMappingURL=error-categories.js.map

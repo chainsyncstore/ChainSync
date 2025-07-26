@@ -1,8 +1,45 @@
-import { Pool } from 'pg';
-import { schema } from '@shared/schema';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { getLogger } from '../shared/logging';
-const logger = getLogger('db-connection-manager').child({ component: 'db-connection-manager' });
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.db = exports.dbManager = void 0;
+exports.executeQuery = executeQuery;
+const pg_1 = require("pg");
+const schema = __importStar(require("@shared/schema"));
+const node_postgres_1 = require("drizzle-orm/node-postgres");
+const logging_1 = require("../shared/logging");
+const logger = (0, logging_1.getLogger)('db-connection-manager').child({ component: 'db-connection-manager' });
 // Connection pool configuration
 const DEFAULT_POOL_SIZE = 10;
 const CONNECTION_IDLE_TIMEOUT_MS = 30000; // 30 seconds
@@ -41,7 +78,7 @@ class DbConnectionManager {
             ? parseInt(process.env.DB_POOL_SIZE, 10)
             : DEFAULT_POOL_SIZE;
         // Create connection pool with optimized settings
-        this.pool = new Pool({
+        this.pool = new pg_1.Pool({
             connectionString: process.env.DATABASE_URL,
             max: poolSize,
             idleTimeoutMillis: CONNECTION_IDLE_TIMEOUT_MS,
@@ -70,7 +107,7 @@ class DbConnectionManager {
             logger.error('Database pool error', { error: err });
         });
         // Initialize Drizzle with the connection pool
-        this.drizzleDb = drizzle(this.pool, { schema }); // Pass pool directly
+        this.drizzleDb = (0, node_postgres_1.drizzle)(this.pool, { schema }); // Pass pool directly
         this.isInitialized = true;
         logger.info('Database connection pool initialized', {
             poolSize,
@@ -148,10 +185,9 @@ class DbConnectionManager {
     }
 }
 // Export singleton instance
-export const dbManager = DbConnectionManager.getInstance();
-export const db = dbManager.getDb();
+exports.dbManager = DbConnectionManager.getInstance();
+exports.db = exports.dbManager.getDb();
 // Export a helper function for executing queries with tracking
-export async function executeQuery(queryFn, queryName = 'unnamed-query') {
-    return dbManager.executeQuery(queryFn, queryName);
+async function executeQuery(queryFn, queryName = 'unnamed-query') {
+    return exports.dbManager.executeQuery(queryFn, queryName);
 }
-//# sourceMappingURL=connection-manager.js.map

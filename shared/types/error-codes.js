@@ -1,4 +1,7 @@
-export const ErrorCode = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ErrorCode = void 0;
+exports.ErrorCode = {
     // Base errors
     INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
     NOT_FOUND: 'NOT_FOUND',
@@ -45,4 +48,3 @@ export const ErrorCode = {
     GATEWAY_TIMEOUT_ERROR: 'GATEWAY_TIMEOUT_ERROR',
     SERVICE_UNAVAILABLE_ERROR: 'SERVICE_UNAVAILABLE_ERROR'
 };
-//# sourceMappingURL=error-codes.js.map

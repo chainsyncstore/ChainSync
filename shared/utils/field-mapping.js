@@ -1,3 +1,9 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.toDatabaseFields = toDatabaseFields;
+exports.fromDatabaseFields = fromDatabaseFields;
+exports.pickFields = pickFields;
+exports.hasField = hasField;
 /**
  * Field Mapping Utilities
  *
@@ -10,7 +16,7 @@
  * @param data The data object with camelCase keys
  * @returns A new object with snake_case keys
  */
-export function toDatabaseFields(data) {
+function toDatabaseFields(data) {
     if (!data)
         return {};
     return Object.entries(data).reduce((acc, [key, value]) => {
@@ -25,7 +31,7 @@ export function toDatabaseFields(data) {
  * @param data The data object with snake_case keys
  * @returns A new object with camelCase keys
  */
-export function fromDatabaseFields(data) {
+function fromDatabaseFields(data) {
     if (!data)
         return {};
     return Object.entries(data).reduce((acc, [key, value]) => {
@@ -41,7 +47,7 @@ export function fromDatabaseFields(data) {
  * @param fields Array of field names to include
  * @returns A new object with only the specified fields
  */
-export function pickFields(data, fields) {
+function pickFields(data, fields) {
     if (!data)
         return {};
     return fields.reduce((acc, field) => {
@@ -58,9 +64,8 @@ export function pickFields(data, fields) {
  * @param field The field name to check
  * @returns True if the field exists and is not undefined
  */
-export function hasField(obj, field) {
+function hasField(obj, field) {
     if (obj == null)
         return false;
     return obj[field] !== undefined;
 }
-//# sourceMappingURL=field-mapping.js.map

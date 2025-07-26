@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Schema Helpers
  *
@@ -6,24 +7,73 @@
  * These are temporary solutions to allow the application to function while
  * schema alignment is being addressed more comprehensively.
  */
-import * as schema from './schema';
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.refundItems = exports.refunds = void 0;
+exports.assertType = assertType;
+exports.prepareUserData = prepareUserData;
+exports.prepareProductData = prepareProductData;
+exports.prepareInventoryData = prepareInventoryData;
+exports.prepareLoyaltyTierData = prepareLoyaltyTierData;
+exports.prepareLoyaltyMemberData = prepareLoyaltyMemberData;
+exports.prepareLoyaltyRedemptionData = prepareLoyaltyRedemptionData;
+exports.prepareSubscriptionData = prepareSubscriptionData;
+exports.prepareRefundData = prepareRefundData;
+exports.prepareRefundItemData = prepareRefundItemData;
+exports.formatRefundResult = formatRefundResult;
+exports.formatLoyaltyTierResult = formatLoyaltyTierResult;
+exports.formatLoyaltyMemberResult = formatLoyaltyMemberResult;
+exports.formatSubscriptionResult = formatSubscriptionResult;
+const schema = __importStar(require("./schema"));
 /**
  * Generic type assertion helper for database operations
  * Use this when TypeScript detects schema mismatches but you know the runtime values are correct
  */
-export function assertType(data) {
+function assertType(data) {
     return data;
 }
 /**
  * Core Module Helpers
  */
 // Users
-export function prepareUserData(data) {
+function prepareUserData(data) {
     // Pass through with type assertion
     return data;
 }
 // Products
-export function prepareProductData(data) {
+function prepareProductData(data) {
     // Ensure SKU exists
     const preparedData = {
         ...data,
@@ -32,14 +82,14 @@ export function prepareProductData(data) {
     return preparedData;
 }
 // Inventory
-export function prepareInventoryData(data) {
+function prepareInventoryData(data) {
     return data;
 }
 /**
  * Loyalty Module Helpers
  */
 // Map field names between code and schema
-export function prepareLoyaltyTierData(data) {
+function prepareLoyaltyTierData(data) {
     // Schema uses 'requiredPoints', code uses 'pointsRequired'
     // Schema uses 'active', code uses 'status'
     const preparedData = {
@@ -56,7 +106,7 @@ export function prepareLoyaltyTierData(data) {
         delete preparedData.status;
     return preparedData;
 }
-export function prepareLoyaltyMemberData(data) {
+function prepareLoyaltyMemberData(data) {
     // Schema uses 'isActive', code uses 'status'
     const preparedData = {
         ...data,
@@ -70,13 +120,13 @@ export function prepareLoyaltyMemberData(data) {
  * Map for loyalty reward redemption - this is missing from schema but used in code
  * This is a temporary workaround until schema is updated
  */
-export function prepareLoyaltyRedemptionData(data) {
+function prepareLoyaltyRedemptionData(data) {
     return data;
 }
 /**
  * Subscription Module Helpers
  */
-export function prepareSubscriptionData(data) {
+function prepareSubscriptionData(data) {
     // Ensure required fields exist to satisfy Drizzle ORM expectations
     const requiredFields = ['userId', 'plan', 'amount', 'endDate'];
     for (const field of requiredFields) {
@@ -121,29 +171,29 @@ export function prepareSubscriptionData(data) {
  * Refund Module Helpers
  */
 // Handle the naming discrepancy between schema.returns (in code) and refunds (in database)
-export function prepareRefundData(data) {
+function prepareRefundData(data) {
     // The schema uses 'returns' but the code expects 'refunds'
     return data;
 }
-export function prepareRefundItemData(data) {
+function prepareRefundItemData(data) {
     // The schema uses 'returnItems' but the code expects 'refundItems'
     return data;
 }
 // Special mapping functions for refund module
-export const refunds = {
+exports.refunds = {
     // Use the actual schema.returns for all refund operations
     ...schema.returns,
     // Add extra properties to make it compatible with code expectations
     refundAmount: schema.returns.total,
 };
-export const refundItems = {
+exports.refundItems = {
     // Use the actual schema.returnItems for all refund item operations
     ...schema.returnItems,
     // Add any missing properties expected by the code
-    returnReasonId: schema.returnItems.refundId,
+    returnReasonId: schema.returnItems.returnId,
 };
 // Helper function for formatting refund query results
-export function formatRefundResult(refund) {
+function formatRefundResult(refund) {
     if (!refund)
         return null;
     return {
@@ -155,7 +205,7 @@ export function formatRefundResult(refund) {
  * Helper for converting query results back to expected format
  * (reverse of the prepare functions)
  */
-export function formatLoyaltyTierResult(tier) {
+function formatLoyaltyTierResult(tier) {
     if (!tier)
         return null;
     return {
@@ -164,7 +214,7 @@ export function formatLoyaltyTierResult(tier) {
         status: tier.active ? 'active' : 'inactive'
     };
 }
-export function formatLoyaltyMemberResult(member) {
+function formatLoyaltyMemberResult(member) {
     if (!member)
         return null;
     return {
@@ -172,7 +222,7 @@ export function formatLoyaltyMemberResult(member) {
         status: member.isActive ? 'active' : 'inactive'
     };
 }
-export function formatSubscriptionResult(subscription) {
+function formatSubscriptionResult(subscription) {
     if (!subscription)
         return null;
     // Parse metadata if it exists and is a string
@@ -222,4 +272,3 @@ export function formatSubscriptionResult(subscription) {
     }
     return result;
 }
-//# sourceMappingURL=schema-helpers.js.map

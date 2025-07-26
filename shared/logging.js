@@ -1,10 +1,20 @@
+"use strict";
 /**
  * Shared Logging Utility
  *
  * Provides a consistent logging interface across the application
  * with structured logging and context tracking.
  */
-import pino from 'pino';
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getLogger = getLogger;
+exports.createRequestLogger = createRequestLogger;
+exports.createTransactionLogger = createTransactionLogger;
+exports.logPerformance = logPerformance;
+exports.measureAndLog = measureAndLog;
+const pino_1 = __importDefault(require("pino"));
 // Default log level based on environment
 const defaultLogLevel = process.env.NODE_ENV === 'production'
     ? 'info'
@@ -14,7 +24,7 @@ const defaultLogLevel = process.env.NODE_ENV === 'production'
 // Base logger configuration
 const baseLoggerConfig = {
     level: process.env.LOG_LEVEL || defaultLogLevel,
-    timestamp: pino.stdTimeFunctions.isoTime,
+    timestamp: pino_1.default.stdTimeFunctions.isoTime,
     formatters: {
         level: (label) => ({ level: label }),
     },
@@ -25,7 +35,7 @@ const baseLoggerConfig = {
         ],
         censor: '[REDACTED]',
     },
-    serializers: pino.stdSerializers,
+    serializers: pino_1.default.stdSerializers,
 };
 // Only add transport if not SKIP_LOGGER and not production
 if (!process.env.SKIP_LOGGER && process.env.NODE_ENV !== 'production') {
@@ -38,12 +48,12 @@ if (!process.env.SKIP_LOGGER && process.env.NODE_ENV !== 'production') {
         },
     };
 }
-const baseLoggerInstance = pino(baseLoggerConfig);
+const baseLoggerInstance = (0, pino_1.default)(baseLoggerConfig);
 /**
  * Get a logger instance
  * Optionally provide context that will be included with all log entries
  */
-export function getLogger(moduleName, bindings = {} // Changed 'options' to 'bindings' for clarity
+function getLogger(moduleName, bindings = {} // Changed 'options' to 'bindings' for clarity
 ) {
     return baseLogger.child({
         module: moduleName, // Add moduleName as a specific binding
@@ -53,7 +63,7 @@ export function getLogger(moduleName, bindings = {} // Changed 'options' to 'bin
 /**
  * Create a request-scoped logger with trace ID
  */
-export function createRequestLogger(requestId, path, method) {
+function createRequestLogger(requestId, path, method) {
     return baseLogger.child({
         requestId,
         path,
@@ -63,7 +73,7 @@ export function createRequestLogger(requestId, path, method) {
 /**
  * Create a transaction logger for tracking database operations
  */
-export function createTransactionLogger(transactionId) {
+function createTransactionLogger(transactionId) {
     return baseLogger.child({
         transactionId,
         component: 'database',
@@ -72,7 +82,7 @@ export function createTransactionLogger(transactionId) {
 /**
  * Utility to log performance metrics
  */
-export function logPerformance(operation, durationMs, metadata) {
+function logPerformance(operation, durationMs, metadata) {
     const performanceLogger = baseLogger.child({
         component: 'performance',
         ...metadata,
@@ -86,7 +96,7 @@ export function logPerformance(operation, durationMs, metadata) {
 /**
  * Measure execution time of a function and log it
  */
-export async function measureAndLog(operation, fn, metadata) {
+async function measureAndLog(operation, fn, metadata) {
     const start = performance.now();
     try {
         const result = await fn();
@@ -113,5 +123,4 @@ export async function measureAndLog(operation, fn, metadata) {
     }
 }
 const baseLogger = baseLoggerInstance;
-export default baseLogger;
-//# sourceMappingURL=logging.js.map
+exports.default = baseLogger;

@@ -1,29 +1,31 @@
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { z } from "zod";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { baseTable } from "./base";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.suppliersRelations = exports.supplierSelectSchema = exports.supplierInsertSchema = exports.suppliers = void 0;
+const pg_core_1 = require("drizzle-orm/pg-core");
+const drizzle_orm_1 = require("drizzle-orm");
+const zod_1 = require("zod");
+const drizzle_zod_1 = require("drizzle-zod");
+const base_1 = require("./base");
 // Suppliers table
-export const suppliers = pgTable("suppliers", {
-    ...baseTable,
-    name: text("name").notNull(),
-    contactName: text("contact_name"),
-    email: varchar("email", { length: 255 }).unique(),
-    phone: varchar("phone", { length: 50 }),
-    address: text("address"),
+exports.suppliers = (0, pg_core_1.pgTable)("suppliers", {
+    ...base_1.baseTable,
+    name: (0, pg_core_1.text)("name").notNull(),
+    contactName: (0, pg_core_1.text)("contact_name"),
+    email: (0, pg_core_1.varchar)("email", { length: 255 }).unique(),
+    phone: (0, pg_core_1.varchar)("phone", { length: 50 }),
+    address: (0, pg_core_1.text)("address"),
 });
 // Schemas for suppliers
-export const supplierInsertSchema = createInsertSchema(suppliers).extend({
-    name: z.string().min(1, "Supplier name is required"),
-    contactName: z.string().min(1, "Contact name must not be empty if provided").optional().nullable(),
-    email: z.string().email("Invalid email format").optional().nullable(),
-    phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format").optional().nullable(),
-    address: z.string().min(1, "Address must not be empty if provided").optional().nullable(),
+exports.supplierInsertSchema = (0, drizzle_zod_1.createInsertSchema)(exports.suppliers).extend({
+    name: zod_1.z.string().min(1, "Supplier name is required"),
+    contactName: zod_1.z.string().min(1, "Contact name must not be empty if provided").optional().nullable(),
+    email: zod_1.z.string().email("Invalid email format").optional().nullable(),
+    phone: zod_1.z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format").optional().nullable(),
+    address: zod_1.z.string().min(1, "Address must not be empty if provided").optional().nullable(),
 });
-export const supplierSelectSchema = createSelectSchema(suppliers);
+exports.supplierSelectSchema = (0, drizzle_zod_1.createSelectSchema)(exports.suppliers);
 // Relations for suppliers (e.g., if suppliers have many inventory batches)
-export const suppliersRelations = relations(suppliers, () => ({ // `many` removed as it's unused
+exports.suppliersRelations = (0, drizzle_orm_1.relations)(exports.suppliers, ({ many }) => ({
 // Example: if you want to link back to inventoryBatches
 // inventoryBatches: many(() => inventoryBatches), // Uncomment and define inventoryBatches if needed here
 }));
-//# sourceMappingURL=suppliers.js.map

@@ -1,3 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.formatDateForSql = formatDateForSql;
+exports.formatJsonForSql = formatJsonForSql;
+exports.buildInsertQuery = buildInsertQuery;
+exports.buildUpdateQuery = buildUpdateQuery;
+exports.buildRawInsertQuery = buildRawInsertQuery;
+exports.buildRawUpdateQuery = buildRawUpdateQuery;
+exports.prepareSqlValues = prepareSqlValues;
 /**
  * SQL Helper Utilities
  *
@@ -5,14 +14,14 @@
  * for safe inclusion in SQL queries. These helpers address common issues with type
  * conversion and SQL string escaping.
  */
-import { toDatabaseFields } from './field-mapping';
+const field_mapping_1 = require("./field-mapping");
 /**
  * Format a date value for safe inclusion in SQL queries
  *
  * @param date The date to format (can be Date object, ISO string, or null/undefined)
  * @returns A SQL-safe string representation of the date or 'NULL'
  */
-export function formatDateForSql(date) {
+function formatDateForSql(date) {
     if (!date)
         return 'NULL';
     const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -24,7 +33,7 @@ export function formatDateForSql(date) {
  * @param data The data to serialize to JSON (can be any object or null/undefined)
  * @returns A SQL-safe string representation of the JSON data or 'NULL'
  */
-export function formatJsonForSql(data) {
+function formatJsonForSql(data) {
     if (!data)
         return 'NULL';
     // Escape single quotes to prevent SQL injection
@@ -38,8 +47,8 @@ export function formatJsonForSql(data) {
  * @param returnFields Array of fields to return (defaults to all fields)
  * @returns Object containing the query string and parameter values
  */
-export function buildInsertQuery(tableName, data, returnFields = ['*']) {
-    const dbFields = toDatabaseFields(data);
+function buildInsertQuery(tableName, data, returnFields = ['*']) {
+    const dbFields = (0, field_mapping_1.toDatabaseFields)(data);
     const fields = Object.keys(dbFields);
     const placeholders = fields.map((_, i) => `$${i + 1}`);
     const values = Object.values(dbFields);
@@ -61,8 +70,8 @@ export function buildInsertQuery(tableName, data, returnFields = ['*']) {
  * @param returnFields Array of fields to return (defaults to all fields)
  * @returns Object containing the query string and parameter values
  */
-export function buildUpdateQuery(tableName, data, whereCondition, returnFields = ['*']) {
-    const dbFields = toDatabaseFields(data);
+function buildUpdateQuery(tableName, data, whereCondition, returnFields = ['*']) {
+    const dbFields = (0, field_mapping_1.toDatabaseFields)(data);
     const fields = Object.keys(dbFields);
     const values = Object.values(dbFields);
     // Create SET clauses like "field1 = $1, field2 = $2"
@@ -86,7 +95,7 @@ export function buildUpdateQuery(tableName, data, whereCondition, returnFields =
  * @param returnFields Array of fields to return (defaults to all fields)
  * @returns The complete SQL query string
  */
-export function buildRawInsertQuery(tableName, data, // Values should already be formatted as SQL-safe strings
+function buildRawInsertQuery(tableName, data, // Values should already be formatted as SQL-safe strings
 returnFields = ['*']) {
     const fields = Object.keys(data);
     const values = Object.values(data);
@@ -106,7 +115,7 @@ returnFields = ['*']) {
  * @param returnFields Array of fields to return (defaults to all fields)
  * @returns The complete SQL query string
  */
-export function buildRawUpdateQuery(tableName, data, // Values should already be formatted as SQL-safe strings
+function buildRawUpdateQuery(tableName, data, // Values should already be formatted as SQL-safe strings
 whereCondition, returnFields = ['*']) {
     const setClauses = Object.entries(data).map(([field, value]) => `${field} = ${value}`);
     return `
@@ -122,7 +131,7 @@ whereCondition, returnFields = ['*']) {
  * @param data The source data object
  * @returns A new object with values formatted as SQL-safe strings
  */
-export function prepareSqlValues(data) {
+function prepareSqlValues(data) {
     return Object.entries(data).reduce((acc, [key, value]) => {
         if (value === undefined)
             return acc;
@@ -148,4 +157,3 @@ export function prepareSqlValues(data) {
         return acc;
     }, {});
 }
-//# sourceMappingURL=sql-helpers.js.map

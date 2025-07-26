@@ -1,33 +1,40 @@
-import { serial, timestamp } from "drizzle-orm/pg-core"; // Removed unused pgTable, integer, text, boolean, jsonb, unique, primaryKey, foreignKey, index
-import { z } from "zod";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.commonValidators = exports.defineRelations = exports.baseRelations = exports.baseSelectSchema = exports.baseInsertSchema = exports.softDeleteSchema = exports.timestampsSchema = exports.baseTable = void 0;
+exports.isSoftDeleted = isSoftDeleted;
+exports.isActive = isActive;
+const pg_core_1 = require("drizzle-orm/pg-core");
+const zod_1 = require("zod");
 // Base table configuration
-export const baseTable = {
-    id: serial("id").primaryKey(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-    deletedAt: timestamp("deleted_at"),
+exports.baseTable = {
+    id: (0, pg_core_1.serial)("id").primaryKey(),
+    createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow().notNull(),
+    updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow().notNull(),
+    deletedAt: (0, pg_core_1.timestamp)("deleted_at"),
 };
 // Timestamps schema
-export const timestampsSchema = z.object({
-    createdAt: z.date(),
-    updatedAt: z.date(),
+exports.timestampsSchema = zod_1.z.object({
+    createdAt: zod_1.z.date(),
+    updatedAt: zod_1.z.date(),
 });
 // Soft delete schema
-export const softDeleteSchema = z.object({
-    deletedAt: z.date().nullable(),
+exports.softDeleteSchema = zod_1.z.object({
+    deletedAt: zod_1.z.date().nullable(),
 });
 // Base validation schemas
-export const baseInsertSchema = timestampsSchema.merge(softDeleteSchema);
-export const baseSelectSchema = timestampsSchema.merge(softDeleteSchema);
+exports.baseInsertSchema = exports.timestampsSchema.merge(exports.softDeleteSchema);
+exports.baseSelectSchema = exports.timestampsSchema.merge(exports.softDeleteSchema);
 // Base relations
-export const baseRelations = () => ({ // table parameter removed as it's unused
+const baseRelations = (table) => ({
 // Add common relations here
 });
-export const defineRelations = (_table) => {
-    return baseRelations(); // No argument needed for baseRelations now
+exports.baseRelations = baseRelations;
+const defineRelations = (table) => {
+    return (0, exports.baseRelations)(table);
 };
+exports.defineRelations = defineRelations;
 // Common validation helpers
-export const commonValidators = {
+exports.commonValidators = {
     name: (schema) => schema.string().min(1, "Name is required"),
     description: (schema) => schema.string().optional(),
     status: (schema) => schema.enum(["active", "inactive", "deleted"]),
@@ -38,10 +45,9 @@ export const commonValidators = {
     phone: (schema) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
 };
 // Type guards
-export function isSoftDeleted(record) {
+function isSoftDeleted(record) {
     return record.deletedAt !== null;
 }
-export function isActive(record) {
+function isActive(record) {
     return !isSoftDeleted(record);
 }
-//# sourceMappingURL=base.js.map

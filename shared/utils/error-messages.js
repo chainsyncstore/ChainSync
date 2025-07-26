@@ -1,56 +1,59 @@
-import { ErrorCode, AppError } from '../types/errors';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.formatErrorForUser = exports.getErrorDescription = exports.getErrorMessage = void 0;
+const errors_1 = require("../types/errors");
 const errorTranslations = {
     // Validation errors
-    [ErrorCode.VALIDATION_FAILED]: {
+    [errors_1.ErrorCode.VALIDATION_FAILED]: {
         message: 'Invalid input data',
         description: 'Please check the input fields and try again'
     },
-    [ErrorCode.REQUIRED_FIELD_MISSING]: {
+    [errors_1.ErrorCode.REQUIRED_FIELD_MISSING]: {
         message: 'Required field is missing',
         description: 'Please fill in all required fields'
     },
-    [ErrorCode.INVALID_FIELD_VALUE]: {
+    [errors_1.ErrorCode.INVALID_FIELD_VALUE]: {
         message: 'Invalid value',
         description: 'Please enter a valid value'
     },
     // Authentication errors
-    [ErrorCode.UNAUTHORIZED]: {
+    [errors_1.ErrorCode.UNAUTHORIZED]: {
         message: 'Authentication required',
         description: 'Please log in to continue'
     },
-    [ErrorCode.INVALID_CREDENTIALS]: {
+    [errors_1.ErrorCode.INVALID_CREDENTIALS]: {
         message: 'Invalid credentials',
         description: 'Please check your username and password'
     },
     // Resource errors
-    [ErrorCode.RESOURCE_NOT_FOUND]: {
+    [errors_1.ErrorCode.RESOURCE_NOT_FOUND]: {
         message: 'Resource not found',
         description: 'The requested resource could not be found'
     },
-    [ErrorCode.RESOURCE_ALREADY_EXISTS]: {
+    [errors_1.ErrorCode.RESOURCE_ALREADY_EXISTS]: {
         message: 'Resource already exists',
         description: 'A resource with this identifier already exists'
     },
     // Business errors
-    [ErrorCode.INSUFFICIENT_STOCK]: {
+    [errors_1.ErrorCode.INSUFFICIENT_STOCK]: {
         message: 'Insufficient stock',
         description: 'The requested quantity is not available in stock'
     },
-    [ErrorCode.INSUFFICIENT_BALANCE]: {
+    [errors_1.ErrorCode.INSUFFICIENT_BALANCE]: {
         message: 'Insufficient balance',
         description: 'Your account balance is insufficient for this transaction'
     },
     // System errors
-    [ErrorCode.INTERNAL_SERVER_ERROR]: {
+    [errors_1.ErrorCode.INTERNAL_SERVER_ERROR]: {
         message: 'System error',
         description: 'An unexpected error occurred. Please try again later'
     },
-    [ErrorCode.SERVICE_UNAVAILABLE]: {
+    [errors_1.ErrorCode.SERVICE_UNAVAILABLE]: {
         message: 'Service unavailable',
         description: 'The service is temporarily unavailable. Please try again later'
     },
 };
-export const getErrorMessage = (code, details) => {
+const getErrorMessage = (code, details) => {
     const translation = errorTranslations[code];
     if (!translation) {
         return 'An unexpected error occurred';
@@ -67,15 +70,17 @@ export const getErrorMessage = (code, details) => {
     }
     return translation.message;
 };
-export const getErrorDescription = (code) => {
+exports.getErrorMessage = getErrorMessage;
+const getErrorDescription = (code) => {
     const translation = errorTranslations[code];
     return translation?.description || 'Please try again later';
 };
-export const formatErrorForUser = (error) => {
-    if (error instanceof AppError) {
+exports.getErrorDescription = getErrorDescription;
+const formatErrorForUser = (error) => {
+    if (error instanceof errors_1.AppError) {
         const appError = error;
-        const baseMessage = getErrorMessage(appError.code, appError.details);
-        const description = getErrorDescription(appError.code);
+        const baseMessage = (0, exports.getErrorMessage)(appError.code, appError.details);
+        const description = (0, exports.getErrorDescription)(appError.code);
         // Add retry information if applicable
         if (appError.retryable) {
             if (appError.retryAfter) {
@@ -89,4 +94,4 @@ export const formatErrorForUser = (error) => {
     // For non-AppError instances
     return 'An unexpected error occurred. Please try again later.';
 };
-//# sourceMappingURL=error-messages.js.map
+exports.formatErrorForUser = formatErrorForUser;

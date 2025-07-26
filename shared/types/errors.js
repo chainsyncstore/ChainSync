@@ -1,4 +1,7 @@
-export var ErrorCategory;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AppError = exports.ErrorCode = exports.RetryableError = exports.ErrorCategory = void 0;
+var ErrorCategory;
 (function (ErrorCategory) {
     ErrorCategory["VALIDATION"] = "VALIDATION";
     ErrorCategory["AUTHENTICATION"] = "AUTHENTICATION";
@@ -11,8 +14,8 @@ export var ErrorCategory;
     ErrorCategory["INVALID_FORMAT"] = "INVALID_FORMAT";
     ErrorCategory["EXPORT_ERROR"] = "EXPORT_ERROR";
     ErrorCategory["DATABASE_ERROR"] = "DATABASE_ERROR";
-})(ErrorCategory || (ErrorCategory = {}));
-export var RetryableError;
+})(ErrorCategory || (exports.ErrorCategory = ErrorCategory = {}));
+var RetryableError;
 (function (RetryableError) {
     // Temporary errors that might succeed if retried
     RetryableError["TEMPORARY_UNAVAILABLE"] = "TEMPORARY_UNAVAILABLE";
@@ -21,8 +24,8 @@ export var RetryableError;
     RetryableError["NETWORK_ERROR"] = "NETWORK_ERROR";
     RetryableError["CONNECTION_LOST"] = "CONNECTION_LOST";
     RetryableError["LOCKED_RESOURCE"] = "LOCKED_RESOURCE";
-})(RetryableError || (RetryableError = {}));
-export var ErrorCode;
+})(RetryableError || (exports.RetryableError = RetryableError = {}));
+var ErrorCode;
 (function (ErrorCode) {
     // Success codes
     ErrorCode["SUCCESS"] = "SUCCESS";
@@ -131,8 +134,8 @@ export var ErrorCode;
     ErrorCode["TEMPORARY_UNAVAILABLE"] = "TEMPORARY_UNAVAILABLE";
     ErrorCode["INSUFFICIENT_STOCK"] = "INSUFFICIENT_STOCK";
     ErrorCode["INSUFFICIENT_BALANCE"] = "INSUFFICIENT_BALANCE";
-})(ErrorCode || (ErrorCode = {}));
-export class AppError extends Error {
+})(ErrorCode || (exports.ErrorCode = ErrorCode = {}));
+class AppError extends Error {
     constructor(message, category, code, details, statusCode, retryable, retryAfter, validationErrors) {
         super(message);
         this.code = code;
@@ -320,4 +323,4 @@ export class AppError extends Error {
         }
     }
 }
-//# sourceMappingURL=errors.js.map
+exports.AppError = AppError;

@@ -1,97 +1,96 @@
-import { pgTable, text, integer, decimal, timestamp, index, unique } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { z } from "zod";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { baseTable } from "./base";
-import { products } from "./products";
-import { stores } from "./stores";
-import { suppliers } from "./suppliers";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.inventoryBatchesRelations = exports.inventoryBatchSelectSchema = exports.inventoryBatchInsertSchema = exports.inventoryBatches = exports.inventoryRelations = exports.inventoryUpdateSchema = exports.inventorySelectSchema = exports.inventoryInsertSchema = exports.inventory = exports.inventoryStatus = void 0;
+const pg_core_1 = require("drizzle-orm/pg-core");
+const drizzle_orm_1 = require("drizzle-orm");
+const zod_1 = require("zod");
+const drizzle_zod_1 = require("drizzle-zod");
+const base_1 = require("./base");
+const products_1 = require("./products");
+const stores_1 = require("./stores");
+const suppliers_1 = require("./suppliers");
 // Inventory status enum
-export const inventoryStatus = z.enum(["available", "low_stock", "out_of_stock", "reserved"]);
+exports.inventoryStatus = zod_1.z.enum(["available", "low_stock", "out_of_stock", "reserved"]);
 // Inventory table
-export const inventory = pgTable("inventory", {
-    ...baseTable,
-    storeId: integer("store_id").references(() => stores.id).notNull(),
-    productId: integer("product_id").references(() => products.id).notNull(),
-    totalQuantity: integer("total_quantity").notNull().default(0),
-    minimumLevel: integer("minimum_level").notNull().default(0),
-    status: text("status", { enum: inventoryStatus.options }).notNull().default("available"),
+exports.inventory = (0, pg_core_1.pgTable)("inventory", {
+    ...base_1.baseTable,
+    storeId: (0, pg_core_1.integer)("store_id").references(() => stores_1.stores.id).notNull(),
+    productId: (0, pg_core_1.integer)("product_id").references(() => products_1.products.id).notNull(),
+    totalQuantity: (0, pg_core_1.integer)("total_quantity").notNull().default(0),
+    availableQuantity: (0, pg_core_1.integer)("available_quantity").notNull().default(0),
+    minimumLevel: (0, pg_core_1.integer)("minimum_level").notNull().default(0),
+    batchTracking: (0, pg_core_1.boolean)("batch_tracking").notNull().default(false),
+    status: (0, pg_core_1.text)("status", { enum: exports.inventoryStatus.options }).notNull().default("available"),
 }, (table) => ({
-    storeProductIndex: index("idx_inventory_store_product").on(table.storeId, table.productId),
-    statusIndex: index("idx_inventory_status").on(table.status),
-    quantityIndex: index("idx_inventory_quantity").on(table.totalQuantity),
+    storeProductIndex: (0, pg_core_1.index)("idx_inventory_store_product").on(table.storeId, table.productId),
+    statusIndex: (0, pg_core_1.index)("idx_inventory_status").on(table.status),
+    quantityIndex: (0, pg_core_1.index)("idx_inventory_quantity").on(table.totalQuantity),
     // Optional: Add a unique constraint if a product can only appear once per store
     // storeProductUnique: unique("unique_inventory_store_product").on(table.storeId, table.productId),
 }));
 // Zod schemas for inventory
-export const inventoryInsertSchema = createInsertSchema(inventory, {
-    // Refine specific fields that need it upfront, like FKs requiring .positive()
-    storeId: (_s) => z.number().int().positive("Store ID must be a positive integer"),
-    productId: (_s) => z.number().int().positive("Product ID must be a positive integer"),
-    // Let drizzle-zod infer totalQuantity, minimumLevel, and status from the table schema initially.
-}).extend({
-    // Now, explicitly define the desired schema for fields, effectively overriding/refining the inferred one.
-    totalQuantity: z.number().int().min(0, "Total quantity cannot be negative"),
-    minimumLevel: z.number().int().min(0, "Minimum level cannot be negative"),
-    // status is pgEnum, drizzle-zod should infer it correctly as z.enum. If specific insert logic
-    // (e.g. .optional() for insert) is needed beyond the enum itself, it could be added here.
-    // For now, assuming direct enum inference is sufficient.
+exports.inventoryInsertSchema = (0, drizzle_zod_1.createInsertSchema)(exports.inventory, {
+    storeId: zod_1.z.number().int().positive("Store ID must be a positive integer"),
+    productId: zod_1.z.number().int().positive("Product ID must be a positive integer"),
+    totalQuantity: zod_1.z.number().int().min(0, "Total quantity cannot be negative"),
+    availableQuantity: zod_1.z.number().int().min(0, "Available quantity cannot be negative"),
+    minimumLevel: zod_1.z.number().int().min(0, "Minimum level cannot be negative"),
+    batchTracking: zod_1.z.boolean().default(false),
 });
-export const inventorySelectSchema = createSelectSchema(inventory);
-export const inventoryUpdateSchema = inventoryInsertSchema.partial().omit({
+exports.inventorySelectSchema = (0, drizzle_zod_1.createSelectSchema)(exports.inventory);
+exports.inventoryUpdateSchema = exports.inventoryInsertSchema.partial().omit({
     storeId: true,
     productId: true, // Usually, storeId and productId are not updatable in an inventory record
 });
 // Relations for inventory
-export const inventoryRelations = relations(inventory, ({ one, many }) => ({
-    store: one(stores, {
-        fields: [inventory.storeId],
-        references: [stores.id],
+exports.inventoryRelations = (0, drizzle_orm_1.relations)(exports.inventory, ({ one, many }) => ({
+    store: one(stores_1.stores, {
+        fields: [exports.inventory.storeId],
+        references: [stores_1.stores.id],
     }),
-    product: one(products, {
-        fields: [inventory.productId],
-        references: [products.id],
+    product: one(products_1.products, {
+        fields: [exports.inventory.productId],
+        references: [products_1.products.id],
     }),
-    batches: many(inventoryBatches),
+    batches: many(exports.inventoryBatches),
 }));
 // Inventory Batches table
-export const inventoryBatches = pgTable("inventory_batches", {
-    ...baseTable,
-    inventoryId: integer("inventory_id").references(() => inventory.id).notNull(),
-    batchNumber: text("batch_number").notNull(), // Unique constraint handled below
-    quantity: integer("quantity").notNull(),
-    costPerUnit: decimal("cost_per_unit", { precision: 10, scale: 2 }).notNull(),
-    expiryDate: timestamp("expiry_date", { mode: 'date' }), // Nullable by default
-    receivedDate: timestamp("received_date", { mode: 'date' }).notNull(),
-    supplierId: integer("supplier_id").references(() => suppliers.id), // Nullable by default
+exports.inventoryBatches = (0, pg_core_1.pgTable)("inventory_batches", {
+    ...base_1.baseTable,
+    inventoryId: (0, pg_core_1.integer)("inventory_id").references(() => exports.inventory.id).notNull(),
+    batchNumber: (0, pg_core_1.text)("batch_number").notNull(), // Unique constraint handled below
+    quantity: (0, pg_core_1.integer)("quantity").notNull(),
+    costPerUnit: (0, pg_core_1.decimal)("cost_per_unit", { precision: 10, scale: 2 }).notNull(),
+    expiryDate: (0, pg_core_1.timestamp)("expiry_date", { mode: 'date' }), // Nullable by default
+    receivedDate: (0, pg_core_1.timestamp)("received_date", { mode: 'date' }).notNull(),
+    supplierId: (0, pg_core_1.integer)("supplier_id").references(() => suppliers_1.suppliers.id), // Nullable by default
 }, (table) => ({
-    batchNumberInventoryIndex: unique("unique_idx_inventory_batches_inventory_batch").on(table.inventoryId, table.batchNumber),
-    expiryDateIndex: index("idx_inventory_batches_expiry_date").on(table.expiryDate),
+    batchNumberInventoryIndex: (0, pg_core_1.unique)("unique_idx_inventory_batches_inventory_batch").on(table.inventoryId, table.batchNumber),
+    expiryDateIndex: (0, pg_core_1.index)("idx_inventory_batches_expiry_date").on(table.expiryDate),
 }));
 // Zod schemas for inventory batches
-export const inventoryBatchInsertSchema = createInsertSchema(inventoryBatches, {
+exports.inventoryBatchInsertSchema = (0, drizzle_zod_1.createInsertSchema)(exports.inventoryBatches, {
     // Refine specific fields upfront
-    inventoryId: (_s) => z.number().int().positive("Inventory ID must be a positive integer"),
-    batchNumber: (_s) => z.string().min(1, "Batch number is required"),
-    receivedDate: (_s) => z.date(), // Assuming receivedDate is NOT NULL in DB and needs to be a ZodDate
+    inventoryId: (_s) => zod_1.z.number().int().positive("Inventory ID must be a positive integer"),
+    batchNumber: (_s) => zod_1.z.string().min(1, "Batch number is required"),
+    receivedDate: (_s) => zod_1.z.date(), // Assuming receivedDate is NOT NULL in DB and needs to be a ZodDate
     // Let drizzle-zod infer quantity, costPerUnit, expiryDate, supplierId initially
 }).extend({
     // Now, explicitly define/refine these schemas for insert purposes
-    quantity: z.number().int().min(0, "Quantity cannot be negative"),
-    costPerUnit: z.number().positive("Cost per unit must be positive"),
-    expiryDate: z.date().optional().nullable(), // For nullable DB date, make it optional & nullable for insert
-    supplierId: z.number().int().positive("Supplier ID must be a positive integer").optional().nullable(), // For nullable FK
+    quantity: zod_1.z.number().int().min(0, "Quantity cannot be negative"),
+    costPerUnit: zod_1.z.number().positive("Cost per unit must be positive"),
+    expiryDate: zod_1.z.date().optional().nullable(), // For nullable DB date, make it optional & nullable for insert
+    supplierId: zod_1.z.number().int().positive("Supplier ID must be a positive integer").optional().nullable(), // For nullable FK
 });
-export const inventoryBatchSelectSchema = createSelectSchema(inventoryBatches);
+exports.inventoryBatchSelectSchema = (0, drizzle_zod_1.createSelectSchema)(exports.inventoryBatches);
 // Relations for inventory batches
-export const inventoryBatchesRelations = relations(inventoryBatches, ({ one }) => ({
-    inventory: one(inventory, {
-        fields: [inventoryBatches.inventoryId],
-        references: [inventory.id],
+exports.inventoryBatchesRelations = (0, drizzle_orm_1.relations)(exports.inventoryBatches, ({ one }) => ({
+    inventory: one(exports.inventory, {
+        fields: [exports.inventoryBatches.inventoryId],
+        references: [exports.inventory.id],
     }),
-    supplier: one(suppliers, {
-        fields: [inventoryBatches.supplierId],
-        references: [suppliers.id],
+    supplier: one(suppliers_1.suppliers, {
+        fields: [exports.inventoryBatches.supplierId],
+        references: [suppliers_1.suppliers.id],
     }),
 }));
-//# sourceMappingURL=inventory.js.map

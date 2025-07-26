@@ -1,4 +1,7 @@
-export class RetryStrategy {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RetryStrategy = void 0;
+class RetryStrategy {
     constructor(maxRetries = 3, baseDelay = 1000, // 1 second
     maxDelay = 10000 // 10 seconds
     ) {
@@ -20,16 +23,15 @@ export class RetryStrategy {
                 return await operation();
             }
             catch (error) {
-                const typedError = error instanceof Error ? error : new Error(String(error));
-                if (!errorFilter(typedError)) {
-                    throw typedError;
+                if (!errorFilter(error)) {
+                    throw error;
                 }
                 if (attempt === this.maxRetries - 1) {
-                    throw typedError;
+                    throw error;
                 }
                 const delay = this.calculateDelay(attempt);
                 if (onRetry) {
-                    onRetry(typedError, attempt);
+                    onRetry(error, attempt);
                 }
                 await new Promise(resolve => setTimeout(resolve, delay));
                 attempt++;
@@ -46,4 +48,4 @@ export class RetryStrategy {
         return appError.retryAfter;
     }
 }
-//# sourceMappingURL=retry.js.map
+exports.RetryStrategy = RetryStrategy;
