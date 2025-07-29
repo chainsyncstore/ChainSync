@@ -1,8 +1,8 @@
 // server/routes/health.ts
 import { Router, Request, Response } from 'express';
-import { getLogger } from '../../src/logging';
-import { getRedisClient } from '../../src/cache/redis';
-import { getQueue, QueueType } from '../../src/queue';
+import { getLogger } from '../../src/logging/index.js';
+import { getRedisClient } from '../../src/cache/redis.js';
+import { getQueue, QueueType } from '../../src/queue/index.js';
 import { performance } from 'perf_hooks';
 import os from 'os';
 import { Pool } from 'pg';

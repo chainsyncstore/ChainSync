@@ -2,7 +2,7 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { Express } from 'express';
-import { getLogger } from '../src/logging';
+import { getLogger } from '../src/logging/index.js';
 
 const logger = getLogger().child({ component: 'swagger' });
 

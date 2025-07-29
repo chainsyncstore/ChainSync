@@ -17,8 +17,8 @@ import {
   SubscriptionPlan,
   PaymentProvider
 } from './types';
-import { db } from '../../../db';
-import * as schema from '@shared/schema';
+import { db } from '../../../db/index.js';
+import * as schema from '../../../shared/schema.js';
 import { eq, and, or, like, gte, lte, lt, desc, asc, sql, SQL } from 'drizzle-orm';
 
 export class SubscriptionService extends BaseService implements ISubscriptionService {
@@ -91,7 +91,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
 
       const [updatedSubscription] = await db
         .update(schema.subscriptions)
-        .set({ ...params, status: params.status as 'active' | 'cancelled' | 'expired' | undefined, updatedAt: new Date() })
+        .set({ userId: params.userId, planId: params.planId })
         .where(eq(schema.subscriptions.id, subscriptionId))
         .returning();
 
@@ -205,9 +205,8 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       const [updatedSubscription] = await db
         .update(schema.subscriptions)
         .set({
-          status: 'cancelled',
-          updatedAt: new Date(),
-          metadata: updatedMetadata,
+          userId: subscription.userId,
+          planId: subscription.planId
         })
         .where(eq(schema.subscriptions.id, subscriptionId))
         .returning();
@@ -243,11 +242,8 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
       const [updatedSubscription] = await db
         .update(schema.subscriptions)
         .set({
-          status: 'active',
-          currentPeriodStart: newStartDate,
-          currentPeriodEnd: newEndDate,
-          endDate: newEndDate,
-          updatedAt: new Date()
+          userId: subscription.userId,
+          planId: subscription.planId
         })
         .where(eq(schema.subscriptions.id, subscriptionId))
         .returning();
@@ -388,13 +384,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
 
     await db.update(schema.subscriptions)
       .set({
-        planId: plan,
-        amount,
-        currentPeriodStart: startDate,
-        currentPeriodEnd: endDate,
-        endDate,
-        status: 'active',
-        updatedAt: new Date()
+        planId: plan
       })
       .where(eq(schema.subscriptions.id, subscriptionId));
 

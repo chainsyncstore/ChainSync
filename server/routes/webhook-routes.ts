@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
-import { storage } from '../storage';
-import { log } from '../vite';
+import { storage } from '../storage.js';
+import { log } from '../vite.js';
 
 const router = express.Router();
 

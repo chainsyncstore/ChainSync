@@ -3,11 +3,11 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
-import { authenticateUser, authorizeRoles } from '../middleware/auth';
-import { getPool } from '../../db/pool';
-import { getRedisClient } from '../../src/cache/redis';
-import { getLogger } from '../../src/logging';
-import { getQueue } from '../../src/queue';
+import { authenticateUser, authorizeRoles } from '../middleware/auth.js';
+import { getPool } from '../../db/pool.js';
+import { getRedisClient } from '../../src/cache/redis.js';
+import { getLogger } from '../../src/logging/index.js';
+import { getQueue } from '../../src/queue/index.js';
 import { performance } from 'perf_hooks';
 
 const router = express.Router();

@@ -1,9 +1,9 @@
 import { parse as csvParse } from 'csv-parse/sync';
 import { stringify as csvStringify } from 'csv-stringify/sync';
 import * as xlsx from 'xlsx';
-import * as schema from '../../shared/schema';
+import * as schema from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
-import { db } from '../../db';
+import { db } from '../../db/index.js';
 import { SessionsClient } from '@google-cloud/dialogflow';
 import { enhanceValidationWithAI } from './import-ai';
 
@@ -728,18 +728,15 @@ export async function importInventoryData(data: any[], storeId: number): Promise
       if (existingProduct) {
         await db.update(schema.products).set({
           name: row.name,
-          description: row.description || existingProduct.description,
           price: row.price.toString(),
-          isPerishable: row.isPerishable || false
+          sku: row.sku || existingProduct.sku
         }).where(eq(schema.products.id, existingProduct.id));
         
         const inventoryItem = await db.query.inventory.findFirst({ where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, existingProduct.id)) });
         
         if (inventoryItem) {
           await db.update(schema.inventory).set({
-            quantity: row.quantity,
-            minStock: row.minStockLevel || inventoryItem.minStock,
-            lastRestocked: new Date()
+            minStock: row.minStockLevel || inventoryItem.minStock
           }).where(eq(schema.inventory.id, inventoryItem.id));
         } else {
           await db.insert(schema.inventory).values({
@@ -806,7 +803,7 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
       
       if (existingMember) {
         await db.update(schema.loyaltyMembers).set({
-          currentPoints: row.points ? row.points.toString() : existingMember.currentPoints
+          loyaltyId: existingMember.loyaltyId
         }).where(eq(schema.loyaltyMembers.id, existingMember.id));
         
         const user = await db.query.users.findFirst({ where: eq(schema.users.id, existingMember.userId) });
@@ -814,8 +811,7 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
           await db.update(schema.users)
             .set({
               name: row.name || user.name,
-              email: row.email || user.email,
-              updatedAt: new Date()
+              email: row.email || user.email
             })
             .where(eq(schema.users.id, user.id));
         }

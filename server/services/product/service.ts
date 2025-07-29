@@ -13,11 +13,11 @@ import {
   UpdateProductParams,
   ProductSearchParams,
 } from './types';
-import { db } from '@db';
-import * as schema from '@shared/schema';
+import { db } from '../../../db/index.js';
+import * as schema from '../../../shared/schema.js';
 import { eq, and, or, like, gte, lte, desc, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
-import { productValidation, SchemaValidationError } from '@shared/schema-validation';
+import { productValidation, SchemaValidationError } from '../../../shared/schema-validation.js';
 
 export class ProductService extends BaseService implements IProductService {
   /**

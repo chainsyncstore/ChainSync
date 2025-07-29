@@ -4,7 +4,7 @@ import cors from 'cors';
 import session from 'express-session';
 import { Pool } from 'pg';
 // import { createClient } from 'redis'; // Unused
-import { RedisStore } from 'connect-redis';
+import RedisStore from 'connect-redis';
 import path from 'path';
 
 // Import logging and error handling

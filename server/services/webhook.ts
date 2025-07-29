@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
-import { db } from '../../db';
-import { transactions } from '../../shared/schema';
+import { db } from '../../db/index.js';
+import { transactions } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 // Make sure these are available from the environment

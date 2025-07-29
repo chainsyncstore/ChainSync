@@ -5,8 +5,8 @@ import { validateBody } from '../middleware/validation';
 import { sensitiveOpRateLimiter } from '../middleware/rate-limit';
 import { z } from 'zod';
 import { getLogger } from '../../src/logging';
-import { db } from '../../db';
-import * as schema from '@shared/schema';
+import { db } from '../../db/index.js';
+import * as schema from '../../shared/schema.js';
 import { eq, gte, lte, desc, count, and, SQL } from 'drizzle-orm';
 import { queueTransactionForLoyalty } from '../../src/queue/processors/loyalty';
 

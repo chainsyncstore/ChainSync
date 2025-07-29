@@ -17,11 +17,11 @@ import {
   LoyaltyProgramNotFoundError,
   LoyaltyMemberNotFoundError,
 } from './types';
-import { db } from '@db';
-import * as schema from '@shared/schema';
+import { db } from '../../../db/index.js';
+import * as schema from '../../../shared/schema.js';
 import { eq, and, gt, sql, asc } from 'drizzle-orm';
-import { loyaltyValidation, validateEntity } from '@shared/schema-validation';
-import { SchemaValidationError } from '@shared/schema-validation';
+import { loyaltyValidation, validateEntity } from '../../../shared/schema-validation.js';
+import { SchemaValidationError } from '../../../shared/schema-validation.js';
 
 export class LoyaltyService extends BaseService implements ILoyaltyService {
   private static readonly POINTS_EXPIRY_MONTHS = 12;

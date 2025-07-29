@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db/index.js';
-import * as schema from '@shared/schema';
+import * as schema from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import { getLogger, getRequestLogger } from '../../src/logging/index.js';
 

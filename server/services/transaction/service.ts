@@ -24,10 +24,10 @@ import {
   SelectTransaction
 } from './types';
 import { ITransactionService } from './interface';
-import { db } from '../../db';
-import * as schema from '@shared/schema';
+import { db } from '../../../db/index.js';
+import * as schema from '../../../shared/schema.js';
 import { eq, and, or, like, gte, lte, desc, asc, sql, between, inArray } from 'drizzle-orm';
-import { transactionValidation, SchemaValidationError } from '@shared/schema-validation';
+import { transactionValidation, SchemaValidationError } from '../../../shared/schema-validation.js';
 import { InventoryTransactionType } from '../inventory/types';
 
 // Import required services

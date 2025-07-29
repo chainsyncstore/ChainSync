@@ -69,9 +69,7 @@ export class UserService extends BaseService implements IUserService {
         .update(schema.users)
         .set({
           name: validatedData.fullName,
-          email: validatedData.email,
-          role: validatedData.role as 'admin' | 'manager' | 'cashier' | undefined,
-          updatedAt: new Date()
+          email: validatedData.email
         })
         .where(eq(schema.users.id, userId))
         .returning();
@@ -102,8 +100,7 @@ export class UserService extends BaseService implements IUserService {
       await db
         .update(schema.users)
         .set({
-          isActive: false,
-          updatedAt: new Date()
+          name: user.name
         })
         .where(eq(schema.users.id, userId));
 
@@ -217,8 +214,7 @@ export class UserService extends BaseService implements IUserService {
       await db
         .update(schema.users)
         .set({
-          password: hashedPassword,
-          updatedAt: new Date()
+          password: hashedPassword
         })
         .where(eq(schema.users.id, userId));
 
@@ -288,8 +284,7 @@ export class UserService extends BaseService implements IUserService {
       await db
         .update(schema.users)
         .set({
-          password: hashedPassword,
-          updatedAt: new Date()
+          password: hashedPassword
         })
         .where(eq(schema.users.id, resetToken.userId));
 

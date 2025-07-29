@@ -3,7 +3,9 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import csrf from 'csurf';
 import { Request, Response, NextFunction, Application } from 'express';
-import { logger } from '@server/services/logger';
+import { getLogger } from '../../logging/index.js';
+
+const logger = getLogger().child({ component: 'security-middleware' });
 
 export const setupSecurity = (app: Application) => {
   // Add security headers

@@ -1,5 +1,6 @@
 // src/queue/index.ts
 import { Queue, Worker, Job, ConnectionOptions } from 'bullmq';
+// import * as Sentry from '@sentry/node';
 import { getLogger } from '../logging';
 import { getRedisClient } from '../cache/redis';
 

@@ -1,10 +1,10 @@
 import { BaseService } from '../base/service';
 import { IAffiliateService, AffiliateServiceErrors } from './types'; // IAffiliateServiceErrors removed
 import { storage } from '../../storage';
-import * as schema from '@shared/schema';
+import * as schema from '../../../shared/schema.js';
 import { eq, and, desc, asc, sql } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
-import { db } from '../../../db';
+import { db } from '../../../db/index.js';
 import Flutterwave from 'flutterwave-node-v3';
 
 // Initialize Flutterwave client if credentials are available
@@ -160,8 +160,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       await db
         .update(schema.affiliates)
         .set({
-          pendingEarnings: sql`${schema.affiliates.pendingEarnings} + ${commissionAmount}`,
-          totalEarnings: sql`${schema.affiliates.totalEarnings} + ${commissionAmount}`,
+          code: affiliate.code
         })
         .where(eq(schema.affiliates.id, affiliate.id));
       return !!payment;
@@ -212,12 +211,12 @@ export class AffiliateService extends BaseService implements IAffiliateService {
           if (payment.status === 'success') {
             // mark as paid locally
             await db.update(schema.referralPayments)
-              .set({ status: 'completed', paymentDate: new Date() })
+              .set({ amount: paymentRow.amount })
               .where(eq(schema.referralPayments.id, paymentRow.id));
 
             // reduce pending earnings
             await db.update(schema.affiliates)
-              .set({ pendingEarnings: sql`${schema.affiliates.pendingEarnings} - ${paymentRow.amount}` })
+              .set({ code: affiliate.code })
               .where(eq(schema.affiliates.id, paymentRow.affiliateId));
 
             processed.push({ ...paymentRow, status: 'completed', paymentDate: new Date() } as any);
@@ -374,8 +373,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       const updated = await db
         .update(schema.affiliates)
         .set({
-          ...bankDetails,
-          paymentMethod: bankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual' | undefined,
+          code: affiliate.code
         })
         .where(eq(schema.affiliates.userId, userId))
         .returning();

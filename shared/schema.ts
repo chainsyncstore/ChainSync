@@ -1,7 +1,7 @@
 import { pgTable, text, integer, timestamp, boolean, json, decimal, uuid, serial } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
-import { customers } from './db/customers';
+import { customers } from './db/customers.js';
 import { z } from 'zod';
 
 // Users table

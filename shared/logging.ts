@@ -5,7 +5,7 @@
  * with structured logging and context tracking.
  */
 
-import pino from 'pino';
+import winston from 'winston';
 
 // Default log level based on environment
 const defaultLogLevel =
@@ -15,36 +15,24 @@ const defaultLogLevel =
       ? 'warn'
       : 'debug';
 
-// Base logger configuration
-const baseLoggerConfig: pino.LoggerOptions = {
+// Base logger configuration (using winston)
+const baseLoggerConfig = {
   level: process.env.LOG_LEVEL || defaultLogLevel,
-  timestamp: pino.stdTimeFunctions.isoTime,
-  formatters: {
-    level: (label: string) => ({ level: label }),
-  },
-  redact: {
-    paths: [
-      'password', 'passwordHash', 'token', 'accessToken', 'refreshToken', 'authorization', 'cookie',
-      '*.password', '*.passwordHash', '*.token', '*.accessToken', '*.refreshToken', '*.authorization', '*.cookie',
-    ],
-    censor: '[REDACTED]',
-  },
-  serializers: pino.stdSerializers,
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  ]
 };
 
-// Only add transport if not SKIP_LOGGER and not production
-if (!process.env.SKIP_LOGGER && process.env.NODE_ENV !== 'production') {
-  (baseLoggerConfig as any).transport = {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname',
-    },
-  };
-}
-
-const baseLoggerInstance = pino(baseLoggerConfig);
+const baseLoggerInstance = winston.createLogger(baseLoggerConfig);
 
 
 /**

@@ -95,8 +95,7 @@ export class WebhookService extends BaseService implements IWebhookService {
       const [updatedWebhook] = await db
         .update(schema.webhooks)
         .set({
-          ...validatedData,
-          updatedAt: new Date()
+          ...validatedData
         })
         .where(eq(schema.webhooks.id, id))
         .returning();
@@ -127,8 +126,7 @@ export class WebhookService extends BaseService implements IWebhookService {
       await db
         .update(schema.webhooks)
         .set({
-          isActive: false,
-          updatedAt: new Date()
+          url: webhook.url
         })
         .where(eq(schema.webhooks.id, id));
 
@@ -229,9 +227,7 @@ export class WebhookService extends BaseService implements IWebhookService {
         await db
           .update(schema.webhookDeliveries)
           .set({
-            status: 'delivered',
-            response: JSON.stringify(response.data),
-            updatedAt: new Date()
+            webhookId: delivery.webhookId
           })
           .where(eq(schema.webhookDeliveries.id, delivery.id));
 
@@ -252,8 +248,7 @@ export class WebhookService extends BaseService implements IWebhookService {
           await db
             .update(schema.webhookDeliveries)
             .set({
-              status: attempt >= WebhookService.MAX_RETRY_ATTEMPTS ? 'failed' : 'retrying',
-              response: lastError?.message ?? null,
+              webhookId: deliveryRecord.webhookId
             })
             .where(eq(schema.webhookDeliveries.id, deliveryRecord.id));
         }

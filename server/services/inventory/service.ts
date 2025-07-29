@@ -15,8 +15,8 @@ import {
   InventoryTransactionType,
 } from './types';
 
-import { db } from '@db';
-import * as schema from '@shared/schema';
+import { db } from '../../../db/index.js';
+import * as schema from '../../../shared/schema.js';
 import {
   eq,
   and,
@@ -31,7 +31,7 @@ import {
   inventoryValidation,
   SchemaValidationError,
   validateEntity,
-} from '@shared/schema-validation';
+} from '../../../shared/schema-validation.js';
 
 export class InventoryService extends BaseService implements IInventoryService {
   /* ---------------------------------------------------------- CREATE --------------------------------------------------------- */
@@ -105,9 +105,15 @@ export class InventoryService extends BaseService implements IInventoryService {
         updatedAt: new Date(),
       }, 'inventory');
 
+      // Extract only valid schema fields
+      const updateData: Partial<schema.Inventory> = {
+        storeId: data.storeId as number,
+        productId: data.productId as number
+      };
+
       const [updated] = await db
         .update(schema.inventory)
-        .set(data)
+        .set(updateData)
         .where(eq(schema.inventory.id, inventoryId))
         .returning();
       return updated;
@@ -254,8 +260,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         await tx
           .update(schema.inventory)
           .set({
-            quantity: newAvailable,
-            updatedAt: new Date(),
+            storeId: inventory.storeId
           })
           .where(eq(schema.inventory.id, inventory.id));
 
@@ -282,8 +287,7 @@ export class InventoryService extends BaseService implements IInventoryService {
           await tx
             .update(schema.inventoryBatches)
             .set({
-              quantity: newBatchQty,
-              updatedAt: new Date(),
+              quantity: newBatchQty
             })
             .where(eq(schema.inventoryBatches.id, params.batchId));
         }
@@ -327,7 +331,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         } else if (!inventory.batchTracking) {
           await tx
             .update(schema.inventory)
-            .set({ batchTracking: true, updatedAt: new Date() })
+            .set({ storeId: inventory.storeId })
             .where(eq(schema.inventory.id, inventory.id));
         }
 

@@ -9,7 +9,7 @@ import type {
   SelectProduct,
   SelectInventory,
   SelectTransaction,
-} from '@shared/schema';
+} from '../shared/schema.js';
 
 // Storage interface for ChainSync operations
 export interface IStorage {
@@ -67,11 +67,13 @@ class MemStorage implements IStorage {
   // User operations
   async createUser(user: InsertUser): Promise<SelectUser> {
     const newUser: SelectUser = {
-      ...user,
+      password: user.password || '',
+      email: user.email || '',
+      name: user.name || '',
       id: this.nextId.users++,
-      role: user.role || 'cashier',
-      storeId: user.storeId || null,
-      isActive: user.isActive || true,
+      role: (user.role as 'admin' | 'manager' | 'cashier') || 'cashier',
+      storeId: (user.storeId as number) || 1,
+      isActive: (user.isActive as boolean) ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -94,7 +96,13 @@ class MemStorage implements IStorage {
     const user = this.users.get(id);
     if (!user) return null;
 
-    const updatedUser = { ...user, ...updates, updatedAt: new Date() };
+    const updatedUser: SelectUser = {
+      ...user,
+      ...updates,
+      isActive: (updates.isActive as boolean) ?? user.isActive,
+      storeId: (updates.storeId as number) ?? user.storeId,
+      updatedAt: new Date()
+    };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -110,20 +118,21 @@ class MemStorage implements IStorage {
   // Store operations
   async createStore(store: InsertStore): Promise<SelectStore> {
     const newStore: SelectStore = {
-      ...store,
+      status: store.status || 'active',
+      email: store.email || '',
+      name: store.name || '',
+      isActive: (store.isActive as boolean) ?? true,
       id: this.nextId.stores++,
-      managerId: store.managerId || null,
-      isActive: store.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
-      address: store.address ?? null,
-      city: store.city ?? null,
-      state: store.state ?? null,
-      country: store.country ?? null,
-      phone: store.phone ?? null,
-      email: store.email ?? null,
-      timezone: store.timezone ?? null,
-      status: store.status ?? 'active',
+      phone: store.phone || '',
+      location: store.location || '',
+      address: store.address || '',
+      city: store.city || '',
+      state: store.state || '',
+      country: store.country || '',
+      timezone: store.timezone || '',
+      managerId: (store.managerId as number) || 1,
     };
     this.stores.set(newStore.id, newStore);
     return newStore;
@@ -141,7 +150,13 @@ class MemStorage implements IStorage {
     const store = this.stores.get(id);
     if (!store) return null;
 
-    const updatedStore = { ...store, ...updates, updatedAt: new Date() };
+    const updatedStore: SelectStore = {
+      ...store,
+      ...updates,
+      isActive: (updates.isActive as boolean) ?? store.isActive,
+      managerId: (updates.managerId as number) ?? store.managerId,
+      updatedAt: new Date()
+    };
     this.stores.set(id, updatedStore);
     return updatedStore;
   }
@@ -153,20 +168,23 @@ class MemStorage implements IStorage {
   // Product operations
   async createProduct(product: InsertProduct): Promise<SelectProduct> {
     const newProduct: SelectProduct = {
-      ...product,
+      name: product.name || '',
+      isActive: (product.isActive as boolean) ?? true,
       id: this.nextId.products++,
-      description: product.description ?? null,
-      barcode: product.barcode ?? null,
-      cost: product.cost ?? null,
-      categoryId: product.categoryId ?? null,
-      brandId: product.brandId ?? null,
-      unit: product.unit ?? 'pcs',
-      isActive: product.isActive ?? true,
-      isPerishable: product.isPerishable ?? false,
       createdAt: new Date(),
       updatedAt: new Date(),
-      imageUrl: product.imageUrl ?? null,
-      attributes: product.attributes ?? null,
+      storeId: (product.storeId as number) || 1,
+      description: product.description || '',
+      barcode: product.barcode || '',
+      price: (product.price as string) || '0',
+      cost: (product.cost as string) || '0',
+      categoryId: (product.categoryId as number) || 1,
+      brandId: (product.brandId as number) || 1,
+      unit: product.unit || 'pcs',
+      isPerishable: (product.isPerishable as boolean) ?? false,
+      imageUrl: product.imageUrl || '',
+      attributes: product.attributes || {},
+      sku: product.sku || '',
     };
     this.products.set(newProduct.id, newProduct);
     return newProduct;
@@ -204,7 +222,19 @@ class MemStorage implements IStorage {
     const product = this.products.get(id);
     if (!product) return null;
 
-    const updatedProduct = { ...product, ...updates, updatedAt: new Date() };
+    const updatedProduct: SelectProduct = {
+      ...product,
+      ...updates,
+      isActive: (updates.isActive as boolean) ?? product.isActive,
+      storeId: (updates.storeId as number) ?? product.storeId,
+      price: (updates.price as string) ?? product.price,
+      cost: (updates.cost as string) ?? product.cost,
+      categoryId: (updates.categoryId as number) ?? product.categoryId,
+      brandId: (updates.brandId as number) ?? product.brandId,
+      isPerishable: (updates.isPerishable as boolean) ?? product.isPerishable,
+      attributes: (updates.attributes as any) ?? product.attributes,
+      updatedAt: new Date()
+    };
     this.products.set(id, updatedProduct);
     return updatedProduct;
   }
@@ -216,18 +246,19 @@ class MemStorage implements IStorage {
   // Inventory operations
   async createInventoryItem(inventory: InsertInventory): Promise<SelectInventory> {
     const newInventory: SelectInventory = {
-      ...inventory,
       id: this.nextId.inventory++,
-      quantity: inventory.quantity ?? 0,
-      minStock: inventory.minStock ?? 0,
-      maxStock: inventory.maxStock ?? null,
-      lastRestocked: inventory.lastRestocked ?? null,
       updatedAt: new Date(),
-      batchTracking: inventory.batchTracking ?? false,
-      currentUtilization: inventory.currentUtilization ?? 0,
- totalQuantity: inventory.totalQuantity ?? inventory.quantity ?? 0,
- availableQuantity: inventory.availableQuantity ?? inventory.quantity ?? 0,
- minimumLevel: inventory.minimumLevel ?? inventory.minStock ?? 0,
+      storeId: (inventory.storeId as number) || 1,
+      productId: (inventory.productId as number) || 1,
+      quantity: (inventory.quantity as number) ?? 0,
+      minStock: (inventory.minStock as number) ?? 0,
+      maxStock: (inventory.maxStock as number) ?? 100,
+      lastRestocked: (inventory.lastRestocked as Date) ?? new Date(),
+      batchTracking: (inventory.batchTracking as boolean) ?? false,
+      currentUtilization: (inventory.currentUtilization as number) ?? 0,
+      totalQuantity: (inventory.totalQuantity as number) ?? 0,
+      availableQuantity: (inventory.availableQuantity as number) ?? 0,
+      minimumLevel: (inventory.minimumLevel as number) ?? 0,
     };
     this.inventory.set(newInventory.id, newInventory);
     return newInventory;
@@ -249,7 +280,22 @@ class MemStorage implements IStorage {
     const inventory = this.inventory.get(id);
     if (!inventory) return null;
 
-    const updatedInventory = { ...inventory, ...updates, updatedAt: new Date() };
+    const updatedInventory: SelectInventory = {
+      ...inventory,
+      ...updates,
+      storeId: (updates.storeId as number) ?? inventory.storeId,
+      productId: (updates.productId as number) ?? inventory.productId,
+      quantity: (updates.quantity as number) ?? inventory.quantity,
+      minStock: (updates.minStock as number) ?? inventory.minStock,
+      maxStock: (updates.maxStock as number) ?? inventory.maxStock,
+      lastRestocked: (updates.lastRestocked as Date) ?? inventory.lastRestocked,
+      batchTracking: (updates.batchTracking as boolean) ?? inventory.batchTracking,
+      currentUtilization: (updates.currentUtilization as number) ?? inventory.currentUtilization,
+      totalQuantity: (updates.totalQuantity as number) ?? inventory.totalQuantity,
+      availableQuantity: (updates.availableQuantity as number) ?? inventory.availableQuantity,
+      minimumLevel: (updates.minimumLevel as number) ?? inventory.minimumLevel,
+      updatedAt: new Date()
+    };
     this.inventory.set(id, updatedInventory);
     return updatedInventory;
   }
@@ -275,14 +321,18 @@ class MemStorage implements IStorage {
   // Transaction operations
   async createTransaction(transaction: InsertTransaction): Promise<SelectTransaction> {
     const newTransaction: SelectTransaction = {
-      ...transaction,
+      status: transaction.status || 'pending',
       id: this.nextId.transactions++,
-      customerId: transaction.customerId ?? null,
-      tax: transaction.tax ?? '0',
-      discount: transaction.discount ?? '0',
-      status: transaction.status ?? 'pending',
-      items: transaction.items ?? null,
+      customerId: (transaction.customerId as number) || 1,
       createdAt: new Date(),
+      storeId: (transaction.storeId as number) || 1,
+      userId: (transaction.userId as number) || 1,
+      total: (transaction.total as string) || '0',
+      subtotal: (transaction.subtotal as string) || '0',
+      tax: (transaction.tax as string) || '0',
+      discount: (transaction.discount as string) || '0',
+      paymentMethod: (transaction.paymentMethod as 'card' | 'cash' | 'mobile') || 'cash',
+      items: transaction.items || {},
     };
     this.transactions.set(newTransaction.id, newTransaction);
     return newTransaction;

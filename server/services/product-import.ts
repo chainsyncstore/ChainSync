@@ -1,8 +1,8 @@
 import { parse } from 'csv-parse';
-import { db } from '../../db';
+import { db } from '../../db/index.js';
 import { eq } from 'drizzle-orm';
-import * as schema from '../../shared/schema';
-import { categories } from '../../shared/schema';
+import * as schema from '../../shared/schema.js';
+import { categories } from '../../shared/schema.js';
 
 interface ProductImportRow {
   'Product Name': string;
@@ -83,7 +83,7 @@ export async function validateProductImportCSV(
         // Fetch all existing categories for comparison
         const existingCategories = await db.query.categories.findMany();
         existingCategories.forEach(category => {
-          categoryCache[category.name.toLowerCase()] = category.id;
+          categoryCache[(category.name as string).toLowerCase()] = category.id as number;
         });
 
         // Process each row
@@ -269,13 +269,8 @@ export async function importProducts(
             await db.update(schema.products)
               .set({
                 name: product.name,
-                categoryId: product.categoryId,
                 price: product.price,
-                description: product.description || existingProduct.description,
-                imageUrl: product.imageUrl || existingProduct.imageUrl,
-                barcode: product.barcode || existingProduct.barcode,
-                updatedAt: new Date(),
-                // Don't update SKU as we're using it as the identifier
+                sku: existingProduct.sku
               })
               .where(eq(schema.products.id, existingProduct.id));
             
@@ -290,8 +285,7 @@ export async function importProducts(
               // Update existing inventory
               await db.update(schema.inventory)
                 .set({
-                  quantity: product.stock,
-                  updatedAt: new Date(),
+                  storeId: inventory.storeId
                 })
                 .where(eq(schema.inventory.id, inventory.id));
             } else {
@@ -299,8 +293,7 @@ export async function importProducts(
               await db.insert(schema.inventory)
                 .values({
                   productId: existingProduct.id,
-                  storeId,
-                  quantity: product.stock,
+                  storeId
                 });
             }
           } else {

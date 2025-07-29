@@ -1,4 +1,5 @@
 // src/queue/processors/loyalty.ts
+// import * as Sentry from '@sentry/node';
 import { Job } from 'bullmq';
 import { getLogger } from '../../logging';
 import { initWorker, QueueType, JobPriority, addJob } from '../index';

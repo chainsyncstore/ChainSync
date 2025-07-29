@@ -1,7 +1,7 @@
 import Paystack from 'paystack-node';
 import Flutterwave from 'flutterwave-node-v3';
-import { db } from '../../db';
-import * as schema from '../../shared/schema';
+import { db } from '../../db/index.js';
+import * as schema from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 // Type declaration for modules without types
@@ -304,8 +304,7 @@ export async function processSubscriptionPayment(
       // Update existing subscription
       const [updated] = await db.update(schema.subscriptions)
         .set({
-          ...subscriptionData,
-          updatedAt: new Date()
+          ...subscriptionData
         })
         .where(eq(schema.subscriptions.id, existingSubscription.id))
         .returning();

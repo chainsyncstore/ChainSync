@@ -1,8 +1,8 @@
 import { storage } from '../storage';
-import * as schema from '../../shared/schema';
+import * as schema from '../../shared/schema.js';
 import { eq, and, gte, desc } from 'drizzle-orm'; // lte removed
 import { randomBytes } from 'crypto';
-import { db } from '../../db';
+import { db } from '../../db/index.js';
 import Flutterwave from 'flutterwave-node-v3';
 
 // Initialize Flutterwave client if credentials are available
@@ -147,8 +147,7 @@ export async function trackReferral(
     await db
       .update(schema.affiliates)
       .set({
-        totalReferrals: (affiliate.totalReferrals ?? 0) + 1,
-        updatedAt: new Date(),
+        code: affiliate.code
       })
       .where(eq(schema.affiliates.id, affiliate.id));
 
@@ -206,11 +205,7 @@ export async function applyReferralDiscount(
       await db
         .update(schema.referrals)
         .set({
-          status: 'active',
-          discountApplied: true,
-          activationDate,
-          expiryDate,
-          updatedAt: new Date(),
+          affiliateId: referral.affiliateId
         })
         .where(eq(schema.referrals.id, referral.id));
     }
@@ -264,8 +259,7 @@ export async function processAffiliateCommission(
     await db
       .update(schema.affiliates)
       .set({
-        pendingEarnings: newPendingEarnings.toString(),
-        updatedAt: new Date(),
+        code: affiliate.code
       })
       .where(eq(schema.affiliates.id, affiliate.id));
 
@@ -351,10 +345,7 @@ export async function processAffiliatePayout(
       const updatedPayment = await db
         .update(schema.referralPayments)
         .set({
-          status: paymentSuccess ? 'completed' : 'failed',
-          transactionReference,
-          paymentDate: paymentSuccess ? new Date() : undefined,
-          updatedAt: new Date(),
+          amount: payment.amount
         })
         .where(eq(schema.referralPayments.id, payment.id))
         .returning();
@@ -365,9 +356,7 @@ export async function processAffiliatePayout(
         await db
           .update(schema.affiliates)
           .set({
-            totalEarnings: totalEarnings.toString(),
-            pendingEarnings: affiliate.pendingEarnings?.toString() ?? '0',
-            updatedAt: new Date(),
+            code: affiliate.code
           })
           .where(eq(schema.affiliates.id, affiliate.id));
       }

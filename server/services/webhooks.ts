@@ -1,5 +1,5 @@
-import { db } from "../../db";
-import * as schema from "../../shared/schema";
+import { db } from "../../db/index.js";
+import * as schema from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 // import { AffiliateService } from "./affiliate/service"; // Unused
 // import { PaymentService } from "./payment/service"; // Unused

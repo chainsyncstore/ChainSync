@@ -1,6 +1,6 @@
 // src/cache/redis.ts
 import Redis from 'ioredis';
-import { getLogger } from '../logging';
+import { getLogger } from '../logging/index.js';
 
 // Get logger for caching operations
 const logger = getLogger().child({ component: 'redis-cache' });

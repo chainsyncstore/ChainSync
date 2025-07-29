@@ -296,7 +296,7 @@ router.post('/alerts/:id/acknowledge', authenticateUser, authorizeRoles(['admin'
     activeAlerts[alertIndex].acknowledged = true;
     
     // Log the acknowledgment
-    logger.info(`Alert ${alertId} acknowledged by user ${req.user.id}`);
+    logger.info(`Alert ${alertId} acknowledged by user ${(req as any).user?.id || 'unknown'}`);
     
     res.json({
       success: true,

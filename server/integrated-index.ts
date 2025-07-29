@@ -2,9 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { registerRoutes } from "./routes.js";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
+// Use __dirname directly in CommonJS
 const __dirname = path.dirname(__filename);
 
 const app = express();

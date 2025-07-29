@@ -1,9 +1,10 @@
 // src/logging/SentryLogger.ts
-import * as Sentry from '@sentry/node';
-import { extraErrorDataIntegration, captureConsoleIntegration } from '@sentry/integrations';
+// Sentry integration disabled for now - add @sentry/node to dependencies if needed
+// Sentry integration disabled - using no-op implementations
+
 import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger';
 
-interface SentryLoggerOptions {
+export interface SentryLoggerOptions {
   dsn: string;
   environment?: string;
   release?: string;
@@ -12,27 +13,61 @@ interface SentryLoggerOptions {
   maxBreadcrumbs?: number;
   debug?: boolean;
   attachStacktrace?: boolean;
+  beforeSend?: (event: any) => any;
 }
 
 /**
- * Initialize Sentry with proper configuration
+ * Initialize Sentry for error tracking and performance monitoring
  * This should be called once at application startup
  */
 export function initSentry(options: SentryLoggerOptions): void {
-  Sentry.init({
-    dsn: options.dsn,
-    environment: options.environment || process.env.NODE_ENV || 'development',
-    release: options.release,
-    serverName: options.serverName,
-    integrations: [
-      extraErrorDataIntegration() as any,
-      captureConsoleIntegration() as any,
-    ],
-    tracesSampleRate: options.tracesSampleRate || 0.2,
-    maxBreadcrumbs: options.maxBreadcrumbs || 100,
-    debug: options.debug || false,
-    attachStacktrace: options.attachStacktrace || true,
-  });
+  // Sentry disabled - no-op
+  console.log('Sentry initialization skipped (disabled)');
+}
+
+/**
+ * Capture an exception with Sentry
+ */
+export function captureException(error: Error, context?: Record<string, any>): void {
+  // Sentry disabled - no-op
+  console.error('Exception captured (Sentry disabled):', error.message, context);
+}
+
+/**
+ * Capture a message with Sentry
+ */
+export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
+  // Sentry disabled - no-op
+  console.log(`Sentry message (${level}):`, message);
+}
+
+/**
+ * Add breadcrumb for debugging
+ */
+export function addBreadcrumb(message: string, category?: string, data?: Record<string, any>): void {
+  // Sentry disabled - no-op
+}
+
+/**
+ * Set user context for Sentry
+ */
+export function setUserContext(user: { id?: string | number; email?: string; username?: string }): void {
+  // Sentry disabled - no-op
+}
+
+/**
+ * Set extra context for Sentry
+ */
+export function setExtraContext(key: string, value: any): void {
+  // Sentry disabled - no-op
+}
+
+/**
+ * Flush Sentry events (useful for serverless)
+ */
+export async function flush(timeout = 2000): Promise<boolean> {
+  // Sentry disabled - no-op
+  return true;
 }
 
 /**
@@ -52,19 +87,11 @@ export class SentryLogger extends BaseLogger {
   }
 
   public setUser(user: { id: string | number; email?: string; username?: string }): void {
-    // Set user context in Sentry
-    Sentry.setUser({
-      id: user.id.toString(),
-      email: user.email,
-      username: user.username,
-    });
-
-    // Also add to our local context
-    this.addContext({ user: { id: user.id } });
+    // Sentry disabled - no-op
   }
 
   public clearUser(): void {
-    Sentry.setUser(null);
+    // Sentry disabled - no-op
   }
 
   public setRequestContext(req: any): void {
@@ -103,106 +130,31 @@ export class SentryLogger extends BaseLogger {
       requestContext.headers = headers;
     }
 
-    // Set transaction in Sentry
-    const transaction = `${req.method} ${req.path || req.url}`;
-    // Sentry.configureScope is deprecated in newer versions
-    // Using withScope instead
-    Sentry.withScope((scope: any) => {
-      scope.setTag('component', 'SentryLogger');
-      scope.setLevel('info');
-    });
+    // Sentry disabled - no-op
 
     this.addContext({ request: requestContext });
   }
 
   protected logMessage(level: LogLevel, message: string, meta?: LogMeta): void {
-    // Log to console first
+    // Log to console only (Sentry disabled)
     this.consoleLogger.info(message, { ...this.context, ...meta });
-
-    // Only send warnings and above to Sentry
-    if (level >= LogLevel.WARN) {
-      const breadcrumb = {
-        type: 'default',
-        category: 'log',
-        level: this.getSentryLevel(level) as any,
-        message,
-        data: meta,
-      };
-
-      Sentry.addBreadcrumb(breadcrumb);
-
-      if (level >= LogLevel.ERROR) {
-        this.captureMessage(level, message, meta);
-      }
-    }
   }
 
   protected logError(level: LogLevel, message: string, error: Error | LoggableError, meta?: LogMeta): void {
-    // Log to console first
+    // Log to console only (Sentry disabled)
     if (error instanceof Error) {
       this.consoleLogger.error(message, error, meta);
     } else {
       this.consoleLogger.error(message, { ...meta, error });
     }
-
-    // Capture in Sentry
-    this.captureException(level, message, error, meta);
   }
 
   private captureMessage(level: LogLevel, message: string, meta?: LogMeta): void {
-    Sentry.withScope(scope => {
-      // Add context
-      if (this.context) {
-        Object.entries(this.context).forEach(([key, value]) => {
-          scope.setExtra(key, value);
-        });
-      }
-
-      // Add meta
-      if (meta) {
-        Object.entries(meta).forEach(([key, value]) => {
-          scope.setExtra(key, value);
-        });
-      }
-
-      scope.setLevel(this.getSentryLevel(level) as any);
-      Sentry.captureMessage(message);
-    });
+    // Sentry disabled - no-op
   }
 
   private captureException(level: LogLevel, message: string, error: Error | LoggableError, meta?: LogMeta): void {
-    Sentry.withScope(scope => {
-      // Add context
-      if (this.context) {
-        Object.entries(this.context).forEach(([key, value]) => {
-          scope.setExtra(key, value);
-        });
-      }
-
-      // Add meta
-      if (meta) {
-        Object.entries(meta).forEach(([key, value]) => {
-          scope.setExtra(key, value);
-        });
-      }
-
-      // Add custom message
-      scope.setExtra('message', message);
-
-      // Set error info
-      if ('code' in error && error.code) {
-        scope.setTag('error.code', error.code);
-      }
-      if ('status' in error && error.status) {
-        scope.setTag('error.status', error.status.toString());
-      }
-      if ('meta' in error && error.meta) {
-        scope.setExtra('error.meta', error.meta);
-      }
-
-      scope.setLevel(this.getSentryLevel(level) as any);
-      Sentry.captureException(error);
-    });
+    // Sentry disabled - no-op
   }
 
   private getSentryLevel(level: LogLevel): string {

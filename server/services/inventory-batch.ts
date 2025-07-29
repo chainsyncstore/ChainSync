@@ -1,5 +1,5 @@
-import { db } from '../../db';
-import * as schema from '../../shared/schema';
+import { db } from '../../db/index.js';
+import * as schema from '../../shared/schema.js';
 import { eq, and, desc, sum, isNull } from 'drizzle-orm';
 
 export interface BatchInsertData {
