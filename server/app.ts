@@ -36,7 +36,7 @@ import setupSwagger from './swagger.js';
 
 // Import monitoring
 import { configureSentry } from '../src/monitoring/sentryIntegration.js';
-import { initializeHealthChecks, initializeTracing } from '../src/monitoring/setup.js';
+import { initializeHealthChecks, initializeTracing } from './monitoring/setup.js';
 
 // Set up global error handlers
 setupGlobalErrorHandlers();
@@ -202,10 +202,10 @@ if (process.env.NODE_ENV !== 'test') {
   configureSentry(app);
   
   // Initialize distributed tracing with OpenTelemetry
-  initializeTracing(app);
+  initializeTracing();
   
   // Initialize health checks
-  initializeHealthChecks(app, dbPool);
+  initializeHealthChecks(app);
   
   // Initialize caching, queues, etc.
   initializeApp(app, dbPool).catch(err => {

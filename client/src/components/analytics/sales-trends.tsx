@@ -423,7 +423,7 @@ export const SalesTrends = () => {
                       selected={endDate}
                       onSelect={setEndDate}
                       initialFocus
-                      disabled={(date) =>
+                      disabled={(date: Date) =>
                         startDate ? date < startDate : false
                       }
                     />

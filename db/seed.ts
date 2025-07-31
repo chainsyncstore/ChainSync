@@ -274,7 +274,7 @@ async function seed() {
 
     const createdProducts = await Promise.all(
       products.map(async (product) => {
-        const [created] = await db.insert(schema.products).values({...product, storeId: 1, sku: `SKU-${Math.random()}`}).returning();
+        const [created] = await db.insert(schema.products).values({...product, storeId: createdStores[0].id}).returning();
         return created;
       })
     );
@@ -385,20 +385,10 @@ async function seed() {
           total: total.toFixed(2),
           paymentMethod: Math.random() > 0.3 ? "card" : "cash",
           status: "completed",
-          items: transactionItems,
+          items: transactionItems, // Store items as JSON in the transaction
           createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000) // Random time in the last 24 hours
         };
         const [transaction] = await db.insert(schema.transactions).values(transactionData as any).returning();
-        
-        // Insert transaction items
-        await Promise.all(
-          transactionItems.map(item => 
-            db.insert(schema.transactionItems).values({
-              ...item,
-              transactionId: transaction.id
-            })
-          )
-        );
         
         // Update inventory
         for (const item of transactionItems) {
@@ -406,22 +396,16 @@ async function seed() {
             where: (inventory, { and, eq }) =>
               and(eq(inventory.storeId, store.id), eq(inventory.productId, item.productId))
           });
-          
           if (inventory) {
-            await db
-              .update(schema.inventory)
+            await db.update(schema.inventory)
               .set({
-                quantity: Math.max(0, (inventory.quantity ?? 0) - item.quantity),
-                updatedAt: new Date()
+                quantity: Math.max(0, (inventory.quantity ?? 0) - item.quantity)
               })
-              .where(
-                eq(schema.inventory.id, inventory.id)
-              );
+              .where(eq(schema.inventory.id, inventory.id));
           }
         }
       }
     }
-
     console.log("✅ Seed completed successfully!");
   } catch (error) {
     console.error("❌ Seed failed:", error);

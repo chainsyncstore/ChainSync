@@ -49,16 +49,6 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
         .values({
           userId: params.userId,
           planId: params.plan,
-          status: 'active',
-          amount: params.amount,
-          currency: params.currency || 'NGN',
-          currentPeriodStart: startDate,
-          currentPeriodEnd: endDate,
-          endDate: endDate,
-          autoRenew: params.autoRenew ?? true,
-          paymentMethod: params.provider || 'manual',
-          referralCode: params.providerReference,
-          metadata: params.metadata,
         })
         .returning();
 
@@ -89,9 +79,19 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
         this.validateStatusTransition(existingSubscription.status, params.status as string);
       }
 
+      // Build update data that satisfies the schema
+      const updateData: Partial<typeof schema.subscriptions.$inferSelect> = {};
+      
+      // Map valid subscription fields from params
+      if (params.plan !== undefined) updateData.planId = params.plan;
+      if (params.status !== undefined) updateData.status = params.status as 'active' | 'cancelled' | 'expired' | null;
+      if (params.amount !== undefined) updateData.amount = params.amount;
+      if (params.currency !== undefined) updateData.currency = params.currency;
+      if (params.endDate !== undefined) updateData.endDate = params.endDate;
+      
       const [updatedSubscription] = await db
         .update(schema.subscriptions)
-        .set({ userId: params.userId, planId: params.planId })
+        .set(updateData)
         .where(eq(schema.subscriptions.id, subscriptionId))
         .returning();
 

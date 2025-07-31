@@ -42,19 +42,14 @@ export async function addBatch(batchData: BatchData) {
       [inventory] = await db.insert(schema.inventory).values({
         storeId: batchData.storeId,
         productId: batchData.productId,
-        quantity: 0,
-        minStock: 5,
       }).returning();
     }
 
     const [batch] = await db.insert(schema.inventoryBatches).values({
-      inventoryId: inventory.id,
-      batchNumber: batchData.batchNumber,
-      quantity: batchData.quantity,
-      expiryDate: batchData.expiryDate ? new Date(batchData.expiryDate) : null,
-      receivedDate: new Date(),
-      manufacturingDate: batchData.manufacturingDate ? new Date(batchData.manufacturingDate) : null,
-      costPerUnit: batchData.costPerUnit?.toString() || null,
+      inventoryId,
+      quantity,
+      costPerUnit,
+      expiryDate,
     }).returning();
 
     await updateInventoryTotalQuantity(inventory.id);
@@ -249,5 +244,8 @@ async function updateInventoryTotalQuantity(inventoryId: number) {
 
   const totalQuantity = Number(result[0].total) || 0;
 
-  await db.update(schema.inventory).set({ quantity: totalQuantity }).where(eq(schema.inventory.id, inventoryId));
+  await db.update(schema.inventory).set({ 
+    availableQuantity: totalQuantity,
+    quantity: totalQuantity 
+  }).where(eq(schema.inventory.id, inventoryId));
 }

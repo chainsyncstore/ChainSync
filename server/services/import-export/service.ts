@@ -1,3 +1,5 @@
+import multer from 'multer';
+type MulterFile = Express.Multer.File;
 // import { Request, Express } from 'express'; // Unused
 // import * as multer from 'multer'; // Unused
 import { AppError, ErrorCategory } from '@shared/types/errors';
@@ -144,7 +146,7 @@ export class ImportExportService {
     }
   }
 
-  async validateFile(file: Express.Multer.File): Promise<{ type: string; data: any[] }> {
+  async validateFile(file: MulterFile): Promise<{ type: string; data: any[] }> {
     try {
       // Check file size
       if (file.size > 50 * 1024 * 1024) { // 50MB

@@ -1,11 +1,12 @@
 import { RequestHandler, ErrorRequestHandler } from 'express';
 import { Pool } from 'pg';
+import type { File as MulterFile } from 'multer';
 
 // Express types
 export interface CustomRequest extends Request {
-  file?: Express.Multer.File;
+  file?: MulterFile;
   files?: {
-    [fieldname: string]: Express.Multer.File[] | Express.Multer.File;
+    [fieldname: string]: MulterFile[] | MulterFile;
   };
   user?: {
     id: string;

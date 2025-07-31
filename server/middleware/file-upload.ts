@@ -1,10 +1,10 @@
 import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
 
-import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors.js';
-import { FileUploadConfig } from '../config/file-upload.js';
-import { FileUploadProgress, ProgressSubscription } from './types/file-upload.js';
-import { logger } from './utils/logger.js';
+import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
+import { FileUploadConfig } from '../config/file-upload';
+import { FileUploadProgress, ProgressSubscription } from './types';
+import { logger } from './utils/logger';
 import { FileUtils } from './utils/file-utils.js';
 import { UploadMetricsTracker } from './utils/logger.js';
 import { LRUCache } from 'lru-cache';
@@ -16,12 +16,13 @@ import uuidv4 from 'uuid';
 import * as path from 'path';
 
 // Type definitions
+type MulterFile = Express.Multer.File;
 
 interface MulterRequest extends Request {
-  file?: Express.Multer.File;
+  file?: MulterFile;
   files?: {
-    [fieldname: string]: Express.Multer.File[];
-  } | Express.Multer.File[];
+    [fieldname: string]: MulterFile[];
+  } | MulterFile[];
   user?: any;
   progressId?: string;
 }
@@ -66,7 +67,7 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
 //     fileSize: fileUploadConfig.maxFileSize,
     files: fileUploadConfig.maxFiles
   },
-  fileFilter: async (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
+  fileFilter: async (req: Request, file: MulterFile, cb: (error: Error | null, acceptFile: boolean) => void) => {
     try {
       UploadMetricsTracker.getInstance().trackRequest();
       
@@ -227,11 +228,11 @@ export class FileUploadMiddleware {
         id: uploadId,
         status: 'in_progress',
         progress: 0,
-        total: files.reduce((acc, file) => acc + file.size, 0),
+        total: files.reduce((acc: number, file: MulterFile) => acc + file.size, 0),
         uploaded: 0,
         startTime: Date.now(),
         lastUpdate: Date.now(),
-        files: files.reduce((acc, file) => {
+        files: files.reduce((acc: { [key: string]: any }, file: MulterFile) => {
           acc[file.originalname] = {
             name: file.originalname,
             size: file.size,
@@ -460,8 +461,8 @@ export class FileUploadMiddleware {
       const subscriptions = subscriptionCache.get(progressId) || [];
       for (const sub of subscriptions) {
         try {
-          if (sub && sub.onProgress) {
-            sub.onProgress(progressData);
+          if (sub && sub.callback) {
+            sub.callback(progressData);
           }
         } catch (err) {
           console.error('Failed to notify subscriber:', err instanceof Error ? err.message : String(err));
@@ -491,25 +492,13 @@ export class FileUploadMiddleware {
       }
 
       const subscription: ProgressSubscription = {
+        id: uuidv4(),
         progressId,
-        onProgress: (progress: FileUploadProgress) => {
+        callback: (progress: FileUploadProgress) => {
           logger.info('Progress update', { progress });
           res.json(progress);
         },
-        onError: (error: any) => {
-          logger.error('Progress error', error);
-          res.status(error.status || 500).json({
-            error: {
-              message: error.message,
-              code: error.code,
-              status: error.status
-            }
-          });
-        },
-        onComplete: (result: any) => {
-          logger.info('Progress completed', { result });
-          res.json(result);
-        }
+        lastUpdate: Date.now()
       };
 
       const subscriptions = subscriptionCache.get(progressId) || [];
@@ -518,8 +507,8 @@ export class FileUploadMiddleware {
 
       // Send initial progress
       const progressData = progressCache.get(progressId);
-      if (progressData && subscription && subscription.onProgress) {
-        subscription.onProgress(progressData);
+      if (progressData && subscription && subscription.callback) {
+        subscription.callback(progressData);
       }
     } catch (subscriptionError: unknown) {
       logger.error('Progress subscription error:', {

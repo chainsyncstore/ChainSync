@@ -363,8 +363,7 @@ router.post('/', validateBody(createTransactionSchema), async (req: Request, res
       userId: parseInt(userId, 10),
       storeId: parseInt(storeId, 10),
       total: amount.toString(), // Use 'total' instead of 'totalAmount'
-      status: 'pending', // Default status to 'pending'
-      paymentMethod: 'card', //TODO: get from request
+      paymentMethod: 'card' as const, //TODO: get from request
       subtotal: amount.toString(), //TODO: calculate from items
     }).returning();
 
@@ -503,8 +502,7 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
 
     const [updatedTransaction] = await db.update(schema.transactions)
       .set({
-        status: status ?? existingTransaction.status,
-        // notes: notes ?? existingTransaction.notes, // Remove notes
+        status: (status ?? existingTransaction.status) as 'pending' | 'completed' | 'cancelled',
       })
       .where(eq(schema.transactions.id, parseInt(id, 10)))
       .returning();

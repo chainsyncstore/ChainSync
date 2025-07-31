@@ -1,9 +1,26 @@
 import { storage } from '../storage';
+// Runtime schema import – used for actual queries
 import * as schema from '../../shared/schema.js';
+// Separate **type-only** import so we get full static typings from the TS source file
+import type {
+  Affiliate as AffiliateRow,
+  AffiliateInsert,
+  Referral as ReferralRow,
+  ReferralInsert,
+  ReferralPayment as ReferralPaymentRow,
+  ReferralPaymentInsert,
+} from '../../shared/schema';
+
 import { eq, and, gte, desc } from 'drizzle-orm'; // lte removed
 import { randomBytes } from 'crypto';
 import { db } from '../../db/index.js';
 import Flutterwave from 'flutterwave-node-v3';
+
+// Local type aliases from shared schema (with correct typings)
+type NewAffiliate = AffiliateInsert;
+type UpdateAffiliate = Partial<AffiliateRow>;
+type NewReferral = ReferralInsert;
+type NewReferralPayment = ReferralPaymentInsert;
 
 // Initialize Flutterwave client if credentials are available
 let flwClient: any = null;
@@ -64,13 +81,24 @@ export async function registerAffiliate(userId: number, bankDetails?: any): Prom
 
     const referralCode = await generateReferralCode(userId);
 
-    const affiliateData: schema.AffiliateInsert = {
+    // Pick only valid bank detail fields to satisfy schema
+    const allowedBankKeys = [
+      'bankName',
+      'bankCode',
+      'accountNumber',
+      'accountName',
+      'paymentMethod',
+    ] as const;
+    const filteredBankDetails = Object.fromEntries(
+      Object.entries(bankDetails || {}).filter(([key]) =>
+        (allowedBankKeys as readonly string[]).includes(key)
+      )
+    ) as Partial<Record<typeof allowedBankKeys[number], string>>;
+
+    const affiliateData: NewAffiliate = {
       userId,
       code: referralCode,
-      totalReferrals: 0,
-      totalEarnings: '0',
-      pendingEarnings: '0',
-      ...bankDetails,
+      ...filteredBankDetails,
     };
 
     const [newAffiliate] = await db.insert(schema.affiliates).values(affiliateData).returning();
@@ -132,10 +160,10 @@ export async function trackReferral(
     }
 
     // Create a new referral
-    const referralData: schema.ReferralInsert = {
+    const referralData = {
       affiliateId: affiliate.id,
       referredUserId: newUserId,
-      status: 'pending',
+      status: 'pending' as const,
       discountApplied: false,
       commissionPaid: false,
       signupDate: new Date(),
@@ -300,12 +328,12 @@ export async function processAffiliatePayout(
       const pendingAmount = parseFloat(affiliate.pendingEarnings?.toString() ?? '0');
 
       // Create a new payment record
-      const paymentData: schema.ReferralPaymentInsert = {
+      const paymentData = {
         affiliateId: affiliate.id,
         amount: pendingAmount.toString(),
         currency: 'NGN', // Default to NGN
-        status: 'pending',
-        paymentMethod: affiliate.paymentMethod || 'paystack',
+        status: 'pending' as const,
+        paymentMethod: (affiliate.paymentMethod || 'paystack') as 'paystack' | 'flutterwave' | 'manual',
         // createdAt and updatedAt are handled by Drizzle by default for new inserts
       };
 
@@ -537,13 +565,25 @@ export async function updateAffiliateBankDetails(
       return null;
     }
 
+    // Build update data that satisfies the schema
+    const updateData: Partial<AffiliateRow> = {
+      updatedAt: new Date(),
+    };
+    
+    // Map valid affiliate fields from bankDetails
+    if (bankDetails.bankName) updateData.bankName = bankDetails.bankName;
+    if (bankDetails.bankCode) updateData.bankCode = bankDetails.bankCode;
+    if (bankDetails.accountNumber) updateData.accountNumber = bankDetails.accountNumber;
+    if (bankDetails.accountName) updateData.accountName = bankDetails.accountName;
+    
+    // Ensure paymentMethod is properly typed if provided
+    if (bankDetails.paymentMethod && ['paystack', 'flutterwave', 'manual'].includes(bankDetails.paymentMethod)) {
+      updateData.paymentMethod = bankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual';
+    }
+
     const [updatedAffiliate] = await db
       .update(schema.affiliates)
-      .set({
-        ...bankDetails,
-        paymentMethod: bankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual' | undefined,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(schema.affiliates.id, affiliate.id))
       .returning();
 

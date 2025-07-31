@@ -297,29 +297,27 @@ export async function importProducts(
                 });
             }
           } else {
-            // Insert new product
-            const [insertedProduct] = await db.insert(schema.products)
+          // Insert new product
+          const [insertedProduct] = await db.insert(schema.products)
+            .values({
+              name: product.name,
+              sku: product.sku,
+              storeId,
+              price: product.price,
+              imageUrl: product.imageUrl,
+              categoryId: product.categoryId,
+            })
+            .returning();
+          
+          if (insertedProduct) {
+            // Create inventory for this store and product
+            await db.insert(schema.inventory)
               .values({
-                name: product.name,
-                sku: product.sku,
+                productId: insertedProduct.id,
                 storeId,
-                categoryId: product.categoryId,
-                price: product.price,
-                description: product.description,
-                barcode: product.barcode,
-                imageUrl: product.imageUrl,
-              })
-              .returning();
-            
-            if (insertedProduct) {
-              // Create inventory for this store and product
-              await db.insert(schema.inventory)
-                .values({
-                  productId: insertedProduct.id,
-                  storeId,
-                  quantity: product.stock,
-                });
-            }
+                availableQuantity: product.stock,
+              });
+          }
           }
         } catch (error) {
           console.error(`Error importing product '${product.name}':`, error);

@@ -36,7 +36,6 @@ export class UserService extends BaseService implements IUserService {
           name: validatedData.fullName,
           email: validatedData.email,
           password: hashedPassword,
-          role: validatedData.role as 'admin' | 'manager' | 'cashier',
         })
         .returning();
 
@@ -100,7 +99,7 @@ export class UserService extends BaseService implements IUserService {
       await db
         .update(schema.users)
         .set({
-          name: user.name
+          name: existingUser.name
         })
         .where(eq(schema.users.id, userId));
 

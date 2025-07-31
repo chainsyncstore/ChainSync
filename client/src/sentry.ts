@@ -8,7 +8,7 @@ Sentry.init({
     Sentry.browserTracingIntegration(),
   ],
   tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0, // Lower sample rate in production
-  beforeSend(event) {
+  beforeSend(event: any) {
     // Filter out development-only errors
     if (import.meta.env.DEV && event.exception) {
       const error = event.exception.values?.[0];

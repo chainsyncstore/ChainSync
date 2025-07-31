@@ -641,7 +641,7 @@ function ReturnsHistory() {
                     from: dateRange.from, 
                     to: dateRange.to 
                   }}
-                  onSelect={(range) => {
+                  onSelect={(range: { from: Date | undefined; to: Date | undefined } | undefined) => {
                     if (range) {
                       setDateRange({ from: range.from, to: range.to });
                     }

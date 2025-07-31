@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Multer } from 'multer';
+import 'multer';
 import { LRUCache } from 'lru-cache';
 
 // Type definitions
@@ -54,7 +54,7 @@ export interface FileUploadConfig {
 }
 
 export interface ProgressSubscription {
-  id: string;
+  id?: string;
   progressId: string;
   callback: (progress: FileUploadProgress) => void;
   lastUpdate: number;
@@ -73,15 +73,11 @@ export interface FileValidationCache {
   timestamp: number;
 }
 
-export interface MulterFile extends Express.Multer.File {
-  buffer?: Buffer;
-}
-
 export interface MulterRequest extends Request {
   files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
 }
 
-export type MulterInstance = Multer.Instance;
+export type MulterInstance = import('multer').Multer;
 
 export interface AppError {
   code: string;

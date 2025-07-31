@@ -95,7 +95,6 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       const memberData = {
         customerId,
         loyaltyId,
-        currentPoints: "0",
         programId: program.id,
         userId: userId,
       };
@@ -155,18 +154,16 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       await db.insert(schema.loyaltyTransactions).values({
         memberId,
         pointsEarned: points,
+        pointsBalance: newCurrentPoints,
         transactionType: "earn",
         source,
         programId: member.programId,
-        pointsBalance: newCurrentPoints,
-        createdAt: new Date()
       });
 
       // Update member's points
       await db.update(schema.loyaltyMembers)
         .set({
           currentPoints: newCurrentPoints.toString(),
-          updatedAt: new Date()
         })
         .where(eq(schema.loyaltyMembers.id, memberId));
 
@@ -199,20 +196,16 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       const nextTier = await db.query.loyaltyTiers.findFirst({
         where: and(
           eq(schema.loyaltyTiers.programId, member.programId),
-          gt(schema.loyaltyTiers.requiredPoints, parseInt(member.currentPoints ?? '0')),
+          gt(schema.loyaltyTiers.requiredPoints, member.points ?? 0),
           eq(schema.loyaltyTiers.active, true)
         ),
         orderBy: asc(schema.loyaltyTiers.requiredPoints)
       });
 
       // Check if member qualifies for an upgrade
-      if (nextTier && parseFloat(member.currentPoints ?? '0') >= nextTier.requiredPoints) {
-        await db.update(schema.loyaltyMembers)
-          .set({
-            updatedAt: new Date()
-          })
-          .where(eq(schema.loyaltyMembers.id, memberId));
-
+      if (nextTier && (parseInt(member.currentPoints, 10) ?? 0) >= nextTier.requiredPoints) {
+        // Note: tierId field doesn't exist in loyaltyMembers table
+        // Tier information is managed through the loyaltyTiers table
         return true;
       }
 

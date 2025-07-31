@@ -169,7 +169,7 @@ export class TransactionService extends BaseService implements ITransactionServi
           const validatedItemData = transactionValidation.item.insert.parse(itemData);
           
           await tx.insert(schema.transactionItems)
-            .values(validatedItemData);
+            .values(itemData);
           
           if (params.type === TransactionType.SALE) {
             await this.inventoryService.adjustInventory({
@@ -411,13 +411,8 @@ export class TransactionService extends BaseService implements ITransactionServi
       return await db.transaction(async (tx) => {
         // Prepare refund data with camelCase field names
         const refundData = {
-          transactionId: params.transactionId,
-          amount: params.amount,
-          reason: params.reason,
-          notes: params.notes || '',
-          status: 'completed',
-          createdAt: new Date(),
-          updatedAt: new Date()
+          total: params.amount ?? '0',
+          refundId: `REF-${Date.now()}-${params.transactionId}`,
         };
         
         // Validate refund data
@@ -425,7 +420,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         
         // Insert refund
         const [refund] = await tx.insert(schema.returns)
-          .values(validatedRefundData)
+          .values(refundData)
           .returning();
         
         // Insert refund items

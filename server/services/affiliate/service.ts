@@ -100,8 +100,6 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       const referral = await db.insert(schema.referrals).values({
         affiliateId: affiliate.id,
         referredUserId: newUserId,
-        status: 'active',
-        createdAt: new Date()
       }).returning();
 
       return referral[0];
@@ -151,9 +149,6 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .values({
           affiliateId: affiliate.id,
           amount: commissionAmount.toString(),
-          currency,
-          status: 'pending',
-          paymentDate: new Date(),
         })
         .returning();
       // update pending earnings tally

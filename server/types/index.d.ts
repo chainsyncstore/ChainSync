@@ -32,15 +32,7 @@ interface User {
   storeId?: number;
 }
 
-// Express Session Types
-declare module 'express-session' {
-  interface SessionData {
-    userId: string;
-    userRole: 'admin' | 'manager' | 'cashier';
-    storeId?: number;
-    lastActivity: Date;
-  }
-}
+// Express Session Types are now defined in /types/express-session.d.ts
 
 // Customer Types
 interface Customer {

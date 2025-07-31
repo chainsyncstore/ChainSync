@@ -242,9 +242,6 @@ async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
         
         await db.update(schema.subscriptions)
           .set({ 
-            endDate: newEndDate,
-            status: "active",
-            updatedAt: new Date()
           })
           .where(eq(schema.subscriptions.id, subscription.id));
       }
@@ -275,9 +272,7 @@ async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
       // Update the subscription status
       await db.update(schema.subscriptions)
         .set({ 
-          status: "cancelled",
-          autoRenew: false,
-          updatedAt: new Date()
+
         })
         .where(eq(schema.subscriptions.id, subscription.id));
     }
@@ -403,9 +398,6 @@ async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
         
         await db.update(schema.subscriptions)
           .set({ 
-            endDate: newEndDate,
-            status: "active",
-            updatedAt: new Date()
           })
           .where(eq(schema.subscriptions.id, subscription.id));
       }
@@ -436,9 +428,7 @@ async function handleFlutterwaveSubscriptionCancelled(data: any): Promise<boolea
       // Update the subscription status
       await db.update(schema.subscriptions)
         .set({ 
-          status: "cancelled",
-          autoRenew: false,
-          updatedAt: new Date()
+
         })
         .where(eq(schema.subscriptions.id, subscription.id));
     }

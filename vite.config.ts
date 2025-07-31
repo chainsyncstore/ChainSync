@@ -7,6 +7,70 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: '../dist/client',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Create chunks for node_modules
+          if (id.includes('node_modules')) {
+            // React core
+            if (id.includes('react') && !id.includes('react-dom') && !id.includes('react-hook-form')) {
+              return 'react';
+            }
+            if (id.includes('react-dom')) {
+              return 'react-dom';
+            }
+            
+            // Large UI libraries
+            if (id.includes('@radix-ui')) {
+              return 'radix-ui';
+            }
+            
+            // Data fetching
+            if (id.includes('@tanstack/react-query')) {
+              return 'react-query';
+            }
+            
+            // Forms
+            if (id.includes('react-hook-form') || id.includes('@hookform')) {
+              return 'forms';
+            }
+            
+            // Charts
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+            
+            // Icons
+            if (id.includes('lucide-react')) {
+              return 'icons';
+            }
+            
+            // Utilities
+            if (id.includes('date-fns') || id.includes('clsx') || id.includes('class-variance-authority') || id.includes('tailwind-merge')) {
+              return 'utils';
+            }
+            
+            // Validation
+            if (id.includes('zod')) {
+              return 'validation';
+            }
+            
+            // Routing
+            if (id.includes('wouter')) {
+              return 'routing';
+            }
+            
+            // Database
+            if (id.includes('drizzle')) {
+              return 'database';
+            }
+            
+            // All other vendor code
+            return 'vendor';
+          }
+        }
+      }
+    }
   },
   resolve: {
     alias: {

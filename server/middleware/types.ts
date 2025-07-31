@@ -18,6 +18,8 @@ export interface FileUploadProgress {
 }
 
 export interface ProgressSubscription {
+  id?: string;
+  progressId: string;
   callback: (progress: FileUploadProgress) => void;
   lastUpdate: number;
 }

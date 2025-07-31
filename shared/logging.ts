@@ -83,14 +83,11 @@ export function logPerformance(
     ...metadata,
   });
 
-  performanceLogger.info({ operation, durationMs }, `Completed ${operation} in ${durationMs}ms`);
+  performanceLogger.info(`Completed ${operation} in ${durationMs}ms`);
 
   // Log warning for slow operations
   if (durationMs > 1000) {
-    performanceLogger.warn(
-      { operation, durationMs },
-      `Slow operation: ${operation} took ${durationMs}ms`
-    );
+    performanceLogger.warn(`Slow operation: ${operation} took ${durationMs}ms`);
   }
 }
 
@@ -118,9 +115,9 @@ export async function measureAndLog<T>(
     });
     // Use Pino's 'err' binding for better error serialization
     if (error instanceof Error) {
-      logger.error({ err: error }, `Error in ${operation} after ${durationMs}ms`);
+      logger.error(`Error in ${operation} after ${durationMs}ms: ${(error as Error).message}`);
     } else {
-      logger.error({ errorDetail: error }, `Error in ${operation} after ${durationMs}ms`);
+      logger.error(`Error in ${operation} after ${durationMs}ms`);
     }
     throw error;
   }

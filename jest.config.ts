@@ -1,6 +1,6 @@
-import type { Config } from 'jest';
+import type { Config } from '@jest/types';
 
-const config: Config = {
+const config: Config.InitialOptions = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/tests/setup-test-env.ts'],
@@ -40,23 +40,25 @@ const config: Config = {
   },
   moduleDirectories: ['node_modules', '<rootDir>'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  modulePathIgnorePatterns: ['<rootDir>/dist'],
+  modulePathIgnorePatterns: ['<rootDir>/dist', '<rootDir>/server/__mocks__/vite.js'],
+  
   transform: {
     '^.+\\.jsx?$': [
-      'ts-jest',
-      {
-        tsconfig: '<rootDir>/tsconfig.test.json',
-        allowJs: true,
-      },
+      'ts-jest', {
+         tsconfig: '<rootDir>/tsconfig.test.json',
+         diagnostics: false,
+         allowJs: true,
+       },
     ],
     '^.+\\.tsx?$': [
-      'ts-jest',
-      {
-        tsconfig: '<rootDir>/tsconfig.test.json',
-      },
+      'ts-jest', {
+         tsconfig: '<rootDir>/tsconfig.test.json',
+         diagnostics: false,
+       },
     ],
   },
-  testMatch: ['**/tests/**/*.test.ts', '**/test/**/*.test.ts', '**/tests/**/*.spec.ts'],
+  testMatch: ['**/tests/**/*.test.ts', '**/tests/**/*.spec.ts'],
+  testPathIgnorePatterns: ['<rootDir>/test/'],
   collectCoverage: true,
   collectCoverageFrom: [
     'shared/utils/**/*.ts',

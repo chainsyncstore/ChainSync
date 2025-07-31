@@ -130,19 +130,18 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
 
         // Note: Points are managed through transactions, not direct updates
 
-        const transactionData: LoyaltyTransactionInsert = {
+        const transactionData = {
           memberId: params.memberId,
           programId: member.programId as number,
+          pointsEarned: params.points,
           pointsBalance: newPoints,
           transactionType: 'earn',
           source: params.source,
         };
 
-        const validatedData = loyaltyValidation.transactionInsert.parse(transactionData);
-        const [newTransaction] = await tx
+        await db
           .insert(schema.loyaltyTransactions)
-          .values(validatedData)
-          .returning();
+          .values(transactionData);
 
         return this.ensureExists(newTransaction, 'Loyalty Transaction');
       } catch (error) {
@@ -181,19 +180,18 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
 
         // Note: Points are managed through transactions, not direct updates
 
-        const transactionData: LoyaltyTransactionInsert = {
+        const transactionData = {
           memberId: params.memberId,
           programId: member.programId as number,
+          pointsRedeemed: reward.pointsRequired,
           pointsBalance: newPoints,
           transactionType: 'redeem',
           source: 'reward_redemption',
         };
 
-        const validatedData = loyaltyValidation.transactionInsert.parse(transactionData);
-        const [newTransaction] = await tx
+        await db
           .insert(schema.loyaltyTransactions)
-          .values(validatedData)
-          .returning();
+          .values(transactionData);
 
         return this.ensureExists(newTransaction, 'Loyalty Transaction');
       } catch (error) {

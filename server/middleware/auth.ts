@@ -7,16 +7,7 @@ import { getLogger, getRequestLogger } from '../../src/logging/index.js';
 // Get centralized logger for auth middleware
 const logger = getLogger().child({ component: 'auth-middleware' });
 
-// Define user interface for express requests
-
-declare module 'express-session' {
-  interface SessionData {
-    userId: number;
-    userRole: string;
-    storeId?: number;
-    fullName: string;
-  }
-}
+// Express session types are now defined in /types/express-session.d.ts
 
 /**
  * Authentication middleware to verify user is logged in
@@ -363,7 +354,7 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
         });
         
         // Update session with current role
-        req.session.userRole = user.role as string;
+        req.session.userRole = user.role as typeof req.session.userRole;
       }
       
       // Session is valid

@@ -62,8 +62,6 @@ export class WebhookService extends BaseService implements IWebhookService {
         .values({
           ...validatedData,
           secret,
-          createdAt: new Date(),
-          updatedAt: new Date()
         })
         .returning();
 
@@ -126,7 +124,7 @@ export class WebhookService extends BaseService implements IWebhookService {
       await db
         .update(schema.webhooks)
         .set({
-          url: webhook.url
+          url: existingWebhook.url
         })
         .where(eq(schema.webhooks.id, id));
 
@@ -182,8 +180,6 @@ export class WebhookService extends BaseService implements IWebhookService {
         .values({
           webhookId: 0,
           event: eventType,
-          payload: JSON.stringify(data),
-          createdAt: new Date()
         })
         .returning();
 
@@ -199,16 +195,13 @@ export class WebhookService extends BaseService implements IWebhookService {
     let attempt = 0;
     let lastError: Error | null = null;
 
-    while (attempt < WebhookService.MAX_RETRY_ATTEMPTS) {
+      while (attempt < WebhookService.MAX_RETRY_ATTEMPTS) {
       try {
         const [delivery] = await db
           .insert(schema.webhookDeliveries)
           .values({
             webhookId: webhook.id,
             eventId: event.id,
-            attempt: attempt + 1,
-            status: 'pending',
-            createdAt: new Date()
           })
           .returning();
 

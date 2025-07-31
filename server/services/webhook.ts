@@ -97,9 +97,7 @@ export async function handlePaystackWebhook(
 
     // Update the order status
     await db.update(transactions)
-      .set({
-        status: 'completed',
-      })
+      .set({})
       .where(eq(transactions.id, order.id));
 
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
@@ -197,9 +195,7 @@ export async function handleFlutterwaveWebhook(
 
     // Update the order status
     await db.update(transactions)
-      .set({
-        status: 'completed',
-      })
+      .set({})
       .where(eq(transactions.id, order.id));
 
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);

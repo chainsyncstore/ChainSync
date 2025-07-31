@@ -21,6 +21,7 @@ export interface FileProgress {
 }
 
 export interface ProgressSubscription {
+  id?: string;
   progressId: string;
   onProgress?: (progress: FileUploadProgress) => void;
   onError?: (error: AppError) => void;

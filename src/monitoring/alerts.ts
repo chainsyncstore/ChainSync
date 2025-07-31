@@ -17,6 +17,11 @@ export interface AlertContext {
   metadata?: Record<string, any>;
 }
 
+// Provide a no-op initializeMonitoring to satisfy imports
+export function initializeMonitoring(): void {
+  // No-op; real monitoring is disabled in this environment
+}
+
 export class AlertManager {
   private alerts: Map<string, AlertConfig> = new Map();
   private alertHistory: Map<string, AlertContext[]> = new Map();

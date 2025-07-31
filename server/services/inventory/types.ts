@@ -136,6 +136,8 @@ export interface CreateInventoryParams {
   description?: string;
 }
 export interface UpdateInventoryParams {
+  storeId?: number;
+  productId?: number;
   totalQuantity?: number;
   availableQuantity?: number;
   minimumLevel?: number;

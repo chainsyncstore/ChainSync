@@ -85,8 +85,6 @@ export class ProductService extends BaseService implements IProductService {
         imageUrl: params.imageUrl,
         barcode: params.barcode,
         attributes: params.attributes || {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
 
       // Insert validated data
@@ -96,8 +94,6 @@ export class ProductService extends BaseService implements IProductService {
       await db.insert(schema.inventory).values({
         productId: product.id,
         storeId: params.storeId,
-        quantity: 0,
-        minStock: 10,
       });
 
       return product as schema.SelectProduct;
@@ -387,17 +383,17 @@ export class ProductService extends BaseService implements IProductService {
         await db.insert(schema.inventory).values({
           productId,
           storeId: product.storeId,
-          quantity: quantity > 0 ? quantity : 0,
-          minStock: 10,
+          availableQuantity: quantity > 0 ? quantity : 0,
+          minimumLevel: 10,
         });
       } else {
         // Update existing inventory
-        const newAvailable = (inventory.quantity ?? 0) + quantity;
+        const newAvailable = (inventory.availableQuantity ?? 0) + quantity;
 
         await db
           .update(schema.inventory)
           .set({
-            quantity: newAvailable,
+            availableQuantity: newAvailable,
             updatedAt: new Date(),
           })
           .where(eq(schema.inventory.productId, productId));
@@ -409,7 +405,6 @@ export class ProductService extends BaseService implements IProductService {
           inventoryId: inventory.id,
           quantity,
           type: quantity > 0 ? 'in' : 'out',
-          createdAt: new Date(),
         });
       }
 

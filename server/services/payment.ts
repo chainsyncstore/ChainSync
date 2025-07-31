@@ -275,11 +275,10 @@ export async function processSubscriptionPayment(
     endDate.setMonth(endDate.getMonth() + 1);
     
     // Create subscription in database
-    const subscriptionData: schema.SubscriptionInsert = {
+    const subscriptionData = {
       userId,
       planId: planId,
       amount: amount.toString(), // Convert to string for decimal column
-      status: 'active',
       paymentMethod: provider,
       referralCode: reference,
       currentPeriodStart: startDate,
@@ -303,9 +302,7 @@ export async function processSubscriptionPayment(
     if (existingSubscription) {
       // Update existing subscription
       const [updated] = await db.update(schema.subscriptions)
-        .set({
-          ...subscriptionData
-        })
+        .set(subscriptionData)
         .where(eq(schema.subscriptions.id, existingSubscription.id))
         .returning();
       
