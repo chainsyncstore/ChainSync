@@ -52,8 +52,8 @@ export async function addBatch(batchData: BatchData) {
       expiryDate: batchData.expiryDate ? new Date(batchData.expiryDate) : null,
       receivedDate: new Date(),
       manufacturingDate: batchData.manufacturingDate ? new Date(batchData.manufacturingDate) : null,
-      costPerUnit: batchData.costPerUnit,
-    } as any).returning();
+      costPerUnit: batchData.costPerUnit || null,
+    }).returning();
 
     await updateInventoryTotalQuantity(inventory.id);
     

@@ -1,0 +1,156 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up phase"
+    - duration: 300
+      arrivalRate: 50
+      name: "Sustained load"
+    - duration: 120
+      arrivalRate: 100
+      name: "Peak load"
+    - duration: 60
+      arrivalRate: 10
+      name: "Cool down"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+  processor: './test/load/processors.js'
+
+scenarios:
+  - name: "User Registration and Login"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/register"
+          json:
+            email: "{{ $randomEmail() }}"
+            password: "TestPassword123!"
+            name: "{{ $randomString() }}"
+            phone: "{{ $randomPhoneNumber() }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - think: 2
+      - get:
+          url: "/api/auth/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  - name: "Product Browsing"
+    weight: 30
+    flow:
+      - get:
+          url: "/api/products"
+          qs:
+            limit: 20
+            offset: 0
+      - think: 1
+      - get:
+          url: "/api/products"
+          qs:
+            category: "electronics"
+            limit: 10
+      - think: 2
+      - get:
+          url: "/api/products/{{ $randomInt(1, 100) }}"
+
+  - name: "Shopping Cart Operations"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "TestPassword123!"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - post:
+          url: "/api/cart/add"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            productId: "{{ $randomInt(1, 100) }}"
+            quantity: "{{ $randomInt(1, 5) }}"
+      - think: 1
+      - get:
+          url: "/api/cart"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - think: 1
+      - put:
+          url: "/api/cart/update"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            productId: "{{ $randomInt(1, 100) }}"
+            quantity: "{{ $randomInt(1, 3) }}"
+
+  - name: "Payment Processing"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "TestPassword123!"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - post:
+          url: "/api/payments/create-intent"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            amount: "{{ $randomInt(10, 500) }}"
+            currency: "USD"
+            paymentMethod: "credit_card"
+          capture:
+            - json: "$.id"
+              as: "paymentIntentId"
+      - post:
+          url: "/api/payments/process"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            paymentIntentId: "{{ paymentIntentId }}"
+            paymentMethod:
+              type: "credit_card"
+              number: "4242424242424242"
+              expiryMonth: "12"
+              expiryYear: "2025"
+              cvv: "123"
+
+  - name: "Analytics and Reporting"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "admin@example.com"
+            password: "AdminPassword123!"
+          capture:
+            - json: "$.token"
+              as: "adminToken"
+      - get:
+          url: "/api/analytics/sales"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          qs:
+            startDate: "{{ $isoTimestamp('2024-01-01') }}"
+            endDate: "{{ $isoTimestamp() }}"
+      - think: 1
+      - get:
+          url: "/api/analytics/inventory"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+      - think: 1
+      - get:
+          url: "/api/analytics/customers"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          qs:
+            limit: 50
+            offset: 0 

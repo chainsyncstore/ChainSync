@@ -13,10 +13,25 @@ import { getLogger } from '../src/logging/index.js';
 import { requestLogger, errorLogger } from '../src/logging/middleware.js';
 
 // Import security middleware
-import { securityHeaders, csrfProtection, generateCsrfToken, validateContentType } from './middleware/security.js';
-import { rateLimitMiddleware, authRateLimiter, sensitiveOpRateLimiter } from './middleware/rate-limit.js';
+import { 
+  securityHeaders, 
+  csrfProtection, 
+  generateCsrfToken, 
+  validateContentType,
+  accountLockoutMiddleware,
+  requireMFA,
+  securityEventLogger
+} from './middleware/security.js';
+import { 
+  rateLimitMiddleware, 
+  authRateLimiter, 
+  sensitiveOpRateLimiter,
+  paymentRateLimiter,
+  uploadRateLimiter,
+  adminRateLimiter
+} from './middleware/rate-limit.js';
 import { isAuthenticated, validateSession } from './middleware/auth.js';
-import { validateBody } from './middleware/validation.js';
+import { validateBody, sanitizeInput } from './middleware/validation.js';
 
 // Import cache and job queue
 import { initRedis, getRedisClient } from '../src/cache/redis.js';
@@ -27,6 +42,7 @@ import healthRoutes, { setDbPool } from './routes/health.js';
 import transactionRoutes from './routes/transactions.js';
 import monitoringRoutes from './routes/monitoring.js';
 import adminDashboardRoutes from './routes/admin-dashboard.js';
+import securityRoutes, { initializeSecurityRoutes } from './routes/security.js';
 // Import your actual route files when they're ready
 // import authRoutes from './routes/auth';
 // import customerRoutes from './routes/customers';
@@ -69,6 +85,9 @@ registerHealthChecks(dbPool);
 // Set database pool for health routes
 setDbPool(dbPool);
 
+// Initialize security routes
+initializeSecurityRoutes(dbPool);
+
 // Initialize Redis for caching and session store
 const redisClient = initRedis();
 let sessionStore: any;
@@ -94,6 +113,9 @@ app.use(cors({
 // Apply rate limiting
 app.use(rateLimitMiddleware);
 
+// Apply input sanitization
+app.use(sanitizeInput);
+
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -101,19 +123,25 @@ app.use(express.urlencoded({ extended: true }));
 // Session handling
 app.use(session({
   store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'dev-secret-should-be-changed',
+  secret: process.env.SESSION_SECRET || (() => {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SESSION_SECRET is required in production');
+    }
+    console.warn('⚠️  Using development session secret. Set SESSION_SECRET for production.');
+    return 'dev-secret-change-in-production';
+  })(),
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
+    maxAge: parseInt(process.env.SESSION_COOKIE_MAX_AGE || '86400000'), // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
   }
 }));
 
 // Generate CSRF token for all routes that need it
-app.use(generateCsrfToken);
+app.use(generateCsrfToken as any);
 
 // Health check routes (no auth required)
 app.use('/api/health', healthRoutes);
@@ -126,18 +154,22 @@ app.use('/readyz', healthRoutes);
 const apiRoutes = express.Router();
 
 // Apply validation and rate limiting to API routes
-apiRoutes.use(validateContentType());
-apiRoutes.use(csrfProtection);
+apiRoutes.use(validateContentType() as any);
+apiRoutes.use(csrfProtection as any);
 
 // Apply different rate limits to different types of endpoints
 apiRoutes.use('/auth', authRateLimiter);
 apiRoutes.use(['/transactions', '/loyalty'], sensitiveOpRateLimiter);
+apiRoutes.use('/payment', paymentRateLimiter);
+apiRoutes.use('/upload', uploadRateLimiter);
+apiRoutes.use('/admin', adminRateLimiter);
 
 // Register API routes
 apiRoutes.use('/health', healthRoutes);
 apiRoutes.use('/transactions', transactionRoutes);
 apiRoutes.use('/monitoring', monitoringRoutes);
 apiRoutes.use('/admin/dashboard', adminDashboardRoutes);
+apiRoutes.use('/security', securityRoutes);
 // apiRoutes.use('/auth', authRoutes);
 // apiRoutes.use('/customers', customerRoutes);
 

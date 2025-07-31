@@ -1,156 +1,316 @@
 // server/middleware/validation.ts
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { getLogger, getRequestLogger } from '../../src/logging/index.js';
+import { getLogger } from '../../src/logging/index.js';
 
-// Get centralized logger for validation middleware
 const logger = getLogger().child({ component: 'validation-middleware' });
 
 /**
- * Custom error class for validation failures
+ * Generic validation middleware using Zod schemas
  */
-export class ValidationError extends Error {
-  public errors: z.ZodError;
-  public status: number = 400;
-  public code: string = 'VALIDATION_ERROR';
-  
-  constructor(message: string, errors: z.ZodError) {
-    super(message);
-    this.name = 'ValidationError';
-    this.errors = errors;
-  }
-  
-  /**
-   * Convert to a client-friendly format
-   */
-  toJSON() {
-    return {
-      message: this.message,
-      code: this.code,
-      errors: this.errors.errors.map(err => ({
-        path: err.path.join('.'),
-        message: err.message
-      }))
-    };
-  }
-}
-
-/**
- * Validate request body against a Zod schema
- */
-export function validateBody<T extends z.ZodTypeAny>(schema: T) {
+export const validateBody = (schema: z.ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const reqLogger = getRequestLogger(req) || logger;
-    
     try {
-      // Parse and validate request body
       const validatedData = schema.parse(req.body);
-      
-      // Replace request body with validated data
       req.body = validatedData;
-      
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        reqLogger.warn('Request body validation failed', {
+        logger.warn('Validation failed', {
           path: req.path,
           method: req.method,
-          validationErrors: error.errors.map(err => ({
-            path: err.path.join('.'),
-            message: err.message
-          }))
+          errors: error.errors
         });
         
-        const validationError = new ValidationError(
-          'Invalid request data', 
-          error
-        );
-        
-        return res.status(400).json(validationError.toJSON());
-      }
-      
-      // Pass other errors to the error handler
-      next(error);
-    }
-  };
-}
-
-/**
- * Validate request params against a Zod schema
- */
-export function validateParams<T extends z.ZodTypeAny>(schema: T) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const reqLogger = getRequestLogger(req) || logger;
-    
-    try {
-      // Parse and validate URL parameters
-      const validatedData = schema.parse(req.params);
-      
-      // Replace request params with validated data
-      req.params = validatedData;
-      
-      next();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        reqLogger.warn('Request params validation failed', {
-          path: req.path,
-          method: req.method,
-          validationErrors: error.errors.map(err => ({
-            path: err.path.join('.'),
-            message: err.message
-          }))
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid request data',
+            details: error.errors.map(err => ({
+              field: err.path.join('.'),
+              message: err.message
+            }))
+          }
         });
-        
-        const validationError = new ValidationError(
-          'Invalid URL parameters', 
-          error
-        );
-        
-        return res.status(400).json(validationError.toJSON());
       }
       
-      // Pass other errors to the error handler
-      next(error);
+      logger.error('Validation middleware error', { error });
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Internal validation error'
+        }
+      });
     }
   };
-}
+};
 
 /**
- * Validate request query against a Zod schema
+ * Validate query parameters
  */
-export function validateQuery<T extends z.ZodTypeAny>(schema: T) {
+export const validateQuery = (schema: z.ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const reqLogger = getRequestLogger(req) || logger;
-    
     try {
-      // Parse and validate query parameters
       const validatedData = schema.parse(req.query);
-      
-      // Replace request query with validated data
       req.query = validatedData;
-      
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        reqLogger.warn('Request query validation failed', {
+        logger.warn('Query validation failed', {
           path: req.path,
           method: req.method,
-          validationErrors: error.errors.map(err => ({
-            path: err.path.join('.'),
-            message: err.message
-          }))
+          errors: error.errors
         });
         
-        const validationError = new ValidationError(
-          'Invalid query parameters', 
-          error
-        );
-        
-        return res.status(400).json(validationError.toJSON());
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid query parameters',
+            details: error.errors.map(err => ({
+              field: err.path.join('.'),
+              message: err.message
+            }))
+          }
+        });
       }
       
-      // Pass other errors to the error handler
       next(error);
     }
   };
+};
+
+/**
+ * Validate URL parameters
+ */
+export const validateParams = (schema: z.ZodSchema) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validatedData = schema.parse(req.params);
+      req.params = validatedData;
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        logger.warn('Params validation failed', {
+          path: req.path,
+          method: req.method,
+          errors: error.errors
+        });
+        
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid URL parameters',
+            details: error.errors.map(err => ({
+              field: err.path.join('.'),
+              message: err.message
+            }))
+          }
+        });
+      }
+      
+      next(error);
+    }
+  };
+};
+
+/**
+ * Sanitize input to prevent XSS and injection attacks
+ */
+export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Sanitize body
+    if (req.body) {
+      req.body = sanitizeObject(req.body);
+    }
+    
+    // Sanitize query parameters
+    if (req.query) {
+      req.query = sanitizeObject(req.query);
+    }
+    
+    // Sanitize URL parameters
+    if (req.params) {
+      req.params = sanitizeObject(req.params);
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('Sanitization error', { error });
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'SANITIZATION_ERROR',
+        message: 'Invalid input detected'
+      }
+    });
+  }
+};
+
+/**
+ * Recursively sanitize object properties
+ */
+function sanitizeObject(obj: any): any {
+  if (typeof obj !== 'object' || obj === null) {
+    return sanitizeValue(obj);
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeObject);
+  }
+  
+  const sanitized: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    sanitized[key] = sanitizeObject(value);
+  }
+  
+  return sanitized;
 }
+
+/**
+ * Sanitize individual values
+ */
+function sanitizeValue(value: any): any {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  
+  // Remove potentially dangerous characters and patterns
+  return value
+    .replace(/[<>]/g, '') // Remove angle brackets
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+    .trim();
+}
+
+/**
+ * Rate limiting for specific endpoints
+ */
+export const createRateLimiter = (windowMs: number, max: number, message?: string) => {
+  const requests = new Map<string, { count: number; resetTime: number }>();
+  
+  return (req: Request, res: Response, next: NextFunction) => {
+    const key = req.ip || 'unknown';
+    const now = Date.now();
+    
+    const requestData = requests.get(key);
+    
+    if (!requestData || now > requestData.resetTime) {
+      requests.set(key, { count: 1, resetTime: now + windowMs });
+      next();
+    } else if (requestData.count < max) {
+      requestData.count++;
+      next();
+    } else {
+      logger.warn('Rate limit exceeded', { ip: key, path: req.path });
+      
+      return res.status(429).json({
+        success: false,
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: message || 'Too many requests, please try again later'
+        }
+      });
+    }
+  };
+};
+
+/**
+ * Content type validation
+ */
+export const validateContentType = (allowedTypes: string[] = ['application/json']) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'GET' || req.method === 'DELETE') {
+      return next();
+    }
+    
+    const contentType = req.headers['content-type'];
+    
+    if (!contentType) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_CONTENT_TYPE',
+          message: 'Content-Type header is required'
+        }
+      });
+    }
+    
+    const isValidType = allowedTypes.some(type => 
+      contentType.includes(type)
+    );
+    
+    if (!isValidType) {
+      return res.status(415).json({
+        success: false,
+        error: {
+          code: 'UNSUPPORTED_CONTENT_TYPE',
+          message: `Content-Type must be one of: ${allowedTypes.join(', ')}`
+        }
+      });
+    }
+    
+    next();
+  };
+};
+
+/**
+ * File upload validation
+ */
+export const validateFileUpload = (options: {
+  maxSize?: number;
+  allowedTypes?: string[];
+  maxFiles?: number;
+} = {}) => {
+  const {
+    maxSize = 10 * 1024 * 1024, // 10MB default
+    allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'],
+    maxFiles = 5
+  } = options;
+  
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return next();
+    }
+    
+    const files = Array.isArray(req.files) ? req.files : Object.values(req.files);
+    
+    if (files.length > maxFiles) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'TOO_MANY_FILES',
+          message: `Maximum ${maxFiles} files allowed`
+        }
+      });
+    }
+    
+    for (const file of files) {
+      if (file.size > maxSize) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'FILE_TOO_LARGE',
+            message: `File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`
+          }
+        });
+      }
+      
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_FILE_TYPE',
+            message: `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`
+          }
+        });
+      }
+    }
+    
+    next();
+  };
+};

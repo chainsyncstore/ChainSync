@@ -1,6 +1,6 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { env } from '../config/env';
+import { env } from '../server/config/env';
 import { RequestHandler, Application } from 'express';
 
 // Security headers configuration

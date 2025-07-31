@@ -57,20 +57,91 @@ const config: Config.InitialOptions = {
        },
     ],
   },
-  testMatch: ['**/tests/**/*.test.ts', '**/tests/**/*.spec.ts'],
+  testMatch: [
+    '**/tests/**/*.test.ts', 
+    '**/tests/**/*.spec.ts',
+    '**/tests/**/*.test.tsx',
+    '**/tests/**/*.spec.tsx'
+  ],
   testPathIgnorePatterns: ['<rootDir>/test/'],
   collectCoverage: true,
   collectCoverageFrom: [
-    'shared/utils/**/*.ts',
-    'server/services/base/enhanced-service.ts',
-    'server/services/**/formatter.ts',
+    'shared/**/*.ts',
+    'server/**/*.ts',
+    'server/**/*.js',
+    'client/src/**/*.tsx',
+    'client/src/**/*.ts',
+    '!**/*.d.ts',
+    '!**/node_modules/**',
+    '!**/dist/**',
+    '!**/coverage/**',
+    '!**/tests/**',
+    '!**/test/**',
+    '!**/__mocks__/**',
+    '!**/*.config.*',
+    '!**/jest.setup.*'
   ],
-  coverageReporters: ['text', 'lcov'],
+  coverageReporters: ['text', 'lcov', 'html', 'json'],
   coverageDirectory: 'coverage',
+  coverageThreshold: {
+    global: {
+      branches: 90,
+      functions: 90,
+      lines: 90,
+      statements: 90
+    }
+  },
   transformIgnorePatterns: [
     "/node_modules/(?!drizzle-orm)/",
   ],
   verbose: true,
+  testTimeout: 30000,
+  maxWorkers: '50%',
+  projects: [
+    {
+      displayName: 'unit',
+      testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
+      testEnvironment: 'node'
+    },
+    {
+      displayName: 'integration',
+      testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
+      testEnvironment: 'node',
+      setupFilesAfterEnv: ['<rootDir>/tests/setup/integration-setup.ts']
+    },
+    {
+      displayName: 'e2e',
+      testMatch: ['<rootDir>/tests/e2e/**/*.test.ts'],
+      testEnvironment: 'node',
+      setupFilesAfterEnv: ['<rootDir>/tests/setup/e2e-setup.ts']
+    },
+    {
+      displayName: 'security',
+      testMatch: ['<rootDir>/tests/security/**/*.test.ts'],
+      testEnvironment: 'node'
+    },
+    {
+      displayName: 'performance',
+      testMatch: ['<rootDir>/tests/performance/**/*.test.ts'],
+      testEnvironment: 'node'
+    },
+    {
+      displayName: 'contract',
+      testMatch: ['<rootDir>/tests/contract/**/*.test.ts'],
+      testEnvironment: 'node'
+    },
+    {
+      displayName: 'accessibility',
+      testMatch: ['<rootDir>/tests/accessibility/**/*.test.tsx'],
+      testEnvironment: 'jsdom',
+      setupFilesAfterEnv: ['<rootDir>/tests/setup/accessibility-setup.ts']
+    },
+    {
+      displayName: 'visual',
+      testMatch: ['<rootDir>/tests/visual/**/*.test.ts'],
+      testEnvironment: 'node'
+    }
+  ]
 };
 
 export default config;

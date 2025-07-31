@@ -1,6 +1,6 @@
 import cors from 'cors';
 import express, { Express } from 'express';
-import { env } from '../config/env';
+import { env } from '../server/config/env';
 
 // Define CORS options
 const corsOptions = {

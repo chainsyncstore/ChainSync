@@ -1,20 +1,74 @@
 import { EnhancedBaseService } from '../base/enhanced-service';
 import { IUserService, CreateUserParams, UpdateUserParams, UserRole, UserServiceErrors, SelectUser } from './types';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gt } from 'drizzle-orm';
+import crypto from 'crypto';
 import db from '../../database';
 import * as schema from '@shared/schema';
+import { passwordResetTokens } from '@shared/db/users';
 import { userValidation, SchemaValidationError } from '@shared/schema-validation';
 import * as bcrypt from 'bcrypt';
 
 export class EnhancedUserService extends EnhancedBaseService implements IUserService {
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
-    // TODO: Implement password reset logic
-    throw new Error('Not implemented');
+    try {
+      // Validate token and get user
+      const resetToken = await db.query.passwordResetTokens.findFirst({
+        where: and(
+          eq(passwordResetTokens.token, token),
+          eq(passwordResetTokens.used, false),
+          gt(passwordResetTokens.expiresAt, new Date())
+        )
+      });
+
+      if (!resetToken) {
+        throw new Error('Invalid or expired reset token');
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, EnhancedUserService.SALT_ROUNDS);
+
+      // Update user password
+      await db.update(schema.users)
+        .set({ password: hashedPassword, updatedAt: new Date() })
+        .where(eq(schema.users.id, resetToken.userId));
+
+      // Mark token as used
+      await db.update(passwordResetTokens)
+        .set({ used: true })
+        .where(eq(passwordResetTokens.id, resetToken.id));
+
+      return true;
+    } catch (error) {
+      return this.handleError(error, 'Resetting password');
+    }
   }
 
   async requestPasswordReset(email: string): Promise<string> {
-    // TODO: Implement password reset request logic
-    throw new Error('Not implemented');
+    try {
+      const user = await this.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists or not for security
+        return 'If the email exists, a reset link has been sent.';
+      }
+
+      // Generate reset token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Store reset token
+      await db.insert(passwordResetTokens).values({
+        userId: user.id,
+        token,
+        expiresAt,
+        used: false
+      });
+
+      // TODO: Send email with reset link
+      // For now, just return the token (in production, send via email)
+      return `Password reset link: /reset-password?token=${token}`;
+    } catch (error) {
+      return this.handleError(error, 'Requesting password reset');
+    }
   }
   private static readonly SALT_ROUNDS = 10;
 

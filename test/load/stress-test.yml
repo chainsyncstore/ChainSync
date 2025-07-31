@@ -1,0 +1,148 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 120
+      arrivalRate: 20
+      name: "Baseline"
+    - duration: 180
+      arrivalRate: 50
+      name: "Ramp up"
+    - duration: 300
+      arrivalRate: 100
+      name: "Sustained stress"
+    - duration: 180
+      arrivalRate: 200
+      name: "Peak stress"
+    - duration: 120
+      arrivalRate: 300
+      name: "Breaking point"
+    - duration: 60
+      arrivalRate: 50
+      name: "Recovery"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+  processor: './test/load/processors.js'
+  ensure:
+    maxErrorRate: 5
+    maxResponseTime: 2000
+
+scenarios:
+  - name: "Database Stress Test"
+    weight: 40
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "stress@example.com"
+            password: "StressPassword123!"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - get:
+          url: "/api/products"
+          qs:
+            limit: 100
+            offset: "{{ $randomInt(0, 1000) }}"
+      - think: 1
+      - get:
+          url: "/api/orders"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          qs:
+            limit: 50
+            offset: "{{ $randomInt(0, 500) }}"
+      - think: 1
+      - get:
+          url: "/api/analytics/sales"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          qs:
+            startDate: "{{ $isoTimestamp('2020-01-01') }}"
+            endDate: "{{ $isoTimestamp() }}"
+
+  - name: "Concurrent Payment Processing"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "payment@example.com"
+            password: "PaymentPassword123!"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - post:
+          url: "/api/payments/create-intent"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            amount: "{{ $randomInt(1, 1000) }}"
+            currency: "USD"
+            paymentMethod: "credit_card"
+          capture:
+            - json: "$.id"
+              as: "paymentIntentId"
+      - post:
+          url: "/api/payments/process"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            paymentIntentId: "{{ paymentIntentId }}"
+            paymentMethod:
+              type: "credit_card"
+              number: "4242424242424242"
+              expiryMonth: "12"
+              expiryYear: "2025"
+              cvv: "123"
+
+  - name: "File Upload Stress"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "upload@example.com"
+            password: "UploadPassword123!"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - post:
+          url: "/api/inventory/import"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          formData:
+            file: "test-data/large-inventory.csv"
+      - think: 2
+      - post:
+          url: "/api/products/import"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          formData:
+            file: "test-data/large-product-catalog.csv"
+
+  - name: "Real-time Features Stress"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "realtime@example.com"
+            password: "RealtimePassword123!"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - get:
+          url: "/api/notifications"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - think: 1
+      - get:
+          url: "/api/websocket/connect"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - think: 5
+      - get:
+          url: "/api/websocket/disconnect"
+          headers:
+            Authorization: "Bearer {{ authToken }}" 

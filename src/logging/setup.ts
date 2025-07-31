@@ -36,10 +36,10 @@ export function setupLogging(app: express.Application): void {
   });
   
   // Add request logging middleware
-  app.use(requestLogger(logger));
+  app.use(requestLogger(logger) as any);
   
   // Add error logging middleware (should be added before other error handlers)
-  app.use(errorLogger(logger));
+  app.use(errorLogger(logger) as any);
 }
 
 /**
