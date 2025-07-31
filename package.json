@@ -29,7 +29,13 @@
     "quality:check": "npm run lint && npm run type-check && npm run test:coverage",
     "quality:gates": "npm run quality:check && npm run test:security && npm run test:performance",
     "docs:generate": "swagger-jsdoc -d swaggerDef.js -o docs/swagger.json",
-    "docs:serve": "swagger-ui-express docs/swagger.json"
+    "docs:serve": "swagger-ui-express docs/swagger.json",
+    "deploy:check": "node scripts/production-readiness-check.js",
+    "deploy:blue-green": "ts-node deploy/blue-green-deployment.ts",
+    "deploy:validate": "ts-node deploy/validate-deployment.ts",
+    "monitor:start": "ts-node deploy/monitoring/production-monitor.ts",
+    "backup:create": "ts-node deploy/backup/backup-recovery.ts",
+    "security:audit": "npm audit --audit-level=high"
   },
   "dependencies": {
     "@google-cloud/dialogflow": "^6.0.0",
