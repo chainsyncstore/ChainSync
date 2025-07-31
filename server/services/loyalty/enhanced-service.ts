@@ -115,95 +115,70 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
 
   async addPoints(params: AddPointsParams): Promise<LoyaltyTransaction> {
     return (db as NodePgDatabase<typeof schema>).transaction(async tx => {
-      try {
-        const member = await tx.query.loyaltyMembers.findFirst({
-          where: eq(schema.loyaltyMembers.id, params.memberId),
-          for: 'update',
-        } as any);
+      const member = await tx.query.loyaltyMembers.findFirst({
+        where: eq(schema.loyaltyMembers.id, params.memberId),
+      });
+      if (!member) throw new LoyaltyMemberNotFoundError(params.memberId);
 
-        if (!member) {
-          throw new LoyaltyMemberNotFoundError(params.memberId);
-        }
+      const currentPoints = parseInt(member.currentPoints ?? '0', 10);
+      const newPoints = currentPoints + params.points;
 
-        const memberPoints = (member.points as number) ?? 0;
-        const newPoints = memberPoints + params.points;
+      // Note: Points are managed through transactions, not direct updates
 
-        // Note: Points are managed through transactions, not direct updates
+      const transactionData = {
+        memberId: params.memberId,
+        programId: member.programId as number,
+        pointsEarned: params.points,
+        pointsBalance: newPoints,
+        transactionType: 'earn' as const,
+        source: params.source,
+      };
 
-        const transactionData = {
-          memberId: params.memberId,
-          programId: member.programId as number,
-          pointsEarned: params.points,
-          pointsBalance: newPoints,
-          transactionType: 'earn',
-          source: params.source,
-        };
+      const [newTransaction] = await tx
+        .insert(schema.loyaltyTransactions)
+        .values(transactionData as any)
+        .returning();
 
-        await db
-          .insert(schema.loyaltyTransactions)
-          .values(transactionData);
-
-        return this.ensureExists(newTransaction, 'Loyalty Transaction');
-      } catch (error) {
-        if (error instanceof LoyaltyMemberNotFoundError) throw error;
-        throw new DatabaseOperationError('add points', error);
-      }
+      return newTransaction;
     });
   }
 
   async redeemPoints(params: RedeemPointsParams): Promise<LoyaltyTransaction> {
     return (db as NodePgDatabase<typeof schema>).transaction(async tx => {
-      try {
-        const member = await tx.query.loyaltyMembers.findFirst({
-          where: eq(schema.loyaltyMembers.id, params.memberId),
-          for: 'update',
-        } as any);
+      const member = await tx.query.loyaltyMembers.findFirst({
+        where: eq(schema.loyaltyMembers.id, params.memberId),
+      });
+      if (!member) throw new LoyaltyMemberNotFoundError(params.memberId);
 
-        if (!member) {
-          throw new LoyaltyMemberNotFoundError(params.memberId);
-        }
+      const reward = await tx.query.loyaltyRewards.findFirst({
+        where: eq(schema.loyaltyRewards.id, params.rewardId),
+      });
+      if (!reward) throw new RewardNotFoundError(params.rewardId);
 
-        const reward = await tx.query.loyaltyRewards.findFirst({
-          where: eq(schema.loyaltyRewards.id, params.rewardId),
-        });
-
-        if (!reward || !reward.pointsRequired) {
-          throw new RewardNotFoundError(params.rewardId);
-        }
-
-        const memberPoints = (member.points as number) ?? 0;
-        if (memberPoints < reward.pointsRequired) {
-          throw new InsufficientPointsError(params.memberId, reward.pointsRequired);
-        }
-
-        const newPoints = memberPoints - reward.pointsRequired;
-
-        // Note: Points are managed through transactions, not direct updates
-
-        const transactionData = {
-          memberId: params.memberId,
-          programId: member.programId as number,
-          pointsRedeemed: reward.pointsRequired,
-          pointsBalance: newPoints,
-          transactionType: 'redeem',
-          source: 'reward_redemption',
-        };
-
-        await db
-          .insert(schema.loyaltyTransactions)
-          .values(transactionData);
-
-        return this.ensureExists(newTransaction, 'Loyalty Transaction');
-      } catch (error) {
-        if (
-          error instanceof LoyaltyMemberNotFoundError ||
-          error instanceof RewardNotFoundError ||
-          error instanceof InsufficientPointsError
-        ) {
-          throw error;
-        }
-        throw new DatabaseOperationError('redeem points', error);
+      const currentPoints = parseInt(member.currentPoints ?? '0', 10);
+      if (currentPoints < reward.pointsRequired) {
+        throw new InsufficientPointsError(currentPoints, reward.pointsRequired);
       }
+
+      const newPoints = currentPoints - reward.pointsRequired;
+
+      // Note: Points are managed through transactions, not direct updates
+
+      const transactionData = {
+        memberId: params.memberId,
+        programId: member.programId as number,
+        pointsRedeemed: reward.pointsRequired,
+        pointsBalance: newPoints,
+        transactionType: 'redeem' as const,
+        source: 'reward_redemption',
+      };
+
+      const [newTransaction] = await tx
+        .insert(schema.loyaltyTransactions)
+        .values(transactionData as any)
+        .returning();
+
+      return newTransaction;
     });
   }
 

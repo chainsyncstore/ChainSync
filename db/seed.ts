@@ -400,7 +400,7 @@ async function seed() {
             await db.update(schema.inventory)
               .set({
                 quantity: Math.max(0, (inventory.quantity ?? 0) - item.quantity)
-              })
+              } as any)
               .where(eq(schema.inventory.id, inventory.id));
           }
         }

@@ -124,7 +124,7 @@ export class EnhancedInventoryService
 
       const [updated] = await db
         .update(schema.inventory)
-        .set(updateData)
+        .set(updateData as any)
         .where(eq(schema.inventory.id, id))
         .returning();
 
@@ -358,7 +358,7 @@ export class EnhancedInventoryService
       // Skip currentUtilization update for now due to schema type inference issues
       const [updated] = await db
         .update(schema.inventory)
-        .set({ totalQuantity: total }) // Use quantity instead of currentUtilization for now
+        .set({ totalQuantity: total } as any) // Use quantity instead of currentUtilization for now
         .where(eq(schema.inventory.id, id))
         .returning();
 

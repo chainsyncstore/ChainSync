@@ -98,10 +98,14 @@ export async function registerAffiliate(userId: number, bankDetails?: any): Prom
     const affiliateData: NewAffiliate = {
       userId,
       code: referralCode,
-      ...filteredBankDetails,
+      paymentMethod: (filteredBankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual') || 'paystack',
+      bankName: filteredBankDetails.bankName,
+      bankCode: filteredBankDetails.bankCode,
+      accountNumber: filteredBankDetails.accountNumber,
+      accountName: filteredBankDetails.accountName,
     };
 
-    const [newAffiliate] = await db.insert(schema.affiliates).values(affiliateData).returning();
+    const [newAffiliate] = await db.insert(schema.affiliates).values(affiliateData as any).returning();
 
     return newAffiliate;
   } catch (error) {

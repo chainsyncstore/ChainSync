@@ -385,7 +385,7 @@ export class ProductService extends BaseService implements IProductService {
           storeId: product.storeId,
           availableQuantity: quantity > 0 ? quantity : 0,
           minimumLevel: 10,
-        });
+        } as any);
       } else {
         // Update existing inventory
         const newAvailable = (inventory.availableQuantity ?? 0) + quantity;
@@ -394,8 +394,7 @@ export class ProductService extends BaseService implements IProductService {
           .update(schema.inventory)
           .set({
             availableQuantity: newAvailable,
-            updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(schema.inventory.productId, productId));
       }
 

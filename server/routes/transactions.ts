@@ -503,7 +503,7 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
     const [updatedTransaction] = await db.update(schema.transactions)
       .set({
         status: (status ?? existingTransaction.status) as 'pending' | 'completed' | 'cancelled',
-      })
+      } as any)
       .where(eq(schema.transactions.id, parseInt(id, 10)))
       .returning();
 

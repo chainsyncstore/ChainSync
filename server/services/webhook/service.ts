@@ -59,10 +59,7 @@ export class WebhookService extends BaseService implements IWebhookService {
 
       const [webhook] = await db
         .insert(schema.webhooks)
-        .values({
-          ...validatedData,
-          secret,
-        })
+        .values(validatedData as any)
         .returning();
 
       return webhook;

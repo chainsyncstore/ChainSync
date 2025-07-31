@@ -304,8 +304,6 @@ export async function importProducts(
               sku: product.sku,
               storeId,
               price: product.price,
-              imageUrl: product.imageUrl,
-              categoryId: product.categoryId,
             })
             .returning();
           
@@ -316,7 +314,7 @@ export async function importProducts(
                 productId: insertedProduct.id,
                 storeId,
                 availableQuantity: product.stock,
-              });
+              } as any);
           }
           }
         } catch (error) {

@@ -750,10 +750,8 @@ export async function importInventoryData(data: any[], storeId: number): Promise
           await db.insert(schema.inventory).values({
             storeId: storeId,
             productId: existingProduct.id,
-            quantity: row.quantity || 0,
             availableQuantity: row.quantity || 0,
-            // minStock: row.minStockLevel || 5, // Skip for now
-          });
+          } as any);
         }
       } else {
         const [newProduct] = await db.insert(schema.products).values({
@@ -766,10 +764,8 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         await db.insert(schema.inventory).values({
           storeId: storeId,
           productId: newProduct.id,
-          quantity: row.quantity || 0,
           availableQuantity: row.quantity || 0,
-          // minStock: row.minStockLevel || 5, // Skip for now
-        });
+        } as any);
       }
       
       result.importedRows++;

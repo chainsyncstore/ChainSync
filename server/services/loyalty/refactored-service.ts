@@ -155,16 +155,16 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
         memberId,
         pointsEarned: points,
         pointsBalance: newCurrentPoints,
-        transactionType: "earn",
+        transactionType: "earn" as const,
         source,
         programId: member.programId,
-      });
+      } as any);
 
       // Update member's points
       await db.update(schema.loyaltyMembers)
         .set({
           currentPoints: newCurrentPoints.toString(),
-        })
+        } as any)
         .where(eq(schema.loyaltyMembers.id, memberId));
 
       // Check if member qualifies for tier upgrade
@@ -203,7 +203,7 @@ export class LoyaltyService extends BaseService implements ILoyaltyService {
       });
 
       // Check if member qualifies for an upgrade
-      if (nextTier && (parseInt(member.currentPoints, 10) ?? 0) >= nextTier.requiredPoints) {
+      if (nextTier && (parseInt(member.currentPoints ?? '0', 10)) >= nextTier.requiredPoints) {
         // Note: tierId field doesn't exist in loyaltyMembers table
         // Tier information is managed through the loyaltyTiers table
         return true;

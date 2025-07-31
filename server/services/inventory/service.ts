@@ -72,10 +72,9 @@ export class InventoryService extends BaseService implements IInventoryService {
       const inventoryData = {
         productId: params.productId,
         storeId: params.storeId,
-        quantity: params.availableQuantity ?? 0,
-        availableQuantity: params.availableQuantity ?? 0,
         totalQuantity: params.totalQuantity ?? 0,
-        minimumLevel: params.minimumLevel ?? 10,
+        availableQuantity: params.availableQuantity ?? 0,
+        minimumLevel: params.minimumLevel ?? 0,
         batchTracking: params.batchTracking ?? false,
       };
 
@@ -109,13 +108,13 @@ export class InventoryService extends BaseService implements IInventoryService {
       const updateData: any = {};
       
       // Map valid inventory fields from params
-      if (params.availableQuantity !== undefined) {
-        updateData.availableQuantity = params.availableQuantity;
-        updateData.quantity = params.availableQuantity;
-      }
+      if (params.availableQuantity !== undefined) updateData.availableQuantity = params.availableQuantity;
       if (params.totalQuantity !== undefined) updateData.totalQuantity = params.totalQuantity;
       if (params.minimumLevel !== undefined) updateData.minimumLevel = params.minimumLevel;
       if (params.batchTracking !== undefined) updateData.batchTracking = params.batchTracking;
+      if (params.currentUtilization !== undefined) updateData.currentUtilization = params.currentUtilization;
+      if (params.metadata !== undefined) updateData.metadata = params.metadata;
+      if (params.notes !== undefined) updateData.notes = params.notes;
 
       const [updated] = await db
         .update(schema.inventory)
@@ -267,16 +266,15 @@ export class InventoryService extends BaseService implements IInventoryService {
           .update(schema.inventory)
           .set({
             availableQuantity: newAvailable,
-            quantity: newAvailable,
-          })
+          } as any)
           .where(eq(schema.inventory.id, params.inventoryId));
 
         /* ---------- Insert adjustment log ---------- */
         await tx.insert(schema.inventoryTransactions).values({
-          inventoryId: inventory.id,
+          inventoryId: params.inventoryId,
           quantity: params.quantity,
           type: params.quantity > 0 ? 'in' : 'out',
-        });
+        } as any);
 
         /* ---------- If batch tracking ---------- */
         if (params.batchId) {
@@ -326,18 +324,17 @@ export class InventoryService extends BaseService implements IInventoryService {
             .values({
               productId: params.productId,
               storeId: params.storeId,
-              quantity: 0,
-              availableQuantity: 0,
-              totalQuantity: 0,
-              minimumLevel: 10,
               batchTracking: true,
-            })
+              totalQuantity: 0,
+              availableQuantity: 0,
+              minimumLevel: 0,
+            } as any)
             .returning();
           inventory = created;
         } else if (!inventory.batchTracking) {
           await tx
             .update(schema.inventory)
-            .set({ batchTracking: true })
+            .set({ batchTracking: true } as any)
             .where(eq(schema.inventory.id, inventory.id));
         }
 
@@ -347,9 +344,12 @@ export class InventoryService extends BaseService implements IInventoryService {
           .values({
             inventoryId: inventory.id,
             quantity: params.quantity,
-            costPerUnit: params.costPerUnit,
+            batchNumber: params.batchNumber,
             expiryDate: params.expiryDate,
-          })
+            receivedDate: params.purchaseDate,
+            manufacturingDate: params.manufactureDate,
+            costPerUnit: params.unitCost,
+          } as any)
           .returning();
 
         /* ---------- Adjustment log ---------- */

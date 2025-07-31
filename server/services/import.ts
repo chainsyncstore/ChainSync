@@ -779,9 +779,8 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         await db.insert(schema.inventory).values({
           storeId: storeId,
           productId: newProduct.id,
-          quantity: row.quantity || 0,
           availableQuantity: row.quantity || 0,
-        });
+        } as any);
       }
       
       result.importedRows++;
