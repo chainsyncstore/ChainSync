@@ -290,7 +290,8 @@ export const validateFileUpload = (options: {
     }
     
     for (const file of files) {
-      if (file.size > maxSize) {
+      const fileObj = Array.isArray(file) ? file[0] : file;
+      if (fileObj.size > maxSize) {
         return res.status(400).json({
           success: false,
           error: {
@@ -300,7 +301,7 @@ export const validateFileUpload = (options: {
         });
       }
       
-      if (!allowedTypes.includes(file.mimetype)) {
+      if (!allowedTypes.includes(fileObj.mimetype)) {
         return res.status(400).json({
           success: false,
           error: {

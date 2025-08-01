@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { Pool } from 'pg';
-import { NeonDatabase } from '@neondatabase/serverless';
-import { File } from 'multer';
+import { Multer } from 'multer';
+import { Server } from 'socket.io';
 
 // Environment Variables
 interface EnvConfig {
@@ -20,7 +20,7 @@ declare global {
 }
 
 // Database Types
-interface Database extends NeonDatabase {
+interface Database {
   pool: Pool;
 }
 
@@ -72,7 +72,7 @@ interface FileUploadConfig {
   allowedMimeTypes: string[];
   maxFiles: number;
   destination: string;
-  filename: (req: Request, file: File, cb: (error: Error | null, filename: string) => void) => void;
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => void;
   allowedFileExtensions: string[];
   cleanupInterval: number;
   cacheTTL: number;

@@ -1,5 +1,5 @@
 import { AppError, ErrorCategory } from '@shared/types/errors';
-import { File } from 'multer';
+
 // import { Express } from 'express'; // Unused
 
 type MulterFile = File;

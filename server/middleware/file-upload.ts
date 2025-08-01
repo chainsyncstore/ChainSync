@@ -1,5 +1,5 @@
 import multer from 'multer';
-import { File } from 'multer';
+
 import { Request, Response, NextFunction } from 'express';
 
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
@@ -17,7 +17,7 @@ import uuidv4 from 'uuid';
 import * as path from 'path';
 
 // Type definitions
-type MulterFile = File;
+type MulterFile = Express.Multer.File;
 
 interface MulterRequest extends Request {
   file?: MulterFile;
@@ -195,7 +195,7 @@ export class FileUploadMiddleware {
         );
       }
 
-      const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+      const files: MulterFile[] = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
       const userId = req.user?.id;
 
       // Validate files
