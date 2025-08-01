@@ -178,7 +178,7 @@ app.use('/api/v1', apiRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-  const staticPath = path.join(__dirname, '../public');
+  const staticPath = path.join(__dirname, '../client');
   app.use(express.static(staticPath));
   
   // Handle SPA routing - serve index.html for any non-API routes
