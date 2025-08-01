@@ -1,0 +1,42 @@
+// server/routes/stores.ts
+import express from 'express';
+import type { Request, Response } from 'express';
+import { authenticateUser } from '../middleware/auth.js';
+import { getPool } from '../../db/pool.js';
+import { getLogger } from '../../src/logging/index.js';
+
+const router = express.Router();
+const logger = getLogger().child({ component: 'stores' });
+
+/**
+ * GET /api/stores/:id
+ * Get store details by ID
+ */
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const dbPool = getPool();
+    if (!dbPool) {
+      return res.status(500).json({ error: 'Database connection not available' });
+    }
+
+    const storeId = parseInt(req.params.id);
+
+    // Mock store data - in a real application, you would query the database
+    const mockStoreData = {
+      id: storeId,
+      name: `Store ${storeId}`,
+      address: `123 Main St, City ${storeId}`,
+      isActive: true
+    };
+
+    res.json(mockStoreData);
+  } catch (error: any) {
+    logger.error('Error fetching store details', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch store details',
+      details: error.message 
+    });
+  }
+});
+
+export default router; 

@@ -1,7 +1,7 @@
 // src/logging/index.ts
 import { Logger, LogLevel, LogMeta, ConsoleLogger } from './Logger';
 import { SentryLogger, createSentryLogger } from './SentryLogger';
-import { TracingLogger, createTracingLogger } from './TracingLogger';
+// import { TracingLogger, createTracingLogger } from './TracingLogger';
 import { requestLogger, errorLogger, getRequestLogger } from './middleware';
 
 // Default logger instance - starts as ConsoleLogger but can be replaced
@@ -60,12 +60,12 @@ export function configureLogging(options: {
     baseLogger.addContext(options.context);
   }
   
-  // Wrap with tracing logger if enabled
-  if (options.enableTracing) {
-    activeLogger = new TracingLogger(baseLogger);
-  } else {
-    activeLogger = baseLogger;
-  }
+  // Temporarily disable tracing to fix circular dependency
+  // if (options.enableTracing) {
+  //   activeLogger = new TracingLogger(baseLogger);
+  // } else {
+  activeLogger = baseLogger;
+  // }
   
   return activeLogger;
 }
@@ -109,5 +109,5 @@ export type {
 // Export LogLevel as both type and value
 export { LogLevel };
 
-// Re-export our new tracing components
-export { TracingLogger, createTracingLogger };
+// Temporarily comment out tracing exports
+// export { TracingLogger, createTracingLogger };

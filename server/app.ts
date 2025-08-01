@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 // import { createClient } from 'redis'; // Unused
 import RedisStore from 'connect-redis';
 import path from 'path';
+import fs from 'fs';
 
 // Import logging and error handling
 import { setupLogging, setupGlobalErrorHandlers } from '../src/logging/setup.js';
@@ -42,6 +43,8 @@ import healthRoutes, { setDbPool } from './routes/health.js';
 import transactionRoutes from './routes/transactions.js';
 import monitoringRoutes from './routes/monitoring.js';
 import adminDashboardRoutes from './routes/admin-dashboard.js';
+import dashboardRoutes from './routes/dashboard.js';
+import storesRoutes from './routes/stores.js';
 import securityRoutes, { initializeSecurityRoutes } from './routes/security.js';
 // Import your actual route files when they're ready
 // import authRoutes from './routes/auth';
@@ -169,6 +172,8 @@ apiRoutes.use('/health', healthRoutes);
 apiRoutes.use('/transactions', transactionRoutes);
 apiRoutes.use('/monitoring', monitoringRoutes);
 apiRoutes.use('/admin/dashboard', adminDashboardRoutes);
+apiRoutes.use('/dashboard', dashboardRoutes);
+apiRoutes.use('/stores', storesRoutes);
 apiRoutes.use('/security', securityRoutes);
 // apiRoutes.use('/auth', authRoutes);
 // apiRoutes.use('/customers', customerRoutes);
@@ -176,20 +181,63 @@ apiRoutes.use('/security', securityRoutes);
 // Apply API routes
 app.use('/api/v1', apiRoutes);
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  const staticPath = path.join(__dirname, '../../client');
-  app.use(express.static(staticPath));
-  
-  // Handle SPA routing - serve index.html for any non-API routes
-  app.get('*', (req, res, next) => {
-    if (!req.path.startsWith('/api/')) {
-      res.sendFile(path.join(staticPath, 'index.html'));
-    } else {
-      next();
-    }
-  });
+// Serve static files (both development and production)
+// Try multiple possible build output directories
+const possiblePaths = [
+  path.join(__dirname, '../../client'), // Development build
+  path.join(__dirname, '../../dist/client'), // Production build
+  path.join(__dirname, '../dist/client'), // Alternative production build
+  path.join(__dirname, '../client'), // Server running from dist/server
+];
+
+let staticPath = null;
+for (const testPath of possiblePaths) {
+  if (fs.existsSync(path.join(testPath, 'index.html'))) {
+    staticPath = testPath;
+    break;
+  }
 }
+
+if (!staticPath) {
+  console.error('Could not find client build files. Tried paths:', possiblePaths);
+  process.exit(1);
+}
+
+console.log('Serving static files from:', staticPath);
+
+// Serve static files with proper MIME types
+app.use(express.static(staticPath, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (filePath.endsWith('.mjs')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (filePath.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json');
+    } else if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html');
+    } else if (filePath.endsWith('.svg')) {
+      res.setHeader('Content-Type', 'image/svg+xml');
+    } else if (filePath.endsWith('.ico')) {
+      res.setHeader('Content-Type', 'image/x-icon');
+    } else if (filePath.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    }
+  }
+}));
+
+// Handle SPA routing - serve index.html for any non-API routes
+app.get('*', (req, res, next) => {
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile(path.join(staticPath, 'index.html'));
+  } else {
+    next();
+  }
+});
 
 // 404 handler
 app.use((req, res, next) => {

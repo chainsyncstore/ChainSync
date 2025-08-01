@@ -70,7 +70,13 @@ export default defineConfig({
           }
         }
       }
-    }
+    },
+    // Disable module preload to fix MIME type issues
+    modulePreload: false,
+    // Ensure proper asset handling
+    assetsInlineLimit: 4096,
+    // Ensure proper chunk loading
+    chunkSizeWarningLimit: 1000
   },
   resolve: {
     alias: {
@@ -79,4 +85,14 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, './shared'),
     },
   },
+  // Ensure proper development server configuration
+  server: {
+    port: 3000,
+    host: true
+  },
+  // Ensure proper preview configuration
+  preview: {
+    port: 3000,
+    host: true
+  }
 });

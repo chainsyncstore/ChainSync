@@ -36,7 +36,8 @@
     "deploy:validate": "ts-node deploy/validate-deployment.ts",
     "monitor:start": "node scripts/production-monitor.js",
     "backup:create": "ts-node deploy/backup/backup-recovery.ts",
-    "security:audit": "npm audit --audit-level=high"
+    "security:audit": "npm audit --audit-level=high",
+    "rebuild": "node scripts/rebuild-and-deploy.js"
   },
   "dependencies": {
     "@google-cloud/dialogflow": "^6.0.0",
