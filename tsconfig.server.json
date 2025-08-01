@@ -37,8 +37,8 @@
     "noUnusedParameters": false,
     "allowJs": true,
     "declaration": false,
-    "types": ["node", "express", "express-session"],
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "types": ["node", "express"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": [
     "src/**/*.ts",
