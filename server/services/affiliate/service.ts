@@ -22,6 +22,10 @@ export class AffiliateService extends BaseService implements IAffiliateService {
   private static readonly REFERRAL_DISCOUNT_PERCENTAGE = 10;
   private static readonly REFERRAL_PERIOD_MONTHS = 12;
 
+  constructor() {
+    super();
+  }
+
   async generateReferralCode(userId: number): Promise<string> {
     try {
       const user = await storage.getUserById(userId);
