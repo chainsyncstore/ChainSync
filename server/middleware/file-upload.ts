@@ -17,13 +17,13 @@ import uuidv4 from 'uuid';
 import * as path from 'path';
 
 // Type definitions
-type MulterFile = Express.Multer.File;
+type MulterFile = any;
 
 interface MulterRequest extends Request {
-  file?: MulterFile;
+  file?: any;
   files?: {
-    [fieldname: string]: MulterFile[];
-  } | MulterFile[];
+    [fieldname: string]: any[];
+  } | any[];
   user?: any;
   progressId?: string;
 }
@@ -195,7 +195,7 @@ export class FileUploadMiddleware {
         );
       }
 
-      const files: MulterFile[] = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+      const files: any[] = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
       const userId = req.user?.id;
 
       // Validate files
@@ -229,11 +229,11 @@ export class FileUploadMiddleware {
         id: uploadId,
         status: 'in_progress',
         progress: 0,
-        total: files.reduce((acc: number, file: MulterFile) => acc + file.size, 0),
+        total: files.reduce((acc: number, file: any) => acc + file.size, 0),
         uploaded: 0,
         startTime: Date.now(),
         lastUpdate: Date.now(),
-        files: files.reduce((acc: { [key: string]: any }, file: MulterFile) => {
+        files: files.reduce((acc: { [key: string]: any }, file: any) => {
           acc[file.originalname] = {
             name: file.originalname,
             size: file.size,

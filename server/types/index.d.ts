@@ -72,7 +72,7 @@ interface FileUploadConfig {
   allowedMimeTypes: string[];
   maxFiles: number;
   destination: string;
-  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => void;
+  filename: (req: Request, file: any, cb: (error: Error | null, filename: string) => void) => void;
   allowedFileExtensions: string[];
   cleanupInterval: number;
   cacheTTL: number;

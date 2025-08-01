@@ -1,6 +1,6 @@
 import multer from 'multer';
 
-type MulterFile = Express.Multer.File;
+type MulterFile = any;
 // import { Request, Express } from 'express'; // Unused
 // import * as multer from 'multer'; // Unused
 import { AppError, ErrorCategory } from '@shared/types/errors';
