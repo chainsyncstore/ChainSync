@@ -390,5 +390,5 @@ export class SecurityMonitoringService {
   }
 }
 
-// Export enums and patterns for external use
-export { SecurityEventType, SecurityRiskLevel, INTRUSION_PATTERNS }; 
+// Export patterns for external use
+export { INTRUSION_PATTERNS }; 

@@ -2,7 +2,7 @@
 // Security management routes for Phase 2 security features
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { getLogger } from '../../../src/logging/index.js';
+import { getLogger } from '../../shared/logging.js';
 import { 
   isAuthenticated, 
   authorizeRoles 
@@ -30,7 +30,7 @@ import { validateBody } from '../middleware/validation.js';
 import { Pool } from 'pg';
 
 const router = Router();
-const logger = getLogger().child({ component: 'security-routes' });
+const logger = getLogger('security-routes');
 
 // Validation schemas
 const mfaSetupSchema = z.object({
@@ -379,7 +379,7 @@ router.get('/status',
       const status = {
         mfaEnabled: !!(req.session as any).mfaRequired,
         mfaVerified: !!(req.session as any).mfaVerified,
-        accountLocked: !!(req.session as any).loginAttempts >= 5,
+        accountLocked: ((req.session as any).loginAttempts || 0) >= 5,
         suspiciousActivity: suspiciousActivity.isSuspicious,
         riskScore: suspiciousActivity.riskScore,
         lastLogin: (req.session as any).lastLogin || null

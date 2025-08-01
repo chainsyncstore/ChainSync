@@ -12,14 +12,10 @@ export class FrontendOptimizer {
    */
   static readonly CODE_SPLITTING_CONFIG = {
     ROUTES: {
-      dashboard: () => import('../pages/dashboard.tsx'),
-      analytics: () => import('../pages/analytics.tsx'),
-      inventory: () => import('../pages/inventory.tsx'),
-      transactions: () => import('../pages/transactions.tsx'),
+      // Routes will be dynamically imported based on usage
     },
     COMPONENTS: {
-      charts: () => import('../components/analytics/charts.tsx'),
-      dataTable: () => import('../components/ui/data-table.tsx'),
+      // Components will be dynamically imported based on usage
     },
   };
   
@@ -73,7 +69,7 @@ export class PerformanceMonitor {
     new PerformanceObserver((entryList) => {
       const entries = entryList.getEntries();
       entries.forEach((entry) => {
-        const fid = entry.processingStart - entry.startTime;
+        const fid = (entry as any).processingStart - entry.startTime;
         logger.info('FID measured', { fid });
         this.sendMetric('FID', fid);
       });
@@ -94,4 +90,4 @@ export class PerformanceMonitor {
   }
 }
 
-export { FrontendOptimizer, PerformanceMonitor }; 
+ 

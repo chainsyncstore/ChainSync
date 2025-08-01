@@ -2,7 +2,7 @@
 import { Router, Request, Response } from 'express';
 import { getMetrics } from '../../monitoring/metrics.js';
 import { getResilienceStatus } from '../../resilience/index.js';
-import { getConnectionPool } from '../../database/connection-pool.js';
+import { getConnectionPool, getPoolStats } from '../../database/connection-pool.js';
 import { getRedisClient } from '../../cache/redis.js';
 import { getLogger } from '../../logging/index.js';
 
@@ -35,7 +35,7 @@ router.get('/health', async (req: Request, res: Response) => {
     const redis = getRedisClient();
 
     // Get database pool stats
-    const poolStats = await pool.getPoolStats();
+    const poolStats = await getPoolStats();
 
     // Get Redis stats if available
     let redisStats = null;
@@ -145,7 +145,7 @@ router.post('/backup', async (req: Request, res: Response) => {
 router.get('/database/stats', async (req: Request, res: Response) => {
   try {
     const pool = getConnectionPool();
-    const poolStats = await pool.getPoolStats();
+    const poolStats = await getPoolStats();
     
     // Get additional database stats if available
     let tableStats = [];
@@ -189,7 +189,7 @@ router.get('/cache/stats', async (req: Request, res: Response) => {
 
     // Get Redis statistics
     const info = await redis.info();
-    const memory = await redis.memory('USAGE');
+            const memory = await redis.memory('STATS');
     const keyspace = await redis.info('keyspace');
     
     // Parse Redis info

@@ -46,31 +46,31 @@ export function initConnectionPool(): Pool {
   // Set up event listeners for monitoring
   dbPool.on('connect', (client: PoolClient) => {
     logger.debug('New database connection established', {
-      processId: client.processID,
+      processId: (client as any).processID,
     });
   });
   
   dbPool.on('acquire', (client: PoolClient) => {
     logger.debug('Database connection acquired', {
-      processId: client.processID,
-    });
-  });
-  
-  dbPool.on('release', (client: PoolClient) => {
-    logger.debug('Database connection released', {
-      processId: client.processID,
-    });
-  });
-  
-  dbPool.on('error', (err: Error, client: PoolClient) => {
-    logger.error('Database pool error', err, {
-      processId: client?.processID,
+      processId: (client as any).processID,
     });
   });
   
   dbPool.on('remove', (client: PoolClient) => {
     logger.debug('Database connection removed', {
-      processId: client.processID,
+      processId: (client as any).processID,
+    });
+  });
+  
+  dbPool.on('error', (err: Error, client: PoolClient) => {
+    logger.error('Database pool error', err, {
+      processId: (client as any)?.processID,
+    });
+  });
+  
+  dbPool.on('remove', (client: PoolClient) => {
+    logger.debug('Database connection removed', {
+      processId: (client as any).processID,
     });
   });
   

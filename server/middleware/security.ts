@@ -138,7 +138,7 @@ export class MFAService {
    * Generate a new MFA secret for a user
    */
   static generateSecret(): string {
-    return crypto.randomBytes(20).toString('base32');
+    return crypto.randomBytes(20).toString('base64').replace(/[^A-Za-z0-9]/g, '').substring(0, 32);
   }
   
   /**

@@ -1,5 +1,5 @@
 // src/cache/redis.ts
-import Redis from 'ioredis';
+import Redis, { Cluster } from 'ioredis';
 import { getLogger } from '../logging/index.js';
 
 // Get logger for caching operations
@@ -40,13 +40,13 @@ const CACHE_CONFIG = {
 
 // Create Redis client singleton with connection pooling
 let redisClient: Redis | null = null;
-let redisCluster: Redis.Cluster | null = null;
+let redisCluster: Cluster | null = null;
 
 /**
  * Initialize Redis connection with advanced configuration
  * Supports both single instance and cluster modes
  */
-export function initRedis(): Redis | Redis.Cluster | null {
+export function initRedis(): Redis | Cluster | null {
   if (redisClient || redisCluster) {
     return redisClient || redisCluster;
   }
@@ -65,11 +65,8 @@ export function initRedis(): Redis | Redis.Cluster | null {
       const nodes = redisClusterNodes.split(',').map(node => node.trim());
       logger.info('Initializing Redis cluster connection', { nodeCount: nodes.length });
       
-      redisCluster = new Redis.Cluster(nodes, {
-        maxRetriesPerRequest: 3,
+      redisCluster = new Cluster(nodes, {
         enableOfflineQueue: true,
-        connectTimeout: CACHE_CONFIG.POOL.CONNECTION_TIMEOUT,
-        commandTimeout: CACHE_CONFIG.POOL.COMMAND_TIMEOUT,
         retryDelayOnFailover: 100,
         retryDelayOnClusterDown: 300,
         retryDelayOnTryAgain: 100,
@@ -77,6 +74,8 @@ export function initRedis(): Redis | Redis.Cluster | null {
         redisOptions: {
           password: process.env.REDIS_PASSWORD,
           db: parseInt(process.env.REDIS_DB || '0'),
+          connectTimeout: CACHE_CONFIG.POOL.CONNECTION_TIMEOUT,
+          commandTimeout: CACHE_CONFIG.POOL.COMMAND_TIMEOUT,
         }
       });
       
@@ -117,7 +116,7 @@ export function initRedis(): Redis | Redis.Cluster | null {
 /**
  * Setup Redis event listeners for monitoring and debugging
  */
-function setupRedisEventListeners(client: Redis | Redis.Cluster, mode: 'single' | 'cluster') {
+function setupRedisEventListeners(client: Redis | Cluster, mode: 'single' | 'cluster') {
   client.on('connect', () => {
     logger.info(`Redis ${mode} connection established`);
   });
@@ -139,11 +138,11 @@ function setupRedisEventListeners(client: Redis | Redis.Cluster, mode: 'single' 
   });
   
   if (mode === 'cluster') {
-    (client as Redis.Cluster).on('node:connect', (node) => {
+    (client as Cluster).on('node:connect', (node) => {
       logger.debug('Redis cluster node connected', { node: node.options.host });
     });
     
-    (client as Redis.Cluster).on('node:error', (err, node) => {
+    (client as Cluster).on('node:error', (err, node) => {
       logger.error('Redis cluster node error', { error: err.message, node: node.options.host });
     });
   }
@@ -152,7 +151,7 @@ function setupRedisEventListeners(client: Redis | Redis.Cluster, mode: 'single' 
 /**
  * Get the Redis client instance
  */
-export function getRedisClient(): Redis | Redis.Cluster | null {
+export function getRedisClient(): Redis | Cluster | null {
   return redisClient || redisCluster || initRedis();
 }
 

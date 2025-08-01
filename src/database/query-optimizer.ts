@@ -147,7 +147,7 @@ export class QueryAnalyzer {
       const planResult = await executeQuery(explainQuery, params);
       
       const executionTime = Date.now() - startTime;
-      const plan = planResult[0]?.QUERY PLAN || planResult[0];
+      const plan = planResult[0] && planResult[0]['QUERY PLAN'] ? planResult[0]['QUERY PLAN'] : planResult[0];
       
       // Analyze plan and generate recommendations
       const recommendations = this.generateRecommendations(plan, executionTime);

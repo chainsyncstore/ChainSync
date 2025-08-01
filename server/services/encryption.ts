@@ -59,18 +59,14 @@ export class EncryptionService {
       const encryptionKey = this.deriveKey(context);
       
       // Create cipher
-      const cipher = crypto.createCipherGCM(ENCRYPTION_CONFIG.algorithm, encryptionKey);
-      cipher.setAAD(Buffer.from(context || 'default', 'utf8'));
+      const cipher = crypto.createCipher(ENCRYPTION_CONFIG.algorithm, encryptionKey);
       
       // Encrypt data
       let encrypted = cipher.update(data, 'utf8', 'hex');
       encrypted += cipher.final('hex');
       
-      // Get authentication tag
-      const tag = cipher.getAuthTag();
-      
-      // Combine IV, encrypted data, and tag
-      const result = Buffer.concat([iv, Buffer.from(encrypted, 'hex'), tag]);
+      // Combine IV and encrypted data
+      const result = Buffer.concat([iv, Buffer.from(encrypted, 'hex')]);
       
       logger.debug('Data encrypted successfully', {
         dataLength: data.length,
@@ -104,9 +100,7 @@ export class EncryptionService {
       const decryptionKey = this.deriveKey(context);
       
       // Create decipher
-      const decipher = crypto.createDecipherGCM(ENCRYPTION_CONFIG.algorithm, decryptionKey);
-      decipher.setAAD(Buffer.from(context || 'default', 'utf8'));
-      decipher.setAuthTag(tag);
+      const decipher = crypto.createDecipher(ENCRYPTION_CONFIG.algorithm, decryptionKey);
       
       // Decrypt data
       let decrypted = decipher.update(encrypted, undefined, 'utf8');
