@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const serverPackagePath = path.join(__dirname, '../dist/server/package.json');
-const packageContent = JSON.stringify({ type: 'module' }, null, 2);
+const packageContent = JSON.stringify({ type: 'commonjs' }, null, 2);
 
 // Ensure dist/server directory exists
 const serverDir = path.dirname(serverPackagePath);
