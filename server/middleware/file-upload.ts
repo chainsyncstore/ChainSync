@@ -1,4 +1,5 @@
 import multer from 'multer';
+import { File } from 'multer';
 import { Request, Response, NextFunction } from 'express';
 
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
@@ -16,7 +17,7 @@ import uuidv4 from 'uuid';
 import * as path from 'path';
 
 // Type definitions
-type MulterFile = Express.Multer.File;
+type MulterFile = File;
 
 interface MulterRequest extends Request {
   file?: MulterFile;

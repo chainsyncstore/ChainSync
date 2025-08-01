@@ -13,7 +13,7 @@
       "@db": ["db/index.ts"],
       "@db/*": ["db/*"]
     },
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
@@ -24,8 +24,8 @@
     "strictNullChecks": false,
     "allowJs": true,
     "declaration": false,
-    "types": ["node", "express-session"],
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "types": ["node", "express", "express-session"],
+    "typeRoots": ["./node_modules/@types", "./types"]
   },
   "include": [
     "src/**/*.ts",

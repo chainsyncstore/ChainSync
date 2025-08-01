@@ -1,13 +1,14 @@
 import { AppError, ErrorCategory } from '@shared/types/errors';
+import { File } from 'multer';
 // import { Express } from 'express'; // Unused
 
-type MulterFile = Express.Multer.File;
+type MulterFile = File;
 
 export interface IES {
   validateData(data: any[], options?: ValidationOptions): Promise<ImportExportResult>;
   importData(userId: number, data: any[], entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
   exportData(userId: number, entityType: string, options?: ExportOptions): Promise<Buffer>;
-  validateFile(file: Express.Multer.File): Promise<{ type: string; data: any[] }>;
+  validateFile(file: File): Promise<{ type: string; data: any[] }>;
   processImport(data: any[], options: ImportExportOptions, importId: string): Promise<ImportExportResult>;
   processBatch(data: any[], importId: string): Promise<ImportExportResult>;
 }
