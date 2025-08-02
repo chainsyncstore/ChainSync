@@ -1,26 +1,26 @@
 import { RequestHandler, ErrorRequestHandler } from 'express';
 
 export interface IMiddleware {
-  [key: string]: RequestHandler | ErrorRequestHandler | ((...args: any[]) => RequestHandler);
+  [_key: string]: RequestHandler | ErrorRequestHandler | ((..._args: any[]) => RequestHandler);
 }
 
 export interface AuthMiddleware extends IMiddleware {
-  isAuthenticated: RequestHandler;
-  isAdmin: RequestHandler;
-  isManagerOrAdmin: RequestHandler;
+  _isAuthenticated: RequestHandler;
+  _isAdmin: RequestHandler;
+  _isManagerOrAdmin: RequestHandler;
   hasStoreAccess: (storeIdParam?: string) => RequestHandler;
 }
 
 export interface ErrorHandler extends IMiddleware {
-  errorHandler: ErrorRequestHandler;
+  _errorHandler: ErrorRequestHandler;
 }
 
 export interface RateLimiter extends IMiddleware {
-  applyRateLimiters: RequestHandler;
+  _applyRateLimiters: RequestHandler;
 }
 
 export interface FileUploadMiddleware extends IMiddleware {
-  handleUpload: RequestHandler;
-  getProgress: RequestHandler;
-  subscribeToProgress: RequestHandler;
+  _handleUpload: RequestHandler;
+  _getProgress: RequestHandler;
+  _subscribeToProgress: RequestHandler;
 }

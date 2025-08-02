@@ -15,60 +15,60 @@ type UpdateInventory = Partial<typeof schema.inventory.$inferSelect>;
 
 // Define types for import data
 export interface ImportResult {
-  success: boolean;
-  totalRows: number;
-  importedRows: number;
-  errors: ImportError[];
-  mappedData: any[];
-  missingFields: MissingField[];
+  _success: boolean;
+  _totalRows: number;
+  _importedRows: number;
+  _errors: ImportError[];
+  _mappedData: any[];
+  _missingFields: MissingField[];
   lastUpdated?: Date;
 }
 
 export interface ImportError {
-  row: number;
-  field: string;
-  value: string;
-  reason: string;
+  _row: number;
+  _field: string;
+  _value: string;
+  _reason: string;
 }
 
 export interface MissingField {
-  row: number;
-  field: string;
-  isRequired: boolean;
+  _row: number;
+  _field: string;
+  _isRequired: boolean;
 }
 
 export interface ColumnMapping {
-  source: string;
-  target: string;
-  confidence: number;
-  required: boolean;
+  _source: string;
+  _target: string;
+  _confidence: number;
+  _required: boolean;
 }
 
 // Define expected schema for each data type
 export const expectedSchemas = {
   inventory: {
-    name: { required: true, type: 'string', description: 'Product name' },
-    barcode: { required: true, type: 'string', description: 'Product barcode or SKU' },
-    description: { required: false, type: 'string', description: 'Product description' },
-    price: { required: true, type: 'number', description: 'Product price' },
-    categoryId: { required: true, type: 'any', description: 'Category ID or name' },
-    quantity: { required: true, type: 'number', description: 'Current stock quantity' },
-    minStockLevel: { required: false, type: 'number', description: 'Minimum stock level for alerts' },
-    isPerishable: { required: false, type: 'boolean', description: 'Whether product is perishable' },
-    expiryDate: { required: false, type: 'date', description: 'Expiry date for perishable products' }
+    name: { _required: true, _type: 'string', _description: 'Product name' },
+    _barcode: { _required: true, _type: 'string', _description: 'Product barcode or SKU' },
+    _description: { _required: false, _type: 'string', _description: 'Product description' },
+    _price: { _required: true, _type: 'number', _description: 'Product price' },
+    _categoryId: { _required: true, _type: 'any', _description: 'Category ID or name' },
+    _quantity: { _required: true, _type: 'number', _description: 'Current stock quantity' },
+    _minStockLevel: { _required: false, _type: 'number', _description: 'Minimum stock level for alerts' },
+    _isPerishable: { _required: false, _type: 'boolean', _description: 'Whether product is perishable' },
+    _expiryDate: { _required: false, _type: 'date', _description: 'Expiry date for perishable products' }
   },
-  loyalty: {
-    loyaltyId: { required: true, type: 'string', description: 'Unique loyalty member ID' },
-    name: { required: true, type: 'string', description: 'Customer name' },
-    email: { required: false, type: 'string', description: 'Customer email address' },
-    phone: { required: false, type: 'string', description: 'Customer phone number' },
-    points: { required: false, type: 'number', description: 'Current loyalty points balance' },
-    enrollmentDate: { required: false, type: 'date', description: 'Date customer enrolled in program' }
+  _loyalty: {
+    loyaltyId: { _required: true, _type: 'string', _description: 'Unique loyalty member ID' },
+    _name: { _required: true, _type: 'string', _description: 'Customer name' },
+    _email: { _required: false, _type: 'string', _description: 'Customer email address' },
+    _phone: { _required: false, _type: 'string', _description: 'Customer phone number' },
+    _points: { _required: false, _type: 'number', _description: 'Current loyalty points balance' },
+    _enrollmentDate: { _required: false, _type: 'date', _description: 'Date customer enrolled in program' }
   }
 };
 
 // Validate a data value against expected type
-export function validateDataType(value: any, expectedType: string): boolean {
+export function validateDataType(_value: any, _expectedType: string): boolean {
   if (value === null || value === undefined) return false;
 
   switch (expectedType) {
@@ -97,55 +97,54 @@ export function validateDataType(value: any, expectedType: string): boolean {
       return false;
     case 'any':
       return value !== null && value !== undefined;
-    default:
-      return false;
+    return false;
   }
 }
 
 // This is the main function for processing import files
 export async function processImportFile(
-  fileBuffer: Buffer,
-  fileType: string,
-  dataType: 'loyalty' | 'inventory'
+  _fileBuffer: Buffer,
+  _fileType: string,
+  _dataType: 'loyalty' | 'inventory'
 ): Promise<{
-  data: any[];
-  columnSuggestions: ColumnMapping[];
-  sampleData: any[];
+  _data: any[];
+  _columnSuggestions: ColumnMapping[];
+  _sampleData: any[];
   headerValidation: {
-    missingRequired: string[];
-    foundHeaders: string[];
-    expectedHeaders: string[];
+    _missingRequired: string[];
+    _foundHeaders: string[];
+    _expectedHeaders: string[];
   }
 }> {
   // Parse file based on type
-  let parsedData: any[] = [];
-  let originalHeaders: string[] = [];
+  const _parsedData: any[] = [];
+  const _originalHeaders: string[] = [];
 
   try {
     if (fileType.includes('csv')) {
-      // First parse with { columns: false } to get the raw headers
+      // First parse with { _columns: false } to get the raw headers
       const result = csvParse(fileBuffer.toString(), {
-        columns: false,
-        skip_empty_lines: true,
-        trim: true
+        _columns: false,
+        _skip_empty_lines: true,
+        _trim: true
       });
 
       if (result.length > 0) {
         originalHeaders = result[0] || [];
       }
 
-      // Then parse normally with { columns: true }
+      // Then parse normally with { _columns: true }
       parsedData = csvParse(fileBuffer.toString(), {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true
+        _columns: true,
+        _skip_empty_lines: true,
+        _trim: true
       });
     } else if (
       fileType.includes('spreadsheetml') ||
       fileType.includes('excel') ||
       fileType.includes('xls')
     ) {
-      const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+      const workbook = xlsx.read(fileBuffer, { _type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName!];
 
@@ -154,7 +153,7 @@ export async function processImportFile(
         const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1');
         originalHeaders = [];
         for (let col = range.s.c; col <= range.e.c; col++) {
-          const cellAddress = xlsx.utils.encode_cell({ r: range.s.r, c: col });
+          const cellAddress = xlsx.utils.encode_cell({ _r: range.s.r, _c: col });
           if (worksheet[cellAddress]) {
             originalHeaders.push(worksheet[cellAddress].v);
           }
@@ -165,9 +164,9 @@ export async function processImportFile(
     } else {
       throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
     }
-  } catch (error: unknown) {
-    console.error('Error parsing file:', error);
-    throw new Error(`Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  } catch (_error: unknown) {
+    console.error('Error parsing _file:', error);
+    throw new Error(`Failed to parse _file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
   if (parsedData.length === 0) {
@@ -196,10 +195,10 @@ export async function processImportFile(
   const sampleData = parsedData.slice(0, 5);
 
   return {
-    data: parsedData,
+    _data: parsedData,
     columnSuggestions,
     sampleData,
-    headerValidation: {
+    _headerValidation: {
       missingRequired,
       foundHeaders,
       expectedHeaders
@@ -209,11 +208,11 @@ export async function processImportFile(
 
 // Apply column mapping to raw data
 export function applyColumnMapping(
-  data: any[],
-  mapping: Record<string, string>
+  _data: any[],
+  _mapping: Record<string, string>
 ): any[] {
   return data.map(row => {
-    const mappedRow: Record<string, any> = {};
+    const _mappedRow: Record<string, any> = {};
 
     // Process each field using the provided mapping
     Object.entries(mapping).forEach(([source, target]) => {
@@ -228,15 +227,15 @@ export function applyColumnMapping(
 
 // Validate and clean inventory data
 export async function validateInventoryData(
-  data: any[]
+  _data: any[]
 ): Promise<ImportResult> {
-  const result: ImportResult = {
-    success: true,
-    totalRows: data.length,
-    importedRows: 0,
-    errors: [],
-    mappedData: [],
-    missingFields: []
+  const _result: ImportResult = {
+    _success: true,
+    _totalRows: data.length,
+    _importedRows: 0,
+    _errors: [],
+    _mappedData: [],
+    _missingFields: []
   };
 
   // Perform basic validation
@@ -245,8 +244,8 @@ export async function validateInventoryData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'inventory');
-  } catch (error: unknown) {
-    console.log('Error enhancing validation with AI:', error);
+  } catch (_error: unknown) {
+    console.log('Error enhancing validation with _AI:', error);
     // Continue with basic validation results if AI enhancement fails
   }
 
@@ -262,8 +261,8 @@ export async function validateInventoryData(
  * @returns Updated import result
  */
 export function basicValidateInventoryData(
-  data: any[],
-  result: ImportResult
+  _data: any[],
+  _result: ImportResult
 ): ImportResult {
   const processedBarcodes = new Set<string>();
   const schema = expectedSchemas.inventory;
@@ -280,9 +279,9 @@ export function basicValidateInventoryData(
       // Check required fields
       if (definition.required && (value === null || value === undefined || value === '')) {
         result.missingFields.push({
-          row: rowNumber,
+          _row: rowNumber,
           field,
-          isRequired: true
+          _isRequired: true
         });
         hasErrors = true;
         return; // Skip further validation for this field
@@ -296,10 +295,10 @@ export function basicValidateInventoryData(
       // Validate data type
       if (!validateDataType(value, definition.type)) {
         result.errors.push({
-          row: rowNumber,
+          _row: rowNumber,
           field,
-          value: String(value),
-          reason: `Invalid data type for ${field}. Expected ${definition.type}.`
+          _value: String(value),
+          _reason: `Invalid data type for ${field}. Expected ${definition.type}.`
         });
         hasErrors = true;
         return;
@@ -310,10 +309,10 @@ export function basicValidateInventoryData(
         case 'name':
           if (typeof value === 'string' && value.trim().length < 2) {
             result.errors.push({
-              row: rowNumber,
+              _row: rowNumber,
               field,
               value,
-              reason: 'Product name must be at least 2 characters long'
+              _reason: 'Product name must be at least 2 characters long'
             });
             hasErrors = true;
           }
@@ -323,18 +322,18 @@ export function basicValidateInventoryData(
           if (typeof value === 'string') {
             if (value.trim().length < 4) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
                 value,
-                reason: 'Barcode must be at least 4 characters long'
+                _reason: 'Barcode must be at least 4 characters long'
               });
               hasErrors = true;
             } else if (processedBarcodes.has(value)) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
                 value,
-                reason: 'Duplicate barcode found in import file'
+                _reason: 'Duplicate barcode found in import file'
               });
               hasErrors = true;
             } else {
@@ -354,10 +353,10 @@ export function basicValidateInventoryData(
             const numPrice = parseFloat(String(priceValue));
             if (isNaN(numPrice) || numPrice < 0) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
-                value: String(value),
-                reason: 'Price must be a valid positive number'
+                _value: String(value),
+                _reason: 'Price must be a valid positive number'
               });
               hasErrors = true;
             } else {
@@ -366,10 +365,10 @@ export function basicValidateInventoryData(
             }
           } catch (e) {
             result.errors.push({
-              row: rowNumber,
+              _row: rowNumber,
               field,
-              value: String(value),
-              reason: 'Price must be a valid number'
+              _value: String(value),
+              _reason: 'Price must be a valid number'
             });
             hasErrors = true;
           }
@@ -385,10 +384,10 @@ export function basicValidateInventoryData(
             const numQty = parseInt(String(qtyValue), 10);
             if (isNaN(numQty) || numQty < 0) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
-                value: String(value),
-                reason: 'Quantity must be a valid positive integer'
+                _value: String(value),
+                _reason: 'Quantity must be a valid positive integer'
               });
               hasErrors = true;
             } else {
@@ -397,10 +396,10 @@ export function basicValidateInventoryData(
             }
           } catch (e) {
             result.errors.push({
-              row: rowNumber,
+              _row: rowNumber,
               field,
-              value: String(value),
-              reason: 'Quantity must be a valid integer'
+              _value: String(value),
+              _reason: 'Quantity must be a valid integer'
             });
             hasErrors = true;
           }
@@ -416,10 +415,10 @@ export function basicValidateInventoryData(
               cleanedRow[field] = false;
             } else {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
-                value: String(value),
-                reason: 'isPerishable must be true/false, yes/no, or 1/0'
+                _value: String(value),
+                _reason: 'isPerishable must be true/false, yes/no, or 1/0'
               });
               hasErrors = true;
             }
@@ -432,10 +431,10 @@ export function basicValidateInventoryData(
             const date = new Date(value);
             if (isNaN(date.getTime())) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
-                value: String(value),
-                reason: 'Invalid date format. Use YYYY-MM-DD'
+                _value: String(value),
+                _reason: 'Invalid date format. Use YYYY-MM-DD'
               });
               hasErrors = true;
             } else {
@@ -443,10 +442,10 @@ export function basicValidateInventoryData(
             }
           } catch (e) {
             result.errors.push({
-              row: rowNumber,
+              _row: rowNumber,
               field,
-              value: String(value),
-              reason: 'Invalid date format. Use YYYY-MM-DD'
+              _value: String(value),
+              _reason: 'Invalid date format. Use YYYY-MM-DD'
             });
             hasErrors = true;
           }
@@ -454,12 +453,12 @@ export function basicValidateInventoryData(
       }
     });
 
-    // Extra validation: check if expiryDate is provided for perishable items
+    // Extra _validation: check if expiryDate is provided for perishable items
     if (cleanedRow.isPerishable === true && !cleanedRow.expiryDate) {
       result.missingFields.push({
-        row: rowNumber,
-        field: 'expiryDate',
-        isRequired: false
+        _row: rowNumber,
+        _field: 'expiryDate',
+        _isRequired: false
       });
       // This is just a warning, not an error
     }
@@ -477,15 +476,15 @@ export function basicValidateInventoryData(
 
 // Validate and clean loyalty data
 export async function validateLoyaltyData(
-  data: any[]
+  _data: any[]
 ): Promise<ImportResult> {
-  const result: ImportResult = {
-    success: true,
-    totalRows: data.length,
-    importedRows: 0,
-    errors: [],
-    mappedData: [],
-    missingFields: []
+  const _result: ImportResult = {
+    _success: true,
+    _totalRows: data.length,
+    _importedRows: 0,
+    _errors: [],
+    _mappedData: [],
+    _missingFields: []
   };
 
   // Perform basic validation
@@ -494,8 +493,8 @@ export async function validateLoyaltyData(
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'loyalty');
-  } catch (error: unknown) {
-    console.log('Error enhancing validation with AI:', error);
+  } catch (_error: unknown) {
+    console.log('Error enhancing validation with _AI:', error);
     // Continue with basic validation results if AI enhancement fails
   }
 
@@ -504,8 +503,8 @@ export async function validateLoyaltyData(
 
 // Basic loyalty data validation
 export function basicValidateLoyaltyData(
-  data: any[],
-  result: ImportResult
+  _data: any[],
+  _result: ImportResult
 ): ImportResult {
   const processedLoyaltyIds = new Set<string>();
   const schema = expectedSchemas.loyalty;
@@ -522,9 +521,9 @@ export function basicValidateLoyaltyData(
       // Check required fields
       if (definition.required && (value === null || value === undefined || value === '')) {
         result.missingFields.push({
-          row: rowNumber,
+          _row: rowNumber,
           field,
-          isRequired: true
+          _isRequired: true
         });
         hasErrors = true;
         return; // Skip further validation for this field
@@ -538,10 +537,10 @@ export function basicValidateLoyaltyData(
       // Validate data type
       if (!validateDataType(value, definition.type)) {
         result.errors.push({
-          row: rowNumber,
+          _row: rowNumber,
           field,
-          value: String(value),
-          reason: `Invalid data type for ${field}. Expected ${definition.type}.`
+          _value: String(value),
+          _reason: `Invalid data type for ${field}. Expected ${definition.type}.`
         });
         hasErrors = true;
         return;
@@ -552,10 +551,10 @@ export function basicValidateLoyaltyData(
         case 'name':
           if (typeof value === 'string' && value.trim().length < 2) {
             result.errors.push({
-              row: rowNumber,
+              _row: rowNumber,
               field,
               value,
-              reason: 'Customer name must be at least 2 characters long'
+              _reason: 'Customer name must be at least 2 characters long'
             });
             hasErrors = true;
           }
@@ -565,18 +564,18 @@ export function basicValidateLoyaltyData(
           if (typeof value === 'string') {
             if (value.trim().length < 4) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
                 value,
-                reason: 'Loyalty ID must be at least 4 characters long'
+                _reason: 'Loyalty ID must be at least 4 characters long'
               });
               hasErrors = true;
             } else if (processedLoyaltyIds.has(value)) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
                 value,
-                reason: 'Duplicate Loyalty ID found in import file'
+                _reason: 'Duplicate Loyalty ID found in import file'
               });
               hasErrors = true;
             } else {
@@ -591,10 +590,10 @@ export function basicValidateLoyaltyData(
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(value)) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
                 value,
-                reason: 'Invalid email format'
+                _reason: 'Invalid email format'
               });
               hasErrors = true;
             }
@@ -607,10 +606,10 @@ export function basicValidateLoyaltyData(
             const digitsOnly = value.replace(/\D/g, '');
             if (digitsOnly.length < 7) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
                 value,
-                reason: 'Phone number must contain at least 7 digits'
+                _reason: 'Phone number must contain at least 7 digits'
               });
               hasErrors = true;
             }
@@ -627,10 +626,10 @@ export function basicValidateLoyaltyData(
             const numPoints = parseFloat(String(pointsValue));
             if (isNaN(numPoints) || numPoints < 0) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
-                value: String(value),
-                reason: 'Points must be a valid positive number'
+                _value: String(value),
+                _reason: 'Points must be a valid positive number'
               });
               hasErrors = true;
             } else {
@@ -639,10 +638,10 @@ export function basicValidateLoyaltyData(
             }
           } catch (e) {
             result.errors.push({
-              row: rowNumber,
+              _row: rowNumber,
               field,
-              value: String(value),
-              reason: 'Points must be a valid number'
+              _value: String(value),
+              _reason: 'Points must be a valid number'
             });
             hasErrors = true;
           }
@@ -654,10 +653,10 @@ export function basicValidateLoyaltyData(
             const date = new Date(value);
             if (isNaN(date.getTime())) {
               result.errors.push({
-                row: rowNumber,
+                _row: rowNumber,
                 field,
-                value: String(value),
-                reason: 'Invalid date format. Use YYYY-MM-DD'
+                _value: String(value),
+                _reason: 'Invalid date format. Use YYYY-MM-DD'
               });
               hasErrors = true;
             } else {
@@ -665,10 +664,10 @@ export function basicValidateLoyaltyData(
               const today = new Date();
               if (date > today) {
                 result.errors.push({
-                  row: rowNumber,
+                  _row: rowNumber,
                   field,
-                  value: String(value),
-                  reason: 'Enrollment date cannot be in the future'
+                  _value: String(value),
+                  _reason: 'Enrollment date cannot be in the future'
                 });
                 hasErrors = true;
               } else {
@@ -677,10 +676,10 @@ export function basicValidateLoyaltyData(
             }
           } catch (e) {
             result.errors.push({
-              row: rowNumber,
+              _row: rowNumber,
               field,
-              value: String(value),
-              reason: 'Invalid date format. Use YYYY-MM-DD'
+              _value: String(value),
+              _reason: 'Invalid date format. Use YYYY-MM-DD'
             });
             hasErrors = true;
           }
@@ -700,20 +699,20 @@ export function basicValidateLoyaltyData(
 }
 
 // Import validated inventory data to database
-export async function importInventoryData(data: any[], storeId: number): Promise<ImportResult> {
-  const result: ImportResult = {
-    success: true,
-    totalRows: data.length,
-    importedRows: 0,
-    errors: [],
-    mappedData: [],
-    missingFields: [],
-    lastUpdated: new Date()
+export async function importInventoryData(_data: any[], _storeId: number): Promise<ImportResult> {
+  const _result: ImportResult = {
+    _success: true,
+    _totalRows: data.length,
+    _importedRows: 0,
+    _errors: [],
+    _mappedData: [],
+    _missingFields: [],
+    _lastUpdated: new Date()
   };
 
   const categories = await db.query.categories.findMany();
   const categoryMap = new Map<string, number>();
-  categories.forEach((category: any) => {
+  categories.forEach((_category: any) => {
     categoryMap.set(category.name.toLowerCase(), category.id);
   });
 
@@ -731,14 +730,14 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         categoryId = matchedCategoryId;
       }
 
-      const existingProduct = await db.query.products.findFirst({ where: eq(schema.products.barcode, row.barcode) });
+      const existingProduct = await db.query.products.findFirst({ _where: eq(schema.products.barcode, row.barcode) });
 
       if (existingProduct) {
         // Build update data that satisfies the schema
-        const productUpdateData: UpdateProduct = {
-          name: row.name,
-          price: row.price.toString(),
-          updatedAt: new Date()
+        const _productUpdateData: UpdateProduct = {
+          _name: row.name,
+          _price: row.price.toString(),
+          _updatedAt: new Date()
         };
 
         // Only update sku if provided
@@ -748,31 +747,31 @@ export async function importInventoryData(data: any[], storeId: number): Promise
 
         await db.update(schema.products).set(productUpdateData).where(eq(schema.products.id, existingProduct.id));
 
-        const inventoryItem = await db.query.inventory.findFirst({ where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, existingProduct.id)) });
+        const inventoryItem = await db.query.inventory.findFirst({ _where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, existingProduct.id)) });
 
         if (inventoryItem) {
           // Skip minStock update for now due to schema type inference issues
           // await db.update(schema.inventory).set({
-          //   minStock: row.minStockLevel || inventoryItem.minStock
+          //   _minStock: row.minStockLevel || inventoryItem.minStock
           // }).where(eq(schema.inventory.id, inventoryItem.id));
         } else {
           // Build inventory insert data that satisfies the schema
           const inventoryInsertData = {
-            storeId: storeId,
-            productId: existingProduct.id,
-            quantity: row.quantity || 0,
-            availableQuantity: row.quantity || 0
+            _storeId: storeId,
+            _productId: existingProduct.id,
+            _quantity: row.quantity || 0,
+            _availableQuantity: row.quantity || 0
           };
 
           await db.insert(schema.inventory).values(inventoryInsertData);
         }
       } else {
         // Build product insert data that satisfies the schema
-        const productInsertData: NewProduct = {
-          name: row.name,
-          price: row.price.toString(),
-          storeId: storeId,
-          sku: row.sku || row.barcode // Use provided sku or fallback to barcode
+        const _productInsertData: NewProduct = {
+          _name: row.name,
+          _price: row.price.toString(),
+          _storeId: storeId,
+          _sku: row.sku || row.barcode // Use provided sku or fallback to barcode
         };
 
         const [newProduct] = await db.insert(schema.products).values(productInsertData).returning();
@@ -780,20 +779,20 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         // Build inventory insert data that satisfies the schema
         if (newProduct) {
           await db.insert(schema.inventory).values({
-            storeId: storeId,
-            productId: newProduct.id,
-            availableQuantity: row.quantity || 0
+            _storeId: storeId,
+            _productId: newProduct.id,
+            _availableQuantity: row.quantity || 0
           } as any);
         }
       }
 
       result.importedRows++;
-    } catch (error: any) {
+    } catch (_error: any) {
       result.errors.push({
-        row: rowNumber,
-        field: 'general',
-        value: JSON.stringify(row),
-        reason: error.message || 'Unknown error during import'
+        _row: rowNumber,
+        _field: 'general',
+        _value: JSON.stringify(row),
+        _reason: error.message || 'Unknown error during import'
       });
     }
   }
@@ -803,15 +802,15 @@ export async function importInventoryData(data: any[], storeId: number): Promise
 }
 
 // Import validated loyalty data to database
-export async function importLoyaltyData(data: any[], storeId: number): Promise<ImportResult> {
-  const result: ImportResult = {
-    success: true,
-    totalRows: data.length,
-    importedRows: 0,
-    errors: [],
-    mappedData: [],
-    missingFields: [],
-    lastUpdated: new Date()
+export async function importLoyaltyData(_data: any[], _storeId: number): Promise<ImportResult> {
+  const _result: ImportResult = {
+    _success: true,
+    _totalRows: data.length,
+    _importedRows: 0,
+    _errors: [],
+    _mappedData: [],
+    _missingFields: [],
+    _lastUpdated: new Date()
   };
 
   for (let i = 0; i < data.length; i++) {
@@ -819,46 +818,46 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
     const rowNumber = i + 1;
 
     try {
-      const existingMember = await db.query.loyaltyMembers.findFirst({ where: eq(schema.loyaltyMembers.loyaltyId, row.loyaltyId) });
+      const existingMember = await db.query.loyaltyMembers.findFirst({ _where: eq(schema.loyaltyMembers.loyaltyId, row.loyaltyId) });
 
       if (existingMember) {
         await db.update(schema.loyaltyMembers).set({
-          loyaltyId: existingMember.loyaltyId
+          _loyaltyId: existingMember.loyaltyId
         }).where(eq(schema.loyaltyMembers.id, existingMember.id));
 
-        const user = await db.query.users.findFirst({ where: eq(schema.users.id, existingMember.userId) });
+        const user = await db.query.users.findFirst({ _where: eq(schema.users.id, existingMember.userId) });
         if (user) {
           await db.update(schema.users)
             .set({
-              name: row.name || user.name,
-              email: row.email || user.email
+              _name: row.name || user.name,
+              _email: row.email || user.email
             })
             .where(eq(schema.users.id, user.id));
         }
       } else {
         const [newUser] = await db.insert(schema.users).values({
-          name: row.name,
-          email: row.email || null,
-          password: 'password' // Add a default password
+          _name: row.name,
+          _email: row.email || null,
+          _password: 'password' // Add a default password
         }).returning();
 
         if (newUser) {
           await db.insert(schema.loyaltyMembers).values({
-            loyaltyId: row.loyaltyId || `MEMBER_${newUser.id}`,
-            userId: newUser.id,
-            programId: 1,
-            customerId: newUser.id
+            _loyaltyId: row.loyaltyId || `MEMBER_${newUser.id}`,
+            _userId: newUser.id,
+            _programId: 1,
+            _customerId: newUser.id
           });
         }
       }
 
       result.importedRows++;
-    } catch (error: any) {
+    } catch (_error: any) {
       result.errors.push({
-        row: rowNumber,
-        field: 'general',
-        value: JSON.stringify(row),
-        reason: error.message || 'Unknown error during import'
+        _row: rowNumber,
+        _field: 'general',
+        _value: JSON.stringify(row),
+        _reason: error.message || 'Unknown error during import'
       });
     }
   }
@@ -868,13 +867,13 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
 }
 
 // Generate error report for failed imports
-export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 'inventory'): string {
+export function generateErrorReport(_result: ImportResult, _dataType: 'loyalty' | 'inventory'): string {
   const timestamp = result.lastUpdated ? new Date(result.lastUpdated).toLocaleString() : new Date().toLocaleString();
   const headerInfo = [
     [`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} Data Import Error Report`],
     [`Generated: ${timestamp}`],
-    [`Total Rows: ${result.totalRows}`],
-    [`Successfully Imported: ${result.importedRows}`],
+    [`Total _Rows: ${result.totalRows}`],
+    [`Successfully _Imported: ${result.importedRows}`],
     [`Failed: ${result.totalRows - result.importedRows}`],
     [''],
     ['Row', 'Field', 'Value', 'Error Reason']
@@ -905,7 +904,7 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
 
   // Sort data rows by row number (preserve header rows)
   const headerRows = rows.slice(0, 7); // First 7 rows are header info
-  const dataRows = rows.slice(7).sort((a: any[], b: any[]) => {
+  const dataRows = rows.slice(7).sort((_a: any[], _b: any[]) => {
     // Check if the values are parseable numbers
     const numA = !isNaN(parseInt(a[0])) ? parseInt(a[0]) : 0;
     const numB = !isNaN(parseInt(b[0])) ? parseInt(b[0]) : 0;
@@ -921,22 +920,22 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
 
 // This function analyzes the headers and suggests mappings
 async function getColumnMappingSuggestions(
-  sampleRow: Record<string, any>,
-  dataType: 'loyalty' | 'inventory'
+  _sampleRow: Record<string, any>,
+  _dataType: 'loyalty' | 'inventory'
 ): Promise<ColumnMapping[]> {
   const sourceColumns = Object.keys(sampleRow);
   const targetColumns = getTargetColumns(dataType);
 
-  const suggestions: ColumnMapping[] = [];
+  const _suggestions: ColumnMapping[] = [];
 
   // For each source column, find the best match in target columns
   for (const source of sourceColumns) {
     const matchResult = findBestMatch(source, targetColumns);
     suggestions.push({
       source,
-      target: matchResult.match,
-      confidence: matchResult.confidence,
-      required: matchResult.required
+      _target: matchResult.match,
+      _confidence: matchResult.confidence,
+      _required: matchResult.required
     });
   }
 
@@ -944,8 +943,8 @@ async function getColumnMappingSuggestions(
   try {
     const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
     return enhancedSuggestions;
-  } catch (error: unknown) {
-    console.log('Error enhancing mappings with AI:', error);
+  } catch (_error: unknown) {
+    console.log('Error enhancing mappings with _AI:', error);
     // If AI enhancement fails, return the basic pattern matching results
     return suggestions;
   }
@@ -953,9 +952,9 @@ async function getColumnMappingSuggestions(
 
 // Use Dialogflow to enhance column mapping suggestions
 async function enhanceMappingsWithAI(
-  initialSuggestions: ColumnMapping[],
-  sourceColumns: string[],
-  dataType: 'loyalty' | 'inventory'
+  _initialSuggestions: ColumnMapping[],
+  _sourceColumns: string[],
+  _dataType: 'loyalty' | 'inventory'
 ): Promise<ColumnMapping[]> {
   // Check if Dialogflow credentials are available
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !process.env.DIALOGFLOW_PROJECT_ID) {
@@ -983,22 +982,23 @@ async function enhanceMappingsWithAI(
       .join('\n');
 
     const prompt = `I need to map columns from a CSV file to specific target fields in my database. 
-    The source columns are: ${sourceColumns.join(', ')}
-    The target fields I'm trying to map to are: ${targetFields}
+    The source columns _are: ${sourceColumns.join(', ')}
+    The target fields I'm trying to map to _are: ${targetFields}
     
     I already have these suggested mappings with low confidence:
     ${lowConfidenceMappings}
     
     Based on common naming patterns for ${dataType} data, can you suggest better mappings for these low confidence fields?
-    Please respond in a structured format with just the improved mappings as source => target with confidence score (0-1).`;
+    Please respond in a structured format with just the improved mappings as source => target with confidence score
+  (0-1).`;
 
     // Send the request to Dialogflow
     const request = {
-      session: sessionPath,
-      queryInput: {
+      _session: sessionPath,
+      _queryInput: {
         text: {
-          text: prompt,
-          languageCode: 'en-US'
+          _text: prompt,
+          _languageCode: 'en-US'
         }
       }
     };
@@ -1016,22 +1016,22 @@ async function enhanceMappingsWithAI(
     const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
 
     return improvedMappings;
-  } catch (error: unknown) {
-    console.error('Error using Dialogflow for column mapping:', error);
+  } catch (_error: unknown) {
+    console.error('Error using Dialogflow for column _mapping:', error);
     return initialSuggestions;
   }
 }
 
 // Parse Dialogflow response to extract improved mappings
 function parseDialogflowMappingResponse(
-  responseText: string,
-  initialSuggestions: ColumnMapping[],
-  dataType: 'loyalty' | 'inventory'
+  _responseText: string,
+  _initialSuggestions: ColumnMapping[],
+  _dataType: 'loyalty' | 'inventory'
 ): ColumnMapping[] {
   // Make a copy of the initial suggestions
   const enhancedSuggestions = [...initialSuggestions];
 
-  // Look for patterns like "source => target (confidence: 0.8)" in the response
+  // Look for patterns like "source => target (_confidence: 0.8)" in the response
   const mappingPattern = /([^=]+)\s*=>\s*([^(]+)\s*\(confidence:\s*([\d.]+)\)/gi;
   const matches = responseText.matchAll(mappingPattern);
 
@@ -1056,7 +1056,7 @@ function parseDialogflowMappingResponse(
             source,
             target,
             confidence,
-            required: isRequired
+            _required: isRequired
           };
         }
       }
@@ -1067,55 +1067,55 @@ function parseDialogflowMappingResponse(
 }
 
 // Get the target column names for the given data type
-function getTargetColumns(dataType: 'loyalty' | 'inventory'): { name: string; required: boolean }[] {
+function getTargetColumns(dataType: 'loyalty' | 'inventory'): { _name: string; _required: boolean }[] {
   if (dataType === 'loyalty') {
     return [
-      { name: 'name', required: true },
-      { name: 'email', required: false },
-      { name: 'phone', required: false },
-      { name: 'loyaltyId', required: true },
-      { name: 'points', required: false },
-      { name: 'enrollmentDate', required: false }
+      { _name: 'name', _required: true },
+      { _name: 'email', _required: false },
+      { _name: 'phone', _required: false },
+      { _name: 'loyaltyId', _required: true },
+      { _name: 'points', _required: false },
+      { _name: 'enrollmentDate', _required: false }
     ];
   } else {
     return [
-      { name: 'name', required: true },
-      { name: 'description', required: false },
-      { name: 'barcode', required: true },
-      { name: 'price', required: true },
-      { name: 'categoryId', required: true },
-      { name: 'isPerishable', required: false },
-      { name: 'quantity', required: true },
-      { name: 'minStockLevel', required: false },
-      { name: 'expiryDate', required: false }
+      { name: 'name', _required: true },
+      { _name: 'description', _required: false },
+      { _name: 'barcode', _required: true },
+      { _name: 'price', _required: true },
+      { _name: 'categoryId', _required: true },
+      { _name: 'isPerishable', _required: false },
+      { _name: 'quantity', _required: true },
+      { _name: 'minStockLevel', _required: false },
+      { _name: 'expiryDate', _required: false }
     ];
   }
 }
 
 // Find the best match for a source column in the target columns
 function findBestMatch(
-  source: string,
-  targets: { name: string; required: boolean }[]
-): { match: string; confidence: number; required: boolean } {
+  _source: string,
+  _targets: { _name: string; _required: boolean }[]
+): { _match: string; _confidence: number; _required: boolean } {
   // Normalize the source string for comparison
   const normalizedSource = source.toLowerCase().replace(/[^a-z0-9]/g, '');
 
   // Common aliases for fields
-  const aliases: Record<string, string[]> = {
-    name: ['productname', 'item', 'itemname', 'title', 'product', 'fullname', 'customername'],
-    description: ['desc', 'details', 'productdescription', 'info', 'about', 'notes'],
-    barcode: ['sku', 'upc', 'ean', 'code', 'itemcode', 'productcode', 'barcode'],
-    price: ['cost', 'unitprice', 'saleprice', 'retailprice', 'amount'],
-    categoryId: ['category', 'categoryname', 'department', 'section', 'group', 'productcategory'],
-    isPerishable: ['perishable', 'expires', 'hasexpiration', 'expiry', 'expiration'],
-    quantity: ['qty', 'stock', 'stocklevel', 'inventory', 'onhand', 'available'],
-    minStockLevel: ['minstock', 'reorderpoint', 'reorderlevel', 'minimumstock'],
-    expiryDate: ['expiry', 'expiration', 'expirationdate', 'expires', 'bestbefore'],
-    email: ['email', 'emailaddress', 'mail', 'e-mail', 'customermail'],
-    phone: ['phone', 'phonenumber', 'telephone', 'mobile', 'cell', 'contact'],
-    loyaltyId: ['loyalty', 'loyaltyid', 'memberid', 'membershipid', 'cardnumber', 'loyaltynumber'],
-    points: ['points', 'loyaltypoints', 'rewardpoints', 'balance', 'pointbalance'],
-    enrollmentDate: ['enrolled', 'enrollmentdate', 'joindate', 'registered', 'startdate', 'membershipdate']
+  const _aliases: Record<string, string[]> = {
+    _name: ['productname', 'item', 'itemname', 'title', 'product', 'fullname', 'customername'],
+    _description: ['desc', 'details', 'productdescription', 'info', 'about', 'notes'],
+    _barcode: ['sku', 'upc', 'ean', 'code', 'itemcode', 'productcode', 'barcode'],
+    _price: ['cost', 'unitprice', 'saleprice', 'retailprice', 'amount'],
+    _categoryId: ['category', 'categoryname', 'department', 'section', 'group', 'productcategory'],
+    _isPerishable: ['perishable', 'expires', 'hasexpiration', 'expiry', 'expiration'],
+    _quantity: ['qty', 'stock', 'stocklevel', 'inventory', 'onhand', 'available'],
+    _minStockLevel: ['minstock', 'reorderpoint', 'reorderlevel', 'minimumstock'],
+    _expiryDate: ['expiry', 'expiration', 'expirationdate', 'expires', 'bestbefore'],
+    _email: ['email', 'emailaddress', 'mail', 'e-mail', 'customermail'],
+    _phone: ['phone', 'phonenumber', 'telephone', 'mobile', 'cell', 'contact'],
+    _loyaltyId: ['loyalty', 'loyaltyid', 'memberid', 'membershipid', 'cardnumber', 'loyaltynumber'],
+    _points: ['points', 'loyaltypoints', 'rewardpoints', 'balance', 'pointbalance'],
+    _enrollmentDate: ['enrolled', 'enrollmentdate', 'joindate', 'registered', 'startdate', 'membershipdate']
   };
 
   let bestMatch = '';
@@ -1127,7 +1127,7 @@ function findBestMatch(
 
     // Direct match
     if (normalizedSource === normalizedTarget) {
-      return { match: target.name, confidence: 1, required: target.required };
+      return { _match: target.name, _confidence: 1, _required: target.required };
     }
 
     // Check if source contains target
@@ -1145,7 +1145,7 @@ function findBestMatch(
     if (aliases[target.name]) {
       for (const alias of aliases[target.name] || []) {
         if (normalizedSource === alias) {
-          return { match: target.name, confidence: 0.9, required: target.required };
+          return { _match: target.name, _confidence: 0.9, _required: target.required };
         }
         if (normalizedSource.includes(alias) || alias.includes(normalizedSource)) {
           const confidence = 0.7;
@@ -1161,8 +1161,8 @@ function findBestMatch(
 
   // If no good match, return empty with low confidence
   if (highestConfidence < 0.5) {
-    return { match: '', confidence: 0, required: false };
+    return { _match: '', _confidence: 0, _required: false };
   }
 
-  return { match: bestMatch, confidence: highestConfidence, required: isRequired };
+  return { _match: bestMatch, _confidence: highestConfidence, _required: isRequired };
 }

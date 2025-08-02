@@ -22,7 +22,7 @@ export class InventoryFormatter extends ResultFormatter<Inventory> {
    * @param dbResult The raw database result row
    * @returns A properly formatted Inventory object
    */
-  formatResult(dbResult: Record<string, any>): Inventory {
+  formatResult(_dbResult: Record<string, any>): Inventory {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory result');
     }
@@ -41,25 +41,25 @@ export class InventoryFormatter extends ResultFormatter<Inventory> {
 
     // Format the inventory with specific type handling
     return {
-      id: Number(withDates.id),
-      storeId: Number(withDates.storeId),
-      productId: Number(withDates.productId),
-      quantity: Number(withDates.quantity),
-      minStock: Number(withDates.minStock),
-      maxStock: Number(withDates.maxStock),
-      lastRestocked: withDates.lastRestocked,
-      updatedAt: withDates.updatedAt,
-      batchTracking: withDates.batchTracking,
-      name: String(withDates.name),
-      description: withDates.description || '',
-      location: withDates.location || '',
-      capacity: Number(withDates.capacity || 0),
-      currentUtilization: Number(withDates.currentUtilization || 0),
-      totalQuantity: Number(withDates.totalQuantity ?? withDates.quantity ?? 0),
-      availableQuantity: Number(withDates.availableQuantity ?? withDates.quantity ?? 0),
-      minimumLevel: Number(withDates.minimumLevel ?? withDates.minStock ?? 0),
-      isActive: Boolean(withDates.isActive),
-      metadata: metadata
+      _id: Number(withDates.id),
+      _storeId: Number(withDates.storeId),
+      _productId: Number(withDates.productId),
+      _quantity: Number(withDates.quantity),
+      _minStock: Number(withDates.minStock),
+      _maxStock: Number(withDates.maxStock),
+      _lastRestocked: withDates.lastRestocked,
+      _updatedAt: withDates.updatedAt,
+      _batchTracking: withDates.batchTracking,
+      _name: String(withDates.name),
+      _description: withDates.description || '',
+      _location: withDates.location || '',
+      _capacity: Number(withDates.capacity || 0),
+      _currentUtilization: Number(withDates.currentUtilization || 0),
+      _totalQuantity: Number(withDates.totalQuantity ?? withDates.quantity ?? 0),
+      _availableQuantity: Number(withDates.availableQuantity ?? withDates.quantity ?? 0),
+      _minimumLevel: Number(withDates.minimumLevel ?? withDates.minStock ?? 0),
+      _isActive: Boolean(withDates.isActive),
+      _metadata: metadata
     };
   }
 }
@@ -74,7 +74,7 @@ export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
    * @param dbResult The raw database result row
    * @returns A properly formatted InventoryItem object
    */
-  formatResult(dbResult: Record<string, any>): InventoryItem {
+  formatResult(_dbResult: Record<string, any>): InventoryItem {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory item result');
     }
@@ -93,26 +93,26 @@ export class InventoryItemFormatter extends ResultFormatter<InventoryItem> {
 
     // Format the inventory item with specific type handling
     return {
-      id: Number(withDates.id),
-      inventoryId: Number(withDates.inventoryId),
-      productId: Number(withDates.productId),
-      sku: String(withDates.sku || ''),
-      name: String(withDates.name),
-      description: withDates.description || '',
-      category: withDates.category || '',
-      quantity: Number(withDates.quantity || 0),
-      unit: withDates.unit || 'each',
-      unitCost: String(withDates.unitCost || '0.00'),
-      reorderLevel: Number(withDates.reorderLevel || 0),
-      reorderQuantity: Number(withDates.reorderQuantity || 0),
-      batchNumber: withDates.batchNumber || '',
-      serialNumber: withDates.serialNumber || '',
-      supplier: withDates.supplier || '',
-      isActive: Boolean(withDates.isActive),
-      createdAt: withDates.createdAt,
-      updatedAt: withDates.updatedAt,
-      metadata: metadata,
-      notes: withDates.notes
+      _id: Number(withDates.id),
+      _inventoryId: Number(withDates.inventoryId),
+      _productId: Number(withDates.productId),
+      _sku: String(withDates.sku || ''),
+      _name: String(withDates.name),
+      _description: withDates.description || '',
+      _category: withDates.category || '',
+      _quantity: Number(withDates.quantity || 0),
+      _unit: withDates.unit || 'each',
+      _unitCost: String(withDates.unitCost || '0.00'),
+      _reorderLevel: Number(withDates.reorderLevel || 0),
+      _reorderQuantity: Number(withDates.reorderQuantity || 0),
+      _batchNumber: withDates.batchNumber || '',
+      _serialNumber: withDates.serialNumber || '',
+      _supplier: withDates.supplier || '',
+      _isActive: Boolean(withDates.isActive),
+      _createdAt: withDates.createdAt,
+      _updatedAt: withDates.updatedAt,
+      _metadata: metadata,
+      _notes: withDates.notes
     };
   }
 }
@@ -127,7 +127,7 @@ export class InventoryTransactionFormatter extends ResultFormatter<InventoryTran
    * @param dbResult The raw database result row
    * @returns A properly formatted InventoryTransaction object
    */
-  formatResult(dbResult: Record<string, any>): InventoryTransaction {
+  formatResult(_dbResult: Record<string, any>): InventoryTransaction {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined inventory transaction result');
     }
@@ -146,22 +146,22 @@ export class InventoryTransactionFormatter extends ResultFormatter<InventoryTran
 
     // Format the inventory transaction with specific type handling
     return {
-      id: Number(withDates.id),
-      inventoryId: Number(withDates.inventoryId),
-      itemId: Number(withDates.itemId),
-      productId: Number(withDates.productId),
-      transactionType: String(withDates.transactionType || 'receive') as InventoryTransactionType,
-      quantity: Number(withDates.quantity || 0),
-      beforeQuantity: Number(withDates.beforeQuantity || 0),
-      afterQuantity: Number(withDates.afterQuantity || 0),
-      unitCost: String(withDates.unitCost || '0.00'),
-      totalCost: String(withDates.totalCost || '0.00'),
-      referenceId: withDates.referenceId || null,
-      notes: withDates.notes || '',
-      performedBy: Number(withDates.performedBy || 0),
-      createdAt: withDates.createdAt,
-      metadata: metadata,
-      reason: withDates.reason
+      _id: Number(withDates.id),
+      _inventoryId: Number(withDates.inventoryId),
+      _itemId: Number(withDates.itemId),
+      _productId: Number(withDates.productId),
+      _transactionType: String(withDates.transactionType || 'receive') as InventoryTransactionType,
+      _quantity: Number(withDates.quantity || 0),
+      _beforeQuantity: Number(withDates.beforeQuantity || 0),
+      _afterQuantity: Number(withDates.afterQuantity || 0),
+      _unitCost: String(withDates.unitCost || '0.00'),
+      _totalCost: String(withDates.totalCost || '0.00'),
+      _referenceId: withDates.referenceId || null,
+      _notes: withDates.notes || '',
+      _performedBy: Number(withDates.performedBy || 0),
+      _createdAt: withDates.createdAt,
+      _metadata: metadata,
+      _reason: withDates.reason
     };
   }
 }

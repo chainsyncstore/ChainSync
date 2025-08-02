@@ -2,10 +2,10 @@
 import { Pool } from 'pg';
 import { getLogger } from '../src/logging/index.js';
 
-const logger = getLogger().child({ component: 'db-pool' });
+const logger = getLogger().child({ _component: 'db-pool' });
 
 // Create a singleton pool to be shared by all database operations
-let pool: Pool | null = null;
+const _pool: Pool | null = null;
 
 /**
  * Initialize the database connection pool
@@ -20,7 +20,7 @@ export function initializePool(): Pool {
 
   // Get database configuration from environment
   const connectionString = process.env.DATABASE_URL;
-  
+
   if (!connectionString) {
     const error = new Error('DATABASE_URL environment variable not set');
     logger.error('Database configuration error', { error });
@@ -30,10 +30,10 @@ export function initializePool(): Pool {
   // Create pool with configuration from environment
   pool = new Pool({
     connectionString,
-    max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
-    idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10),
+    _max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
+    _idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10),
     // Add additional configuration as needed
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    _ssl: process.env.NODE_ENV === 'production' ? { _rejectUnauthorized: false } : false
   });
 
   // Log connection events
@@ -42,23 +42,23 @@ export function initializePool(): Pool {
   });
 
   pool.on('error', (err) => {
-    logger.error('Unexpected error on idle database client', { error: err });
+    logger.error('Unexpected error on idle database client', { _error: err });
   });
 
   // Add custom properties for monitoring
   Object.defineProperties(pool, {
-    totalCount: {
-      get: function() {
+    _totalCount: {
+      _get: function() {
         return (this as Pool).totalCount;
       }
     },
-    idleCount: {
-      get: function() {
+    _idleCount: {
+      _get: function() {
         return (this as Pool).idleCount;
       }
     },
-    waitingCount: {
-      get: function() {
+    _waitingCount: {
+      _get: function() {
         return (this as Pool).waitingCount;
       }
     }
@@ -100,16 +100,16 @@ export async function getClient() {
   if (!pool) {
     initializePool();
   }
-  
+
   const client = await pool!.connect();
-  
+
   // Monkey-patch the release method to add logging
   const originalRelease = client.release;
   client.release = () => {
     logger.debug('Client returned to pool');
     return originalRelease.call(client);
   };
-  
+
   return client;
 }
 

@@ -1,15 +1,15 @@
 import { ErrorCategory, ErrorCode } from '../types/error';
 
 export class AppError extends Error {
-  code: string;
-  category: string;
+  _code: string;
+  _category: string;
   details?: Record<string, unknown> | undefined;
   statusCode?: number | undefined;
 
   constructor(
-    category: ErrorCategory | string,
-    code: ErrorCode | string,
-    message: string,
+    _category: ErrorCategory | string,
+    _code: ErrorCode | string,
+    _message: string,
     details?: Record<string, unknown>,
     statusCode?: number
   ) {
@@ -23,9 +23,9 @@ export class AppError extends Error {
   }
 
   static create(
-    category: ErrorCategory | string,
-    code: ErrorCode | string,
-    message: string,
+    _category: ErrorCategory | string,
+    _code: ErrorCode | string,
+    _message: string,
     details?: Record<string, unknown>,
     statusCode?: number
   ): AppError {

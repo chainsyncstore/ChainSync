@@ -1,47 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Link, useLocation } from 'wouter';
-import { ArrowLeft, CreditCard, LockIcon, Eye, EyeOff, AlertCircle, Check, Loader2 } from 'lucide-react';
-import { ReferralBanner } from '@/components/affiliate/referral-banner';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/providers/auth-provider';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect } from &apos;react&apos;;
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from &apos;@/components/ui/card&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Label } from &apos;@/components/ui/label&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Checkbox } from &apos;@/components/ui/checkbox&apos;;
+import { Link, useLocation } from &apos;wouter&apos;;
+import { ArrowLeft, CreditCard, LockIcon, Eye, EyeOff, AlertCircle, Check, Loader2 } from &apos;lucide-react&apos;;
+import { ReferralBanner } from &apos;@/components/affiliate/referral-banner&apos;;
+import { useMutation } from &apos;@tanstack/react-query&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { motion, AnimatePresence } from &apos;framer-motion&apos;;
+import { cn } from &apos;@/lib/utils&apos;;
 
 // Define types for form data
 interface SignupFormData {
-  fullName: string;
-  email: string;
-  username: string;
-  password: string;
-  confirmPassword: string;
-  plan: 'basic' | 'pro' | 'enterprise';
-  acceptTerms: boolean;
+  _fullName: string;
+  _email: string;
+  _username: string;
+  _password: string;
+  _confirmPassword: string;
+  plan: &apos;basic&apos; | &apos;pro&apos; | &apos;enterprise&apos;;
+  _acceptTerms: boolean;
 }
 
 // Error response type
 interface ApiError {
-  message: string;
+  _message: string;
   field?: string;
 }
 
 // Password strength indicator component
-const PasswordStrengthIndicator = ({ password }: { password: string }) => {
+const PasswordStrengthIndicator = ({ password }: { _password: string }) => {
   if (!password) return null;
-  
+
   // Check password requirements
   const hasMinLength = password.length >= 8;
   const hasUppercase = /[A-Z]/.test(password);
   const hasLowercase = /[a-z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
   const hasSpecial = /[^A-Za-z0-9]/.test(password);
-  
+
   // Calculate strength score (0-5)
   const strengthScore = [
     hasMinLength,
@@ -50,50 +50,50 @@ const PasswordStrengthIndicator = ({ password }: { password: string }) => {
     hasNumber,
     hasSpecial
   ].filter(Boolean).length;
-  
+
   // Determine color based on strength
   const strengthColor = [
-    'bg-red-500',           // 0: Very Weak
-    'bg-red-500',           // 1: Weak
-    'bg-yellow-500',        // 2: Fair
-    'bg-yellow-400',        // 3: Good
-    'bg-green-500',         // 4: Strong
-    'bg-green-600'          // 5: Very Strong
+    &apos;bg-red-500&apos;,           // _0: Very Weak
+    &apos;bg-red-500&apos;,           // _1: Weak
+    &apos;bg-yellow-500&apos;,        // _2: Fair
+    &apos;bg-yellow-400&apos;,        // _3: Good
+    &apos;bg-green-500&apos;,         // _4: Strong
+    &apos;bg-green-600&apos;          // _5: Very Strong
   ][strengthScore];
-  
+
   const strengthText = [
-    'Very Weak',
-    'Weak',
-    'Fair',
-    'Good', 
-    'Strong',
-    'Very Strong'
+    &apos;Very Weak&apos;,
+    &apos;Weak&apos;,
+    &apos;Fair&apos;,
+    &apos;Good&apos;,
+    &apos;Strong&apos;,
+    &apos;Very Strong&apos;
   ][strengthScore];
-  
+
   return (
-    <div className="mt-1">
-      <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-        <div 
+    <div className=&quot;mt-1&quot;>
+      <div className=&quot;h-1.5 w-full bg-gray-200 rounded-full overflow-hidden&quot;>
+        <div
           className={`h-full ${strengthColor} transition-all duration-300`}
-          style={{ width: `${(strengthScore / 5) * 100}%` }}
+          style={{ _width: `${(strengthScore / 5) * 100}%` }}
         />
       </div>
-      <p className="text-xs text-muted-foreground mt-1">
-        Password strength: <span className="font-medium">{strengthText}</span>
+      <p className=&quot;text-xs text-muted-foreground mt-1&quot;>
+        Password _strength: <span className=&quot;font-medium&quot;>{strengthText}</span>
       </p>
     </div>
   );
 };
 
 // Password requirement component
-const PasswordRequirement = ({ meets, label }: { meets: boolean; label: string }) => (
-  <div className="flex items-center mt-1">
+const PasswordRequirement = ({ meets, label }: { _meets: boolean; _label: string }) => (
+  <div className=&quot;flex items-center mt-1&quot;>
     {meets ? (
-      <Check className="h-3.5 w-3.5 text-green-500 mr-2" />
+      <Check className=&quot;h-3.5 w-3.5 text-green-500 mr-2&quot; />
     ) : (
-      <AlertCircle className="h-3.5 w-3.5 text-red-500 mr-2" />
+      <AlertCircle className=&quot;h-3.5 w-3.5 text-red-500 mr-2&quot; />
     )}
-    <span className={cn('text-xs', meets ? 'text-green-600' : 'text-red-600')}>
+    <span className={cn(&apos;text-xs&apos;, meets ? &apos;text-green-600&apos; : &apos;text-red-600&apos;)}>
       {label}
     </span>
   </div>
@@ -103,23 +103,23 @@ export default function SignupPage() {
   const [, navigate] = useLocation(); // location was unused
   const { toast } = useToast();
   const { login } = useAuth();
-  
+
   // Get referral code and plan from URL
   const urlParams = new URLSearchParams(window.location.search);
-  const referralCode = urlParams.get('ref');
-  const initialPlan = (urlParams.get('plan') as 'basic' | 'pro' | 'enterprise') || 'basic';
-  
+  const referralCode = urlParams.get(&apos;ref&apos;);
+  const initialPlan = (urlParams.get(&apos;plan&apos;) as &apos;basic&apos; | &apos;pro&apos; | &apos;enterprise&apos;) || &apos;basic&apos;;
+
   // Form state
   const [formData, setFormData] = useState<SignupFormData>({
-    fullName: '',
-    email: '',
-    username: '',
-    password: '',
-    confirmPassword: '',
-    plan: initialPlan,
-    acceptTerms: false
+    _fullName: &apos;&apos;,
+    _email: &apos;&apos;,
+    _username: &apos;&apos;,
+    _password: &apos;&apos;,
+    _confirmPassword: &apos;&apos;,
+    _plan: initialPlan,
+    _acceptTerms: false
   });
-  
+
   // UI state
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -128,26 +128,26 @@ export default function SignupPage() {
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
-  
+
   // Password requirements
   const passwordRequirements = [
-    { label: 'At least 8 characters', test: (val: string) => val.length >= 8 },
-    { label: 'At least one uppercase letter', test: (val: string) => /[A-Z]/.test(val) },
-    { label: 'At least one lowercase letter', test: (val: string) => /[a-z]/.test(val) },
-    { label: 'At least one number', test: (val: string) => /[0-9]/.test(val) },
+    { _label: &apos;At least 8 characters&apos;, _test: (_val: string) => val.length >= 8 },
+    { _label: &apos;At least one uppercase letter&apos;, _test: (_val: string) => /[A-Z]/.test(val) },
+    { _label: &apos;At least one lowercase letter&apos;, _test: (_val: string) => /[a-z]/.test(val) },
+    { _label: &apos;At least one number&apos;, _test: (_val: string) => /[0-9]/.test(val) }
   ];
-  
+
   // Debounced username availability check
   useEffect(() => {
     if (!formData.username || formData.username.length < 3) {
       setUsernameAvailable(null);
       return;
     }
-    
-    const timer = setTimeout(async () => {
+
+    const timer = setTimeout(async() => {
       try {
         setIsCheckingUsername(true);
-        const response = await apiRequest('GET', `/api/users/check-username?username=${formData.username}`);
+        const response = await apiRequest(&apos;GET&apos;, `/api/users/check-username?username=${formData.username}`);
         const data = await response.json();
         setUsernameAvailable(!data.exists);
       } catch (error) {
@@ -156,21 +156,21 @@ export default function SignupPage() {
         setIsCheckingUsername(false);
       }
     }, 500);
-    
+
     return () => clearTimeout(timer);
   }, [formData.username]);
-  
+
   // Debounced email availability check
   useEffect(() => {
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setEmailAvailable(null);
       return;
     }
-    
-    const timer = setTimeout(async () => {
+
+    const timer = setTimeout(async() => {
       try {
         setIsCheckingEmail(true);
-        const response = await apiRequest('GET', `/api/users/check-email?email=${encodeURIComponent(formData.email)}`);
+        const response = await apiRequest(&apos;GET&apos;, `/api/users/check-email?email=${encodeURIComponent(formData.email)}`);
         const data = await response.json();
         setEmailAvailable(!data.exists);
       } catch (error) {
@@ -179,18 +179,18 @@ export default function SignupPage() {
         setIsCheckingEmail(false);
       }
     }, 500);
-    
+
     return () => clearTimeout(timer);
   }, [formData.email]);
-  
+
   // Handle input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (_e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === &apos;checkbox&apos; ? _checked : value
     }));
-    
+
     // Clear error when user types
     if (errors[name]) {
       setErrors(prev => {
@@ -200,121 +200,121 @@ export default function SignupPage() {
       });
     }
   };
-  
+
   // Handle plan selection
-  const handlePlanSelect = (planId: 'basic' | 'pro' | 'enterprise') => {
+  const handlePlanSelect = (planId: &apos;basic&apos; | &apos;pro&apos; | &apos;enterprise&apos;) => {
     setFormData(prev => ({
       ...prev,
-      plan: planId
+      _plan: planId
     }));
   };
-  
+
   // Validate form
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    
+    const _newErrors: Record<string, string> = {};
+
     // Required fields
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!formData.username.trim()) newErrors.username = 'Username is required';
-    if (!formData.password) newErrors.password = 'Password is required';
-    
+    if (!formData.fullName.trim()) newErrors.fullName = &apos;Full name is required&apos;;
+    if (!formData.email.trim()) newErrors.email = &apos;Email is required&apos;;
+    if (!formData.username.trim()) newErrors.username = &apos;Username is required&apos;;
+    if (!formData.password) newErrors.password = &apos;Password is required&apos;;
+
     // Email format
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = &apos;Please enter a valid email address&apos;;
     }
-    
+
     // Username format
     if (formData.username && !/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      newErrors.username = 'Username can only contain letters, numbers, and underscores';
+      newErrors.username = &apos;Username can only contain letters, numbers, and underscores&apos;;
     }
-    
+
     if (formData.username && (formData.username.length < 3 || formData.username.length > 20)) {
-      newErrors.username = 'Username must be between 3 and 20 characters';
+      newErrors.username = &apos;Username must be between 3 and 20 characters&apos;;
     }
-    
+
     // Password requirements
     if (formData.password) {
       if (formData.password.length < 8) {
-        newErrors.password = 'Password must be at least 8 characters';
+        newErrors.password = &apos;Password must be at least 8 characters&apos;;
       } else if (!/[A-Z]/.test(formData.password)) {
-        newErrors.password = 'Password must contain at least one uppercase letter';
+        newErrors.password = &apos;Password must contain at least one uppercase letter&apos;;
       } else if (!/[a-z]/.test(formData.password)) {
-        newErrors.password = 'Password must contain at least one lowercase letter';
+        newErrors.password = &apos;Password must contain at least one lowercase letter&apos;;
       } else if (!/[0-9]/.test(formData.password)) {
-        newErrors.password = 'Password must contain at least one number';
+        newErrors.password = &apos;Password must contain at least one number&apos;;
       }
     }
-    
+
     // Password confirmation
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = &apos;Passwords do not match&apos;;
     }
-    
+
     // Terms acceptance
     if (!formData.acceptTerms) {
-      newErrors.acceptTerms = 'You must accept the terms and conditions';
+      newErrors.acceptTerms = &apos;You must accept the terms and conditions&apos;;
     }
-    
+
     // Username and email availability
     if (formData.username && usernameAvailable === false) {
-      newErrors.username = 'This username is already taken';
+      newErrors.username = &apos;This username is already taken&apos;;
     }
-    
+
     if (formData.email && emailAvailable === false) {
-      newErrors.email = 'This email is already registered';
+      newErrors.email = &apos;This email is already registered&apos;;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   // Mutation for signup
   const signupMutation = useMutation({
-    mutationFn: async (data: SignupFormData) => {
+    _mutationFn: async(_data: SignupFormData) => {
       const payload = {
-        username: data.username,
-        password: data.password,
-        email: data.email,
-        fullName: data.fullName,
-        plan: data.plan,
-        referralCode: referralCode,
+        _username: data.username,
+        _password: data.password,
+        _email: data.email,
+        _fullName: data.fullName,
+        _plan: data.plan,
+        _referralCode: referralCode
       };
-      
-      const response = await apiRequest('POST', '/api/subscriptions/signup', payload);
-      
+
+      const response = await apiRequest(&apos;POST&apos;, &apos;/api/subscriptions/signup&apos;, payload);
+
       if (!response.ok) {
         const errorData = await response.json() as ApiError;
         throw errorData;
       }
-      
+
       return response.json();
     },
-    onSuccess: async () => { // data parameter removed
+    _onSuccess: async() => { // data parameter removed
       toast({
-        title: "Account Created!",
-        description: "Your account has been created successfully. Redirecting to dashboard...",
+        _title: &apos;Account Created!&apos;,
+        _description: &apos;Your account has been created successfully. Redirecting to dashboard...&apos;
       });
-      
+
       // Try to log in automatically
       try {
         await login({
-          username: formData.username,
-          password: formData.password
+          _username: formData.username,
+          _password: formData.password
         });
-        navigate('/dashboard');
+        navigate(&apos;/dashboard&apos;);
       } catch (error) {
         // If auto-login fails, redirect to login page
         toast({
-          title: "Login Required",
-          description: "Please log in with your new credentials.",
+          _title: &apos;Login Required&apos;,
+          _description: &apos;Please log in with your new credentials.&apos;
         });
-        navigate('/login');
+        navigate(&apos;/login&apos;);
       }
     },
-    onError: (error: ApiError) => {
+    _onError: (_error: ApiError) => {
       // Handle field-specific errors
-      if (error.field && typeof error.field === 'string') { // Ensure error.field is a string
+      if (error.field && typeof error.field === &apos;string&apos;) { // Ensure error.field is a string
         setErrors(prev => ({
           ...prev,
           [error.field as string]: error.message
@@ -322,17 +322,17 @@ export default function SignupPage() {
       } else {
         // General error
         toast({
-          title: "Signup Failed",
-          description: error.message || "Could not create your account. Please try again.",
-          variant: "destructive",
+          _title: &apos;Signup Failed&apos;,
+          _description: error.message || &apos;Could not create your account. Please try again.&apos;,
+          _variant: &apos;destructive&apos;
         });
       }
     }
   });
-  
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
+  const handleSubmit = (_e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       signupMutation.mutate(formData);
     } else {
@@ -340,70 +340,70 @@ export default function SignupPage() {
       const firstErrorField = Object.keys(errors)[0];
       if (firstErrorField) {
         const element = document.getElementById(firstErrorField);
-        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (element) element.scrollIntoView({ _behavior: &apos;smooth&apos;, _block: &apos;center&apos; });
       }
     }
   };
-  
+
   return (
-    <div className="min-h-screen w-full flex flex-col items-center bg-gradient-to-b from-neutral-100 to-white p-4 overflow-y-auto">
-      <div className="w-full max-w-xl my-8">
+    <div className=&quot;min-h-screen w-full flex flex-col items-center bg-gradient-to-b from-neutral-100 to-white p-4 overflow-y-auto&quot;>
+      <div className=&quot;w-full max-w-xl my-8&quot;>
         {/* Back to Home Link */}
-        <div className="mb-6">
-          <Link href="/" className="text-sm font-medium text-neutral-500 hover:text-neutral-800 flex items-center">
-            <ArrowLeft className="h-4 w-4 mr-1" />
+        <div className=&quot;mb-6&quot;>
+          <Link href=&quot;/&quot; className=&quot;text-sm font-medium text-neutral-500 _hover:text-neutral-800 flex items-center&quot;>
+            <ArrowLeft className=&quot;h-4 w-4 mr-1&quot; />
             Back to Home
           </Link>
         </div>
-        
+
         {/* Logo and Title */}
-        <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold text-neutral-800">
+        <div className=&quot;mb-6 text-center&quot;>
+          <h1 className=&quot;text-3xl font-bold text-neutral-800&quot;>
             Create Your ChainSync Account
           </h1>
-          <p className="text-neutral-500 mt-2">
+          <p className=&quot;text-neutral-500 mt-2&quot;>
             Start managing your retail business more efficiently
           </p>
         </div>
-        
+
         {/* Referral Banner */}
         <ReferralBanner />
-        
+
         {/* Selected Plan Banner */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode=&quot;wait&quot;>
           <motion.div
             key={formData.plan}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="mb-4"
+            initial={{ _opacity: 0, _y: 10 }}
+            animate={{ _opacity: 1, _y: 0 }}
+            exit={{ _opacity: 0, _y: -10 }}
+            transition={{ _duration: 0.3 }}
+            className=&quot;mb-4&quot;
           >
-            <div className="p-4 bg-primary/10 rounded-md border border-primary/20">
-              <h3 className="text-base font-bold text-primary flex items-center">
-                {formData.plan === 'basic' && 'Basic Plan'}
-                {formData.plan === 'pro' && 'Pro Plan'}
-                {formData.plan === 'enterprise' && 'Enterprise Plan'}
-                {referralCode && formData.plan !== 'enterprise' && 
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">10% OFF</span>
+            <div className=&quot;p-4 bg-primary/10 rounded-md border border-primary/20&quot;>
+              <h3 className=&quot;text-base font-bold text-primary flex items-center&quot;>
+                {formData.plan === &apos;basic&apos; && &apos;Basic Plan&apos;}
+                {formData.plan === &apos;pro&apos; && &apos;Pro Plan&apos;}
+                {formData.plan === &apos;enterprise&apos; && &apos;Enterprise Plan&apos;}
+                {referralCode && formData.plan !== &apos;enterprise&apos; &&
+                  <span className=&quot;ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full&quot;>10% OFF</span>
                 }
               </h3>
-              <p className="text-sm mt-1 text-neutral-600">
-                {formData.plan === 'basic' && 'Perfect for single-store operations. Includes inventory management and basic analytics.'}
-                {formData.plan === 'pro' && 'Ideal for growing businesses with up to 10 store locations. Enhanced analytics and AI features.'}
-                {formData.plan === 'enterprise' && 'Custom solution for large operations with 10+ stores. Includes dedicated support and premium SLA.'}
+              <p className=&quot;text-sm mt-1 text-neutral-600&quot;>
+                {formData.plan === &apos;basic&apos; && &apos;Perfect for single-store operations. Includes inventory management and basic analytics.&apos;}
+                {formData.plan === &apos;pro&apos; && &apos;Ideal for growing businesses with up to 10 store locations. Enhanced analytics and AI features.&apos;}
+                {formData.plan === &apos;enterprise&apos; && &apos;Custom solution for large operations with 10+ stores. Includes dedicated support and premium SLA.&apos;}
               </p>
-              {referralCode && formData.plan !== 'enterprise' && (
-                <p className="text-xs mt-2 text-green-700">
+              {referralCode && formData.plan !== &apos;enterprise&apos; && (
+                <p className=&quot;text-xs mt-2 text-green-700&quot;>
                   Your referral code gives you 10% off for 12 months!
                 </p>
               )}
             </div>
           </motion.div>
         </AnimatePresence>
-        
+
         {/* Signup Form */}
-        <Card className="w-full">
+        <Card className=&quot;w-full&quot;>
           <CardHeader>
             <CardTitle>Sign Up</CardTitle>
             <CardDescription>
@@ -411,102 +411,102 @@ export default function SignupPage() {
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input 
-                    id="fullName" 
-                    name="fullName" 
-                    placeholder="John Doe" 
+            <CardContent className=&quot;space-y-4&quot;>
+              <div className=&quot;grid grid-cols-1 _md:grid-cols-2 gap-4&quot;>
+                <div className=&quot;space-y-2&quot;>
+                  <Label htmlFor=&quot;fullName&quot;>Full Name</Label>
+                  <Input
+                    id=&quot;fullName&quot;
+                    name=&quot;fullName&quot;
+                    placeholder=&quot;John Doe&quot;
                     value={formData.fullName}
                     onChange={handleChange}
-                    className={errors.fullName ? 'border-red-500' : ''}
-                    required 
+                    className={errors.fullName ? &apos;border-red-500&apos; : &apos;&apos;}
+                    required
                   />
                   {errors.fullName && (
-                    <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>
+                    <p className=&quot;text-xs text-red-500 mt-1&quot;>{errors.fullName}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Input 
-                      id="email" 
-                      name="email" 
-                      type="email" 
-                      placeholder="john@example.com" 
+                <div className=&quot;space-y-2&quot;>
+                  <Label htmlFor=&quot;email&quot;>Email</Label>
+                  <div className=&quot;relative&quot;>
+                    <Input
+                      id=&quot;email&quot;
+                      name=&quot;email&quot;
+                      type=&quot;email&quot;
+                      placeholder=&quot;john@example.com&quot;
                       value={formData.email}
                       onChange={handleChange}
-                      className={errors.email ? 'border-red-500 pr-10' : 'pr-10'}
-                      required 
+                      className={errors.email ? &apos;border-red-500 pr-10&apos; : &apos;pr-10&apos;}
+                      required
                     />
                     {isCheckingEmail && (
-                      <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3 text-muted-foreground" />
+                      <Loader2 className=&quot;h-4 w-4 animate-spin absolute right-3 top-3 text-muted-foreground&quot; />
                     )}
                     {emailAvailable === true && (
-                      <Check className="h-4 w-4 absolute right-3 top-3 text-green-500" />
+                      <Check className=&quot;h-4 w-4 absolute right-3 top-3 text-green-500&quot; />
                     )}
                   </div>
                   {errors.email && (
-                    <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+                    <p className=&quot;text-xs text-red-500 mt-1&quot;>{errors.email}</p>
                   )}
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <div className="relative">
-                    <Input 
-                      id="username" 
-                      name="username" 
-                      placeholder="johndoe" 
+
+              <div className=&quot;grid grid-cols-1 _md:grid-cols-2 gap-4&quot;>
+                <div className=&quot;space-y-2&quot;>
+                  <Label htmlFor=&quot;username&quot;>Username</Label>
+                  <div className=&quot;relative&quot;>
+                    <Input
+                      id=&quot;username&quot;
+                      name=&quot;username&quot;
+                      placeholder=&quot;johndoe&quot;
                       value={formData.username}
                       onChange={handleChange}
-                      className={errors.username ? 'border-red-500 pr-10' : 'pr-10'}
-                      required 
+                      className={errors.username ? &apos;border-red-500 pr-10&apos; : &apos;pr-10&apos;}
+                      required
                     />
                     {isCheckingUsername && (
-                      <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3 text-muted-foreground" />
+                      <Loader2 className=&quot;h-4 w-4 animate-spin absolute right-3 top-3 text-muted-foreground&quot; />
                     )}
                     {usernameAvailable === true && (
-                      <Check className="h-4 w-4 absolute right-3 top-3 text-green-500" />
+                      <Check className=&quot;h-4 w-4 absolute right-3 top-3 text-green-500&quot; />
                     )}
                   </div>
                   {errors.username && (
-                    <p className="text-xs text-red-500 mt-1">{errors.username}</p>
+                    <p className=&quot;text-xs text-red-500 mt-1&quot;>{errors.username}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input 
-                      id="password" 
-                      name="password" 
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••" 
+                <div className=&quot;space-y-2&quot;>
+                  <Label htmlFor=&quot;password&quot;>Password</Label>
+                  <div className=&quot;relative&quot;>
+                    <Input
+                      id=&quot;password&quot;
+                      name=&quot;password&quot;
+                      type={showPassword ? &apos;text&apos; : &apos;password&apos;}
+                      placeholder=&quot;••••••••&quot;
                       value={formData.password}
                       onChange={handleChange}
-                      className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
-                      required 
+                      className={errors.password ? &apos;border-red-500 pr-10&apos; : &apos;pr-10&apos;}
+                      required
                     />
                     <button
-                      type="button"
+                      type=&quot;button&quot;
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                      className=&quot;absolute right-3 top-3 text-muted-foreground _hover:text-foreground&quot;
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className=&quot;h-4 w-4&quot; /> : <Eye className=&quot;h-4 w-4&quot; />}
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+                    <p className=&quot;text-xs text-red-500 mt-1&quot;>{errors.password}</p>
                   )}
                   {formData.password && <PasswordStrengthIndicator password={formData.password} />}
                   {formData.password && (
-                    <div className="mt-2 space-y-1">
+                    <div className=&quot;mt-2 space-y-1&quot;>
                       {passwordRequirements.map((req, index) => (
-                        <PasswordRequirement 
+                        <PasswordRequirement
                           key={index}
                           meets={req.test(formData.password)}
                           label={req.label}
@@ -516,152 +516,152 @@ export default function SignupPage() {
                   )}
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Input 
-                    id="confirmPassword" 
-                    name="confirmPassword" 
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••" 
+
+              <div className=&quot;space-y-2&quot;>
+                <Label htmlFor=&quot;confirmPassword&quot;>Confirm Password</Label>
+                <div className=&quot;relative&quot;>
+                  <Input
+                    id=&quot;confirmPassword&quot;
+                    name=&quot;confirmPassword&quot;
+                    type={showConfirmPassword ? &apos;text&apos; : &apos;password&apos;}
+                    placeholder=&quot;••••••••&quot;
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={errors.confirmPassword ? 'border-red-500 pr-10' : 'pr-10'}
-                    required 
+                    className={errors.confirmPassword ? &apos;border-red-500 pr-10&apos; : &apos;pr-10&apos;}
+                    required
                   />
                   <button
-                    type="button"
+                    type=&quot;button&quot;
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                    className=&quot;absolute right-3 top-3 text-muted-foreground _hover:text-foreground&quot;
                   >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirmPassword ? <EyeOff className=&quot;h-4 w-4&quot; /> : <Eye className=&quot;h-4 w-4&quot; />}
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>
+                  <p className=&quot;text-xs text-red-500 mt-1&quot;>{errors.confirmPassword}</p>
                 )}
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="plan">Subscription Plan</Label>
-                <div className="grid grid-cols-1 gap-2">
+
+              <div className=&quot;space-y-2&quot;>
+                <Label htmlFor=&quot;plan&quot;>Subscription Plan</Label>
+                <div className=&quot;grid grid-cols-1 gap-2&quot;>
                   {[
-                    { id: 'basic', name: 'Basic', stores: '1 store', price: 'Free Trial', description: 'Perfect for single-store operations' },
-                    { id: 'pro', name: 'Pro', stores: 'Up to 10 stores', price: 'Free Trial', description: 'Ideal for growing businesses' },
-                    { id: 'enterprise', name: 'Enterprise', stores: '10+ stores', price: 'Custom Pricing', description: 'For large operations' },
+                    { _id: &apos;basic&apos;, _name: &apos;Basic&apos;, _stores: &apos;1 store&apos;, _price: &apos;Free Trial&apos;, _description: &apos;Perfect for single-store operations&apos; },
+                    { _id: &apos;pro&apos;, _name: &apos;Pro&apos;, _stores: &apos;Up to 10 stores&apos;, _price: &apos;Free Trial&apos;, _description: &apos;Ideal for growing businesses&apos; },
+                    { _id: &apos;enterprise&apos;, _name: &apos;Enterprise&apos;, _stores: &apos;10+ stores&apos;, _price: &apos;Custom Pricing&apos;, _description: &apos;For large operations&apos; }
                   ].map((plan) => (
-                    <div 
+                    <div
                       key={plan.id}
-                      onClick={() => handlePlanSelect(plan.id as 'basic' | 'pro' | 'enterprise')}
+                      onClick={() => handlePlanSelect(plan.id as &apos;basic&apos; | &apos;pro&apos; | &apos;enterprise&apos;)}
                       className={`
                         p-4 border rounded-lg cursor-pointer transition-colors
-                        ${formData.plan === plan.id 
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
-                          : 'border-neutral-200 hover:border-primary/40'}
+                        ${formData.plan === plan.id
+                          ? &apos;border-primary bg-primary/5 ring-2 ring-primary/20&apos;
+                          : &apos;border-neutral-200 _hover:border-primary/40&apos;}
                       `}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className=&quot;flex items-center justify-between&quot;>
                         <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">{plan.name}</span>
-                            {referralCode && plan.id !== 'enterprise' && (
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                          <div className=&quot;flex items-center space-x-2&quot;>
+                            <span className=&quot;font-medium&quot;>{plan.name}</span>
+                            {referralCode && plan.id !== &apos;enterprise&apos; && (
+                              <span className=&quot;text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full&quot;>
                                 10% OFF
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">{plan.stores}</p>
+                          <p className=&quot;text-sm text-muted-foreground&quot;>{plan.stores}</p>
                         </div>
-                        <div className="text-right">
-                          <span className="font-medium">{plan.price}</span>
+                        <div className=&quot;text-right&quot;>
+                          <span className=&quot;font-medium&quot;>{plan.price}</span>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
+                      <p className=&quot;text-xs text-muted-foreground mt-1&quot;>{plan.description}</p>
                     </div>
                   ))}
                 </div>
                 {errors.plan && (
-                  <p className="text-xs text-red-500 mt-1">{errors.plan}</p>
+                  <p className=&quot;text-xs text-red-500 mt-1&quot;>{errors.plan}</p>
                 )}
               </div>
-              
-              <div className="bg-neutral-50 p-3 rounded-md border border-neutral-200 flex items-start">
-                <LockIcon className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
+
+              <div className=&quot;bg-neutral-50 p-3 rounded-md border border-neutral-200 flex items-start&quot;>
+                <LockIcon className=&quot;h-5 w-5 text-green-600 mr-2 mt-0.5&quot; />
                 <div>
-                  <h3 className="text-sm font-medium">14-Day Free Trial</h3>
-                  <p className="text-xs text-neutral-500 mt-0.5">
+                  <h3 className=&quot;text-sm font-medium&quot;>14-Day Free Trial</h3>
+                  <p className=&quot;text-xs text-neutral-500 mt-0.5&quot;>
                     No payment required during the trial period. Cancel anytime.
                   </p>
                 </div>
               </div>
-              
-              <div className="flex items-start space-x-2 mt-4">
-                <Checkbox 
-                  id="acceptTerms" 
+
+              <div className=&quot;flex items-start space-x-2 mt-4&quot;>
+                <Checkbox
+                  id=&quot;acceptTerms&quot;
                   checked={formData.acceptTerms}
-                  onCheckedChange={(checked) => 
-                    setFormData(prev => ({ ...prev, acceptTerms: checked === true }))
+                  onCheckedChange={(checked) =>
+                    setFormData(prev => ({ ...prev, _acceptTerms: checked === true }))
                   }
-                  className={errors.acceptTerms ? 'border-red-500' : ''}
+                  className={errors.acceptTerms ? &apos;border-red-500&apos; : &apos;&apos;}
                 />
-                <div className="grid gap-1.5 leading-none">
+                <div className=&quot;grid gap-1.5 leading-none&quot;>
                   <label
-                    htmlFor="acceptTerms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    htmlFor=&quot;acceptTerms&quot;
+                    className=&quot;text-sm font-medium leading-none peer-_disabled:cursor-not-allowed peer-_disabled:opacity-70&quot;
                   >
                     I accept the terms and conditions
                   </label>
-                  <p className="text-xs text-muted-foreground">
-                    By creating an account, you agree to our{" "}
-                    <Link href="/terms" className="text-primary hover:underline" target="_blank">
+                  <p className=&quot;text-xs text-muted-foreground&quot;>
+                    By creating an account, you agree to our{&apos; &apos;}
+                    <Link href=&quot;/terms&quot; className=&quot;text-primary _hover:underline&quot; target=&quot;_blank&quot;>
                       Terms of Service
-                    </Link>{" "}
-                    and{" "}
-                    <Link href="/privacy" className="text-primary hover:underline" target="_blank">
+                    </Link>{&apos; &apos;}
+                    and{&apos; &apos;}
+                    <Link href=&quot;/privacy&quot; className=&quot;text-primary _hover:underline&quot; target=&quot;_blank&quot;>
                       Privacy Policy
                     </Link>.
                   </p>
                   {errors.acceptTerms && (
-                    <p className="text-xs text-red-500">{errors.acceptTerms}</p>
+                    <p className=&quot;text-xs text-red-500&quot;>{errors.acceptTerms}</p>
                   )}
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col space-y-3">
-              <Button 
-                type="submit" 
-                className="w-full h-11" 
+            <CardFooter className=&quot;flex flex-col space-y-3&quot;>
+              <Button
+                type=&quot;submit&quot;
+                className=&quot;w-full h-11&quot;
                 disabled={signupMutation.isPending || isCheckingUsername || isCheckingEmail}
               >
                 {signupMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className=&quot;mr-2 h-4 w-4 animate-spin&quot; />
                     Creating Account...
                   </>
                 ) : (
-                  "Create Account"
+                  &apos;Create Account&apos;
                 )}
               </Button>
-              
+
               {/* Error summary */}
               {Object.keys(errors).length > 0 && !signupMutation.isPending && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
-                  <p className="font-medium">Please fix the following errors:</p>
-                  <ul className="list-disc list-inside text-xs mt-1 space-y-1">
+                <div className=&quot;p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700&quot;>
+                  <p className=&quot;font-medium&quot;>Please fix the following _errors:</p>
+                  <ul className=&quot;list-disc list-inside text-xs mt-1 space-y-1&quot;>
                     {Object.entries(errors).map(([field, message]) => (
                       <li key={field}>{message}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              
-              <p className="text-center text-sm text-neutral-500 mt-2">
-                Already have an account? <Link href="/login" className="text-primary hover:underline">Log in</Link>
+
+              <p className=&quot;text-center text-sm text-neutral-500 mt-2&quot;>
+                Already have an account? <Link href=&quot;/login&quot; className=&quot;text-primary _hover:underline&quot;>Log in</Link>
               </p>
-              
-              <div className="text-xs text-center text-neutral-400 mt-2 flex items-center justify-center">
-                <CreditCard className="h-3 w-3 mr-1" />
+
+              <div className=&quot;text-xs text-center text-neutral-400 mt-2 flex items-center justify-center&quot;>
+                <CreditCard className=&quot;h-3 w-3 mr-1&quot; />
                 Secure payment powered by Paystack/Flutterwave
               </div>
             </CardFooter>

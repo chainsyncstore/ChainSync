@@ -4,35 +4,35 @@ import { getLogger } from '../../src/logging/index.js';
 import { encryptionService } from './encryption.js';
 import { Pool } from 'pg';
 
-const logger = getLogger().child({ component: 'gdpr-service' });
+const logger = getLogger().child({ _component: 'gdpr-service' });
 
 // GDPR configuration
 const GDPR_CONFIG = {
   // Data retention periods (in days)
-  retention: {
-    userData: 2555, // 7 years for business records
-    auditLogs: 1825, // 5 years for compliance
-    sessionData: 30, // 30 days for session data
-    backupData: 2555, // 7 years for backups
-    temporaryData: 7 // 7 days for temporary data
+  _retention: {
+    _userData: 2555, // 7 years for business records
+    _auditLogs: 1825, // 5 years for compliance
+    _sessionData: 30, // 30 days for session data
+    _backupData: 2555, // 7 years for backups
+    _temporaryData: 7 // 7 days for temporary data
   },
 
   // Data categories for processing
-  dataCategories: {
+  _dataCategories: {
     personal: ['name', 'email', 'phone', 'address', 'date_of_birth'],
-    sensitive: ['password', 'credit_card', 'ssn', 'health_data'],
-    business: ['transaction_history', 'purchase_preferences', 'loyalty_points'],
-    technical: ['ip_address', 'user_agent', 'session_id', 'device_id']
+    _sensitive: ['password', 'credit_card', 'ssn', 'health_data'],
+    _business: ['transaction_history', 'purchase_preferences', 'loyalty_points'],
+    _technical: ['ip_address', 'user_agent', 'session_id', 'device_id']
   },
 
   // User rights
-  userRights: {
+  _userRights: {
     access: 'RIGHT_TO_ACCESS',
-    rectification: 'RIGHT_TO_RECTIFICATION',
-    erasure: 'RIGHT_TO_ERASURE',
-    portability: 'RIGHT_TO_PORTABILITY',
-    restriction: 'RIGHT_TO_RESTRICTION',
-    objection: 'RIGHT_TO_OBJECT'
+    _rectification: 'RIGHT_TO_RECTIFICATION',
+    _erasure: 'RIGHT_TO_ERASURE',
+    _portability: 'RIGHT_TO_PORTABILITY',
+    _restriction: 'RIGHT_TO_RESTRICTION',
+    _objection: 'RIGHT_TO_OBJECT'
   }
 };
 
@@ -41,9 +41,9 @@ const GDPR_CONFIG = {
  * Handles data protection, retention, and user rights
  */
 export class GDPRService {
-  private db: Pool;
+  private _db: Pool;
 
-  constructor(db: Pool) {
+  constructor(_db: Pool) {
     this.db = db;
   }
 
@@ -52,7 +52,7 @@ export class GDPRService {
    * @param userId - User ID requesting access
    * @returns User's personal data
    */
-  async processAccessRequest(userId: string): Promise<any> {
+  async processAccessRequest(_userId: string): Promise<any> {
     try {
       logger.info('Processing data access request', { userId });
 
@@ -66,10 +66,10 @@ export class GDPRService {
       await this.logDataRequest(userId, 'access', anonymizedData);
 
       return {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-        data: anonymizedData,
-        format: 'json'
+        _requestId: this.generateRequestId(),
+        _timestamp: new Date().toISOString(),
+        _data: anonymizedData,
+        _format: 'json'
       };
     } catch (error) {
       logger.error('Failed to process access request', { userId, error });
@@ -83,7 +83,7 @@ export class GDPRService {
    * @param reason - Reason for erasure
    * @returns Erasure confirmation
    */
-  async processErasureRequest(userId: string, reason?: string): Promise<any> {
+  async processErasureRequest(_userId: string, reason?: string): Promise<any> {
     try {
       logger.info('Processing data erasure request', { userId, reason });
 
@@ -92,10 +92,10 @@ export class GDPRService {
 
       if (!canErase.allowed) {
         return {
-          requestId: this.generateRequestId(),
-          status: 'denied',
-          reason: canErase.reason,
-          timestamp: new Date().toISOString()
+          _requestId: this.generateRequestId(),
+          _status: 'denied',
+          _reason: canErase.reason,
+          _timestamp: new Date().toISOString()
         };
       }
 
@@ -106,10 +106,10 @@ export class GDPRService {
       await this.logDataRequest(userId, 'erasure', { reason });
 
       return {
-        requestId: this.generateRequestId(),
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        message: 'User data has been anonymized'
+        _requestId: this.generateRequestId(),
+        _status: 'completed',
+        _timestamp: new Date().toISOString(),
+        _message: 'User data has been anonymized'
       };
     } catch (error) {
       logger.error('Failed to process erasure request', { userId, error });
@@ -122,7 +122,7 @@ export class GDPRService {
    * @param userId - User ID requesting portability
    * @returns Portable data format
    */
-  async processPortabilityRequest(userId: string): Promise<any> {
+  async processPortabilityRequest(_userId: string): Promise<any> {
     try {
       logger.info('Processing data portability request', { userId });
 
@@ -136,11 +136,11 @@ export class GDPRService {
       await this.logDataRequest(userId, 'portability', portableData);
 
       return {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-        data: portableData,
-        format: 'json',
-        encoding: 'utf-8'
+        _requestId: this.generateRequestId(),
+        _timestamp: new Date().toISOString(),
+        _data: portableData,
+        _format: 'json',
+        _encoding: 'utf-8'
       };
     } catch (error) {
       logger.error('Failed to process portability request', { userId, error });
@@ -157,10 +157,10 @@ export class GDPRService {
       logger.info('Starting GDPR data cleanup');
 
       const cleanupResults = {
-        sessionData: 0,
-        auditLogs: 0,
-        temporaryData: 0,
-        backupData: 0
+        _sessionData: 0,
+        _auditLogs: 0,
+        _temporaryData: 0,
+        _backupData: 0
       };
 
       // Clean up expired session data
@@ -190,8 +190,8 @@ export class GDPRService {
       logger.info('GDPR data cleanup completed', cleanupResults);
 
       return {
-        timestamp: new Date().toISOString(),
-        results: cleanupResults
+        _timestamp: new Date().toISOString(),
+        _results: cleanupResults
       };
     } catch (error) {
       logger.error('Failed to cleanup expired data', { error });
@@ -203,7 +203,7 @@ export class GDPRService {
    * Anonymize user data for privacy protection
    * @param userId - User ID to anonymize
    */
-  async anonymizeUserData(userId: string): Promise<void> {
+  async anonymizeUserData(_userId: string): Promise<void> {
     try {
       // Anonymize personal data
       await this.db.query(
@@ -240,7 +240,7 @@ export class GDPRService {
    * @param userId - User ID to check
    * @returns Erasure eligibility
    */
-  private async canEraseUserData(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  private async canEraseUserData(_userId: string): Promise<{ _allowed: boolean; reason?: string }> {
     try {
       // Check for pending transactions
       const pendingTransactions = await this.db.query(
@@ -250,8 +250,8 @@ export class GDPRService {
 
       if (parseInt(pendingTransactions.rows[0].count) > 0) {
         return {
-          allowed: false,
-          reason: 'User has pending transactions that must be completed first'
+          _allowed: false,
+          _reason: 'User has pending transactions that must be completed first'
         };
       }
 
@@ -263,15 +263,15 @@ export class GDPRService {
 
       if (parseInt(activeSubscriptions.rows[0].count) > 0) {
         return {
-          allowed: false,
-          reason: 'User has active subscriptions that must be cancelled first'
+          _allowed: false,
+          _reason: 'User has active subscriptions that must be cancelled first'
         };
       }
 
-      return { allowed: true };
+      return { _allowed: true };
     } catch (error) {
       logger.error('Failed to check erasure eligibility', { userId, error });
-      return { allowed: false, reason: 'Unable to verify erasure eligibility' };
+      return { _allowed: false, _reason: 'Unable to verify erasure eligibility' };
     }
   }
 
@@ -280,7 +280,7 @@ export class GDPRService {
    * @param userId - User ID
    * @returns User data
    */
-  private async collectUserData(userId: string): Promise<any> {
+  private async collectUserData(_userId: string): Promise<any> {
     try {
       // Get user profile
       const userResult = await this.db.query(
@@ -307,10 +307,10 @@ export class GDPRService {
       );
 
       return {
-        profile: userResult.rows[0] || null,
-        transactions: transactionResult.rows,
-        loyalty: loyaltyResult.rows,
-        preferences: preferencesResult.rows
+        _profile: userResult.rows[0] || null,
+        _transactions: transactionResult.rows,
+        _loyalty: loyaltyResult.rows,
+        _preferences: preferencesResult.rows
       };
     } catch (error) {
       logger.error('Failed to collect user data', { userId, error });
@@ -323,7 +323,7 @@ export class GDPRService {
    * @param data - Data to anonymize
    * @returns Anonymized data
    */
-  private anonymizeData(data: any): any {
+  private anonymizeData(_data: any): any {
     const anonymized = JSON.parse(JSON.stringify(data));
 
     // Anonymize sensitive fields
@@ -335,7 +335,7 @@ export class GDPRService {
 
     // Anonymize transaction data
     if (anonymized.transactions) {
-      anonymized.transactions.forEach((transaction: any) => {
+      anonymized.transactions.forEach((_transaction: any) => {
         transaction.customer_name = '[REDACTED]';
         transaction.customer_email = '[REDACTED]';
         transaction.credit_card = '[REDACTED]';
@@ -350,11 +350,11 @@ export class GDPRService {
    * @param data - Data to format
    * @returns Portable format
    */
-  private formatForPortability(data: any): any {
+  private formatForPortability(_data: any): any {
     return {
-      exportDate: new Date().toISOString(),
-      format: 'GDPR-Portable-Format-v1.0',
-      data: data
+      _exportDate: new Date().toISOString(),
+      _format: 'GDPR-Portable-Format-v1.0',
+      _data: data
     };
   }
 
@@ -364,7 +364,7 @@ export class GDPRService {
    * @param requestType - Type of request
    * @param details - Request details
    */
-  private async logDataRequest(userId: string, requestType: string, details: any): Promise<void> {
+  private async logDataRequest(_userId: string, _requestType: string, _details: any): Promise<void> {
     try {
       await this.db.query(
         `INSERT INTO gdpr_requests (user_id, request_type, details, created_at)

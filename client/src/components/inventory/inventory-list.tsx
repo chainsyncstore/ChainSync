@@ -1,168 +1,168 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from &apos;react&apos;;
+import { useQuery } from &apos;@tanstack/react-query&apos;;
 import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/providers/auth-provider';
-import { formatDate, formatNumber } from '@/lib/utils';
-import { Search, RefreshCw, AlertCircle, Settings } from 'lucide-react';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { MinimumLevelDialog } from './minimum-level-dialog';
+  TableRow
+} from &apos;@/components/ui/table&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Badge } from &apos;@/components/ui/badge&apos;;
+import { Skeleton } from &apos;@/components/ui/skeleton&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { formatDate, formatNumber } from &apos;@/lib/utils&apos;;
+import { Search, RefreshCw, AlertCircle, Settings } from &apos;lucide-react&apos;;
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from &apos;@/components/ui/select&apos;;
+import { MinimumLevelDialog } from &apos;./minimum-level-dialog&apos;;
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  TooltipTrigger
+} from &apos;@/components/ui/tooltip&apos;;
 
 interface Product {
-  id: number;
-  name: string;
-  barcode: string;
+  _id: number;
+  _name: string;
+  _barcode: string;
   category: {
-    id: number;
-    name: string;
+    _id: number;
+    _name: string;
   };
 }
 
 interface InventoryItem {
-  id: number;
-  quantity: number;
-  minimumLevel: number;
-  product: Product;
+  _id: number;
+  _quantity: number;
+  _minimumLevel: number;
+  _product: Product;
   store: {
-    id: number;
-    name: string;
+    _id: number;
+    _name: string;
   };
 }
 
 interface Store {
-  id: number;
-  name: string;
-  address: string;
-  isActive: boolean;
+  _id: number;
+  _name: string;
+  _address: string;
+  _isActive: boolean;
 }
 
 interface Category {
-  id: number;
-  name: string;
+  _id: number;
+  _name: string;
 }
 
 export function InventoryList() {
   const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all_categories');
+  const [searchTerm, setSearchTerm] = useState(&apos;&apos;);
+  const [categoryFilter, setCategoryFilter] = useState(&apos;all_categories&apos;);
   // Force store ID for manager/cashier roles, allow selection for admin
   const [storeId, setStoreId] = useState<string>(
-    user?.role !== 'admin' && user?.storeId 
-      ? user.storeId.toString() 
-      : ''
+    user?.role !== &apos;admin&apos; && user?.storeId
+      ? user.storeId.toString()
+      : &apos;&apos;
   );
-  
+
   // State for minimum level dialog
   const [minLevelDialogOpen, setMinLevelDialogOpen] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<{
-    id: number;
-    productId: number;
-    productName: string;
-    currentQuantity: number;
-    minimumLevel: number;
+    _id: number;
+    _productId: number;
+    _productName: string;
+    _currentQuantity: number;
+    _minimumLevel: number;
   } | null>(null);
-  
+
   // Fetch inventory data
-  const { data: inventoryData, isLoading: isLoadingInventory, refetch } = useQuery<InventoryItem[]>({
-    queryKey: ['/api/inventory', { storeId: storeId ? parseInt(storeId) : undefined }],
+  const { _data: inventoryData, _isLoading: isLoadingInventory, refetch } = useQuery<InventoryItem[]>({
+    _queryKey: [&apos;/api/inventory&apos;, { _storeId: storeId ? parseInt(storeId) : undefined }]
   });
-  
+
   // Fetch all stores (for admin dropdown)
-  const { data: storesData, isLoading: isLoadingStores } = useQuery<Store[]>({
-    queryKey: ['/api/stores'],
-    enabled: user?.role === 'admin',
+  const { _data: storesData, _isLoading: isLoadingStores } = useQuery<Store[]>({
+    queryKey: [&apos;/api/stores&apos;],
+    _enabled: user?.role === &apos;admin&apos;
   });
-  
+
   // Fetch all categories for filtering
-  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery<Category[]>({
-    queryKey: ['/api/products/categories'],
+  const { _data: categoriesData, _isLoading: isLoadingCategories } = useQuery<Category[]>({
+    queryKey: [&apos;/api/products/categories&apos;]
   });
-  
+
   // Filter data based on search term and category
-  const filteredInventory = Array.isArray(inventoryData) 
-    ? inventoryData.filter((item: InventoryItem) => {
+  const filteredInventory = Array.isArray(inventoryData)
+    ? inventoryData.filter((_item: InventoryItem) => {
         // Search filter
-        const matchesSearch = searchTerm === '' || 
+        const matchesSearch = searchTerm === &apos;&apos; ||
           item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.product.barcode.toLowerCase().includes(searchTerm.toLowerCase());
-        
+
         // Category filter
-        const matchesCategory = categoryFilter === 'all_categories' || 
+        const matchesCategory = categoryFilter === &apos;all_categories&apos; ||
           item.product.category.id === parseInt(categoryFilter);
-        
+
         return matchesSearch && matchesCategory;
       })
     : [];
 
   // Get unique categories from inventory data if API categories not available
-  const uniqueCategories = Array.isArray(categoriesData) ? categoriesData : 
-    (Array.isArray(inventoryData) ? 
+  const uniqueCategories = Array.isArray(categoriesData) ? _categoriesData :
+    (Array.isArray(inventoryData) ?
       Array.from(new Map(
         inventoryData.map(item => [item.product.category.id, item.product.category])
-      ).values()) 
+      ).values())
       : []);
 
   if (isLoadingInventory) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader className="pb-2">
-          <Skeleton className="h-7 w-40 mb-2" />
-          <Skeleton className="h-4 w-64" />
+      <Card className=&quot;shadow-sm&quot;>
+        <CardHeader className=&quot;pb-2&quot;>
+          <Skeleton className=&quot;h-7 w-40 mb-2&quot; />
+          <Skeleton className=&quot;h-4 w-64&quot; />
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mb-4">
-            <Skeleton className="h-10 w-full md:w-64" />
-            <Skeleton className="h-10 w-full md:w-48" />
-            {user?.role === 'admin' && <Skeleton className="h-10 w-full md:w-48" />}
+          <div className=&quot;flex flex-col _md:flex-row space-y-2 _md:space-y-0 _md:space-x-2 mb-4&quot;>
+            <Skeleton className=&quot;h-10 w-full _md:w-64&quot; />
+            <Skeleton className=&quot;h-10 w-full _md:w-48&quot; />
+            {user?.role === &apos;admin&apos; && <Skeleton className=&quot;h-10 w-full _md:w-48&quot; />}
           </div>
-          
-          <div className="border rounded-md">
-            <div className="border-b bg-muted/40 p-2">
-              <div className="grid grid-cols-12 gap-2">
-                <Skeleton className="h-4 col-span-3" />
-                <Skeleton className="h-4 col-span-2" />
-                <Skeleton className="h-4 col-span-2" />
-                <Skeleton className="h-4 col-span-2" />
-                <Skeleton className="h-4 col-span-3" />
+
+          <div className=&quot;border rounded-md&quot;>
+            <div className=&quot;border-b bg-muted/40 p-2&quot;>
+              <div className=&quot;grid grid-cols-12 gap-2&quot;>
+                <Skeleton className=&quot;h-4 col-span-3&quot; />
+                <Skeleton className=&quot;h-4 col-span-2&quot; />
+                <Skeleton className=&quot;h-4 col-span-2&quot; />
+                <Skeleton className=&quot;h-4 col-span-2&quot; />
+                <Skeleton className=&quot;h-4 col-span-3&quot; />
               </div>
             </div>
-            <div className="divide-y">
+            <div className=&quot;divide-y&quot;>
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="p-2">
-                  <div className="grid grid-cols-12 gap-2">
-                    <Skeleton className="h-4 col-span-3" />
-                    <Skeleton className="h-4 col-span-2" />
-                    <Skeleton className="h-4 col-span-2" />
-                    <Skeleton className="h-4 col-span-2" />
-                    <Skeleton className="h-4 col-span-3" />
+                <div key={i} className=&quot;p-2&quot;>
+                  <div className=&quot;grid grid-cols-12 gap-2&quot;>
+                    <Skeleton className=&quot;h-4 col-span-3&quot; />
+                    <Skeleton className=&quot;h-4 col-span-2&quot; />
+                    <Skeleton className=&quot;h-4 col-span-2&quot; />
+                    <Skeleton className=&quot;h-4 col-span-2&quot; />
+                    <Skeleton className=&quot;h-4 col-span-3&quot; />
                   </div>
                 </div>
               ))}
@@ -174,63 +174,63 @@ export function InventoryList() {
   }
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="pb-2">
+    <Card className=&quot;shadow-sm&quot;>
+      <CardHeader className=&quot;pb-2&quot;>
         <CardTitle>Inventory Management</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {user?.role === 'admin' 
-            ? 'Manage your product inventory across all stores' 
+        <p className=&quot;text-sm text-muted-foreground&quot;>
+          {user?.role === &apos;admin&apos;
+            ? &apos;Manage your product inventory across all stores&apos;
             : `Manage inventory for ${
-                Array.isArray(storesData) 
-                  ? storesData.find((s) => s.id === parseInt(storeId))?.name || 'your store'
-                  : 'your store'
+                Array.isArray(storesData)
+                  ? storesData.find((s) => s.id === parseInt(storeId))?.name || &apos;your store&apos;
+                  : &apos;your store&apos;
               }`
           }
         </p>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mb-4">
+        <div className=&quot;flex flex-col _md:flex-row space-y-2 _md:space-y-0 _md:space-x-2 mb-4&quot;>
           {/* Search bar */}
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className=&quot;relative flex-1&quot;>
+            <Search className=&quot;absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground&quot; />
             <Input
-              type="search"
-              placeholder="Search products..."
-              className="pl-8"
+              type=&quot;search&quot;
+              placeholder=&quot;Search products...&quot;
+              className=&quot;pl-8&quot;
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           {/* Category filter */}
           <Select
             value={categoryFilter}
             onValueChange={setCategoryFilter}
           >
-            <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="Category" />
+            <SelectTrigger className=&quot;w-full _md:w-[180px]&quot;>
+              <SelectValue placeholder=&quot;Category&quot; />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all_categories">All Categories</SelectItem>
-              {uniqueCategories.map((category: Category) => (
+              <SelectItem value=&quot;all_categories&quot;>All Categories</SelectItem>
+              {uniqueCategories.map((_category: Category) => (
                 <SelectItem key={category.id} value={category.id.toString()}>
                   {category.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          
+
           {/* Store selector (admin only) */}
-          {user?.role === 'admin' && (
+          {user?.role === &apos;admin&apos; && (
             <Select
               value={storeId}
               onValueChange={setStoreId}
             >
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Select store" />
+              <SelectTrigger className=&quot;w-full _md:w-[180px]&quot;>
+                <SelectValue placeholder=&quot;Select store&quot; />
               </SelectTrigger>
               <SelectContent>
-                {Array.isArray(storesData) && storesData.map((store: Store) => (
+                {Array.isArray(storesData) && storesData.map((_store: Store) => (
                   <SelectItem key={store.id} value={store.id.toString()}>
                     {store.name}
                   </SelectItem>
@@ -238,83 +238,83 @@ export function InventoryList() {
               </SelectContent>
             </Select>
           )}
-          
+
           {/* Refresh button */}
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
+          <Button variant=&quot;outline&quot; size=&quot;icon&quot; onClick={() => refetch()}>
+            <RefreshCw className=&quot;h-4 w-4&quot; />
           </Button>
         </div>
-        
+
         {/* Inventory table */}
-        <div className="border rounded-md">
+        <div className=&quot;border rounded-md&quot;>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">Product</TableHead>
+                <TableHead className=&quot;min-w-[200px]&quot;>Product</TableHead>
                 <TableHead>Category</TableHead>
-                <TableHead className="text-right">In Stock</TableHead>
-                <TableHead className="text-right">Minimum Level</TableHead>
+                <TableHead className=&quot;text-right&quot;>In Stock</TableHead>
+                <TableHead className=&quot;text-right&quot;>Minimum Level</TableHead>
                 <TableHead>Status</TableHead>
-                {user?.role !== 'cashier' && <TableHead>Actions</TableHead>}
+                {user?.role !== &apos;cashier&apos; && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredInventory?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={user?.role !== 'cashier' ? 6 : 5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={user?.role !== &apos;cashier&apos; ? _6 : 5} className=&quot;text-center py-8 text-muted-foreground&quot;>
                     No inventory items found matching your filters
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredInventory?.map((item: InventoryItem) => (
+                filteredInventory?.map((_item: InventoryItem) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className=&quot;font-medium&quot;>
                       <div>
                         {item.product.name}
-                        <div className="text-xs text-muted-foreground">
-                          Barcode: {item.product.barcode}
+                        <div className=&quot;text-xs text-muted-foreground&quot;>
+                          _Barcode: {item.product.barcode}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>{item.product.category.name}</TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className=&quot;text-right font-mono&quot;>
                       {formatNumber(item.quantity)}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className=&quot;text-right font-mono&quot;>
                       {formatNumber(item.minimumLevel)}
                     </TableCell>
                     <TableCell>
                       {item.quantity <= 0 ? (
-                        <Badge variant="destructive">Out of Stock</Badge>
+                        <Badge variant=&quot;destructive&quot;>Out of Stock</Badge>
                       ) : item.quantity <= item.minimumLevel ? (
-                        <Badge variant="destructive">Low Stock</Badge>
+                        <Badge variant=&quot;destructive&quot;>Low Stock</Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                        <Badge variant=&quot;outline&quot; className=&quot;bg-green-100 text-green-700 border-green-200&quot;>
                           In Stock
                         </Badge>
                       )}
                     </TableCell>
-                    {user?.role !== 'cashier' && (
+                    {user?.role !== &apos;cashier&apos; && (
                       <TableCell>
-                        <div className="flex space-x-2">
+                        <div className=&quot;flex space-x-2&quot;>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
+                                <Button
+                                  variant=&quot;outline&quot;
+                                  size=&quot;sm&quot;
                                   onClick={() => {
                                     setSelectedInventoryItem({
-                                      id: item.id,
-                                      productId: item.product.id,
-                                      productName: item.product.name,
-                                      currentQuantity: item.quantity,
-                                      minimumLevel: item.minimumLevel
+                                      _id: item.id,
+                                      _productId: item.product.id,
+                                      _productName: item.product.name,
+                                      _currentQuantity: item.quantity,
+                                      _minimumLevel: item.minimumLevel
                                     });
                                     setMinLevelDialogOpen(true);
                                   }}
                                 >
-                                  <Settings className="w-4 h-4 mr-1" />
+                                  <Settings className=&quot;w-4 h-4 mr-1&quot; />
                                   Min Level
                                 </Button>
                               </TooltipTrigger>
@@ -332,30 +332,30 @@ export function InventoryList() {
             </TableBody>
           </Table>
         </div>
-        
+
         {/* Visual indicator for stock level thresholds */}
-        <div className="mt-4 flex flex-col sm:flex-row gap-3 items-start">
-          <div className="text-sm font-medium">Stock Level Indicators:</div>
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center">
-              <Badge variant="destructive">Out of Stock</Badge>
-              <span className="ml-2 text-sm text-muted-foreground">Quantity = 0</span>
+        <div className=&quot;mt-4 flex flex-col _sm:flex-row gap-3 items-start&quot;>
+          <div className=&quot;text-sm font-medium&quot;>Stock Level Indicators:</div>
+          <div className=&quot;flex flex-wrap gap-3&quot;>
+            <div className=&quot;flex items-center&quot;>
+              <Badge variant=&quot;destructive&quot;>Out of Stock</Badge>
+              <span className=&quot;ml-2 text-sm text-muted-foreground&quot;>Quantity = 0</span>
             </div>
-            <div className="flex items-center">
-              <Badge variant="destructive">Low Stock</Badge>
-              <span className="ml-2 text-sm text-muted-foreground">Quantity &le; Minimum Level</span>
+            <div className=&quot;flex items-center&quot;>
+              <Badge variant=&quot;destructive&quot;>Low Stock</Badge>
+              <span className=&quot;ml-2 text-sm text-muted-foreground&quot;>Quantity &le; Minimum Level</span>
             </div>
-            <div className="flex items-center">
-              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">In Stock</Badge>
-              <span className="ml-2 text-sm text-muted-foreground">Quantity &gt; Minimum Level</span>
+            <div className=&quot;flex items-center&quot;>
+              <Badge variant=&quot;outline&quot; className=&quot;bg-green-100 text-green-700 border-green-200&quot;>In Stock</Badge>
+              <span className=&quot;ml-2 text-sm text-muted-foreground&quot;>Quantity &gt; Minimum Level</span>
             </div>
           </div>
         </div>
       </CardContent>
-      
+
       {/* Minimum level dialog */}
-      <MinimumLevelDialog 
-        open={minLevelDialogOpen} 
+      <MinimumLevelDialog
+        open={minLevelDialogOpen}
         onOpenChange={setMinLevelDialogOpen}
         inventoryItem={selectedInventoryItem}
       />

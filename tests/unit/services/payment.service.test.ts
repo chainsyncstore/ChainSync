@@ -4,50 +4,50 @@ import { mockCustomerData } from '../../factories/customer';
 import { mockInventoryItemData } from '../../factories/inventoryItem';
 
 describe('PaymentService Unit Tests', () => {
-  let paymentService: PaymentService;
-  let mockDb: any;
-  let mockLogger: any;
+  let _paymentService: PaymentService;
+  let _mockDb: any;
+  let _mockLogger: any;
 
   beforeEach(() => {
     mockDb = {
-      transaction: jest.fn(),
-      payment: {
-        create: jest.fn(),
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn()
+      _transaction: jest.fn(),
+      _payment: {
+        _create: jest.fn(),
+        _findMany: jest.fn(),
+        _findFirst: jest.fn(),
+        _update: jest.fn(),
+        _delete: jest.fn()
       },
-      customer: {
-        findFirst: jest.fn(),
-        update: jest.fn()
+      _customer: {
+        _findFirst: jest.fn(),
+        _update: jest.fn()
       },
-      inventoryItem: {
-        findFirst: jest.fn(),
-        update: jest.fn()
+      _inventoryItem: {
+        _findFirst: jest.fn(),
+        _update: jest.fn()
       }
     };
 
     mockLogger = {
-      info: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn()
+      _info: jest.fn(),
+      _error: jest.fn(),
+      _warn: jest.fn(),
+      _debug: jest.fn()
     };
 
     paymentService = new PaymentService(mockDb, mockLogger);
   });
 
   describe('processPayment', () => {
-    it('should successfully process a payment', async () => {
+    it('should successfully process a payment', async() => {
       const paymentData = mockPaymentData();
       const customerData = mockCustomerData();
       const inventoryData = mockInventoryItemData();
 
       mockDb.transaction.mockResolvedValue({
-        payment: { create: jest.fn().mockResolvedValue(paymentData) },
-        customer: { update: jest.fn().mockResolvedValue(customerData) },
-        inventoryItem: { update: jest.fn().mockResolvedValue(inventoryData) }
+        _payment: { _create: jest.fn().mockResolvedValue(paymentData) },
+        _customer: { _update: jest.fn().mockResolvedValue(customerData) },
+        _inventoryItem: { _update: jest.fn().mockResolvedValue(inventoryData) }
       });
 
       const result = await paymentService.processPayment(paymentData);
@@ -55,12 +55,12 @@ describe('PaymentService Unit Tests', () => {
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
       expect(mockLogger.info).toHaveBeenCalledWith('Payment processed successfully', {
-        paymentId: paymentData.id,
-        amount: paymentData.amount
+        _paymentId: paymentData.id,
+        _amount: paymentData.amount
       });
     });
 
-    it('should handle payment processing errors', async () => {
+    it('should handle payment processing errors', async() => {
       const paymentData = mockPaymentData();
       const error = new Error('Payment processing failed');
 
@@ -71,13 +71,13 @@ describe('PaymentService Unit Tests', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
       expect(mockLogger.error).toHaveBeenCalledWith('Payment processing failed', {
-        error: error.message,
+        _error: error.message,
         paymentData
       });
     });
 
-    it('should validate payment data before processing', async () => {
-      const invalidPaymentData = { ...mockPaymentData(), amount: -100 };
+    it('should validate payment data before processing', async() => {
+      const invalidPaymentData = { ...mockPaymentData(), _amount: -100 };
 
       const result = await paymentService.processPayment(invalidPaymentData);
 
@@ -87,7 +87,7 @@ describe('PaymentService Unit Tests', () => {
   });
 
   describe('getPaymentHistory', () => {
-    it('should retrieve payment history for a customer', async () => {
+    it('should retrieve payment history for a customer', async() => {
       const customerId = 'customer-123';
       const payments = [mockPaymentData(), mockPaymentData()];
 
@@ -97,12 +97,12 @@ describe('PaymentService Unit Tests', () => {
 
       expect(result).toEqual(payments);
       expect(mockDb.payment.findMany).toHaveBeenCalledWith({
-        where: { customerId },
-        orderBy: { createdAt: 'desc' }
+        _where: { customerId },
+        _orderBy: { createdAt: 'desc' }
       });
     });
 
-    it('should handle empty payment history', async () => {
+    it('should handle empty payment history', async() => {
       const customerId = 'customer-123';
 
       mockDb.payment.findMany.mockResolvedValue([]);
@@ -114,14 +114,14 @@ describe('PaymentService Unit Tests', () => {
   });
 
   describe('refundPayment', () => {
-    it('should successfully refund a payment', async () => {
+    it('should successfully refund a payment', async() => {
       const paymentId = 'payment-123';
       const refundAmount = 50;
-      const originalPayment = mockPaymentData({ amount: 100 });
+      const originalPayment = mockPaymentData({ _amount: 100 });
 
       mockDb.payment.findFirst.mockResolvedValue(originalPayment);
       mockDb.transaction.mockResolvedValue({
-        payment: { update: jest.fn().mockResolvedValue({ ...originalPayment, refunded: true }) }
+        _payment: { _update: jest.fn().mockResolvedValue({ ...originalPayment, _refunded: true }) }
       });
 
       const result = await paymentService.refundPayment(paymentId, refundAmount);
@@ -133,10 +133,10 @@ describe('PaymentService Unit Tests', () => {
       });
     });
 
-    it('should prevent refunding more than original amount', async () => {
+    it('should prevent refunding more than original amount', async() => {
       const paymentId = 'payment-123';
       const refundAmount = 150;
-      const originalPayment = mockPaymentData({ amount: 100 });
+      const originalPayment = mockPaymentData({ _amount: 100 });
 
       mockDb.payment.findFirst.mockResolvedValue(originalPayment);
 
@@ -146,7 +146,7 @@ describe('PaymentService Unit Tests', () => {
       expect(result.error).toContain('Refund amount exceeds original payment');
     });
 
-    it('should handle refund of non-existent payment', async () => {
+    it('should handle refund of non-existent payment', async() => {
       const paymentId = 'non-existent';
       const refundAmount = 50;
 
@@ -162,11 +162,11 @@ describe('PaymentService Unit Tests', () => {
   describe('validatePaymentMethod', () => {
     it('should validate credit card payment method', () => {
       const validCard = {
-        type: 'credit_card',
-        number: '4111111111111111',
-        expiryMonth: '12',
-        expiryYear: '2025',
-        cvv: '123'
+        _type: 'credit_card',
+        _number: '4111111111111111',
+        _expiryMonth: '12',
+        _expiryYear: '2025',
+        _cvv: '123'
       };
 
       const result = paymentService.validatePaymentMethod(validCard);
@@ -176,11 +176,11 @@ describe('PaymentService Unit Tests', () => {
 
     it('should reject invalid credit card number', () => {
       const invalidCard = {
-        type: 'credit_card',
-        number: '1234567890123456',
-        expiryMonth: '12',
-        expiryYear: '2025',
-        cvv: '123'
+        _type: 'credit_card',
+        _number: '1234567890123456',
+        _expiryMonth: '12',
+        _expiryYear: '2025',
+        _cvv: '123'
       };
 
       const result = paymentService.validatePaymentMethod(invalidCard);
@@ -191,10 +191,10 @@ describe('PaymentService Unit Tests', () => {
 
     it('should validate bank transfer payment method', () => {
       const validTransfer = {
-        type: 'bank_transfer',
-        accountNumber: '1234567890',
-        routingNumber: '021000021',
-        accountType: 'checking'
+        _type: 'bank_transfer',
+        _accountNumber: '1234567890',
+        _routingNumber: '021000021',
+        _accountType: 'checking'
       };
 
       const result = paymentService.validatePaymentMethod(validTransfer);
@@ -228,7 +228,7 @@ describe('PaymentService Unit Tests', () => {
   });
 
   describe('generateReceipt', () => {
-    it('should generate a receipt for a payment', async () => {
+    it('should generate a receipt for a payment', async() => {
       const payment = mockPaymentData();
       const customer = mockCustomerData();
 
@@ -241,4 +241,4 @@ describe('PaymentService Unit Tests', () => {
       expect(receipt).toHaveProperty('timestamp');
     });
   });
-}); 
+});

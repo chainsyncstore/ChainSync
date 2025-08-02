@@ -1,72 +1,72 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/providers/auth-provider";
-import { AppShell } from "@/components/layout/app-shell";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { Link } from "wouter";
-import SalesTrends from "@/components/analytics/sales-trends";
-import StoreComparison from "@/components/analytics/store-comparison";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from &apos;@/components/ui/card&apos;;
+import { Tabs, TabsContent, TabsList, TabsTrigger } from &apos;@/components/ui/tabs&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { AppShell } from &apos;@/components/layout/app-shell&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { ArrowLeft } from &apos;lucide-react&apos;;
+import { Link } from &apos;wouter&apos;;
+import SalesTrends from &apos;@/components/analytics/sales-trends&apos;;
+import StoreComparison from &apos;@/components/analytics/store-comparison&apos;;
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
-  
+  const isAdmin = user?.role === &apos;admin&apos;;
+
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
+      <div className=&quot;flex items-center justify-between mb-6&quot;>
         <div>
-          <h1 className="text-2xl font-bold text-neutral-800">Analytics Dashboard</h1>
-          <p className="text-neutral-500 mt-1">View and analyze store performance metrics</p>
+          <h1 className=&quot;text-2xl font-bold text-neutral-800&quot;>Analytics Dashboard</h1>
+          <p className=&quot;text-neutral-500 mt-1&quot;>View and analyze store performance metrics</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+        <Button variant=&quot;outline&quot; asChild>
+          <Link href=&quot;/dashboard&quot;>
+            <ArrowLeft className=&quot;mr-2 h-4 w-4&quot; />
             Back to Dashboard
           </Link>
         </Button>
       </div>
-      
-      <Tabs defaultValue="sales" className="mb-6">
+
+      <Tabs defaultValue=&quot;sales&quot; className=&quot;mb-6&quot;>
         <TabsList>
-          <TabsTrigger value="sales">Sales Trends</TabsTrigger>
-          {isAdmin && <TabsTrigger value="stores">Store Comparison</TabsTrigger>}
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
+          <TabsTrigger value=&quot;sales&quot;>Sales Trends</TabsTrigger>
+          {isAdmin && <TabsTrigger value=&quot;stores&quot;>Store Comparison</TabsTrigger>}
+          <TabsTrigger value=&quot;inventory&quot;>Inventory</TabsTrigger>
+          <TabsTrigger value=&quot;customers&quot;>Customers</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="sales" className="space-y-4">
+
+        <TabsContent value=&quot;sales&quot; className=&quot;space-y-4&quot;>
           <SalesTrends />
         </TabsContent>
-        
+
         {isAdmin && (
-          <TabsContent value="stores" className="space-y-4">
+          <TabsContent value=&quot;stores&quot; className=&quot;space-y-4&quot;>
             <StoreComparison />
           </TabsContent>
         )}
-        
-        <TabsContent value="inventory" className="space-y-4">
+
+        <TabsContent value=&quot;inventory&quot; className=&quot;space-y-4&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Inventory Analytics</CardTitle>
               <CardDescription>Inventory performance and turnover analysis</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
+              <p className=&quot;text-muted-foreground&quot;>
                 Inventory analytics will be available in a future update.
               </p>
             </CardContent>
           </Card>
         </TabsContent>
-        
-        <TabsContent value="customers" className="space-y-4">
+
+        <TabsContent value=&quot;customers&quot; className=&quot;space-y-4&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Customer Analytics</CardTitle>
               <CardDescription>Customer retention and purchase behavior</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
+              <p className=&quot;text-muted-foreground&quot;>
                 Customer analytics will be available in a future update.
               </p>
             </CardContent>

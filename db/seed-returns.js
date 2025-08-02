@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,14 +32,14 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 const index_js_1 = require('./index.js');
 const schema = __importStar(require('@shared/schema.js'));
 async function seedReturnReasons() {
   try {
     console.log('🌱 Starting return reasons seed process...');
     // Check if return reasons already exist
-    const existingReasons = await index_js_1.db.query.returnReasons.findMany({ limit: 1 });
+    const existingReasons = await index_js_1.db.query.returnReasons.findMany({ _limit: 1 });
     if (existingReasons.length > 0) {
       console.log('Return reasons already exist, skipping seed.');
       return;
@@ -48,34 +48,34 @@ async function seedReturnReasons() {
     console.log('Creating return reasons...');
     const returnReasons = [
       {
-        reason: 'Damaged Product',
-        description: 'Product was damaged or defective',
-        active: true
+        _reason: 'Damaged Product',
+        _description: 'Product was damaged or defective',
+        _active: true
       },
       {
-        reason: 'Changed Mind',
-        description: 'Customer changed their mind about the purchase',
-        active: true
+        _reason: 'Changed Mind',
+        _description: 'Customer changed their mind about the purchase',
+        _active: true
       },
       {
-        reason: 'Wrong Item',
-        description: 'Customer received the wrong item',
-        active: true
+        _reason: 'Wrong Item',
+        _description: 'Customer received the wrong item',
+        _active: true
       },
       {
-        reason: 'Expired Product',
-        description: 'Product was expired or spoiled',
-        active: true
+        _reason: 'Expired Product',
+        _description: 'Product was expired or spoiled',
+        _active: true
       },
       {
-        reason: 'Incorrect Price',
-        description: 'Item was priced incorrectly at time of sale',
-        active: true
+        _reason: 'Incorrect Price',
+        _description: 'Item was priced incorrectly at time of sale',
+        _active: true
       },
       {
-        reason: 'Quality Issues',
-        description: 'Product quality did not meet customer expectations',
-        active: true
+        _reason: 'Quality Issues',
+        _description: 'Product quality did not meet customer expectations',
+        _active: true
       }
     ];
     for (const reason of returnReasons) {
@@ -84,7 +84,7 @@ async function seedReturnReasons() {
     console.log(`✅ Created ${returnReasons.length} return reasons successfully!`);
   }
   catch (error) {
-    console.error('❌ Return reasons seed failed:', error);
+    console.error('❌ Return reasons seed _failed:', error);
   }
 }
 seedReturnReasons();

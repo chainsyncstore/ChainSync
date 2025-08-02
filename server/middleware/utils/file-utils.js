@@ -1,20 +1,20 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.FileUtils = void 0;
 const sanitize_filename_1 = __importDefault(require('sanitize-filename'));
 const crypto_1 = __importDefault(require('crypto'));
 exports.FileUtils = {
-  VALID_FILENAME_REGEX: /^[a-zA-Z0-9._-]+$/,
-  sanitizeFilename: (filename) => {
+  _VALID_FILENAME_REGEX: /^[a-zA-Z0-9._-]+$/,
+  _sanitizeFilename: (filename) => {
     return (0, sanitize_filename_1.default)(filename);
   },
-  validateFilename: (filename) => {
+  _validateFilename: (filename) => {
     return exports.FileUtils.VALID_FILENAME_REGEX.test(filename);
   },
-  validateFileExtension: async(mimeType) => {
+  _validateFileExtension: async(mimeType) => {
     const allowedMimeTypes = [
       'application/pdf',
       'application/msword',
@@ -35,10 +35,10 @@ exports.FileUtils = {
     ];
     return allowedMimeTypes.includes(mimeType);
   },
-  calculateFileSize: (buffer) => {
+  _calculateFileSize: (buffer) => {
     return buffer.byteLength;
   },
-  calculateFileHash: async(buffer) => {
+  _calculateFileHash: async(buffer) => {
     return new Promise((resolve, reject) => {
       const hash = crypto_1.default.createHash('sha256');
       hash.update(buffer);

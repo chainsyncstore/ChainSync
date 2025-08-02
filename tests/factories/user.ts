@@ -1,12 +1,12 @@
 import * as schema from '@shared/schema';
 
-export function makeMockUser(overrides: Partial<schema.UserInsert> = {}): schema.UserInsert {
+export function makeMockUser(_overrides: Partial<schema.UserInsert> = {}): schema.UserInsert {
   return {
-    name: `testuser_${Date.now()}`,
-    email: `test.user.${Date.now()}@example.com`,
-    password: 'password123', // required field
-    role: 'cashier',
-    storeId: 1,
-    ...overrides,
+    _name: `testuser_${Date.now()}`,
+    _email: `test.user.${Date.now()}@example.com`,
+    _password: 'password123', // required field
+    _role: 'cashier',
+    _storeId: 1,
+    ...overrides
   };
 }

@@ -21,11 +21,11 @@ interface ProductImportRow {
 }
 
 interface ValidatedProduct {
-  name: string;
-  sku: string;
-  categoryId: number;
-  price: string;
-  stock: number;
+  _name: string;
+  _sku: string;
+  _categoryId: number;
+  _price: string;
+  _stock: number;
   expiryDate?: Date | null;
   description?: string;
   barcode?: string;
@@ -35,51 +35,51 @@ interface ValidatedProduct {
 }
 
 interface ValidationError {
-  row: number;
-  field: string;
-  value: string;
-  message: string;
+  _row: number;
+  _field: string;
+  _value: string;
+  _message: string;
 }
 
 interface ImportSummary {
-  totalRows: number;
-  processedRows: number;
-  skippedRows: number;
-  newCategories: string[];
-  errors: ValidationError[];
+  _totalRows: number;
+  _processedRows: number;
+  _skippedRows: number;
+  _newCategories: string[];
+  _errors: ValidationError[];
 }
 
 /**
  * Comprehensive error handling for CSV parsing
  */
-function handleCSVParseError(error: Error, csvContent: string): never {
+function handleCSVParseError(_error: Error, _csvContent: string): never {
   logError(error, 'CSV parsing failed');
-  
+
   if (error.message.includes('Invalid CSV')) {
     throw new AppError(
       'Invalid CSV format. Please check your file and try again.',
       ErrorCategory.INVALID_FORMAT,
       ErrorCode.INVALID_IMPORT_FILE,
-      { originalError: error.message },
+      { _originalError: error.message },
       400
     );
   }
-  
+
   if (error.message.includes('Unexpected end')) {
     throw new AppError(
       'CSV file appears to be incomplete or corrupted.',
       ErrorCategory.INVALID_FORMAT,
       ErrorCode.INVALID_IMPORT_FILE,
-      { originalError: error.message },
+      { _originalError: error.message },
       400
     );
   }
-  
+
   throw new AppError(
     'Failed to parse CSV file. Please ensure the file is properly formatted.',
     ErrorCategory.PROCESSING,
     ErrorCode.IMPORT_FAILED,
-    { originalError: error.message },
+    { _originalError: error.message },
     500
   );
 }
@@ -87,59 +87,59 @@ function handleCSVParseError(error: Error, csvContent: string): never {
 /**
  * Validate and sanitize product data
  */
-function validateProductData(row: ProductImportRow, rowIndex: number): ValidatedProduct | null {
-  const errors: ValidationError[] = [];
-  
+function validateProductData(_row: ProductImportRow, _rowIndex: number): ValidatedProduct | null {
+  const _errors: ValidationError[] = [];
+
   // Validate required fields
   if (!row['Product Name']?.trim()) {
     errors.push({
-      row: rowIndex,
-      field: 'Product Name',
-      value: row['Product Name'] || '',
-      message: 'Product name is required'
+      _row: rowIndex,
+      _field: 'Product Name',
+      _value: row['Product Name'] || '',
+      _message: 'Product name is required'
     });
   }
-  
+
   if (!row['SKU']?.trim()) {
     errors.push({
-      row: rowIndex,
-      field: 'SKU',
-      value: row['SKU'] || '',
-      message: 'SKU is required'
+      _row: rowIndex,
+      _field: 'SKU',
+      _value: row['SKU'] || '',
+      _message: 'SKU is required'
     });
   }
-  
+
   if (!row['Price'] || isNaN(parseFloat(row['Price']))) {
     errors.push({
-      row: rowIndex,
-      field: 'Price',
-      value: row['Price'] || '',
-      message: 'Price must be a valid number'
+      _row: rowIndex,
+      _field: 'Price',
+      _value: row['Price'] || '',
+      _message: 'Price must be a valid number'
     });
   }
-  
+
   if (!row['Stock'] || isNaN(parseInt(row['Stock']))) {
     errors.push({
-      row: rowIndex,
-      field: 'Stock',
-      value: row['Stock'] || '',
-      message: 'Stock must be a valid number'
+      _row: rowIndex,
+      _field: 'Stock',
+      _value: row['Stock'] || '',
+      _message: 'Stock must be a valid number'
     });
   }
-  
+
   // If there are validation errors, throw them
   if (errors.length > 0) {
     throw new AppError(
       `Validation errors in row ${rowIndex}`,
       ErrorCategory.VALIDATION,
       ErrorCode.VALIDATION_ERROR,
-      { validationErrors: errors },
+      { _validationErrors: errors },
       400
     );
   }
-  
+
   // Validate optional fields
-  let expiryDate: Date | null = null;
+  const _expiryDate: Date | null = null;
   if (row['Expiry Date']?.trim()) {
     try {
       expiryDate = new Date(row['Expiry Date']);
@@ -148,42 +148,42 @@ function validateProductData(row: ProductImportRow, rowIndex: number): Validated
       }
     } catch (error) {
       errors.push({
-        row: rowIndex,
-        field: 'Expiry Date',
-        value: row['Expiry Date'],
-        message: 'Invalid date format. Use YYYY-MM-DD format.'
+        _row: rowIndex,
+        _field: 'Expiry Date',
+        _value: row['Expiry Date'],
+        _message: 'Invalid date format. Use YYYY-MM-DD format.'
       });
     }
   }
-  
+
   if (row['Cost Price'] && isNaN(parseFloat(row['Cost Price']))) {
     errors.push({
-      row: rowIndex,
-      field: 'Cost Price',
-      value: row['Cost Price'],
-      message: 'Cost price must be a valid number'
+      _row: rowIndex,
+      _field: 'Cost Price',
+      _value: row['Cost Price'],
+      _message: 'Cost price must be a valid number'
     });
   }
-  
+
   // Return null if there are validation errors
   if (errors.length > 0) {
     return null;
   }
-  
+
   // Return validated product data
   return {
-    name: row['Product Name']?.trim() || '',
-    sku: row['SKU']?.trim() || '',
-    categoryId: 0, // Will be set later
-    price: parseFloat(row['Price'] || '0').toFixed(2),
-    stock: parseInt(row['Stock'] || '0'),
+    _name: row['Product Name']?.trim() || '',
+    _sku: row['SKU']?.trim() || '',
+    _categoryId: 0, // Will be set later
+    _price: parseFloat(row['Price'] || '0').toFixed(2),
+    _stock: parseInt(row['Stock'] || '0'),
     expiryDate,
-    ...(row['Description']?.trim() && { description: row['Description'].trim() }),
-    ...(row['Barcode']?.trim() && { barcode: row['Barcode'].trim() }),
-    ...(row['Image URL']?.trim() && { imageUrl: row['Image URL'].trim() }),
-    ...(row['Supplier']?.trim() && { supplier: row['Supplier'].trim() }),
-    ...(row['Cost Price'] && !isNaN(parseFloat(row['Cost Price'])) && 
-        { costPrice: parseFloat(row['Cost Price']).toFixed(2) })
+    ...(row['Description']?.trim() && { _description: row['Description'].trim() }),
+    ...(row['Barcode']?.trim() && { _barcode: row['Barcode'].trim() }),
+    ...(row['Image URL']?.trim() && { _imageUrl: row['Image URL'].trim() }),
+    ...(row['Supplier']?.trim() && { _supplier: row['Supplier'].trim() }),
+    ...(row['Cost Price'] && !isNaN(parseFloat(row['Cost Price'])) &&
+        { _costPrice: parseFloat(row['Cost Price']).toFixed(2) })
   };
 }
 
@@ -191,13 +191,13 @@ function validateProductData(row: ProductImportRow, rowIndex: number): Validated
  * Handle category creation with proper error handling
  */
 async function handleCategoryCreation(
-  categoryName: string, 
-  categoryCache: Record<string, number>,
-  summary: ImportSummary
+  _categoryName: string,
+  _categoryCache: Record<string, number>,
+  _summary: ImportSummary
 ): Promise<number> {
   try {
     const insertedCategory = await db.insert(categories)
-      .values({ name: categoryName })
+      .values({ _name: categoryName })
       .returning();
 
     if (insertedCategory && insertedCategory[0]) {
@@ -206,22 +206,22 @@ async function handleCategoryCreation(
       summary.newCategories.push(categoryName);
       return categoryId;
     }
-    
+
     throw new Error('Category insertion failed - no ID returned');
   } catch (error) {
-    logError(error as Error, `Failed to create category: ${categoryName}`);
-    
+    logError(error as Error, `Failed to create _category: ${categoryName}`);
+
     // Try to use Uncategorized as fallback
     if (categoryCache['uncategorized']) {
       return categoryCache['uncategorized'];
     }
-    
+
     // Create Uncategorized category as final fallback
     try {
       const uncategorized = await db.insert(categories)
-        .values({ name: 'Uncategorized' })
+        .values({ _name: 'Uncategorized' })
         .returning();
-      
+
       if (uncategorized && uncategorized[0]) {
         const categoryId = uncategorized[0].id as number;
         categoryCache['uncategorized'] = categoryId;
@@ -234,50 +234,50 @@ async function handleCategoryCreation(
         'Failed to create category and fallback category creation also failed',
         ErrorCategory.DATABASE,
         ErrorCode.DATABASE_ERROR,
-        { 
-          originalError: (error as Error).message,
-          fallbackError: (fallbackError as Error).message 
+        {
+          _originalError: (error as Error).message,
+          _fallbackError: (fallbackError as Error).message
         },
         500
       );
     }
-    
+
     throw new AppError(
       `Failed to create category '${categoryName}'`,
       ErrorCategory.DATABASE,
       ErrorCode.DATABASE_ERROR,
-      { originalError: (error as Error).message },
+      { _originalError: (error as Error).message },
       500
     );
   }
 }
 
 export async function validateProductImportCSV(
-  csvContent: string,
-  storeId: number
+  _csvContent: string,
+  _storeId: number
 ): Promise<{
-  validProducts: ValidatedProduct[];
-  summary: ImportSummary;
+  _validProducts: ValidatedProduct[];
+  _summary: ImportSummary;
 }> {
   return new Promise((resolve, reject) => {
-    const validProducts: ValidatedProduct[] = [];
-    const summary: ImportSummary = {
-      totalRows: 0,
-      processedRows: 0,
-      skippedRows: 0,
-      newCategories: [],
-      errors: []
+    const _validProducts: ValidatedProduct[] = [];
+    const _summary: ImportSummary = {
+      _totalRows: 0,
+      _processedRows: 0,
+      _skippedRows: 0,
+      _newCategories: [],
+      _errors: []
     };
 
     // Store category mapping (name -> id) to avoid duplicate lookups
-    const categoryCache: Record<string, number> = {};
+    const _categoryCache: Record<string, number> = {};
 
     // Parse CSV with comprehensive error handling
     parse(csvContent, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true
-    }, async(err, records: ProductImportRow[]) => {
+      _columns: true,
+      _skip_empty_lines: true,
+      _trim: true
+    }, async(err, _records: ProductImportRow[]) => {
       if (err) {
         return reject(handleCSVParseError(err, csvContent));
       }
@@ -300,10 +300,10 @@ export async function validateProductImportCSV(
             // Add null check for row
             if (!row) {
               summary.errors.push({
-                row: rowIndex,
-                field: 'General',
-                value: '',
-                message: 'Row is empty or undefined'
+                _row: rowIndex,
+                _field: 'General',
+                _value: '',
+                _message: 'Row is empty or undefined'
               });
               summary.skippedRows++;
               continue;
@@ -318,7 +318,7 @@ export async function validateProductImportCSV(
 
             // Handle category assignment
             const categoryName = row['Category'] ? row['Category'].trim() : 'Uncategorized';
-            let categoryId: number;
+            let _categoryId: number;
 
             if (categoryCache[categoryName.toLowerCase()]) {
               // Category exists, use cached ID
@@ -347,10 +347,10 @@ export async function validateProductImportCSV(
               // Log unexpected errors and continue
               logError(error as Error, `Unexpected error processing row ${rowIndex}`);
               summary.errors.push({
-                row: rowIndex,
-                field: 'General',
-                value: '',
-                message: `Unexpected error: ${(error as Error).message}`
+                _row: rowIndex,
+                _field: 'General',
+                _value: '',
+                _message: `Unexpected error: ${(error as Error).message}`
               });
               summary.skippedRows++;
             }
@@ -366,15 +366,15 @@ export async function validateProductImportCSV(
 }
 
 export async function importProducts(
-  validProducts: ValidatedProduct[],
-  storeId: number
+  _validProducts: ValidatedProduct[],
+  _storeId: number
 ): Promise<{
-  success: boolean;
-  importedCount: number;
-  failedProducts: Array<{product: ValidatedProduct; error: string}>;
+  _success: boolean;
+  _importedCount: number;
+  _failedProducts: Array<{_product: ValidatedProduct; _error: string}>;
 }> {
   let importedCount = 0;
-  const failedProducts: Array<{product: ValidatedProduct; error: string}> = [];
+  const _failedProducts: Array<{_product: ValidatedProduct; _error: string}> = [];
 
   try {
     // Insert products in batches to avoid overwhelming the database
@@ -387,22 +387,22 @@ export async function importProducts(
         try {
           // Check if product with SKU already exists
           const existingProduct = await db.query.products.findFirst({
-            where: eq(schema.products.sku, product.sku)
+            _where: eq(schema.products.sku, product.sku)
           });
 
           if (existingProduct) {
             // Update existing product
             await db.update(schema.products)
               .set({
-                name: product.name,
-                price: product.price,
-                sku: existingProduct.sku
+                _name: product.name,
+                _price: product.price,
+                _sku: existingProduct.sku
               })
               .where(eq(schema.products.id, existingProduct.id));
 
             // Update or create inventory for this store and product
             const inventory = await db.query.inventory.findFirst({
-              where: (inventory) =>
+              _where: (inventory) =>
                 eq(inventory.productId, existingProduct.id) &&
                 eq(inventory.storeId, storeId)
             });
@@ -411,14 +411,14 @@ export async function importProducts(
               // Update existing inventory
               await db.update(schema.inventory)
                 .set({
-                  storeId: inventory.storeId
+                  _storeId: inventory.storeId
                 })
                 .where(eq(schema.inventory.id, inventory.id));
             } else {
               // Create new inventory entry
               await db.insert(schema.inventory)
                 .values({
-                  productId: existingProduct.id,
+                  _productId: existingProduct.id,
                   storeId
                 });
             }
@@ -426,10 +426,10 @@ export async function importProducts(
             // Insert new product
             const [insertedProduct] = await db.insert(schema.products)
               .values({
-                name: product.name,
-                sku: product.sku,
+                _name: product.name,
+                _sku: product.sku,
                 storeId,
-                price: product.price
+                _price: product.price
               })
               .returning();
 
@@ -437,19 +437,19 @@ export async function importProducts(
               // Create inventory for this store and product
               await db.insert(schema.inventory)
                 .values({
-                  productId: insertedProduct.id,
+                  _productId: insertedProduct.id,
                   storeId,
-                  availableQuantity: product.stock
+                  _availableQuantity: product.stock
                 } as any);
             }
           }
-          
+
           importedCount++;
         } catch (error) {
           logError(error as Error, `Error importing product '${product.name}'`);
           failedProducts.push({
             product,
-            error: (error as Error).message
+            _error: (error as Error).message
           });
           continue;
         }
@@ -457,20 +457,20 @@ export async function importProducts(
     }
 
     return {
-      success: true,
+      _success: true,
       importedCount,
       failedProducts
     };
   } catch (error) {
     logError(error as Error, 'Bulk import failed');
     return {
-      success: false,
+      _success: false,
       importedCount,
-      failedProducts: [
+      _failedProducts: [
         ...failedProducts,
         ...validProducts.map(product => ({
           product,
-          error: 'Bulk import failed'
+          _error: 'Bulk import failed'
         }))
       ]
     };

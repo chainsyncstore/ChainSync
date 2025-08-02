@@ -1,41 +1,41 @@
 // This file helps TypeScript understand the path aliases used in the project
 declare module "@/*" {
   // This tells TypeScript that modules from @/* are in the client/src directory
-  const value: any;
+  const _value: any;
   export default value;
 }
 
 declare module "@/components/*" {
-  const value: any;
+  const _value: any;
   export default value;
 }
 
 declare module "@/lib/*" {
-  const value: any;
+  const _value: any;
   export default value;
 }
 
 declare module "@/providers/*" {
-  const value: any;
+  const _value: any;
   export default value;
 }
 
 declare module "@/pages/*" {
-  const value: any;
+  const _value: any;
   export default value;
 }
 
 declare module "@/hooks/*" {
-  const value: any;
+  const _value: any;
   export default value;
 }
 
 declare module "@/utils/*" {
-  const value: any;
+  const _value: any;
   export default value;
 }
 
 declare module "@/types/*" {
-  const value: any;
+  const _value: any;
   export default value;
 }

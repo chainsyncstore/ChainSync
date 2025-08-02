@@ -5,43 +5,43 @@ import { mockPaymentData, mockCustomerData } from '../factories/payment';
 import { mockInventoryItemData } from '../factories/inventoryItem';
 
 describe('Payment Flow Integration Tests', () => {
-  let testDb: any;
-  let authToken: string;
+  let _testDb: any;
+  let _authToken: string;
 
-  beforeAll(async () => {
+  beforeAll(async() => {
     testDb = await setupTestDatabase();
-    
+
     // Create test customer and get auth token
     const customerData = mockCustomerData();
     const registerResponse = await request(app)
       .post('/api/auth/register')
       .send(customerData);
-    
+
     authToken = registerResponse.body.token;
   });
 
-  afterAll(async () => {
+  afterAll(async() => {
     await teardownTestDatabase(testDb);
   });
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Clear test data before each test
     await testDb.payment.deleteMany();
     await testDb.transaction.deleteMany();
   });
 
   describe('Complete Payment Flow', () => {
-    it('should process a complete payment from cart to receipt', async () => {
+    it('should process a complete payment from cart to receipt', async() => {
       // 1. Add items to cart
       const cartItems = [
-        { productId: 'product-1', quantity: 2, price: 25.00 },
-        { productId: 'product-2', quantity: 1, price: 50.00 }
+        { _productId: 'product-1', _quantity: 2, _price: 25.00 },
+        { _productId: 'product-2', _quantity: 1, _price: 50.00 }
       ];
 
       const cartResponse = await request(app)
         .post('/api/cart/add')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ items: cartItems });
+        .send({ _items: cartItems });
 
       expect(cartResponse.status).toBe(200);
       expect(cartResponse.body.total).toBe(100.00);
@@ -51,9 +51,9 @@ describe('Payment Flow Integration Tests', () => {
         .post('/api/payments/create-intent')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          amount: 100.00,
-          currency: 'USD',
-          paymentMethod: 'credit_card'
+          _amount: 100.00,
+          _currency: 'USD',
+          _paymentMethod: 'credit_card'
         });
 
       expect(paymentIntentResponse.status).toBe(200);
@@ -61,13 +61,13 @@ describe('Payment Flow Integration Tests', () => {
 
       // 3. Process payment
       const paymentData = {
-        paymentIntentId: paymentIntentResponse.body.id,
-        paymentMethod: {
+        _paymentIntentId: paymentIntentResponse.body.id,
+        _paymentMethod: {
           type: 'credit_card',
-          number: '4242424242424242',
-          expiryMonth: '12',
-          expiryYear: '2025',
-          cvv: '123'
+          _number: '4242424242424242',
+          _expiryMonth: '12',
+          _expiryYear: '2025',
+          _cvv: '123'
         }
       };
 
@@ -82,7 +82,7 @@ describe('Payment Flow Integration Tests', () => {
 
       // 4. Verify payment in database
       const payment = await testDb.payment.findFirst({
-        where: { id: paymentResponse.body.paymentId }
+        _where: { _id: paymentResponse.body.paymentId }
       });
 
       expect(payment).toBeDefined();
@@ -91,10 +91,10 @@ describe('Payment Flow Integration Tests', () => {
 
       // 5. Verify inventory updated
       const inventory1 = await testDb.inventoryItem.findFirst({
-        where: { productId: 'product-1' }
+        _where: { productId: 'product-1' }
       });
       const inventory2 = await testDb.inventoryItem.findFirst({
-        where: { productId: 'product-2' }
+        _where: { productId: 'product-2' }
       });
 
       expect(inventory1.quantity).toBeLessThan(inventory1.originalQuantity);
@@ -110,26 +110,26 @@ describe('Payment Flow Integration Tests', () => {
       expect(receiptResponse.body.items).toHaveLength(2);
     });
 
-    it('should handle payment failure gracefully', async () => {
+    it('should handle payment failure gracefully', async() => {
       // Create payment intent
       const paymentIntentResponse = await request(app)
         .post('/api/payments/create-intent')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          amount: 50.00,
-          currency: 'USD',
-          paymentMethod: 'credit_card'
+          _amount: 50.00,
+          _currency: 'USD',
+          _paymentMethod: 'credit_card'
         });
 
       // Process payment with declined card
       const paymentData = {
-        paymentIntentId: paymentIntentResponse.body.id,
-        paymentMethod: {
+        _paymentIntentId: paymentIntentResponse.body.id,
+        _paymentMethod: {
           type: 'credit_card',
-          number: '4000000000000002', // Declined card
-          expiryMonth: '12',
-          expiryYear: '2025',
-          cvv: '123'
+          _number: '4000000000000002', // Declined card
+          _expiryMonth: '12',
+          _expiryYear: '2025',
+          _cvv: '123'
         }
       };
 
@@ -144,34 +144,34 @@ describe('Payment Flow Integration Tests', () => {
 
       // Verify payment status in database
       const payment = await testDb.payment.findFirst({
-        where: { paymentIntentId: paymentIntentResponse.body.id }
+        _where: { _paymentIntentId: paymentIntentResponse.body.id }
       });
 
       expect(payment.status).toBe('failed');
     });
 
-    it('should process refund successfully', async () => {
+    it('should process refund successfully', async() => {
       // First create a successful payment
       const paymentIntentResponse = await request(app)
         .post('/api/payments/create-intent')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          amount: 75.00,
-          currency: 'USD',
-          paymentMethod: 'credit_card'
+          _amount: 75.00,
+          _currency: 'USD',
+          _paymentMethod: 'credit_card'
         });
 
       const paymentResponse = await request(app)
         .post('/api/payments/process')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          paymentIntentId: paymentIntentResponse.body.id,
-          paymentMethod: {
+          _paymentIntentId: paymentIntentResponse.body.id,
+          _paymentMethod: {
             type: 'credit_card',
-            number: '4242424242424242',
-            expiryMonth: '12',
-            expiryYear: '2025',
-            cvv: '123'
+            _number: '4242424242424242',
+            _expiryMonth: '12',
+            _expiryYear: '2025',
+            _cvv: '123'
           }
         });
 
@@ -182,8 +182,8 @@ describe('Payment Flow Integration Tests', () => {
         .post(`/api/payments/${paymentId}/refund`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          amount: 25.00,
-          reason: 'Customer request'
+          _amount: 25.00,
+          _reason: 'Customer request'
         });
 
       expect(refundResponse.status).toBe(200);
@@ -192,9 +192,9 @@ describe('Payment Flow Integration Tests', () => {
 
       // Verify refund in database
       const refund = await testDb.transaction.findFirst({
-        where: { 
+        _where: {
           paymentId,
-          type: 'refund'
+          _type: 'refund'
         }
       });
 
@@ -204,7 +204,7 @@ describe('Payment Flow Integration Tests', () => {
 
       // Verify original payment updated
       const payment = await testDb.payment.findFirst({
-        where: { id: paymentId }
+        _where: { _id: paymentId }
       });
 
       expect(payment.refunded).toBe(true);
@@ -213,29 +213,29 @@ describe('Payment Flow Integration Tests', () => {
   });
 
   describe('Payment Validation', () => {
-    it('should validate payment amount limits', async () => {
+    it('should validate payment amount limits', async() => {
       const response = await request(app)
         .post('/api/payments/create-intent')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          amount: 100000.00, // Exceeds limit
-          currency: 'USD',
-          paymentMethod: 'credit_card'
+          _amount: 100000.00, // Exceeds limit
+          _currency: 'USD',
+          _paymentMethod: 'credit_card'
         });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Amount exceeds maximum limit');
     });
 
-    it('should validate payment method', async () => {
+    it('should validate payment method', async() => {
       const response = await request(app)
         .post('/api/payments/process')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          paymentIntentId: 'test-intent',
-          paymentMethod: {
+          _paymentIntentId: 'test-intent',
+          _paymentMethod: {
             type: 'invalid_method',
-            number: '1234567890123456'
+            _number: '1234567890123456'
           }
         });
 
@@ -245,25 +245,25 @@ describe('Payment Flow Integration Tests', () => {
   });
 
   describe('Payment Security', () => {
-    it('should prevent duplicate payment processing', async () => {
+    it('should prevent duplicate payment processing', async() => {
       // Create and process payment
       const paymentIntentResponse = await request(app)
         .post('/api/payments/create-intent')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          amount: 50.00,
-          currency: 'USD',
-          paymentMethod: 'credit_card'
+          _amount: 50.00,
+          _currency: 'USD',
+          _paymentMethod: 'credit_card'
         });
 
       const paymentData = {
-        paymentIntentId: paymentIntentResponse.body.id,
-        paymentMethod: {
+        _paymentIntentId: paymentIntentResponse.body.id,
+        _paymentMethod: {
           type: 'credit_card',
-          number: '4242424242424242',
-          expiryMonth: '12',
-          expiryYear: '2025',
-          cvv: '123'
+          _number: '4242424242424242',
+          _expiryMonth: '12',
+          _expiryYear: '2025',
+          _cvv: '123'
         }
       };
 
@@ -285,28 +285,28 @@ describe('Payment Flow Integration Tests', () => {
       expect(secondPayment.body.error).toContain('Payment already processed');
     });
 
-    it('should validate user ownership of payment', async () => {
+    it('should validate user ownership of payment', async() => {
       // Create payment for user
       const paymentIntentResponse = await request(app)
         .post('/api/payments/create-intent')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          amount: 50.00,
-          currency: 'USD',
-          paymentMethod: 'credit_card'
+          _amount: 50.00,
+          _currency: 'USD',
+          _paymentMethod: 'credit_card'
         });
 
       const paymentResponse = await request(app)
         .post('/api/payments/process')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          paymentIntentId: paymentIntentResponse.body.id,
-          paymentMethod: {
+          _paymentIntentId: paymentIntentResponse.body.id,
+          _paymentMethod: {
             type: 'credit_card',
-            number: '4242424242424242',
-            expiryMonth: '12',
-            expiryYear: '2025',
-            cvv: '123'
+            _number: '4242424242424242',
+            _expiryMonth: '12',
+            _expiryYear: '2025',
+            _cvv: '123'
           }
         });
 
@@ -323,29 +323,29 @@ describe('Payment Flow Integration Tests', () => {
   });
 
   describe('Payment Analytics', () => {
-    it('should track payment metrics', async () => {
+    it('should track payment metrics', async() => {
       // Process multiple payments
       for (let i = 0; i < 3; i++) {
         const paymentIntentResponse = await request(app)
           .post('/api/payments/create-intent')
           .set('Authorization', `Bearer ${authToken}`)
           .send({
-            amount: 50.00 + (i * 10),
-            currency: 'USD',
-            paymentMethod: 'credit_card'
+            _amount: 50.00 + (i * 10),
+            _currency: 'USD',
+            _paymentMethod: 'credit_card'
           });
 
         await request(app)
           .post('/api/payments/process')
           .set('Authorization', `Bearer ${authToken}`)
           .send({
-            paymentIntentId: paymentIntentResponse.body.id,
-            paymentMethod: {
+            _paymentIntentId: paymentIntentResponse.body.id,
+            _paymentMethod: {
               type: 'credit_card',
-              number: '4242424242424242',
-              expiryMonth: '12',
-              expiryYear: '2025',
-              cvv: '123'
+              _number: '4242424242424242',
+              _expiryMonth: '12',
+              _expiryYear: '2025',
+              _cvv: '123'
             }
           });
       }
@@ -355,8 +355,8 @@ describe('Payment Flow Integration Tests', () => {
         .get('/api/analytics/payments')
         .set('Authorization', `Bearer ${authToken}`)
         .query({
-          startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          endDate: new Date().toISOString()
+          _startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          _endDate: new Date().toISOString()
         });
 
       expect(analyticsResponse.status).toBe(200);
@@ -365,4 +365,4 @@ describe('Payment Flow Integration Tests', () => {
       expect(analyticsResponse.body.successRate).toBe(100);
     });
   });
-}); 
+});

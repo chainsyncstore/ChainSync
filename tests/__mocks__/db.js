@@ -2,8 +2,8 @@
 // Provides models with Prisma-like CRUD methods (create, findMany, findUnique, deleteMany, update)
 
 // Internal state storage
-const _objectStore = new Map(); // key: table object reference -> rows array
-const _legacyStore = {}; // key: string model name -> rows array
+const _objectStore = new Map(); // _key: table object reference -> rows array
+const _legacyStore = {}; // _key: string model name -> rows array
 // Map from inferred table name (string) to table object reference so that
 // we can resolve `db.query.<table>` calls
 const _tableByName = new Map();
@@ -49,7 +49,7 @@ function makeModelProxy(modelName) {
     async create({ data }) {
       const rows = table(modelName);
       const recId = data.id ?? rows.length + 1;
-      const rec = { ...data, id: recId };
+      const rec = { ...data, _id: recId };
       rows.push(rec);
       return rec;
     },
@@ -82,7 +82,7 @@ function makeModelProxy(modelName) {
 function applyData(row, data) {
   const newData = typeof data === 'function' ? data(row) : data;
   const processed = { ...newData };
-  // Handle increment/decrement object { increment: n } or { decrement: n }
+  // Handle increment/decrement object { _increment: n } or { _decrement: n }
   if (
     processed &&
     typeof processed.loyaltyPoints === 'object' &&
@@ -119,7 +119,7 @@ function insertBuilder(tableObj) {
   registerTable(tableObj);
   return {
     values(data) {
-      const rec = { ...data, id: data.id ?? getRows(tableObj).length + 1 };
+      const rec = { ...data, _id: data.id ?? getRows(tableObj).length + 1 };
       getRows(tableObj).push(rec);
       return {
         returning() {
@@ -168,7 +168,7 @@ function selectBuilder() {
             limit(n){
               return results.slice(0, n);
             },
-            all: () => results,
+            _all: () => results,
             *[Symbol.iterator]() { for(const r of results) yield r; }
           };
         },
@@ -183,7 +183,7 @@ function selectBuilder() {
 function deleteRows(tableObj) {
   registerTable(tableObj);
   _objectStore.set(tableObj, []);
-  return { where: () => ({}) };
+  return { _where: () => ({}) };
 }
 
 const queryProxy = new Proxy(
@@ -192,8 +192,8 @@ const queryProxy = new Proxy(
     get(_t, prop) {
       const tableObj = _tableByName.get(prop) || prop;
       return {
-        findMany: ({ where = {} } = {}) => makeModelProxy(prop).findMany({ where }),
-        findFirst: async () => (await makeModelProxy(prop).findMany())[0] ?? null,
+        _findMany: ({ where = {} } = {}) => makeModelProxy(prop).findMany({ where }),
+        _findFirst: async () => (await makeModelProxy(prop).findMany())[0] ?? null,
       };
     },
   }
@@ -212,13 +212,13 @@ const models = [
 
 // Base object exposing Drizzle-like helpers
 const baseDb = {
-  insert: insertBuilder,
-  update: updateBuilder,
-  select: selectBuilder,
-  delete: deleteRows,
+  _insert: insertBuilder,
+  _update: updateBuilder,
+  _select: selectBuilder,
+  _delete: deleteRows,
   raw,
-  raw: sql => sql,
-  query: queryProxy,
+  _raw: sql => sql,
+  _query: queryProxy,
   table,
   insert,
   update,
@@ -272,7 +272,7 @@ function insert(tableObj){
     values(vals){
       const rows = getRows(tableObj);
       const recId = vals.id ?? rows.length+1;
-      const rec = { ...vals, id: recId };
+      const rec = { ...vals, _id: recId };
       rows.push(rec);
       return {
         returning(){ return [rec]; }
@@ -313,4 +313,4 @@ function del(tableObj){
   };
 }
 
-module.exports = { db, default: db };
+module.exports = { db, _default: db };

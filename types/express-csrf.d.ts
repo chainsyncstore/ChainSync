@@ -21,7 +21,7 @@ declare module 'express-csrf' {
   export function csrf(options?: CSRFOptions): RequestHandler;
   
   // Also export as default for compatibility
-  const csrfMiddleware: {
+  const _csrfMiddleware: {
     (options?: CSRFOptions): RequestHandler;
   };
   

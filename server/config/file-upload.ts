@@ -1,22 +1,23 @@
 import { AppError, ErrorCode, ErrorCategory } from '../middleware/types/error';
 
 export interface FileUploadConfig {
-  maxFileSize: number; // in bytes
-  maxTotalUploadSize: number; // in bytes
-  allowedMimeTypes: string[];
-  maxFiles: number;
-  destination: string;
-  filename: (req: any, file: any, cb: (error: Error | null, filename: string) => void) => void;
-  allowedFileExtensions: string[];
-  cleanupInterval: number;
-  cacheTTL: number;
-  maxUploadAttempts: number;
-  rateLimit: { windowMs: number; max: number; };
+  _maxFileSize: number; // in bytes
+  _maxTotalUploadSize: number; // in bytes
+  _allowedMimeTypes: string[];
+  _maxFiles: number;
+  _destination: string;
+  filename: (_req: any, _file: any, _cb: (_error: Error | null, _filename: string)
+   = > void) => void;
+  _allowedFileExtensions: string[];
+  _cleanupInterval: number;
+  _cacheTTL: number;
+  _maxUploadAttempts: number;
+  rateLimit: { _windowMs: number; _max: number; };
 }
 
 export interface FileUploadError extends AppError {
-  code: ErrorCode;
-  category: ErrorCategory;
+  _code: ErrorCode;
+  _category: ErrorCategory;
   retryable?: boolean;
   retryDelay?: number;
   file?: any;
@@ -25,74 +26,74 @@ export interface FileUploadError extends AppError {
 
 export const FileUploadErrors = {
   FILE_TOO_LARGE: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.FILE_TOO_LARGE,
-    message: 'File size exceeds maximum allowed size',
-    data: { fileSize: undefined },
-    status: 400,
-    retryable: false,
-    retryDelay: undefined
+    _category: ErrorCategory.VALIDATION,
+    _code: ErrorCode.FILE_TOO_LARGE,
+    _message: 'File size exceeds maximum allowed size',
+    _data: { _fileSize: undefined },
+    _status: 400,
+    _retryable: false,
+    _retryDelay: undefined
   } as unknown as FileUploadError,
-  INVALID_FILE_TYPE: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.INVALID_FILE,
-    message: 'Invalid file type',
-    data: { fileType: undefined },
-    status: 400,
-    retryable: false,
-    retryDelay: undefined
+  _INVALID_FILE_TYPE: {
+    _category: ErrorCategory.VALIDATION,
+    _code: ErrorCode.INVALID_FILE,
+    _message: 'Invalid file type',
+    _data: { _fileType: undefined },
+    _status: 400,
+    _retryable: false,
+    _retryDelay: undefined
   } as unknown as FileUploadError,
-  TOO_MANY_FILES: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.UPLOAD_LIMIT_EXCEEDED,
-    message: 'Too many files uploaded',
-    data: { fileCount: undefined },
-    status: 400,
-    retryable: false,
-    retryDelay: undefined
+  _TOO_MANY_FILES: {
+    _category: ErrorCategory.VALIDATION,
+    _code: ErrorCode.UPLOAD_LIMIT_EXCEEDED,
+    _message: 'Too many files uploaded',
+    _data: { _fileCount: undefined },
+    _status: 400,
+    _retryable: false,
+    _retryDelay: undefined
   } as unknown as FileUploadError,
-  UPLOAD_FAILED: {
-    category: ErrorCategory.SYSTEM,
-    code: ErrorCode.INTERNAL_ERROR,
-    message: 'Failed to upload file',
-    data: { error: undefined },
-    status: 500,
-    retryable: true,
-    retryDelay: 5000
+  _UPLOAD_FAILED: {
+    _category: ErrorCategory.SYSTEM,
+    _code: ErrorCode.INTERNAL_ERROR,
+    _message: 'Failed to upload file',
+    _data: { _error: undefined },
+    _status: 500,
+    _retryable: true,
+    _retryDelay: 5000
   } as unknown as FileUploadError,
-  STORAGE_ERROR: {
-    category: ErrorCategory.SYSTEM,
-    code: ErrorCode.INTERNAL_ERROR,
-    message: 'Failed to store uploaded file',
-    data: { error: undefined },
-    status: 500,
-    retryable: true,
-    retryDelay: 5000
+  _STORAGE_ERROR: {
+    _category: ErrorCategory.SYSTEM,
+    _code: ErrorCode.INTERNAL_ERROR,
+    _message: 'Failed to store uploaded file',
+    _data: { _error: undefined },
+    _status: 500,
+    _retryable: true,
+    _retryDelay: 5000
   } as unknown as FileUploadError,
-  INVALID_FILE_NAME: {
-    category: ErrorCategory.VALIDATION,
-    code: ErrorCode.INVALID_FILE,
-    message: 'Invalid file name',
-    data: { fileName: undefined },
-    status: 400,
-    retryable: false,
-    retryDelay: undefined
+  _INVALID_FILE_NAME: {
+    _category: ErrorCategory.VALIDATION,
+    _code: ErrorCode.INVALID_FILE,
+    _message: 'Invalid file name',
+    _data: { _fileName: undefined },
+    _status: 400,
+    _retryable: false,
+    _retryDelay: undefined
   } as unknown as FileUploadError
 };
 
-export const defaultFileUploadConfig: FileUploadConfig = {
-  maxFileSize: 10 * 1024 * 1024, // 10MB
-  maxTotalUploadSize: 50 * 1024 * 1024, // 50MB
-  allowedMimeTypes: ['image/jpeg', 'image/png', 'application/pdf'],
-  maxFiles: 10,
-  destination: './uploads',
-  filename: (req, file, cb) => {
+export const _defaultFileUploadConfig: FileUploadConfig = {
+  _maxFileSize: 10 * 1024 * 1024, // 10MB
+  _maxTotalUploadSize: 50 * 1024 * 1024, // 50MB
+  _allowedMimeTypes: ['image/jpeg', 'image/png', 'application/pdf'],
+  _maxFiles: 10,
+  _destination: './uploads',
+  _filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix);
   },
-  allowedFileExtensions: ['.jpg', '.jpeg', '.png', '.pdf'],
-  cleanupInterval: 3600000, // 1 hour
-  cacheTTL: 86400000, // 24 hours
-  maxUploadAttempts: 5,
-  rateLimit: { windowMs: 60 * 1000, max: 100 } // Default: 100 uploads per minute
+  _allowedFileExtensions: ['.jpg', '.jpeg', '.png', '.pdf'],
+  _cleanupInterval: 3600000, // 1 hour
+  _cacheTTL: 86400000, // 24 hours
+  _maxUploadAttempts: 5,
+  _rateLimit: { _windowMs: 60 * 1000, _max: 100 } // _Default: 100 uploads per minute
 };

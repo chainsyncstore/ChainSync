@@ -5,50 +5,50 @@ import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { getLogger } from '../../src/logging/index.js';
 import { Pool } from 'pg';
 
-const logger = getLogger().child({ component: 'rate-limit-middleware' });
+const logger = getLogger().child({ _component: 'rate-limit-middleware' });
 
 // Rate limit configurations for different endpoint types
 const RATE_LIMIT_CONFIG = {
   // General API limits
-  general: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per window
-    message: 'Too many requests from this IP, please try again later.'
+  _general: {
+    _windowMs: 15 * 60 * 1000, // 15 minutes
+    _max: 100, // 100 requests per window
+    _message: 'Too many requests from this IP, please try again later.'
   },
 
   // Authentication endpoints (more strict)
-  auth: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 login attempts per 15 minutes
-    message: 'Too many authentication attempts, please try again later.'
+  _auth: {
+    _windowMs: 15 * 60 * 1000, // 15 minutes
+    _max: 5, // 5 login attempts per 15 minutes
+    _message: 'Too many authentication attempts, please try again later.'
   },
 
   // Sensitive operations (very strict)
-  sensitive: {
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // 10 sensitive operations per hour
-    message: 'Too many sensitive operations, please try again later.'
+  _sensitive: {
+    _windowMs: 60 * 60 * 1000, // 1 hour
+    _max: 10, // 10 sensitive operations per hour
+    _message: 'Too many sensitive operations, please try again later.'
   },
 
   // Payment endpoints (extremely strict)
-  payment: {
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // 5 payment attempts per hour
-    message: 'Too many payment attempts, please try again later.'
+  _payment: {
+    _windowMs: 60 * 60 * 1000, // 1 hour
+    _max: 5, // 5 payment attempts per hour
+    _message: 'Too many payment attempts, please try again later.'
   },
 
   // File upload endpoints
-  upload: {
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 20, // 20 uploads per hour
-    message: 'Too many file uploads, please try again later.'
+  _upload: {
+    _windowMs: 60 * 60 * 1000, // 1 hour
+    _max: 20, // 20 uploads per hour
+    _message: 'Too many file uploads, please try again later.'
   },
 
   // Admin endpoints
-  admin: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 50, // 50 admin operations per 15 minutes
-    message: 'Too many admin operations, please try again later.'
+  _admin: {
+    _windowMs: 15 * 60 * 1000, // 15 minutes
+    _max: 50, // 50 admin operations per 15 minutes
+    _message: 'Too many admin operations, please try again later.'
   }
 };
 
@@ -59,11 +59,11 @@ const createRedisStore = () => {
     const redis = require('redis');
 
     const redisClient = redis.createClient({
-      url: process.env.REDIS_URL
+      _url: process.env.REDIS_URL
     });
 
     return new RedisStore({
-      sendCommand: (...args: any[]) => redisClient.sendCommand(args)
+      _sendCommand: (..._args: any[]) => redisClient.sendCommand(args)
     });
   } catch (error) {
     logger.warn('Redis not available for rate limiting, using memory store', { error });
@@ -74,13 +74,13 @@ const createRedisStore = () => {
 /**
  * Create rate limiting middleware with logging
  */
-function createRateLimiter(options: Partial<typeof RATE_LIMIT_CONFIG.general>) {
+function createRateLimiter(_options: Partial<typeof RATE_LIMIT_CONFIG.general>) {
   const useRedis = process.env.REDIS_URL && process.env.NODE_ENV === 'production';
   const redisStore = useRedis ? createRedisStore() : null;
 
   // Get config from environment or use defaults
   const windowMs = process.env.RATE_LIMIT_WINDOW ?
-    parseInt(process.env.RATE_LIMIT_WINDOW, 10) * 1000 :
+    parseInt(process.env.RATE_LIMIT_WINDOW, 10) * _1000 :
     options.windowMs || RATE_LIMIT_CONFIG.general.windowMs;
 
   const maxRequests = process.env.RATE_LIMIT_MAX ?
@@ -89,42 +89,42 @@ function createRateLimiter(options: Partial<typeof RATE_LIMIT_CONFIG.general>) {
 
   const limiter = rateLimit({
     windowMs,
-    max: maxRequests,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-      status: 429,
-      message: options.message || RATE_LIMIT_CONFIG.general.message,
-      code: 'RATE_LIMIT_EXCEEDED'
+    _max: maxRequests,
+    _standardHeaders: true,
+    _legacyHeaders: false,
+    _message: {
+      _status: 429,
+      _message: options.message || RATE_LIMIT_CONFIG.general.message,
+      _code: 'RATE_LIMIT_EXCEEDED'
     },
     // Custom key generator that can use different attributes
-    keyGenerator: (req: Request) => {
+    _keyGenerator: (_req: Request) => {
       // Use user ID if available, otherwise use IP
       const userId = (req as any).user?.id || (req.session as any)?.userId;
       return userId ? `user:${userId}` : (req.ip || '127.0.0.1');
     },
     // Add structured logging
-    handler: (req: Request, res: Response, next: NextFunction, options: any) => {
+    _handler: (_req: Request, _res: Response, _next: NextFunction, _options: any) => {
       const reqLogger = (req as any).logger || logger;
 
       reqLogger.warn('Rate limit exceeded', {
-        path: req.path,
-        method: req.method,
-        ip: req.ip,
-        userId: (req as any).user?.id || (req.session as any)?.userId,
-        limit: maxRequests,
+        _path: req.path,
+        _method: req.method,
+        _ip: req.ip,
+        _userId: (req as any).user?.id || (req.session as any)?.userId,
+        _limit: maxRequests,
         windowMs
       });
 
       res.status(options.statusCode).json(options.message);
     },
     // Skip rate limiting for non-production environments if specified
-    skip: (req: Request) => {
+    _skip: (_req: Request) => {
       return process.env.DISABLE_RATE_LIMIT === 'true' &&
              process.env.NODE_ENV !== 'production';
     },
     // Use Redis store in production if available
-    store: redisStore as any,
+    _store: redisStore as any,
     // Add custom options
     ...options
   });
@@ -135,38 +135,38 @@ function createRateLimiter(options: Partial<typeof RATE_LIMIT_CONFIG.general>) {
 /**
  * Default rate limiter - moderately strict
  */
-export const rateLimitMiddleware: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.general);
+export const _rateLimitMiddleware: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.general);
 
 /**
  * Authentication rate limiter - very strict
  */
-export const authRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.auth);
+export const _authRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.auth);
 
 /**
  * Sensitive operations rate limiter - very strict
  */
-export const sensitiveOpRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.sensitive);
+export const _sensitiveOpRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.sensitive);
 
 /**
  * Payment operations rate limiter - extremely strict
  */
-export const paymentRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.payment);
+export const _paymentRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.payment);
 
 /**
  * File upload rate limiter
  */
-export const uploadRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.upload);
+export const _uploadRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.upload);
 
 /**
  * Admin operations rate limiter
  */
-export const adminRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.admin);
+export const _adminRateLimiter: RequestHandler = createRateLimiter(RATE_LIMIT_CONFIG.admin);
 
 /**
  * Dynamic rate limiter based on endpoint
  * Allows different limits for different endpoints
  */
-export const dynamicRateLimiter = (endpointType: keyof typeof RATE_LIMIT_CONFIG): RequestHandler => {
+export const dynamicRateLimiter = (_endpointType: keyof typeof RATE_LIMIT_CONFIG): RequestHandler => {
   return createRateLimiter(RATE_LIMIT_CONFIG[endpointType]);
 };
 
@@ -174,30 +174,30 @@ export const dynamicRateLimiter = (endpointType: keyof typeof RATE_LIMIT_CONFIG)
  * User-specific rate limiter
  * Limits based on user ID rather than IP
  */
-export const userRateLimiter = (maxRequests: number, windowMs: number = 15 * 60 * 1000): RequestHandler => {
+export const userRateLimiter = (_maxRequests: number, _windowMs: number = 15 * 60 * 1000): RequestHandler => {
   return rateLimit({
     windowMs,
-    max: maxRequests,
-    keyGenerator: (req: Request) => {
+    _max: maxRequests,
+    _keyGenerator: (_req: Request) => {
       const userId = (req as any).user?.id || (req.session as any)?.userId;
       if (!userId) {
         return req.ip || '127.0.0.1'; // Fallback to IP if no user
       }
       return `user:${userId}`;
     },
-    message: {
-      status: 429,
-      message: 'Too many requests for this user, please try again later.',
-      code: 'USER_RATE_LIMIT_EXCEEDED'
+    _message: {
+      _status: 429,
+      _message: 'Too many requests for this user, please try again later.',
+      _code: 'USER_RATE_LIMIT_EXCEEDED'
     },
-    handler: (req: Request, res: Response, next: NextFunction, options: any) => {
+    _handler: (_req: Request, _res: Response, _next: NextFunction, _options: any) => {
       const reqLogger = (req as any).logger || logger;
 
       reqLogger.warn('User rate limit exceeded', {
-        path: req.path,
-        method: req.method,
-        userId: (req as any).user?.id || (req.session as any)?.userId,
-        limit: maxRequests,
+        _path: req.path,
+        _method: req.method,
+        _userId: (req as any).user?.id || (req.session as any)?.userId,
+        _limit: maxRequests,
         windowMs
       });
 
@@ -210,11 +210,11 @@ export const userRateLimiter = (maxRequests: number, windowMs: number = 15 * 60 
  * Burst rate limiter for short-term spikes
  * Allows more requests in a shorter window
  */
-export const burstRateLimiter = (maxRequests: number, windowMs: number = 60 * 1000): RequestHandler => {
+export const burstRateLimiter = (_maxRequests: number, _windowMs: number = 60 * 1000): RequestHandler => {
   return createRateLimiter({
     windowMs,
-    max: maxRequests,
-    message: 'Too many requests in a short time, please slow down.'
+    _max: maxRequests,
+    _message: 'Too many requests in a short time, please slow down.'
   });
 };
 
@@ -222,8 +222,8 @@ export const burstRateLimiter = (maxRequests: number, windowMs: number = 60 * 10
  * Database-backed rate limiter for persistent limits
  * Stores rate limit data in database for persistence across restarts
  */
-export const createDatabaseRateLimiter = (db: Pool, maxRequests: number, windowMs: number = 15 * 60 * 1000) => {
-  return async(req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const createDatabaseRateLimiter = (_db: Pool, _maxRequests: number, _windowMs: number = 15 * 60 * 1000) => {
+  return async(_req: Request, _res: Response, _next: NextFunction): Promise<void> => {
     try {
       const key = (req as any).user?.id || req.ip || '127.0.0.1';
       const now = Date.now();
@@ -247,17 +247,17 @@ export const createDatabaseRateLimiter = (db: Pool, maxRequests: number, windowM
         const reqLogger = (req as any).logger || logger;
 
         reqLogger.warn('Database rate limit exceeded', {
-          path: req.path,
-          method: req.method,
+          _path: req.path,
+          _method: req.method,
           key,
           currentCount,
-          limit: maxRequests
+          _limit: maxRequests
         });
 
         res.status(429).json({
-          status: 429,
-          message: 'Too many requests, please try again later.',
-          code: 'RATE_LIMIT_EXCEEDED'
+          _status: 429,
+          _message: 'Too many requests, please try again later.',
+          _code: 'RATE_LIMIT_EXCEEDED'
         });
         return;
       }
@@ -281,10 +281,10 @@ export const createDatabaseRateLimiter = (db: Pool, maxRequests: number, windowM
  * Adaptive rate limiter that adjusts based on user behavior
  * Reduces limits for suspicious activity
  */
-export const adaptiveRateLimiter = (baseMax: number, windowMs: number = 15 * 60 * 1000) => {
-  const suspiciousUsers = new Map<string, { count: number; lastReset: number }>();
+export const adaptiveRateLimiter = (_baseMax: number, _windowMs: number = 15 * 60 * 1000) => {
+  const suspiciousUsers = new Map<string, { _count: number; _lastReset: number }>();
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (_req: Request, _res: Response, _next: NextFunction) => {
     const key = (req as any).user?.id || req.ip || '127.0.0.1';
     const now = Date.now();
 
@@ -297,8 +297,8 @@ export const adaptiveRateLimiter = (baseMax: number, windowMs: number = 15 * 60 
       // Apply reduced limit
       const limiter = createRateLimiter({
         windowMs,
-        max: reducedMax,
-        message: 'Rate limit reduced due to suspicious activity.'
+        _max: reducedMax,
+        _message: 'Rate limit reduced due to suspicious activity.'
       });
 
       return limiter(req, res, next);
@@ -307,7 +307,7 @@ export const adaptiveRateLimiter = (baseMax: number, windowMs: number = 15 * 60 
     // Apply normal limit
     const limiter = createRateLimiter({
       windowMs,
-      max: baseMax
+      _max: baseMax
     });
 
     return limiter(req, res, next);

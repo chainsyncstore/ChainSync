@@ -17,7 +17,7 @@ declare module '@playwright/test';
 // Jest types stub
 declare module 'jest' {
   export type Config = {
-    [key: string]: any;
+    [_key: string]: any;
   };
 }
 

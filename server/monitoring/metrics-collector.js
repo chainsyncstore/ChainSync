@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.MetricsCollector = void 0;
 /**
  * Minimal stub for MetricsCollector to satisfy TypeScript.

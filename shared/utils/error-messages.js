@@ -1,56 +1,56 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.formatErrorForUser = exports.getErrorDescription = exports.getErrorMessage = void 0;
 const errors_1 = require('../types/errors');
 const errorTranslations = {
   // Validation errors
   [errors_1.ErrorCode.VALIDATION_FAILED]: {
-    message: 'Invalid input data',
-    description: 'Please check the input fields and try again'
+    _message: 'Invalid input data',
+    _description: 'Please check the input fields and try again'
   },
   [errors_1.ErrorCode.REQUIRED_FIELD_MISSING]: {
-    message: 'Required field is missing',
-    description: 'Please fill in all required fields'
+    _message: 'Required field is missing',
+    _description: 'Please fill in all required fields'
   },
   [errors_1.ErrorCode.INVALID_FIELD_VALUE]: {
-    message: 'Invalid value',
-    description: 'Please enter a valid value'
+    _message: 'Invalid value',
+    _description: 'Please enter a valid value'
   },
   // Authentication errors
   [errors_1.ErrorCode.UNAUTHORIZED]: {
-    message: 'Authentication required',
-    description: 'Please log in to continue'
+    _message: 'Authentication required',
+    _description: 'Please log in to continue'
   },
   [errors_1.ErrorCode.INVALID_CREDENTIALS]: {
-    message: 'Invalid credentials',
-    description: 'Please check your username and password'
+    _message: 'Invalid credentials',
+    _description: 'Please check your username and password'
   },
   // Resource errors
   [errors_1.ErrorCode.RESOURCE_NOT_FOUND]: {
-    message: 'Resource not found',
-    description: 'The requested resource could not be found'
+    _message: 'Resource not found',
+    _description: 'The requested resource could not be found'
   },
   [errors_1.ErrorCode.RESOURCE_ALREADY_EXISTS]: {
-    message: 'Resource already exists',
-    description: 'A resource with this identifier already exists'
+    _message: 'Resource already exists',
+    _description: 'A resource with this identifier already exists'
   },
   // Business errors
   [errors_1.ErrorCode.INSUFFICIENT_STOCK]: {
-    message: 'Insufficient stock',
-    description: 'The requested quantity is not available in stock'
+    _message: 'Insufficient stock',
+    _description: 'The requested quantity is not available in stock'
   },
   [errors_1.ErrorCode.INSUFFICIENT_BALANCE]: {
-    message: 'Insufficient balance',
-    description: 'Your account balance is insufficient for this transaction'
+    _message: 'Insufficient balance',
+    _description: 'Your account balance is insufficient for this transaction'
   },
   // System errors
   [errors_1.ErrorCode.INTERNAL_SERVER_ERROR]: {
-    message: 'System error',
-    description: 'An unexpected error occurred. Please try again later'
+    _message: 'System error',
+    _description: 'An unexpected error occurred. Please try again later'
   },
   [errors_1.ErrorCode.SERVICE_UNAVAILABLE]: {
-    message: 'Service unavailable',
-    description: 'The service is temporarily unavailable. Please try again later'
+    _message: 'Service unavailable',
+    _description: 'The service is temporarily unavailable. Please try again later'
   }
 };
 const getErrorMessage = (code, details) => {

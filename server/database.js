@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.getDatabase = getDatabase;
 exports.initializeDatabase = initializeDatabase;
 const serverless_1 = require('@neondatabase/serverless');
@@ -13,7 +13,7 @@ async function getDatabase() {
       logger_1.logger.info('Database connection established');
     }
     catch (error) {
-      logger_1.logger.error('Failed to connect to database:', error);
+      logger_1.logger.error('Failed to connect to _database:', error);
       throw new Error('Database connection failed');
     }
   }
@@ -34,7 +34,7 @@ async function initializeDatabase() {
     }
   }
   catch (error) {
-    logger_1.logger.error('Failed to initialize database:', error);
+    logger_1.logger.error('Failed to initialize _database:', error);
     throw error;
   }
 }

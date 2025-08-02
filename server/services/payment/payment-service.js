@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.PaymentService = void 0;
 const paystack_node_1 = __importDefault(require('paystack-node'));
 const flutterwave_node_v3_1 = __importDefault(require('flutterwave-node-v3'));
@@ -13,13 +13,13 @@ class PaymentService {
     // Default logger is ConsoleLogger, can be swapped via setLogger()
     this.logger = new Logger_1.ConsoleLogger();
     this.config = {
-      paystack: {
-        secretKey: process.env.PAYSTACK_SECRET_KEY || '',
-        publicKey: process.env.PAYSTACK_PUBLIC_KEY || ''
+      _paystack: {
+        _secretKey: process.env.PAYSTACK_SECRET_KEY || '',
+        _publicKey: process.env.PAYSTACK_PUBLIC_KEY || ''
       },
-      flutterwave: {
-        secretKey: process.env.FLUTTERWAVE_SECRET_KEY || '',
-        publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || ''
+      _flutterwave: {
+        _secretKey: process.env.FLUTTERWAVE_SECRET_KEY || '',
+        _publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || ''
       }
     };
     try {
@@ -34,7 +34,7 @@ class PaymentService {
       this.logger.info('Payment providers initialized in test mode');
     }
     catch (error) {
-      this.logger.error('Error initializing payment providers:', error, {});
+      this.logger.error('Error initializing payment _providers:', error, {});
       this.paystack = null;
       this.flutterwave = null;
       throw new Error('Failed to initialize payment providers');
@@ -59,13 +59,13 @@ class PaymentService {
         reference
       });
       return {
-        authorization_url: response.data.authorization_url,
-        reference: response.data.reference,
-        provider: 'paystack'
+        _authorization_url: response.data.authorization_url,
+        _reference: response.data.reference,
+        _provider: 'paystack'
       };
     }
     catch (error) {
-      this.logger.error('Error initializing payment:', error);
+      this.logger.error('Error initializing _payment:', error);
       throw new Error('Failed to initialize payment');
     }
   }
@@ -77,17 +77,17 @@ class PaymentService {
       const response = await this.paystack.transaction.verify(reference);
       const data = response.data;
       return {
-        success: data.status === 'success',
-        reference: data.reference,
-        amount: data.amount,
-        currency: data.currency,
-        metadata: data.metadata || {},
-        provider: 'paystack',
-        timestamp: new Date(data.paid_at)
+        _success: data.status === 'success',
+        _reference: data.reference,
+        _amount: data.amount,
+        _currency: data.currency,
+        _metadata: data.metadata || {},
+        _provider: 'paystack',
+        _timestamp: new Date(data.paid_at)
       };
     }
     catch (error) {
-      this.logger.error('Error verifying payment:', error);
+      this.logger.error('Error verifying _payment:', error);
       throw new Error('Failed to verify payment');
     }
   }
@@ -98,16 +98,16 @@ class PaymentService {
       }
       const response = await this.flutterwave.Transaction.initialize({
         ...request,
-        redirect_url: request.redirect_url || process.env.FLUTTERWAVE_REDIRECT_URL || ''
+        _redirect_url: request.redirect_url || process.env.FLUTTERWAVE_REDIRECT_URL || ''
       });
       return {
-        authorization_url: response.data.link,
-        reference: response.data.tx_ref,
-        provider: 'flutterwave'
+        _authorization_url: response.data.link,
+        _reference: response.data.tx_ref,
+        _provider: 'flutterwave'
       };
     }
     catch (error) {
-      this.logger.error('Error processing Flutterwave payment:', error);
+      this.logger.error('Error processing Flutterwave _payment:', error);
       throw new Error('Failed to process Flutterwave payment');
     }
   }
@@ -118,17 +118,17 @@ class PaymentService {
       }
       if (request.event === 'charge.success') {
         return {
-          status: 'success',
-          message: 'Payment successful'
+          _status: 'success',
+          _message: 'Payment successful'
         };
       }
       return {
         status: 'failed',
-        message: 'Payment failed'
+        _message: 'Payment failed'
       };
     }
     catch (error) {
-      this.logger.error('Error handling webhook:', error);
+      this.logger.error('Error handling _webhook:', error);
       throw new Error('Failed to process webhook');
     }
   }
@@ -138,14 +138,14 @@ class PaymentService {
         throw new Error('Paystack provider not initialized');
       }
       const response = await this.paystack.transaction.list({
-        from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        to: new Date().toISOString()
+        _from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        _to: new Date().toISOString()
       });
       const transactions = response.data;
       const totalTransactions = transactions.length;
       const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
       const successCount = transactions.filter((t) => t.status === 'success').length;
-      const successRate = totalTransactions > 0 ? (successCount / totalTransactions) * 100 : 0;
+      const successRate = totalTransactions > 0 ? (successCount / totalTransactions) * _100 : 0;
       const failedTransactions = totalTransactions - successCount;
       return {
         totalTransactions,
@@ -155,7 +155,7 @@ class PaymentService {
       };
     }
     catch (error) {
-      this.logger.error('Error getting analytics:', error);
+      this.logger.error('Error getting _analytics:', error);
       throw new Error('Failed to get analytics');
     }
   }

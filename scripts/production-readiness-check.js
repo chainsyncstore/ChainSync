@@ -10,13 +10,13 @@ loadProductionEnv();
 
 // Colors for console output
 const colors = {
-  reset: '\x1b[0m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m'
+  _reset: '\x1b[0m',
+  _red: '\x1b[31m',
+  _green: '\x1b[32m',
+  _yellow: '\x1b[33m',
+  _blue: '\x1b[34m',
+  _magenta: '\x1b[35m',
+  _cyan: '\x1b[36m'
 };
 
 function log(message, color = 'reset') {
@@ -59,11 +59,11 @@ class ProductionReadinessCheck {
         logCheck(check.name, result.passed, result.details);
 
         if (!result.passed) {
-          this.failedChecks.push({ name: check.name, details: result.details });
+          this.failedChecks.push({ _name: check.name, _details: result.details });
         }
       } catch (error) {
         logCheck(check.name, false, error.message);
-        this.failedChecks.push({ name: check.name, details: error.message });
+        this.failedChecks.push({ _name: check.name, _details: error.message });
       }
     }
 
@@ -77,7 +77,7 @@ class ProductionReadinessCheck {
       log('🎉 All checks passed! Production deployment is ready.', 'green');
       process.exit(0);
     } else {
-      log(`❌ ${this.failedChecks.length} check(s) failed:`, 'red');
+      log(`❌ ${this.failedChecks.length} check(s) _failed:`, 'red');
       this.failedChecks.forEach(check => {
         log(`   - ${check.name}: ${check.details}`, 'red');
       });
@@ -105,19 +105,19 @@ checker.addCheck('Environment Variables', async() => {
 
   if (missing.length > 0) {
     return {
-      passed: false,
-      details: `Missing environment variables: ${missing.join(', ')}`
+      _passed: false,
+      _details: `Missing environment variables: ${missing.join(', ')}`
     };
   }
 
   if (process.env.NODE_ENV !== 'production') {
     return {
-      passed: false,
-      details: 'NODE_ENV must be set to "production"'
+      _passed: false,
+      _details: 'NODE_ENV must be set to "production"'
     };
   }
 
-  return { passed: true, details: 'All required environment variables are set' };
+  return { _passed: true, _details: 'All required environment variables are set' };
 });
 
 // Security checks
@@ -128,26 +128,26 @@ checker.addCheck('Security Configuration', async() => {
 
   if (jwtSecret && jwtSecret.length < 32) {
     return {
-      passed: false,
-      details: 'JWT_SECRET must be at least 32 characters long'
+      _passed: false,
+      _details: 'JWT_SECRET must be at least 32 characters long'
     };
   }
 
   if (encryptionKey && encryptionKey.length !== 32) {
     return {
-      passed: false,
-      details: 'ENCRYPTION_KEY must be exactly 32 characters long'
+      _passed: false,
+      _details: 'ENCRYPTION_KEY must be exactly 32 characters long'
     };
   }
 
   if (sessionSecret && sessionSecret.length < 32) {
     return {
-      passed: false,
-      details: 'SESSION_SECRET must be at least 32 characters long'
+      _passed: false,
+      _details: 'SESSION_SECRET must be at least 32 characters long'
     };
   }
 
-  return { passed: true, details: 'Security configuration is properly set' };
+  return { _passed: true, _details: 'Security configuration is properly set' };
 });
 
 // Database checks
@@ -158,16 +158,16 @@ checker.addCheck('Database Connection', async() => {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl || !dbUrl.startsWith('postgresql://')) {
       return {
-        passed: false,
-        details: 'DATABASE_URL must be a valid PostgreSQL connection string'
+        _passed: false,
+        _details: 'DATABASE_URL must be a valid PostgreSQL connection string'
       };
     }
 
-    return { passed: true, details: 'Database connection string is valid' };
+    return { _passed: true, _details: 'Database connection string is valid' };
   } catch (error) {
     return {
-      passed: false,
-      details: `Database connection failed: ${error.message}`
+      _passed: false,
+      _details: `Database connection failed: ${error.message}`
     };
   }
 });
@@ -178,16 +178,16 @@ checker.addCheck('Redis Connection', async() => {
     const redisUrl = process.env.REDIS_URL;
     if (!redisUrl || !redisUrl.startsWith('redis://')) {
       return {
-        passed: false,
-        details: 'REDIS_URL must be a valid Redis connection string'
+        _passed: false,
+        _details: 'REDIS_URL must be a valid Redis connection string'
       };
     }
 
-    return { passed: true, details: 'Redis connection string is valid' };
+    return { _passed: true, _details: 'Redis connection string is valid' };
   } catch (error) {
     return {
-      passed: false,
-      details: `Redis connection failed: ${error.message}`
+      _passed: false,
+      _details: `Redis connection failed: ${error.message}`
     };
   }
 });
@@ -204,12 +204,12 @@ checker.addCheck('Build Artifacts', async() => {
 
   if (missing.length > 0) {
     return {
-      passed: false,
-      details: `Missing build artifacts: ${missing.join(', ')}`
+      _passed: false,
+      _details: `Missing build artifacts: ${missing.join(', ')}`
     };
   }
 
-  return { passed: true, details: 'All build artifacts are present' };
+  return { _passed: true, _details: 'All build artifacts are present' };
 });
 
 // Dependencies checks
@@ -220,28 +220,28 @@ checker.addCheck('Dependencies', async() => {
 
     if (!nodeModulesExists) {
       return {
-        passed: false,
-        details: 'node_modules directory not found. Run npm install first.'
+        _passed: false,
+        _details: 'node_modules directory not found. Run npm install first.'
       };
     }
 
     // Check for known vulnerable packages (warn only for now)
     try {
-      execSync('npm audit --audit-level=high', { stdio: 'pipe' });
+      execSync('npm audit --audit-level=high', { _stdio: 'pipe' });
     } catch (error) {
       // For now, just warn about vulnerabilities but don't fail the check
-      console.log('⚠️  Warning: Some vulnerabilities found, but continuing with deployment');
+      console.log('⚠️  _Warning: Some vulnerabilities found, but continuing with deployment');
       return {
-        passed: true,
-        details: 'Dependencies installed (some vulnerabilities present but not blocking)'
+        _passed: true,
+        _details: 'Dependencies installed (some vulnerabilities present but not blocking)'
       };
     }
 
-    return { passed: true, details: 'Dependencies are properly installed and secure' };
+    return { _passed: true, _details: 'Dependencies are properly installed and secure' };
   } catch (error) {
     return {
-      passed: false,
-      details: `Dependency check failed: ${error.message}`
+      _passed: false,
+      _details: `Dependency check failed: ${error.message}`
     };
   }
 });
@@ -261,12 +261,12 @@ checker.addCheck('Configuration Files', async() => {
 
   if (missing.length > 0) {
     return {
-      passed: false,
-      details: `Missing configuration files: ${missing.join(', ')}`
+      _passed: false,
+      _details: `Missing configuration files: ${missing.join(', ')}`
     };
   }
 
-  return { passed: true, details: 'All configuration files are present' };
+  return { _passed: true, _details: 'All configuration files are present' };
 });
 
 // Docker checks
@@ -280,26 +280,26 @@ checker.addCheck('Docker Configuration', async() => {
 
   if (missing.length > 0) {
     return {
-      passed: false,
-      details: `Missing Docker files: ${missing.join(', ')}`
+      _passed: false,
+      _details: `Missing Docker files: ${missing.join(', ')}`
     };
   }
 
   // Check if Docker is available (skip on Windows for now)
   if (process.platform === 'win32') {
-    return { passed: true, details: 'Docker check skipped on Windows' };
+    return { _passed: true, _details: 'Docker check skipped on Windows' };
   }
 
   try {
-    execSync('docker --version', { stdio: 'pipe' });
+    execSync('docker --version', { _stdio: 'pipe' });
   } catch (error) {
     return {
-      passed: false,
-      details: 'Docker is not installed or not available in PATH'
+      _passed: false,
+      _details: 'Docker is not installed or not available in PATH'
     };
   }
 
-  return { passed: true, details: 'Docker configuration is ready' };
+  return { _passed: true, _details: 'Docker configuration is ready' };
 });
 
 // CI/CD checks
@@ -313,12 +313,12 @@ checker.addCheck('CI/CD Pipeline', async() => {
 
   if (missing.length > 0) {
     return {
-      passed: false,
-      details: `Missing CI/CD files: ${missing.join(', ')}`
+      _passed: false,
+      _details: `Missing CI/CD files: ${missing.join(', ')}`
     };
   }
 
-  return { passed: true, details: 'CI/CD pipeline is configured' };
+  return { _passed: true, _details: 'CI/CD pipeline is configured' };
 });
 
 // Documentation checks
@@ -334,12 +334,12 @@ checker.addCheck('Documentation', async() => {
 
   if (missing.length > 0) {
     return {
-      passed: false,
-      details: `Missing documentation: ${missing.join(', ')}`
+      _passed: false,
+      _details: `Missing documentation: ${missing.join(', ')}`
     };
   }
 
-  return { passed: true, details: 'All required documentation is present' };
+  return { _passed: true, _details: 'All required documentation is present' };
 });
 
 // SSL/TLS checks
@@ -352,20 +352,20 @@ checker.addCheck('SSL/TLS Configuration', async() => {
 
     if (!certPath || !keyPath) {
       return {
-        passed: false,
-        details: 'SSL_CERT_PATH and SSL_KEY_PATH must be set when SSL_ENABLED is true'
+        _passed: false,
+        _details: 'SSL_CERT_PATH and SSL_KEY_PATH must be set when SSL_ENABLED is true'
       };
     }
 
     if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
       return {
-        passed: false,
-        details: 'SSL certificate or key file not found'
+        _passed: false,
+        _details: 'SSL certificate or key file not found'
       };
     }
   }
 
-  return { passed: true, details: 'SSL/TLS configuration is valid' };
+  return { _passed: true, _details: 'SSL/TLS configuration is valid' };
 });
 
 // Monitoring checks
@@ -380,12 +380,12 @@ checker.addCheck('Monitoring Configuration', async() => {
 
   if (missing.length > 0) {
     return {
-      passed: false,
-      details: `Missing monitoring configurations: ${missing.join(', ')}`
+      _passed: false,
+      _details: `Missing monitoring configurations: ${missing.join(', ')}`
     };
   }
 
-  return { passed: true, details: 'Monitoring is properly configured' };
+  return { _passed: true, _details: 'Monitoring is properly configured' };
 });
 
 // Performance checks
@@ -395,19 +395,19 @@ checker.addCheck('Performance Configuration', async() => {
 
   if (rateLimitWindow < 60000) {
     return {
-      passed: false,
-      details: 'RATE_LIMIT_WINDOW should be at least 60000ms (1 minute)'
+      _passed: false,
+      _details: 'RATE_LIMIT_WINDOW should be at least 60000ms (1 minute)'
     };
   }
 
   if (rateLimitMax < 10) {
     return {
-      passed: false,
-      details: 'RATE_LIMIT_MAX should be at least 10 requests per window'
+      _passed: false,
+      _details: 'RATE_LIMIT_MAX should be at least 10 requests per window'
     };
   }
 
-  return { passed: true, details: 'Performance configuration is appropriate' };
+  return { _passed: true, _details: 'Performance configuration is appropriate' };
 });
 
 // Run all checks
@@ -415,7 +415,7 @@ async function main() {
   try {
     await checker.runChecks();
   } catch (error) {
-    log(`\n❌ Production readiness check failed: ${error.message}`, 'red');
+    log(`\n❌ Production readiness check _failed: ${error.message}`, 'red');
     process.exit(1);
   }
 }

@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ServiceError = exports.BaseService = void 0;
 const _db_1 = require('@db');
 class BaseService {

@@ -1,13 +1,13 @@
 import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
 
-export type ImportExportErrorCategory = 
-  | ErrorCategory.IMPORT_EXPORT 
-  | ErrorCategory.PROCESSING 
-  | ErrorCategory.INVALID_FORMAT 
-  | ErrorCategory.EXPORT_ERROR 
+export type ImportExportErrorCategory =
+  | ErrorCategory.IMPORT_EXPORT
+  | ErrorCategory.PROCESSING
+  | ErrorCategory.INVALID_FORMAT
+  | ErrorCategory.EXPORT_ERROR
   | ErrorCategory.DATABASE;
 
-export type ImportExportErrorCode = 
+export type ImportExportErrorCode =
   | ErrorCode.INVALID_FILE
   | ErrorCode.PROCESSING_ERROR
   | ErrorCode.INVALID_FORMAT
@@ -15,29 +15,29 @@ export type ImportExportErrorCode =
   | ErrorCode.DATABASE_ERROR;
 
 export interface ImportExportError extends AppError {
-  category: ImportExportErrorCategory;
-  code: ImportExportErrorCode;
-  message: string;
+  _category: ImportExportErrorCategory;
+  _code: ImportExportErrorCode;
+  _message: string;
   details?: Record<string, unknown>;
 }
 
 export const ImportExportErrorCodes = {
-  INVALID_FILE: 'INVALID_FILE',
-  PROCESSING_ERROR: 'PROCESSING_ERROR',
-  INVALID_FORMAT: 'INVALID_FORMAT',
-  EXPORT_ERROR: 'EXPORT_ERROR',
-  DATABASE_ERROR: 'DATABASE_ERROR'
+  _INVALID_FILE: 'INVALID_FILE',
+  _PROCESSING_ERROR: 'PROCESSING_ERROR',
+  _INVALID_FORMAT: 'INVALID_FORMAT',
+  _EXPORT_ERROR: 'EXPORT_ERROR',
+  _DATABASE_ERROR: 'DATABASE_ERROR'
 } as const;
 
 export const ImportExportErrorCategories = {
   IMPORT_EXPORT: 'IMPORT_EXPORT',
-  PROCESSING: 'PROCESSING',
-  INVALID_FORMAT: 'INVALID_FORMAT',
-  EXPORT_ERROR: 'EXPORT_ERROR',
-  DATABASE: 'DATABASE'
+  _PROCESSING: 'PROCESSING',
+  _INVALID_FORMAT: 'INVALID_FORMAT',
+  _EXPORT_ERROR: 'EXPORT_ERROR',
+  _DATABASE: 'DATABASE'
 } as const;
 
-export const ImportExportErrors: Record<ImportExportErrorCode, ImportExportError> = {
+export const _ImportExportErrors: Record<ImportExportErrorCode, ImportExportError> = {
   [ImportExportErrorCodes.INVALID_FILE]: new AppError(
     'Invalid file provided',
     ErrorCategory.IMPORT_EXPORT,

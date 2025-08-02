@@ -67,14 +67,14 @@ const app = express();
 setupLogging(app);
 
 // Get configured logger
-const logger = getLogger().child({ component: 'app' });
+const logger = getLogger().child({ _component: 'app' });
 
 // Database connection pool
 const dbPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
-  idleTimeoutMillis: 30000
+  _connectionString: process.env.DATABASE_URL,
+  _ssl: process.env.NODE_ENV === 'production' ? { _rejectUnauthorized: false } : false,
+  _max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
+  _idleTimeoutMillis: 30000
 });
 
 // Monitor database connection
@@ -93,10 +93,10 @@ initializeSecurityRoutes(dbPool);
 
 // Initialize Redis for caching and session store
 const redisClient = initRedis();
-let sessionStore: any;
+let _sessionStore: any;
 
 if (redisClient) {
-  sessionStore = new RedisStore({ client: redisClient });
+  sessionStore = new RedisStore({ _client: redisClient });
   logger.info('Using Redis for session storage');
 } else {
   logger.warn('Redis not available, using in-memory session store (not suitable for production)');
@@ -107,10 +107,10 @@ app.use(securityHeaders);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+  _origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://_localhost:3000',
+  _credentials: true,
+  _methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  _allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 }));
 
 // Apply rate limiting
@@ -121,25 +121,25 @@ app.use(sanitizeInput);
 
 // Body parsing middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ _extended: true }));
 
 // Session handling
 app.use(session({
-  store: sessionStore,
-  secret: process.env.SESSION_SECRET || (() => {
+  _store: sessionStore,
+  _secret: process.env.SESSION_SECRET || (() => {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('SESSION_SECRET is required in production');
     }
     console.warn('⚠️  Using development session secret. Set SESSION_SECRET for production.');
     return 'dev-secret-change-in-production';
   })(),
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: parseInt(process.env.SESSION_COOKIE_MAX_AGE || '86400000'), // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+  _resave: false,
+  _saveUninitialized: false,
+  _cookie: {
+    _secure: process.env.NODE_ENV === 'production',
+    _httpOnly: true,
+    _maxAge: parseInt(process.env.SESSION_COOKIE_MAX_AGE || '86400000'), // 24 hours
+    _sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
   }
 }));
 
@@ -199,15 +199,15 @@ for (const testPath of possiblePaths) {
 }
 
 if (!staticPath) {
-  console.error('Could not find client build files. Tried paths:', possiblePaths);
+  console.error('Could not find client build files. Tried _paths:', possiblePaths);
   process.exit(1);
 }
 
-console.log('Serving static files from:', staticPath);
+console.log('Serving static files _from:', staticPath);
 
 // Serve static files with proper MIME types
 app.use(express.static(staticPath, {
-  setHeaders: (res, filePath) => {
+  _setHeaders: (res, filePath) => {
     if (filePath.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript');
     } else if (filePath.endsWith('.mjs')) {
@@ -242,27 +242,27 @@ app.get('*', (req, res, next) => {
 // 404 handler
 app.use((req, res, next) => {
   logger.warn('Route not found', {
-    path: req.path,
-    method: req.method,
-    ip: req.ip
+    _path: req.path,
+    _method: req.method,
+    _ip: req.ip
   });
   res.status(404).json({
-    error: 'Route not found',
-    code: 'NOT_FOUND'
+    _error: 'Route not found',
+    _code: 'NOT_FOUND'
   });
 });
 
 // Sentry error handler middleware is already configured via configureSentry
 
 // Global error handler - must be the last middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((_err: any, _req: express.Request, _res: express.Response, _next: express.NextFunction) => {
   // Error is already logged by the errorLogger middleware
   // Just send appropriate response to client
 
   const statusCode = err.status || err.statusCode || 500;
   const errorResponse = {
-    error: err.message || 'Internal Server Error',
-    code: err.code || 'UNKNOWN_ERROR'
+    _error: err.message || 'Internal Server Error',
+    _code: err.code || 'UNKNOWN_ERROR'
   };
 
   // Add stack trace in development

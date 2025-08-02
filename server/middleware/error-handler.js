@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.errorHandler = void 0;
 const errors_js_1 = require('@shared/types/errors.js');
 const error_logger_js_1 = require('@shared/utils/error-logger.js');
@@ -15,11 +15,11 @@ const errorHandler = (error, req, res, next) => {
   if (error instanceof errors_js_1.AppError) {
     const status = error.statusCode || 500;
     const response = {
-      error: {
-        code: error.code,
-        message: (0, error_messages_js_1.formatErrorForUser)(error),
-        category: error.category,
-        details: error.details
+      _error: {
+        _code: error.code,
+        _message: (0, error_messages_js_1.formatErrorForUser)(error),
+        _category: error.category,
+        _details: error.details
       }
     };
     // Only include retryable and retryAfter if they are set
@@ -39,11 +39,11 @@ const errorHandler = (error, req, res, next) => {
     const appError = errors_js_1.AppError.fromZodError(error);
     const status = appError.statusCode || 400;
     return res.status(status).json({
-      error: {
-        code: appError.code,
-        message: (0, error_messages_js_1.formatErrorForUser)(appError),
-        category: errors_js_1.ErrorCategory.VALIDATION,
-        validationErrors: appError.validationErrors
+      _error: {
+        _code: appError.code,
+        _message: (0, error_messages_js_1.formatErrorForUser)(appError),
+        _category: errors_js_1.ErrorCategory.VALIDATION,
+        _validationErrors: appError.validationErrors
       }
     });
   }
@@ -51,10 +51,10 @@ const errorHandler = (error, req, res, next) => {
   if (error.name === 'DatabaseError') {
     const appError = errors_js_1.AppError.fromDatabaseError(error);
     return res.status(appError.statusCode || 500).json({
-      error: {
-        code: appError.code,
-        message: appError.message,
-        details: appError.details
+      _error: {
+        _code: appError.code,
+        _message: appError.message,
+        _details: appError.details
       }
     });
   }
@@ -62,10 +62,10 @@ const errorHandler = (error, req, res, next) => {
   if (error.name === 'AuthenticationError') {
     const appError = errors_js_1.AppError.fromAuthenticationError(error);
     return res.status(appError.statusCode || 401).json({
-      error: {
-        code: appError.code,
-        message: appError.message,
-        details: appError.details
+      _error: {
+        _code: appError.code,
+        _message: appError.message,
+        _details: appError.details
       }
     });
   }
@@ -76,11 +76,11 @@ const errorHandler = (error, req, res, next) => {
     : 'An unexpected error occurred';
   (0, error_logger_js_1.logError)(error, `Request: ${req.method} ${req.path}`);
   return res.status(500).json({
-    error: {
-      code: errors_js_1.ErrorCode.INTERNAL_SERVER_ERROR,
-      message: (0, error_messages_js_1.formatErrorForUser)(error),
-      category: errors_js_1.ErrorCategory.SYSTEM,
-      details: errorDetails
+    _error: {
+      _code: errors_js_1.ErrorCode.INTERNAL_SERVER_ERROR,
+      _message: (0, error_messages_js_1.formatErrorForUser)(error),
+      _category: errors_js_1.ErrorCategory.SYSTEM,
+      _details: errorDetails
     }
   });
 };

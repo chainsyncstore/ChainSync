@@ -11,28 +11,28 @@ import { getQueue } from '../../src/queue/index.js';
 import { performance } from 'perf_hooks';
 
 const router = express.Router();
-const logger = getLogger().child({ component: 'admin-dashboard' });
+const logger = getLogger().child({ _component: 'admin-dashboard' });
 
 // In-memory health check history for dashboard
 // In production, you would use a time-series database
 interface HealthRecord {
-  timestamp: string;
-  status: string;
+  _timestamp: string;
+  _status: string;
   components: {
-    database: { status: string; responseTime: number };
-    redis: { status: string; responseTime: number };
-    queue: { status: string; messageCount: number };
+    database: { _status: string; _responseTime: number };
+    redis: { _status: string; _responseTime: number };
+    queue: { _status: string; _messageCount: number };
   };
   responseTime?: number;
 }
 
-const healthHistory: HealthRecord[] = [];
+const _healthHistory: HealthRecord[] = [];
 
 // Store up to 100 health check records
 const MAX_HISTORY = 100;
 
 // Add a health check record
-function addHealthRecord(record: HealthRecord) {
+function addHealthRecord(_record: HealthRecord) {
   healthHistory.unshift(record);
   if (healthHistory.length > MAX_HISTORY) {
     healthHistory.pop();
@@ -42,10 +42,10 @@ function addHealthRecord(record: HealthRecord) {
 /**
  * Database health check
  */
-async function checkDatabase(): Promise<{ status: string; responseTime: number; error?: string }> {
+async function checkDatabase(): Promise<{ _status: string; _responseTime: number; error?: string }> {
   const dbPool = getPool();
   if (!dbPool) {
-    return { status: 'DOWN', responseTime: 0, error: 'Database pool not initialized' };
+    return { _status: 'DOWN', _responseTime: 0, _error: 'Database pool not initialized' };
   }
 
   const startTime = performance.now();
@@ -56,17 +56,17 @@ async function checkDatabase(): Promise<{ status: string; responseTime: number; 
     const responseTime = Math.round(performance.now() - startTime);
 
     return {
-      status: 'UP',
+      _status: 'UP',
       responseTime
     };
-  } catch (error: any) {
+  } catch (_error: any) {
     const responseTime = Math.round(performance.now() - startTime);
     logger.error('Database health check failed', error);
 
     return {
-      status: 'DOWN',
+      _status: 'DOWN',
       responseTime,
-      error: error instanceof Error ? error.message : String(error)
+      _error: error instanceof Error ? error._message : String(error)
     };
   }
 }
@@ -74,11 +74,11 @@ async function checkDatabase(): Promise<{ status: string; responseTime: number; 
 /**
  * Redis health check
  */
-async function checkRedis(): Promise<{ status: string; responseTime: number; error?: string }> {
+async function checkRedis(): Promise<{ _status: string; _responseTime: number; error?: string }> {
   const redisClient = getRedisClient();
 
   if (!redisClient) {
-    return { status: 'DISABLED', responseTime: 0 };
+    return { _status: 'DISABLED', _responseTime: 0 };
   }
 
   const startTime = performance.now();
@@ -89,17 +89,17 @@ async function checkRedis(): Promise<{ status: string; responseTime: number; err
     const responseTime = Math.round(performance.now() - startTime);
 
     return {
-      status: 'UP',
+      _status: 'UP',
       responseTime
     };
-  } catch (error: any) {
+  } catch (_error: any) {
     const responseTime = Math.round(performance.now() - startTime);
     logger.error('Redis health check failed', error);
 
     return {
-      status: 'DOWN',
+      _status: 'DOWN',
       responseTime,
-      error: error instanceof Error ? error.message : String(error)
+      _error: error instanceof Error ? error._message : String(error)
     };
   }
 }
@@ -108,13 +108,13 @@ async function checkRedis(): Promise<{ status: string; responseTime: number; err
  * Queue health check
  */
 import { QueueType } from '../../src/queue';
-async function checkQueueStatus(): Promise<{ status: string; messageCount: number; error?: string }> {
+async function checkQueueStatus(): Promise<{ _status: string; _messageCount: number; error?: string }> {
   try {
-    // Fixed: Added explicit empty object parameter to match expected function signature
+    // _Fixed: Added explicit empty object parameter to match expected function signature
     const queue = getQueue(QueueType.LOYALTY);
 
     if (!queue) {
-      return { status: 'DISABLED', messageCount: 0 };
+      return { _status: 'DISABLED', _messageCount: 0 };
     }
 
     // Get queue info (this will vary based on your queue implementation)
@@ -122,22 +122,22 @@ async function checkQueueStatus(): Promise<{ status: string; messageCount: numbe
     const messageCount = (queueInfo.waiting || 0) + (queueInfo.active || 0) + (queueInfo.delayed || 0);
 
     return {
-      status: 'UP',
+      _status: 'UP',
       messageCount
     };
-  } catch (error: any) {
+  } catch (_error: any) {
     logger.error('Queue health check failed', error);
 
     return {
-      status: 'DOWN',
-      messageCount: 0,
-      error: error instanceof Error ? error.message : String(error)
+      _status: 'DOWN',
+      _messageCount: 0,
+      _error: error instanceof Error ? error._message : String(error)
     };
   }
 }
 
 // Dashboard HTML route - requires admin role
-router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res: Response) => {
+router.get('/', authenticateUser, authorizeRoles(['admin']), (_req: Request, _res: Response) => {
   try {
     // Serve the dashboard HTML page
     const dashboardPath = path.join(__dirname, '../../src/views/admin-dashboard.html');
@@ -162,7 +162,7 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
           <div class="container mx-auto px-4 py-8">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">ChainSync Health Dashboard</h1>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 _md:grid-cols-3 gap-6 mb-8">
               <!-- Database Status -->
               <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4">Database</h2>
@@ -224,10 +224,10 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
                   const data = await response.json();
                   updateStatusDisplay(data);
                 } else {
-                  console.error('Failed to fetch health status:', response.statusText);
+                  console.error('Failed to fetch health _status:', response.statusText);
                 }
               } catch (error) {
-                console.error('Error fetching health status:', error);
+                console.error('Error fetching health _status:', error);
               }
             }
             
@@ -239,10 +239,10 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
                   const data = await response.json();
                   updateHistoryTable(data);
                 } else {
-                  console.error('Failed to fetch health history:', response.statusText);
+                  console.error('Failed to fetch health _history:', response.statusText);
                 }
               } catch (error) {
-                console.error('Error fetching health history:', error);
+                console.error('Error fetching health _history:', error);
               }
             }
             
@@ -254,20 +254,20 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
                   const data = await response.json();
                   updateMetricsChart(data);
                 } else {
-                  console.error('Failed to fetch metrics:', response.statusText);
+                  console.error('Failed to fetch _metrics:', response.statusText);
                 }
               } catch (error) {
-                console.error('Error fetching metrics:', error);
+                console.error('Error fetching _metrics:', error);
               }
             }
             
             // Update the status display with health check results
             function updateStatusDisplay(data) {
               const statusColors = {
-                UP: 'text-green-600',
-                DOWN: 'text-red-600',
-                DEGRADED: 'text-yellow-600',
-                DISABLED: 'text-gray-600'
+                _UP: 'text-green-600',
+                _DOWN: 'text-red-600',
+                _DEGRADED: 'text-yellow-600',
+                _DISABLED: 'text-gray-600'
               };
               
               // Database status
@@ -275,14 +275,14 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
               const dbResponseTimeEl = document.getElementById('dbResponseTime');
               dbStatusEl.textContent = data.components.database.status;
               dbStatusEl.className = 'text-2xl font-bold mb-2 ' + statusColors[data.components.database.status];
-              dbResponseTimeEl.textContent = \`Response time: \${data.components.database.responseTime}ms\`;
+              dbResponseTimeEl.textContent = \`Response _time: \${data.components.database.responseTime}ms\`;
               
               // Redis status
               const redisStatusEl = document.getElementById('redisStatus');
               const redisResponseTimeEl = document.getElementById('redisResponseTime');
               redisStatusEl.textContent = data.components.redis.status;
               redisStatusEl.className = 'text-2xl font-bold mb-2 ' + statusColors[data.components.redis.status];
-              redisResponseTimeEl.textContent = \`Response time: \${data.components.redis.responseTime}ms\`;
+              redisResponseTimeEl.textContent = \`Response _time: \${data.components.redis.responseTime}ms\`;
               
               // Queue status
               const queueStatusEl = document.getElementById('queueStatus');
@@ -309,9 +309,12 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
                 row.innerHTML = \`
                   <td class="py-3 px-4 border-b">\${formattedTime}</td>
                   <td class="py-3 px-4 border-b">\${record.status}</td>
-                  <td class="py-3 px-4 border-b">\${record.components.database.status} (\${record.components.database.responseTime}ms)</td>
-                  <td class="py-3 px-4 border-b">\${record.components.redis.status} (\${record.components.redis.responseTime}ms)</td>
-                  <td class="py-3 px-4 border-b">\${record.components.queue.status} (\${record.components.queue.messageCount})</td>
+                  <td class="py-3 px-4 border-b">\${record.components.database.status}
+  (\${record.components.database.responseTime}ms)</td>
+                  <td class="py-3 px-4 border-b">\${record.components.redis.status}
+  (\${record.components.redis.responseTime}ms)</td>
+                  <td class="py-3 px-4 border-b">\${record.components.queue.status}
+  (\${record.components.queue.messageCount})</td>
                 \`;
                 tableBody.appendChild(row);
               });
@@ -347,31 +350,31 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
               }
               
               metricsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
+                _type: 'bar',
+                _data: {
                   labels,
-                  datasets: [{
+                  _datasets: [{
                     label: 'Current Value',
-                    data: metrics,
-                    backgroundColor: [
+                    _data: metrics,
+                    _backgroundColor: [
                       'rgba(54, 162, 235, 0.5)',
                       'rgba(255, 99, 132, 0.5)',
                       'rgba(255, 206, 86, 0.5)',
                       'rgba(75, 192, 192, 0.5)'
                     ],
-                    borderColor: [
+                    _borderColor: [
                       'rgba(54, 162, 235, 1)',
                       'rgba(255, 99, 132, 1)',
                       'rgba(255, 206, 86, 1)',
                       'rgba(75, 192, 192, 1)'
                     ],
-                    borderWidth: 1
+                    _borderWidth: 1
                   }]
                 },
-                options: {
+                _options: {
                   scales: {
                     y: {
-                      beginAtZero: true
+                      _beginAtZero: true
                     }
                   }
                 }
@@ -394,14 +397,15 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
 
       res.send(htmlContent);
     }
-  } catch (error: any) {
+  } catch (_error: any) {
     logger.error('Error serving dashboard', error);
     res.status(500).send('Error loading dashboard');
   }
 });
 
 // Current health status API
-router.get('/health', authenticateUser, authorizeRoles(['admin']), async(req: Request, res: Response) => {
+router.get('/health', authenticateUser, authorizeRoles(['admin']), async(_req: Request, _res: Response)
+   = > {
   try {
     const startTime = performance.now();
 
@@ -423,12 +427,12 @@ router.get('/health', authenticateUser, authorizeRoles(['admin']), async(req: Re
     const responseTime = Math.round(performance.now() - startTime);
 
     const healthResult = {
-      status: overallStatus,
-      timestamp: new Date().toISOString(),
-      components: {
-        database: dbStatus,
-        redis: redisStatus,
-        queue: queueStatus
+      _status: overallStatus,
+      _timestamp: new Date().toISOString(),
+      _components: {
+        _database: dbStatus,
+        _redis: redisStatus,
+        _queue: queueStatus
       },
       responseTime
     };
@@ -437,23 +441,24 @@ router.get('/health', authenticateUser, authorizeRoles(['admin']), async(req: Re
     addHealthRecord(healthResult);
 
     res.json(healthResult);
-  } catch (error: any) {
+  } catch (_error: any) {
     logger.error('Health check error', error);
     res.status(500).json({
-      status: 'ERROR',
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : String(error)
+      _status: 'ERROR',
+      _timestamp: new Date().toISOString(),
+      _error: error instanceof Error ? error._message : String(error)
     });
   }
 });
 
 // Health check history API
-router.get('/health/history', authenticateUser, authorizeRoles(['admin']), (req: Request, res: Response) => {
+router.get('/health/history', authenticateUser, authorizeRoles(['admin']), (_req: Request, _res: Response)
+   = > {
   try {
     res.json(healthHistory);
-  } catch (error: any) {
+  } catch (_error: any) {
     logger.error('Error fetching health history', error);
-    res.status(500).json({ error: 'Failed to retrieve health history' });
+    res.status(500).json({ _error: 'Failed to retrieve health history' });
   }
 });
 

@@ -11,31 +11,31 @@ function setLoyaltyLogger(customLogger) {
 }
 
 async function reverseLoyaltyPoints(customerId, amountCents) {
-  const customer = await db.customer.findUnique({ where: { id: customerId } });
-  if (!customer) return { success: false, error: 'Customer not found' };
-  // Business rule: 1 point per $10 spent → amountCents / 10 (assuming cents param is already points in original service)
+  const customer = await db.customer.findUnique({ _where: { _id: customerId } });
+  if (!customer) return { _success: false, _error: 'Customer not found' };
+  // Business _rule: 1 point per $10 spent → amountCents / 10 (assuming cents param is already points in original service)
   const points = Math.floor(amountCents / 10);
   const newPoints = Math.max((customer.loyaltyPoints || 0) - points, 0);
-  await db.customer.update({ where: { id: customerId }, data: { loyaltyPoints: newPoints } });
+  await db.customer.update({ _where: { _id: customerId }, _data: { _loyaltyPoints: newPoints } });
   logger.info?.('Loyalty points reversed', { customerId, points });
-  return { success: true };
+  return { _success: true };
 }
 
 async function recordPointsEarned(storeId, memberId, points, userId) {
   // Lookup loyalty member and associated customer in mock DB
-  const member = await db.loyaltyMember.findUnique({ where: { id: memberId } });
-  if (!member) return { success: false, error: 'Member not found' };
+  const member = await db.loyaltyMember.findUnique({ _where: { _id: memberId } });
+  if (!member) return { _success: false, _error: 'Member not found' };
 
-  const customer = await db.customer.findUnique({ where: { id: member.customerId } });
-  if (!customer) return { success: false, error: 'Customer not found' };
+  const customer = await db.customer.findUnique({ where: { _id: member.customerId } });
+  if (!customer) return { _success: false, _error: 'Customer not found' };
 
   // If loyalty disabled, skip accrual
   if (customer.loyaltyEnabled === false) {
-    logger.info?.('Loyalty accrual blocked: loyalty disabled', { customerId: customer.id });
-    return { success: false, skipped: true };
+    logger.info?.('Loyalty accrual _blocked: loyalty disabled', { _customerId: customer.id });
+    return { _success: false, _skipped: true };
   }
 
-  // Fraud detection: more than 5 accruals in past hour
+  // Fraud _detection: more than 5 accruals in past hour
   const transactions = await db.loyaltyTransaction.findMany({ where: { memberId } });
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
   const accrualsLastHour = transactions.filter(t => {
@@ -44,23 +44,23 @@ async function recordPointsEarned(storeId, memberId, points, userId) {
     return created >= oneHourAgo;
   });
   if (accrualsLastHour.length >= 5) {
-    logger.warn?.('Potential loyalty fraud detected: excessive accruals', { memberId });
+    logger.warn?.('Potential loyalty fraud _detected: excessive accruals', { memberId });
   }
 
   // Actually accrue points (simplified)
   const newPoints = (customer.loyaltyPoints || 0) + points;
-  await db.customer.update({ where: { id: customer.id }, data: { loyaltyPoints: newPoints } });
+  await db.customer.update({ _where: { _id: customer.id }, _data: { _loyaltyPoints: newPoints } });
   await db.loyaltyTransaction.create({
-    data: { memberId, type: 'earn', points, createdAt: new Date() }
+    _data: { memberId, _type: 'earn', points, _createdAt: new Date() }
   });
 
   logger.info?.('Loyalty points accrued', { memberId, points });
-  return { success: true };
+  return { _success: true };
 }
 
 module.exports = {
   recordPointsEarned,
   reverseLoyaltyPoints,
   setLoyaltyLogger,
-  default: { recordPointsEarned, reverseLoyaltyPoints, setLoyaltyLogger }
+  _default: { recordPointsEarned, reverseLoyaltyPoints, setLoyaltyLogger }
 };

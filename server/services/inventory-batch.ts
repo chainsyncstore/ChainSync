@@ -3,27 +3,27 @@ import * as schema from '../../shared/schema.js';
 import { eq, and, desc, sum, isNull } from 'drizzle-orm';
 
 export interface BatchInsertData {
-  inventoryId: number;
-  batchNumber: string;
-  quantity: number;
-  expiryDate: string | null;
-  receivedDate: string;
-  manufacturingDate: string | null;
-  costPerUnit: string | null;
+  _inventoryId: number;
+  _batchNumber: string;
+  _quantity: number;
+  _expiryDate: string | null;
+  _receivedDate: string;
+  _manufacturingDate: string | null;
+  _costPerUnit: string | null;
 }
 
 export interface BatchStockAdjustment {
-  batchId: number;
-  quantity: number;
-  reason: string;
+  _batchId: number;
+  _quantity: number;
+  _reason: string;
 }
 
 export interface BatchData {
   id?: number;
-  storeId: number;
-  productId: number;
-  batchNumber: string;
-  quantity: number;
+  _storeId: number;
+  _productId: number;
+  _batchNumber: string;
+  _quantity: number;
   expiryDate?: string | null;
   manufacturingDate?: string | null;
   costPerUnit?: string | null;
@@ -32,16 +32,16 @@ export interface BatchData {
 /**
  * Add a new inventory batch
  */
-export async function addBatch(batchData: BatchData) {
+export async function addBatch(_batchData: BatchData) {
   try {
     let inventory = await db.query.inventory.findFirst({
-      where: and(eq(schema.inventory.storeId, batchData.storeId), eq(schema.inventory.productId, batchData.productId))
+      _where: and(eq(schema.inventory.storeId, batchData.storeId), eq(schema.inventory.productId, batchData.productId))
     });
 
     if (!inventory) {
       [inventory] = await db.insert(schema.inventory).values({
-        storeId: batchData.storeId,
-        productId: batchData.productId
+        _storeId: batchData.storeId,
+        _productId: batchData.productId
       }).returning();
     }
 
@@ -50,20 +50,20 @@ export async function addBatch(batchData: BatchData) {
     }
 
     const [batch] = await db.insert(schema.inventoryBatches).values({
-      inventoryId: inventory.id,
-      quantity: batchData.quantity,
-      batchNumber: batchData.batchNumber,
-      expiryDate: batchData.expiryDate ? new Date(batchData.expiryDate) : null,
-      receivedDate: new Date(),
-      manufacturingDate: batchData.manufacturingDate ? new Date(batchData.manufacturingDate) : null,
-      costPerUnit: batchData.costPerUnit || null
+      _inventoryId: inventory.id,
+      _quantity: batchData.quantity,
+      _batchNumber: batchData.batchNumber,
+      _expiryDate: batchData.expiryDate ? new Date(batchData.expiryDate) : null,
+      _receivedDate: new Date(),
+      _manufacturingDate: batchData.manufacturingDate ? new Date(batchData.manufacturingDate) : null,
+      _costPerUnit: batchData.costPerUnit || null
     } as any).returning();
 
     await updateInventoryTotalQuantity(inventory.id);
 
     return batch;
   } catch (error) {
-    console.error('Error adding batch:', error);
+    console.error('Error adding _batch:', error);
     throw new Error('Failed to add inventory batch');
   }
 }
@@ -71,10 +71,10 @@ export async function addBatch(batchData: BatchData) {
 /**
  * Get all batches for a product in a store
  */
-export async function getBatches(storeId: number, productId: number, includeExpired = false) {
+export async function getBatches(_storeId: number, _productId: number, includeExpired = false) {
   try {
     const inventory = await db.query.inventory.findFirst({
-      where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, productId))
+      _where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, productId))
     });
 
     if (!inventory) {
@@ -87,11 +87,11 @@ export async function getBatches(storeId: number, productId: number, includeExpi
     }
 
     return await db.query.inventoryBatches.findMany({
-      where: and(...conditions),
-      orderBy: [desc(schema.inventoryBatches.expiryDate)]
+      _where: and(...conditions),
+      _orderBy: [desc(schema.inventoryBatches.expiryDate)]
     });
   } catch (error) {
-    console.error('Error getting batches:', error);
+    console.error('Error getting _batches:', error);
     throw new Error('Failed to retrieve inventory batches');
   }
 }
@@ -99,13 +99,13 @@ export async function getBatches(storeId: number, productId: number, includeExpi
 /**
  * Get a specific batch by ID
  */
-export async function getBatchById(batchId: number) {
+export async function getBatchById(_batchId: number) {
   try {
     return await db.query.inventoryBatches.findFirst({
-      where: eq(schema.inventoryBatches.id, batchId)
+      _where: eq(schema.inventoryBatches.id, batchId)
     });
   } catch (error) {
-    console.error('Error getting batch by ID:', error);
+    console.error('Error getting batch by _ID:', error);
     throw new Error('Failed to retrieve inventory batch');
   }
 }
@@ -113,14 +113,14 @@ export async function getBatchById(batchId: number) {
 /**
  * Update a batch's details
  */
-export async function updateBatch(batchId: number, updateData: Partial<BatchInsertData>) {
+export async function updateBatch(_batchId: number, _updateData: Partial<BatchInsertData>) {
   try {
     const currentBatch = await getBatchById(batchId);
     if (!currentBatch) {
       throw new Error('Batch not found');
     }
 
-    const dataToUpdate: any = { ...updateData };
+    const _dataToUpdate: any = { ...updateData };
     if (updateData.expiryDate) {
       dataToUpdate.expiryDate = new Date(updateData.expiryDate);
     }
@@ -138,7 +138,7 @@ export async function updateBatch(batchId: number, updateData: Partial<BatchInse
 
     return await getBatchById(batchId);
   } catch (error) {
-    console.error('Error updating batch:', error);
+    console.error('Error updating _batch:', error);
     throw new Error('Failed to update inventory batch');
   }
 }
@@ -146,7 +146,7 @@ export async function updateBatch(batchId: number, updateData: Partial<BatchInse
 /**
  * Adjust batch quantity (increase or decrease)
  */
-export async function adjustBatchStock(adjustment: BatchStockAdjustment) {
+export async function adjustBatchStock(_adjustment: BatchStockAdjustment) {
   try {
     const currentBatch = await getBatchById(adjustment.batchId);
     if (!currentBatch) {
@@ -159,13 +159,13 @@ export async function adjustBatchStock(adjustment: BatchStockAdjustment) {
       throw new Error('Adjustment would result in negative stock');
     }
 
-    await db.update(schema.inventoryBatches).set({ quantity: newQuantity }).where(eq(schema.inventoryBatches.id, adjustment.batchId));
+    await db.update(schema.inventoryBatches).set({ _quantity: newQuantity }).where(eq(schema.inventoryBatches.id, adjustment.batchId));
 
     await updateInventoryTotalQuantity(currentBatch.inventoryId);
 
     return await getBatchById(adjustment.batchId);
   } catch (error) {
-    console.error('Error adjusting batch stock:', error);
+    console.error('Error adjusting batch _stock:', error);
     throw new Error('Failed to adjust batch stock');
   }
 }
@@ -173,15 +173,15 @@ export async function adjustBatchStock(adjustment: BatchStockAdjustment) {
 /**
  * Sell from a specific batch (reduce quantity)
  */
-export async function sellFromBatch(batchId: number, quantity: number) {
+export async function sellFromBatch(_batchId: number, _quantity: number) {
   try {
     return await adjustBatchStock({
       batchId,
-      quantity: -Math.abs(quantity), // Ensure quantity is negative for selling
-      reason: 'Sale'
+      _quantity: -Math.abs(quantity), // Ensure quantity is negative for selling
+      _reason: 'Sale'
     });
   } catch (error) {
-    console.error('Error selling from batch:', error);
+    console.error('Error selling from _batch:', error);
     throw new Error('Failed to sell from batch');
   }
 }
@@ -189,15 +189,15 @@ export async function sellFromBatch(batchId: number, quantity: number) {
 /**
  * Return to a specific batch (increase quantity)
  */
-export async function returnToBatch(batchId: number, quantity: number) {
+export async function returnToBatch(_batchId: number, _quantity: number) {
   try {
     return await adjustBatchStock({
       batchId,
-      quantity: Math.abs(quantity), // Ensure quantity is positive for returns
-      reason: 'Return'
+      _quantity: Math.abs(quantity), // Ensure quantity is positive for returns
+      _reason: 'Return'
     });
   } catch (error) {
-    console.error('Error returning to batch:', error);
+    console.error('Error returning to _batch:', error);
     throw new Error('Failed to process return to batch');
   }
 }
@@ -206,11 +206,11 @@ export async function returnToBatch(batchId: number, quantity: number) {
  * Automatically sell from batches using FIFO logic
  * Prioritize batches closest to expiration first
  */
-export async function sellFromBatchesFIFO(storeId: number, productId: number, quantity: number) {
+export async function sellFromBatchesFIFO(_storeId: number, _productId: number, _quantity: number) {
   try {
     const batches = await getBatches(storeId, productId, false);
 
-    const sortedBatches = batches.sort((a: any, b: any) => {
+    const sortedBatches = batches.sort((_a: any, _b: any) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
       if (!b.expiryDate) return -1;
@@ -233,25 +233,25 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
     }
 
     if (remainingQty > 0) {
-      throw new Error(`Insufficient stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`);
+      throw new Error(`Insufficient _stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`);
     }
 
     return updatedBatches;
   } catch (error) {
-    console.error('Error selling with FIFO logic:', error);
+    console.error('Error selling with FIFO _logic:', error);
     throw new Error('Failed to process sale with FIFO logic');
   }
 }
 
-async function updateInventoryTotalQuantity(inventoryId: number) {
+async function updateInventoryTotalQuantity(_inventoryId: number) {
   const result = await db
-    .select({ total: sum(schema.inventoryBatches.quantity) })
+    .select({ _total: sum(schema.inventoryBatches.quantity) })
     .from(schema.inventoryBatches)
     .where(eq(schema.inventoryBatches.inventoryId, inventoryId));
 
   const totalQuantity = Number(result[0]?.total) || 0;
 
   await db.update(schema.inventory).set({
-    totalQuantity: totalQuantity
+    _totalQuantity: totalQuantity
   } as any).where(eq(schema.inventory.id, inventoryId));
 }

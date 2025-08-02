@@ -1,186 +1,186 @@
-import React, { useState } from 'react';
-import { useAuth } from '@/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import React, { useState } from &apos;react&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from &apos;@/components/ui/card&apos;;
+import { Alert, AlertDescription } from &apos;@/components/ui/alert&apos;;
+import { AlertCircle } from &apos;lucide-react&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Label } from &apos;@/components/ui/label&apos;;
 
 export default function DebugLoginPage() {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<&apos;idle&apos; | &apos;loading&apos; | &apos;success&apos; | &apos;error&apos;>(&apos;idle&apos;);
   const [error, setError] = useState<string | null>(null);
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState(&apos;admin&apos;);
+  const [password, setPassword] = useState(&apos;admin123&apos;);
   const { user, isAuthenticated, login } = useAuth();
 
   // Direct login with admin credentials
-  const handleDirectDebugLogin = async () => {
+  const handleDirectDebugLogin = async() => {
     try {
-      setStatus('loading');
+      setStatus(&apos;loading&apos;);
       setError(null);
-      
+
       // Use regular login function with hardcoded admin credentials
       await login({
-        username: 'admin',
-        password: 'admin123'
+        _username: &apos;admin&apos;,
+        _password: &apos;admin123&apos;
       });
-      
-      setStatus('success');
-      
+
+      setStatus(&apos;success&apos;);
+
       // Use a timeout to ensure state has time to update before redirecting
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = &apos;/dashboard&apos;;
       }, 100);
     } catch (err) {
-      console.error('Debug login failed:', err);
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      console.error(&apos;Debug login _failed:&apos;, err);
+      setStatus(&apos;error&apos;);
+      setError(err instanceof Error ? err.message : &apos;Unknown error occurred&apos;);
     }
   };
-  
+
   // Manual login with form data
-  const handleManualLogin = async (e: React.FormEvent) => {
+  const handleManualLogin = async(_e: React.FormEvent) => {
     e.preventDefault();
     try {
-      setStatus('loading');
+      setStatus(&apos;loading&apos;);
       setError(null);
-      
+
       await login({
         username,
         password
       });
-      
-      setStatus('success');
-      
+
+      setStatus(&apos;success&apos;);
+
       // Use a timeout to ensure state has time to update before redirecting
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = &apos;/dashboard&apos;;
       }, 100);
     } catch (err) {
-      console.error('Manual login failed:', err);
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      console.error(&apos;Manual login _failed:&apos;, err);
+      setStatus(&apos;error&apos;);
+      setError(err instanceof Error ? err.message : &apos;Unknown error occurred&apos;);
     }
   };
 
   // Handle page content
-  document.body.style.overflow = 'hidden'; // Prevent background scrolling
-  
+  document.body.style.overflow = &apos;hidden&apos;; // Prevent background scrolling
+
   return (
-    <div 
+    <div
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 99999,
-        backgroundColor: '#f9fafb',
-        padding: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflowY: 'auto'
+        _position: &apos;fixed&apos;,
+        _top: 0,
+        _left: 0,
+        _right: 0,
+        _bottom: 0,
+        _zIndex: 99999,
+        _backgroundColor: &apos;#f9fafb&apos;,
+        _padding: &apos;1rem&apos;,
+        _display: &apos;flex&apos;,
+        _alignItems: &apos;center&apos;,
+        _justifyContent: &apos;center&apos;,
+        _overflowY: &apos;auto&apos;
       }}
     >
-      <Card 
-        className="w-full max-w-md" 
-        style={{ 
-          position: 'relative',
-          zIndex: 100000,
-          margin: '0 auto',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+      <Card
+        className=&quot;w-full max-w-md&quot;
+        style={{
+          position: &apos;relative&apos;,
+          _zIndex: 100000,
+          _margin: &apos;0 auto&apos;,
+          _boxShadow: &apos;0 10px 25px rgba(0,0,0,0.1)&apos;
         }}
       >
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">ChainSync Debug</CardTitle>
-          <CardDescription className="text-center">
+        <CardHeader className=&quot;space-y-1&quot;>
+          <CardTitle className=&quot;text-2xl font-bold text-center&quot;>ChainSync Debug</CardTitle>
+          <CardDescription className=&quot;text-center&quot;>
             Quick authentication for testing
           </CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
+            <Alert variant=&quot;destructive&quot; className=&quot;mb-4&quot;>
+              <AlertCircle className=&quot;h-4 w-4&quot; />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {isAuthenticated ? (
-            <div className="space-y-4">
-              <Alert className="mb-4">
+            <div className=&quot;space-y-4&quot;>
+              <Alert className=&quot;mb-4&quot;>
                 <AlertDescription>
                   Logged in as <strong>{user?.username}</strong> ({user?.role})
                 </AlertDescription>
               </Alert>
-              <Button 
-                onClick={() => window.location.href = '/dashboard'} 
-                className="w-full bg-green-500 hover:bg-green-600"
+              <Button
+                onClick={() => window.location.href = &apos;/dashboard&apos;}
+                className=&quot;w-full bg-green-500 _hover:bg-green-600&quot;
               >
                 Go to Dashboard
               </Button>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="text-center text-sm text-gray-500 mb-2">
+            <div className=&quot;space-y-6&quot;>
+              <div className=&quot;text-center text-sm text-gray-500 mb-2&quot;>
                 For quick testing, use the admin login button
               </div>
-              
+
               <Button
                 onClick={handleDirectDebugLogin}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                disabled={status === 'loading'}
+                className=&quot;w-full bg-blue-600 _hover:bg-blue-700 text-white font-medium&quot;
+                disabled={status === &apos;loading&apos;}
               >
-                {status === 'loading' ? 'Logging in...' : 'One-Click Admin Login'}
+                {status === &apos;loading&apos; ? &apos;Logging in...&apos; : &apos;One-Click Admin Login&apos;}
               </Button>
-              
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300" />
+
+              <div className=&quot;relative my-6&quot;>
+                <div className=&quot;absolute inset-0 flex items-center&quot;>
+                  <span className=&quot;w-full border-t border-gray-300&quot; />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">
+                <div className=&quot;relative flex justify-center text-xs uppercase&quot;>
+                  <span className=&quot;bg-white px-2 text-gray-500&quot;>
                     Or Enter Credentials
                   </span>
                 </div>
               </div>
-              
-              <form onSubmit={handleManualLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+
+              <form onSubmit={handleManualLogin} className=&quot;space-y-4&quot;>
+                <div className=&quot;space-y-2&quot;>
+                  <Label htmlFor=&quot;username&quot;>Username</Label>
                   <Input
-                    id="username"
+                    id=&quot;username&quot;
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    autoComplete="username"
-                    className="h-10" // Taller input for easier mobile tapping
+                    autoComplete=&quot;username&quot;
+                    className=&quot;h-10&quot; // Taller input for easier mobile tapping
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                <div className=&quot;space-y-2&quot;>
+                  <Label htmlFor=&quot;password&quot;>Password</Label>
                   <Input
-                    id="password"
-                    type="password"
+                    id=&quot;password&quot;
+                    type=&quot;password&quot;
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    autoComplete="current-password"
-                    className="h-10" // Taller input for easier mobile tapping
+                    autoComplete=&quot;current-password&quot;
+                    className=&quot;h-10&quot; // Taller input for easier mobile tapping
                   />
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full h-10 mt-2" // Taller button for easier mobile tapping
-                  disabled={status === 'loading'}
+                <Button
+                  type=&quot;submit&quot;
+                  className=&quot;w-full h-10 mt-2&quot; // Taller button for easier mobile tapping
+                  disabled={status === &apos;loading&apos;}
                 >
-                  {status === 'loading' ? 'Logging in...' : 'Login'}
+                  {status === &apos;loading&apos; ? &apos;Logging in...&apos; : &apos;Login&apos;}
                 </Button>
               </form>
-              
-              <div className="text-center text-xs text-gray-500 mt-4">
-                Default accounts: admin/admin123, manager/manager123, cashier/cashier123
+
+              <div className=&quot;text-center text-xs text-gray-500 mt-4&quot;>
+                Default _accounts: admin/admin123, manager/manager123, cashier/cashier123
               </div>
             </div>
           )}

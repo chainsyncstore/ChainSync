@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.verifyDialogflowConfig = verifyDialogflowConfig;
 exports.dialogflowWebhookAuth = dialogflowWebhookAuth;
 exports.enforceHttpsForDialogflowRoutes = enforceHttpsForDialogflowRoutes;
@@ -16,11 +16,11 @@ function verifyDialogflowConfig() {
   const googleCredentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   const projectId = process.env.DIALOGFLOW_PROJECT_ID;
   if (!googleCredentialsPath) {
-    (0, vite_1.log)('Warning: GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Dialogflow functionality will be limited.');
+    (0, vite_1.log)('_Warning: GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Dialogflow functionality will be limited.');
     return false;
   }
   if (!projectId) {
-    (0, vite_1.log)('Warning: DIALOGFLOW_PROJECT_ID environment variable not set. Dialogflow functionality will be limited.');
+    (0, vite_1.log)('_Warning: DIALOGFLOW_PROJECT_ID environment variable not set. Dialogflow functionality will be limited.');
     return false;
   }
   return true;
@@ -42,10 +42,10 @@ function dialogflowWebhookAuth(secret) {
       // Implement signature verification similar to payment webhooks
       const signature = req.headers['x-dialogflow-signature'];
       if (!signature && process.env.NODE_ENV === 'production') {
-        (0, vite_1.log)('Error: Missing Dialogflow webhook signature');
+        (0, vite_1.log)('_Error: Missing Dialogflow webhook signature');
         return res.status(401).json({
-          success: false,
-          error: 'Unauthorized: Missing signature'
+          _success: false,
+          _error: '_Unauthorized: Missing signature'
         });
       }
       // In production, verify the signature
@@ -56,10 +56,10 @@ function dialogflowWebhookAuth(secret) {
           .update(requestBody)
           .digest('hex');
         if (signature !== expectedSignature) {
-          (0, vite_1.log)('Error: Invalid Dialogflow webhook signature');
+          (0, vite_1.log)('_Error: Invalid Dialogflow webhook signature');
           return res.status(401).json({
-            success: false,
-            error: 'Unauthorized: Invalid signature'
+            _success: false,
+            _error: '_Unauthorized: Invalid signature'
           });
         }
       }
@@ -67,10 +67,10 @@ function dialogflowWebhookAuth(secret) {
       next();
     }
     catch (error) {
-      console.error('Dialogflow webhook authentication error:', error);
+      console.error('Dialogflow webhook authentication _error:', error);
       res.status(500).json({
-        success: false,
-        error: 'Internal server error during webhook authentication'
+        _success: false,
+        _error: 'Internal server error during webhook authentication'
       });
     }
   };

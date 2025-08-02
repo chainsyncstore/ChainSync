@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.SubscriptionFormatter = void 0;
 /**
  * Subscription Formatter
@@ -31,21 +31,21 @@ class SubscriptionFormatter extends service_helpers_1.ResultFormatter {
     // Format the subscription with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      userId: Number(withDates.userId),
-      planId: String(withDates.planId),
-      status: (withDates.status || 'active'),
-      amount: String(withDates.amount),
-      currency: String(withDates.currency || 'NGN'),
-      referralCode: withDates.referralCode || '',
-      autoRenew: Boolean(withDates.autoRenew),
-      paymentMethod: String(withDates.paymentMethod || ''),
-      metadata: metadata,
-      currentPeriodStart: withDates.currentPeriodStart,
-      currentPeriodEnd: withDates.currentPeriodEnd,
-      endDate: withDates.endDate,
-      createdAt: withDates.createdAt,
-      updatedAt: withDates.updatedAt
+      _id: Number(withDates.id),
+      _userId: Number(withDates.userId),
+      _planId: String(withDates.planId),
+      _status: (withDates.status || 'active'),
+      _amount: String(withDates.amount),
+      _currency: String(withDates.currency || 'NGN'),
+      _referralCode: withDates.referralCode || '',
+      _autoRenew: Boolean(withDates.autoRenew),
+      _paymentMethod: String(withDates.paymentMethod || ''),
+      _metadata: metadata,
+      _currentPeriodStart: withDates.currentPeriodStart,
+      _currentPeriodEnd: withDates.currentPeriodEnd,
+      _endDate: withDates.endDate,
+      _createdAt: withDates.createdAt,
+      _updatedAt: withDates.updatedAt
     };
   }
 }

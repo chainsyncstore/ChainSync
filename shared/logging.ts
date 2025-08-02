@@ -17,14 +17,14 @@ const defaultLogLevel =
 
 // Base logger configuration (using winston)
 const baseLoggerConfig = {
-  level: process.env.LOG_LEVEL || defaultLogLevel,
-  format: winston.format.combine(
+  _level: process.env.LOG_LEVEL || defaultLogLevel,
+  _format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json()
   ),
-  transports: [
+  _transports: [
     new winston.transports.Console({
-      format: winston.format.combine(
+      _format: winston.format.combine(
         winston.format.colorize(),
         winston.format.simple()
       )
@@ -40,33 +40,33 @@ const baseLoggerInstance = winston.createLogger(baseLoggerConfig);
  * Optionally provide context that will be included with all log entries
  */
 export function getLogger(
-  moduleName: string,
-  bindings: Record<string, any> = {} // Changed 'options' to 'bindings' for clarity
+  _moduleName: string,
+  _bindings: Record<string, any> = {} // Changed 'options' to 'bindings' for clarity
 ): Logger {
   return baseLogger.child({
-    module: moduleName, // Add moduleName as a specific binding
-    ...bindings, // Spread other bindings
+    _module: moduleName, // Add moduleName as a specific binding
+    ...bindings // Spread other bindings
   });
 }
 
 /**
  * Create a request-scoped logger with trace ID
  */
-export function createRequestLogger(requestId: string, path: string, method: string) {
+export function createRequestLogger(_requestId: string, _path: string, _method: string) {
   return baseLogger.child({
     requestId,
     path,
-    method,
+    method
   });
 }
 
 /**
  * Create a transaction logger for tracking database operations
  */
-export function createTransactionLogger(transactionId: string) {
+export function createTransactionLogger(_transactionId: string) {
   return baseLogger.child({
     transactionId,
-    component: 'database',
+    _component: 'database'
   });
 }
 
@@ -74,20 +74,20 @@ export function createTransactionLogger(transactionId: string) {
  * Utility to log performance metrics
  */
 export function logPerformance(
-  operation: string,
-  durationMs: number,
+  _operation: string,
+  _durationMs: number,
   metadata?: Record<string, unknown>
 ) {
   const performanceLogger = baseLogger.child({
-    component: 'performance',
-    ...metadata,
+    _component: 'performance',
+    ...metadata
   });
 
   performanceLogger.info(`Completed ${operation} in ${durationMs}ms`);
 
   // Log warning for slow operations
   if (durationMs > 1000) {
-    performanceLogger.warn(`Slow operation: ${operation} took ${durationMs}ms`);
+    performanceLogger.warn(`Slow _operation: ${operation} took ${durationMs}ms`);
   }
 }
 
@@ -95,8 +95,8 @@ export function logPerformance(
  * Measure execution time of a function and log it
  */
 export async function measureAndLog<T>(
-  operation: string,
-  fn: () => Promise<T>,
+  _operation: string,
+  _fn: () => Promise<T>,
   metadata?: Record<string, unknown>
 ): Promise<T> {
   const start = performance.now();
@@ -108,10 +108,10 @@ export async function measureAndLog<T>(
   } catch (error) {
     const durationMs = Math.round(performance.now() - start);
     const logger = baseLogger.child({
-      component: 'performance',
+      _component: 'performance',
       operation,
       durationMs,
-      ...(metadata || {}), // Ensure metadata is an object
+      ...(metadata || {}) // Ensure metadata is an object
     });
     // Use Pino's 'err' binding for better error serialization
     if (error instanceof Error) {
@@ -124,5 +124,5 @@ export async function measureAndLog<T>(
 }
 
 export type Logger = typeof baseLoggerInstance;
-const baseLogger: Logger = baseLoggerInstance;
+const _baseLogger: Logger = baseLoggerInstance;
 export default baseLogger;

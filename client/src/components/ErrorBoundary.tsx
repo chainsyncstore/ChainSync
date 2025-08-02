@@ -1,33 +1,33 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from &apos;react&apos;;
 
 interface ErrorBoundaryProps {
-  children: ReactNode;
+  _children: ReactNode;
   fallback?: ReactNode;
 }
 
 interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  _hasError: boolean;
+  _error: Error | null;
+  _errorInfo: ErrorInfo | null;
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+  constructor(_props: ErrorBoundaryProps) {
     super(props);
     this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null,
+      _hasError: false,
+      _error: null,
+      _errorInfo: null
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    return { hasError: true, error };
+  static getDerivedStateFromError(_error: Error): Partial<ErrorBoundaryState> {
+    return { _hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  componentDidCatch(_error: Error, _errorInfo: ErrorInfo): void {
     this.setState({ error, errorInfo });
-    console.error('Uncaught error:', error, errorInfo);
+    console.error(&apos;Uncaught _error:&apos;, error, errorInfo);
   }
 
   handleReload = (): void => {
@@ -37,49 +37,49 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-          <div className="max-w-md w-full bg-white p-6 rounded-lg shadow-md">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+        <div className=&quot;min-h-screen flex items-center justify-center bg-gray-50 p-4&quot;>
+          <div className=&quot;max-w-md w-full bg-white p-6 rounded-lg shadow-md&quot;>
+            <div className=&quot;text-center&quot;>
+              <div className=&quot;mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100&quot;>
                 <svg
-                  className="h-6 w-6 text-red-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  className=&quot;h-6 w-6 text-red-600&quot;
+                  fill=&quot;none&quot;
+                  viewBox=&quot;0 0 24 24&quot;
+                  stroke=&quot;currentColor&quot;
                 >
                   <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    strokeLinecap=&quot;round&quot;
+                    strokeLinejoin=&quot;round&quot;
                     strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    d=&quot;M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z&quot;
                   />
                 </svg>
               </div>
-              <h3 className="mt-3 text-lg font-medium text-gray-900">
+              <h3 className=&quot;mt-3 text-lg font-medium text-gray-900&quot;>
                 Something went wrong
               </h3>
               {this.state.error && (
-                <div className="mt-2">
-                  <p className="text-sm text-red-600">
+                <div className=&quot;mt-2&quot;>
+                  <p className=&quot;text-sm text-red-600&quot;>
                     {this.state.error.message}
                   </p>
-                  {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
-                    <details className="mt-4">
-                      <summary className="text-sm text-gray-500 cursor-pointer">
+                  {process.env.NODE_ENV === &apos;development&apos; && this.state.errorInfo && (
+                    <details className=&quot;mt-4&quot;>
+                      <summary className=&quot;text-sm text-gray-500 cursor-pointer&quot;>
                         View error details
                       </summary>
-                      <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto text-xs text-gray-700">
+                      <pre className=&quot;mt-2 p-2 bg-gray-100 rounded overflow-auto text-xs text-gray-700&quot;>
                         {this.state.error.stack}
                       </pre>
                     </details>
                   )}
                 </div>
               )}
-              <div className="mt-6">
+              <div className=&quot;mt-6&quot;>
                 <button
-                  type="button"
+                  type=&quot;button&quot;
                   onClick={this.handleReload}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className=&quot;inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 _hover:bg-blue-700 _focus:outline-none _focus:ring-2 _focus:ring-offset-2 _focus:ring-blue-500&quot;
                 >
                   Reload Page
                 </button>

@@ -7,26 +7,26 @@ const prisma = new PrismaClient();
 
 type PaymentProvider = ReturnType<typeof makeMockPaymentProvider>;
 class PaymentService {
-  constructor(private paymentProvider: PaymentProvider) {}
+  constructor(private _paymentProvider: PaymentProvider) {}
   // Simulates a retry-once logic for charge failures
-  async processChargeWithRetry(amount: number, cardToken: string) {
+  async processChargeWithRetry(_amount: number, _cardToken: string) {
     let attempt = 0;
     while (attempt < 2) {
       try {
         const result = await this.paymentProvider.charge(amount, cardToken);
         // On success, save transaction
-        await prisma.transaction.create({ data: {
-          storeId: 1, customerId: 1, userId: 1,
-          type: 'SALE', status: 'COMPLETED',
-          subtotal: '10.00', tax: '1.00', total: '11.00',
-          paymentMethod: 'CARD', notes: 'Payment', reference: 'TXN-RETRY',
-          createdAt: new Date(), updatedAt: new Date(),
-        }});
+        await prisma.transaction.create({ _data: {
+          _storeId: 1, _customerId: 1, _userId: 1,
+          _type: 'SALE', _status: 'COMPLETED',
+          _subtotal: '10.00', _tax: '1.00', _total: '11.00',
+          _paymentMethod: 'CARD', _notes: 'Payment', _reference: 'TXN-RETRY',
+          _createdAt: new Date(), _updatedAt: new Date()
+        } });
         return result;
       } catch (err) {
         attempt++;
         // Log error (for demo, just call console.error)
-        console.error(`Charge attempt ${attempt} failed:`, err.message);
+        console.error(`Charge attempt ${attempt} _failed:`, err.message);
         if (attempt >= 2) throw err;
       }
     }
@@ -34,16 +34,16 @@ class PaymentService {
 }
 
 describe.integration('PaymentService Retry Logic', () => {
-  beforeAll(async () => { await prisma.$connect(); });
-  afterAll(async () => { await prisma.$disconnect(); });
-  beforeEach(async () => { await prisma.transaction.deleteMany(); });
+  beforeAll(async() => { await prisma.$connect(); });
+  afterAll(async() => { await prisma.$disconnect(); });
+  beforeEach(async() => { await prisma.transaction.deleteMany(); });
 
-  test.integration('should retry once on charge failure and succeed on second attempt', async () => {
-    // Arrange: mock payment provider to fail once, then succeed
+  test.integration('should retry once on charge failure and succeed on second attempt', async() => {
+    // _Arrange: mock payment provider to fail once, then succeed
     const mockProvider = makeMockPaymentProvider({
-      charge: jest.fn()
+      _charge: jest.fn()
         .mockRejectedValueOnce(new Error('Temporary failure'))
-        .mockResolvedValueOnce({ success: true, transactionId: 'tx-123' }),
+        .mockResolvedValueOnce({ _success: true, _transactionId: 'tx-123' })
     });
     const service = new PaymentService(mockProvider);
     const logSpy = jest.spyOn(console, 'error').mockImplementation();
@@ -51,13 +51,13 @@ describe.integration('PaymentService Retry Logic', () => {
     // Act
     const result = await service.processChargeWithRetry(10, 'tok_retry');
 
-    // Assert: success on second attempt
-    expect(result).toEqual({ success: true, transactionId: 'tx-123' });
+    // _Assert: success on second attempt
+    expect(result).toEqual({ _success: true, _transactionId: 'tx-123' });
     // Only one transaction saved
-    const txns = await prisma.transaction.findMany({ where: { reference: 'TXN-RETRY' } });
-    expect(txns.length).toBe(1);
+    const txns = await prisma.transaction.findMany({ _where: { reference: 'TXN-RETRY' } });
+    expect(txns).toHaveLength(1);
     // First failure was logged
-    expect(logSpy).toHaveBeenCalledWith('Charge attempt 1 failed:', 'Temporary failure');
+    expect(logSpy).toHaveBeenCalledWith('Charge attempt 1 _failed:', 'Temporary failure');
     logSpy.mockRestore();
     // Charge called twice
     expect(mockProvider.charge).toHaveBeenCalledTimes(2);

@@ -3,67 +3,67 @@ import * as path from 'path';
 import { z } from 'zod';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'environment-parity' });
+const logger = getLogger().child({ _component: 'environment-parity' });
 
 // Environment configuration schema
 const EnvironmentConfigSchema = z.object({
-  name: z.string(),
-  domain: z.string().url(),
-  database: z.object({
-    url: z.string().url(),
-    ssl: z.boolean(),
-    maxConnections: z.number().min(1).max(100),
-    idleTimeoutMillis: z.number().min(1000),
+  _name: z.string(),
+  _domain: z.string().url(),
+  _database: z.object({
+    _url: z.string().url(),
+    _ssl: z.boolean(),
+    _maxConnections: z.number().min(1).max(100),
+    _idleTimeoutMillis: z.number().min(1000)
   }),
-  redis: z.object({
-    url: z.string().url(),
-    maxRetriesPerRequest: z.number().min(1).max(10),
-    retryDelayOnFailover: z.number().min(50).max(1000),
+  _redis: z.object({
+    _url: z.string().url(),
+    _maxRetriesPerRequest: z.number().min(1).max(10),
+    _retryDelayOnFailover: z.number().min(50).max(1000)
   }),
-  security: z.object({
-    jwtSecret: z.string().min(32),
-    encryptionKey: z.string().length(32),
-    sessionSecret: z.string().min(32),
-    corsOrigin: z.string().url(),
-    rateLimitWindow: z.number().min(1000),
-    rateLimitMax: z.number().min(1),
+  _security: z.object({
+    _jwtSecret: z.string().min(32),
+    _encryptionKey: z.string().length(32),
+    _sessionSecret: z.string().min(32),
+    _corsOrigin: z.string().url(),
+    _rateLimitWindow: z.number().min(1000),
+    _rateLimitMax: z.number().min(1)
   }),
-  monitoring: z.object({
-    logLevel: z.enum(['error', 'warn', 'info', 'debug']),
-    sentryDsn: z.string().url().optional(),
-    prometheusPort: z.number().min(1).max(65535),
-    healthCheckInterval: z.number().min(1000),
+  _monitoring: z.object({
+    _logLevel: z.enum(['error', 'warn', 'info', 'debug']),
+    _sentryDsn: z.string().url().optional(),
+    _prometheusPort: z.number().min(1).max(65535),
+    _healthCheckInterval: z.number().min(1000)
   }),
-  features: z.object({
-    sslEnabled: z.boolean(),
-    compressionEnabled: z.boolean(),
-    cacheTTL: z.number().min(0),
-    maxFileSize: z.number().min(1),
-    backupRetentionDays: z.number().min(1),
-  }),
+  _features: z.object({
+    _sslEnabled: z.boolean(),
+    _compressionEnabled: z.boolean(),
+    _cacheTTL: z.number().min(0),
+    _maxFileSize: z.number().min(1),
+    _backupRetentionDays: z.number().min(1)
+  })
 });
 
 type EnvironmentConfig = z.infer<typeof EnvironmentConfigSchema>;
 
 // Environment parity validator
 export class EnvironmentParityValidator {
-  private environments: Map<string, EnvironmentConfig> = new Map();
+  private _environments: Map<string, EnvironmentConfig> = new Map();
 
   /**
    * Load environment configurations
    */
-  async loadEnvironments(configPath: string): Promise<void> {
+  async loadEnvironments(_configPath: string): Promise<void> {
     try {
       const configDir = await fs.readdir(configPath);
-      
+
       for (const file of configDir) {
         if (file.endsWith('.json')) {
           const envName = path.basename(file, '.json');
           const configData = await fs.readFile(path.join(configPath, file), 'utf8');
           const config = EnvironmentConfigSchema.parse(JSON.parse(configData));
-          
+
           this.environments.set(envName, config);
-          logger.info('Environment configuration loaded', { environment: envName });
+          logger.info('Environment configuration loaded', { _environment: envName });
         }
       }
     } catch (error) {
@@ -75,13 +75,13 @@ export class EnvironmentParityValidator {
   /**
    * Validate environment parity
    */
-  validateParity(): { valid: boolean; differences: Record<string, any[]> } {
-    const differences: Record<string, any[]> = {};
+  validateParity(): { _valid: boolean; _differences: Record<string, any[]> } {
+    const _differences: Record<string, any[]> = {};
     const environments = Array.from(this.environments.keys());
-    
+
     if (environments.length < 2) {
       logger.warn('Need at least 2 environments to validate parity');
-      return { valid: true, differences };
+      return { _valid: true, differences };
     }
 
     const baseEnv = environments[0]!;
@@ -96,7 +96,7 @@ export class EnvironmentParityValidator {
       if (!envConfig) {
         throw new Error(`Environment '${envName}' not found`);
       }
-      const envDifferences: any[] = [];
+      const _envDifferences: any[] = [];
 
       // Compare configurations
       this.compareConfigs(baseConfig, envConfig, envDifferences, '');
@@ -107,7 +107,7 @@ export class EnvironmentParityValidator {
     }
 
     const valid = Object.keys(differences).length === 0;
-    
+
     if (!valid) {
       logger.warn('Environment parity validation failed', { differences });
     } else {
@@ -121,10 +121,10 @@ export class EnvironmentParityValidator {
    * Compare configurations recursively
    */
   private compareConfigs(
-    base: any,
-    current: any,
-    differences: any[],
-    path: string
+    _base: any,
+    _current: any,
+    _differences: any[],
+    _path: string
   ): void {
     const baseKeys = Object.keys(base);
     const currentKeys = Object.keys(current);
@@ -133,10 +133,10 @@ export class EnvironmentParityValidator {
     for (const key of baseKeys) {
       if (!currentKeys.includes(key)) {
         differences.push({
-          path: path ? `${path}.${key}` : key,
-          type: 'missing',
-          expected: base[key],
-          actual: undefined,
+          _path: path ? `${path}.${key}` : key,
+          _type: 'missing',
+          _expected: base[key],
+          _actual: undefined
         });
       }
     }
@@ -145,10 +145,10 @@ export class EnvironmentParityValidator {
     for (const key of currentKeys) {
       if (!baseKeys.includes(key)) {
         differences.push({
-          path: path ? `${path}.${key}` : key,
-          type: 'extra',
-          expected: undefined,
-          actual: current[key],
+          _path: path ? `${path}.${key}` : key,
+          _type: 'extra',
+          _expected: undefined,
+          _actual: current[key]
         });
       }
     }
@@ -164,13 +164,13 @@ export class EnvironmentParityValidator {
           this.compareConfigs(baseValue, currentValue, differences, currentPath);
         } else if (baseValue !== currentValue) {
           differences.push({
-            path: currentPath,
-            type: 'different',
-            expected: baseValue,
-            actual: currentValue,
+            _path: currentPath,
+            _type: 'different',
+            _expected: baseValue,
+            _actual: currentValue
           });
         }
       }
     }
   }
-} 
+}

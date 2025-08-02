@@ -18,41 +18,41 @@ export type Inventory = schema.SelectInventory & {
 
 
 export interface InventoryItem {
-  id: number;
-  inventoryId: number;
-  productId: number;
+  _id: number;
+  _inventoryId: number;
+  _productId: number;
   sku?: string;
-  name: string;
+  _name: string;
   description?: string;
   category?: string;
-  quantity: number;
-  unit: string;
+  _quantity: number;
+  _unit: string;
   unitCost?: string;
   reorderLevel?: number;
   reorderQuantity?: number;
   batchNumber?: string;
   serialNumber?: string;
   supplier?: string;
-  isActive: boolean;
+  _isActive: boolean;
   metadata?: Record<string, unknown>;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  _createdAt: Date;
+  _updatedAt: Date;
 }
 
 export interface CreateInventoryItemParams {
-  sku: string;
+  _sku: string;
   receivedDate?: Date;
   manufactureDate?: Date;
   expiryDate?: Date;
-  inventoryId: number;
-  productId: number;
-  name: string;
+  _inventoryId: number;
+  _productId: number;
+  _name: string;
   description?: string;
   category?: string;
-  quantity: number;
-  unit: string;
-  unitCost: string;
+  _quantity: number;
+  _unit: string;
+  _unitCost: string;
   reorderLevel?: number;
   reorderQuantity?: number;
   batchNumber?: string;
@@ -93,22 +93,22 @@ export enum InventoryTransactionType {
 }
 
 export type InventoryTransaction = {
-  id: number;
-  inventoryId: number;
+  _id: number;
+  _inventoryId: number;
   itemId?: number;
-  productId: number;
-  quantity: number;
-  beforeQuantity: number;
-  afterQuantity: number;
-  unitCost: string;
-  totalCost: string;
+  _productId: number;
+  _quantity: number;
+  _beforeQuantity: number;
+  _afterQuantity: number;
+  _unitCost: string;
+  _totalCost: string;
   referenceId?: string;
-  transactionType: InventoryTransactionType;
+  _transactionType: InventoryTransactionType;
   reason?: string;
-  performedBy: number;
+  _performedBy: number;
   metadata?: Record<string, unknown>;
   notes?: string;
-  createdAt: Date;
+  _createdAt: Date;
 };
 
 // Alias to maintain backwards compatibility
@@ -124,11 +124,11 @@ export enum InventoryAdjustmentType {
 }
 
 export interface CreateInventoryParams {
-  productId: number;
-  storeId: number;
-  totalQuantity: number;
-  availableQuantity: number;
-  minimumLevel: number;
+  _productId: number;
+  _storeId: number;
+  _totalQuantity: number;
+  _availableQuantity: number;
+  _minimumLevel: number;
   batchTracking?: boolean;
   currentUtilization?: number;
   metadata?: Record<string, unknown>;
@@ -149,12 +149,12 @@ export interface UpdateInventoryParams {
 export interface InventoryAdjustmentParams {
   inventoryId?: number;
   itemId?: number;
-  productId: number;
-  quantity: number;
+  _productId: number;
+  _quantity: number;
   unitCost?: string;
-  reason: string;
-  transactionType: InventoryTransactionType;
-  userId: number;
+  _reason: string;
+  _transactionType: InventoryTransactionType;
+  _userId: number;
   batchId?: number;
   referenceId?: string;
   performedBy?: number;
@@ -165,11 +165,11 @@ export interface InventoryAdjustmentParams {
 
 export interface InventoryBatchParams {
   inventoryId?: number;
-  productId: number;
-  storeId: number;
-  quantity: number;
-  unitCost: string;
-  purchaseDate: Date;
+  _productId: number;
+  _storeId: number;
+  _quantity: number;
+  _unitCost: string;
+  _purchaseDate: Date;
   manufactureDate?: Date;
   expiryDate?: Date;
   batchNumber?: string;
@@ -185,7 +185,7 @@ export interface InventoryBatchParams {
 
 
 export interface InventorySearchParams {
-  storeId: number;
+  _storeId: number;
   query?: string;
   productId?: number;
   keyword?: string;
@@ -200,54 +200,54 @@ export interface InventorySearchParams {
 }
 
 export interface InventoryServiceErrors {
-  INVENTORY_NOT_FOUND: Error;
-  PRODUCT_NOT_FOUND: Error;
-  STORE_NOT_FOUND: Error;
-  BATCH_NOT_FOUND: Error;
-  INSUFFICIENT_STOCK: Error;
-  INVALID_ADJUSTMENT: Error;
-  INVALID_BATCH_OPERATION: Error;
+  _INVENTORY_NOT_FOUND: Error;
+  _PRODUCT_NOT_FOUND: Error;
+  _STORE_NOT_FOUND: Error;
+  _BATCH_NOT_FOUND: Error;
+  _INSUFFICIENT_STOCK: Error;
+  _INVALID_ADJUSTMENT: Error;
+  _INVALID_BATCH_OPERATION: Error;
 }
 
-export const InventoryServiceErrors: InventoryServiceErrors = {
-  INVENTORY_NOT_FOUND: new Error('Inventory record not found'),
-  PRODUCT_NOT_FOUND: new Error('Product not found'),
-  STORE_NOT_FOUND: new Error('Store not found'),
-  BATCH_NOT_FOUND: new Error('Inventory batch not found'),
-  INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
-  INVALID_ADJUSTMENT: new Error('Invalid inventory adjustment'),
-  INVALID_BATCH_OPERATION: new Error('Invalid batch operation')
+export const _InventoryServiceErrors: InventoryServiceErrors = {
+  _INVENTORY_NOT_FOUND: new Error('Inventory record not found'),
+  _PRODUCT_NOT_FOUND: new Error('Product not found'),
+  _STORE_NOT_FOUND: new Error('Store not found'),
+  _BATCH_NOT_FOUND: new Error('Inventory batch not found'),
+  _INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
+  _INVALID_ADJUSTMENT: new Error('Invalid inventory adjustment'),
+  _INVALID_BATCH_OPERATION: new Error('Invalid batch operation')
 };
 
 export interface IInventoryService {
-  createInventory(params: CreateInventoryParams): Promise<schema.Inventory>;
-  updateInventory(inventoryId: number, params: UpdateInventoryParams): Promise<schema.Inventory>;
-  getInventoryByProduct(productId: number): Promise<schema.Inventory | null>;
-  getInventoryByStore(storeId: number, page?: number, limit?: number): Promise<{
-    inventory: schema.Inventory[];
-    total: number;
-    page: number;
-    limit: number;
+  createInventory(_params: CreateInventoryParams): Promise<schema.Inventory>;
+  updateInventory(_inventoryId: number, _params: UpdateInventoryParams): Promise<schema.Inventory>;
+  getInventoryByProduct(_productId: number): Promise<schema.Inventory | null>;
+  getInventoryByStore(_storeId: number, page?: number, limit?: number): Promise<{
+    _inventory: schema.Inventory[];
+    _total: number;
+    _page: number;
+    _limit: number;
   }>;
-  searchInventory(params: InventorySearchParams): Promise<{
-    inventory: schema.Inventory[];
-    total: number;
-    page: number;
-    limit: number;
+  searchInventory(_params: InventorySearchParams): Promise<{
+    _inventory: schema.Inventory[];
+    _total: number;
+    _page: number;
+    _limit: number;
   }>;
-  adjustInventory(params: InventoryAdjustmentParams): Promise<boolean>;
-  addInventoryBatch(params: InventoryBatchParams): Promise<InventoryItem>;
-  getBatchesByProduct(productId: number): Promise<schema.InventoryBatch[]>;
-  getLowStockItems(storeId: number, limit?: number): Promise<schema.Inventory[]>;
-  getInventoryValuation(storeId: number): Promise<{
-    totalValue: string;
-    totalItems: number;
-    valuationDate: Date;
-    breakdown: Array<{
-      categoryId: number;
-      categoryName: string;
-      value: string;
-      itemCount: number;
+  adjustInventory(_params: InventoryAdjustmentParams): Promise<boolean>;
+  addInventoryBatch(_params: InventoryBatchParams): Promise<InventoryItem>;
+  getBatchesByProduct(_productId: number): Promise<schema.InventoryBatch[]>;
+  getLowStockItems(_storeId: number, limit?: number): Promise<schema.Inventory[]>;
+  getInventoryValuation(_storeId: number): Promise<{
+    _totalValue: string;
+    _totalItems: number;
+    _valuationDate: Date;
+    _breakdown: Array<{
+      _categoryId: number;
+      _categoryName: string;
+      _value: string;
+      _itemCount: number;
     }>
   }>;
 }

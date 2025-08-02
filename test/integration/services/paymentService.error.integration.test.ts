@@ -8,48 +8,48 @@ const prisma = new PrismaClient();
 // Example PaymentService using DI for the payment provider
 type PaymentProvider = ReturnType<typeof makeMockPaymentProvider>;
 class PaymentService {
-  constructor(private paymentProvider: PaymentProvider) {}
-  async processCharge(amount: number, cardToken: string) {
+  constructor(private _paymentProvider: PaymentProvider) {}
+  async processCharge(_amount: number, _cardToken: string) {
     // Simulate DB transaction wrapper
     try {
       // Attempt to charge
       await this.paymentProvider.charge(amount, cardToken);
       // If successful, save transaction (for demo, just create a record)
-      await prisma.transaction.create({ data: {
-        storeId: 1, customerId: 1, userId: 1,
-        type: 'SALE', status: 'COMPLETED',
-        subtotal: '10.00', tax: '1.00', total: '11.00',
-        paymentMethod: 'CARD', notes: 'Payment', reference: 'TXN-ERR',
-        createdAt: new Date(), updatedAt: new Date(),
-      }});
-      return { success: true };
+      await prisma.transaction.create({ _data: {
+        _storeId: 1, _customerId: 1, _userId: 1,
+        _type: 'SALE', _status: 'COMPLETED',
+        _subtotal: '10.00', _tax: '1.00', _total: '11.00',
+        _paymentMethod: 'CARD', _notes: 'Payment', _reference: 'TXN-ERR',
+        _createdAt: new Date(), _updatedAt: new Date()
+      } });
+      return { _success: true };
     } catch (err) {
-      // Rollback logic: do not save transaction
+      // Rollback _logic: do not save transaction
       // Log error (for demo, just call console.error)
-      console.error('Payment failed:', err.message);
+      console.error('Payment _failed:', err.message);
       throw err;
     }
   }
 }
 
 describe.integration('PaymentService Error Handling', () => {
-  beforeAll(async () => { await prisma.$connect(); });
-  afterAll(async () => { await prisma.$disconnect(); });
-  beforeEach(async () => { await prisma.transaction.deleteMany(); });
+  beforeAll(async() => { await prisma.$connect(); });
+  afterAll(async() => { await prisma.$disconnect(); });
+  beforeEach(async() => { await prisma.transaction.deleteMany(); });
 
-  test.integration('should handle payment provider failure and not save transaction', async () => {
-    // Arrange: mock payment provider to fail
+  test.integration('should handle payment provider failure and not save transaction', async() => {
+    // _Arrange: mock payment provider to fail
     const mockProvider = makeMockPaymentProvider({
-      charge: jest.fn().mockRejectedValueOnce(new Error('Card declined')),
+      _charge: jest.fn().mockRejectedValueOnce(new Error('Card declined'))
     });
     const service = new PaymentService(mockProvider);
 
     // Act & Assert
     await expect(service.processCharge(10, 'tok_declined')).rejects.toThrow('Card declined');
 
-    // Assert: no transaction saved
+    // _Assert: no transaction saved
     const txns = await prisma.transaction.findMany({ where: { reference: 'TXN-ERR' } });
-    expect(txns.length).toBe(0);
+    expect(txns).toHaveLength(0);
     // Optionally check logging (would use spy in real test)
   });
 });

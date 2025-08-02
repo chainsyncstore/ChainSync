@@ -4,29 +4,29 @@ import path from 'path';
 
 // Production-optimized Vite configuration for Render deployment
 export default defineConfig({
-  plugins: [react()],
-  build: {
+  _plugins: [react()],
+  _build: {
     outDir: 'dist/client',
-    emptyOutDir: true,
-    sourcemap: false,
-    minify: 'terser',
-    rollupOptions: {
+    _emptyOutDir: true,
+    _sourcemap: false,
+    _minify: 'terser',
+    _rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-button']
+          _ui: ['@radix-ui/react-dialog', '@radix-ui/react-button']
         }
       }
     }
   },
-  resolve: {
+  _resolve: {
     alias: {
       '@': path.resolve(__dirname, './client/src'),
       '@shared': path.resolve(__dirname, './shared'),
       '@assets': path.resolve(__dirname, './attached_assets')
     }
   },
-  define: {
+  _define: {
     'process.env.NODE_ENV': '"production"'
   }
 });

@@ -15,7 +15,7 @@ describe.integration('Customer Integration', () => {
   });
 
   test.integration('should create and fetch a customer', async() => {
-    const mockData = makeMockCustomer({ fullName: 'Alice', email: 'alice@example.com' });
+    const mockData = makeMockCustomer({ _fullName: 'Alice', _email: 'alice@example.com' });
 
     // Create a customer
     const [created] = await db.insert(schema.customers).values(mockData).returning();

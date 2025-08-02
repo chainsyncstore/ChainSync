@@ -2,39 +2,39 @@
 
 // For CSS Modules
 declare module '*.module.css' {
-  const classes: { [key: string]: string };
+  const classes: { [_key: string]: string };
   export default classes;
 }
 
 // For SCSS Modules
 declare module '*.module.scss' {
-  const classes: { [key: string]: string };
+  const classes: { [_key: string]: string };
   export default classes;
 }
 
 // For image imports
 declare module '*.png' {
-  const value: string;
+  const _value: string;
   export default value;
 }
 
 declare module '*.jpg' {
-  const value: string;
+  const _value: string;
   export default value;
 }
 
 declare module '*.jpeg' {
-  const value: string;
+  const _value: string;
   export default value;
 }
 
 declare module '*.gif' {
-  const value: string;
+  const _value: string;
   export default value;
 }
 
 declare module '*.svg' {
-  const value: string;
+  const _value: string;
   export default value;
 }
 

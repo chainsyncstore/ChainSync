@@ -12,24 +12,24 @@ import { logger } from '../../../utils/logger.js';
 class WebhookService extends BaseService {
   async handlePaystackWebhook(signature, payload) {
     // For now, basic stub implementation
-    return { success: true, message: 'Handled Paystack webhook' };
+    return { _success: true, _message: 'Handled Paystack webhook' };
   }
 
   async handleFlutterwaveWebhook(signature, payload) {
-    return { success: true, message: 'Handled Flutterwave webhook' };
+    return { _success: true, _message: 'Handled Flutterwave webhook' };
   }
 
   async createWebhook(params) {
     try {
       const validatedData = webhookValidation.create(params);
       const existingWebhook = await db.query.webhooks.findFirst({
-        where: and(
+        _where: and(
           eq(schema.webhooks.url, validatedData.url),
           eq(schema.webhooks.storeId, validatedData.storeId),
           eq(schema.webhooks.isActive, true)
         )
       });
-      
+
       if (existingWebhook) {
         throw new AppError(
           'Webhook with this URL already exists for this store',
@@ -37,24 +37,24 @@ class WebhookService extends BaseService {
           ErrorCategory.VALIDATION
         );
       }
-      
+
       const secret = crypto.randomBytes(32).toString('hex');
       const [webhook] = await db
         .insert(schema.webhooks)
         .values({
           ...validatedData,
           secret,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          _createdAt: new Date(),
+          _updatedAt: new Date()
         })
         .returning();
-      
+
       return webhook;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        logger.error(`Validation error: ${error.message}`, { 
-          error: error.toJSON(),
-          context: 'createWebhook'
+        logger.error(`Validation _error: ${error.message}`, {
+          _error: error.toJSON(),
+          _context: 'createWebhook'
         });
       }
       throw this.handleError(error, 'Creating webhook');
@@ -65,9 +65,9 @@ class WebhookService extends BaseService {
     try {
       const validatedData = webhookValidation.update(params);
       const existingWebhook = await db.query.webhooks.findFirst({
-        where: eq(schema.webhooks.id, id)
+        _where: eq(schema.webhooks.id, id)
       });
-      
+
       if (!existingWebhook) {
         throw new AppError(
           'Webhook not found',
@@ -75,22 +75,22 @@ class WebhookService extends BaseService {
           ErrorCategory.VALIDATION
         );
       }
-      
+
       const [updatedWebhook] = await db
         .update(schema.webhooks)
         .set({
           ...validatedData,
-          updatedAt: new Date()
+          _updatedAt: new Date()
         })
         .where(eq(schema.webhooks.id, id))
         .returning();
-      
+
       return updatedWebhook;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        logger.error(`Validation error: ${error.message}`, { 
-          error: error.toJSON(),
-          context: 'updateWebhook'
+        logger.error(`Validation _error: ${error.message}`, {
+          _error: error.toJSON(),
+          _context: 'updateWebhook'
         });
       }
       throw this.handleError(error, 'Updating webhook');
@@ -100,9 +100,9 @@ class WebhookService extends BaseService {
   async deleteWebhook(id) {
     try {
       const existingWebhook = await db.query.webhooks.findFirst({
-        where: eq(schema.webhooks.id, id)
+        _where: eq(schema.webhooks.id, id)
       });
-      
+
       if (!existingWebhook) {
         throw new AppError(
           'Webhook not found',
@@ -110,15 +110,15 @@ class WebhookService extends BaseService {
           ErrorCategory.VALIDATION
         );
       }
-      
+
       await db
         .update(schema.webhooks)
         .set({
-          isActive: false,
-          updatedAt: new Date()
+          _isActive: false,
+          _updatedAt: new Date()
         })
         .where(eq(schema.webhooks.id, id));
-      
+
       return true;
     } catch (error) {
       throw this.handleError(error, 'Deleting webhook');
@@ -128,7 +128,7 @@ class WebhookService extends BaseService {
   async getWebhookById(id) {
     try {
       const webhook = await db.query.webhooks.findFirst({
-        where: and(
+        _where: and(
           eq(schema.webhooks.id, id),
           eq(schema.webhooks.isActive, true)
         )
@@ -142,11 +142,11 @@ class WebhookService extends BaseService {
   async getWebhooksByStore(storeId) {
     try {
       const webhooks = await db.query.webhooks.findMany({
-        where: and(
+        _where: and(
           eq(schema.webhooks.storeId, storeId),
           eq(schema.webhooks.isActive, true)
         ),
-        orderBy: [desc(schema.webhooks.createdAt)]
+        _orderBy: [desc(schema.webhooks.createdAt)]
       });
       return webhooks;
     } catch (error) {
@@ -158,23 +158,23 @@ class WebhookService extends BaseService {
     try {
       const webhooks = await this._getWebhooksForEvent(eventType, storeId);
       const event = await this._createWebhookEvent(eventType, data);
-      
+
       for (const webhook of webhooks) {
         await this.deliverWebhook(webhook, event, data);
       }
     } catch (error) {
-      logger.error('Error triggering webhook:', { 
-        error: error.message,
+      logger.error('Error triggering _webhook:', {
+        _error: error.message,
         eventType,
         storeId,
-        context: 'triggerWebhook'
+        _context: 'triggerWebhook'
       });
     }
   }
 
   async _getWebhooksForEvent(eventType, storeId) {
     return await db.query.webhooks.findMany({
-      where: and(
+      _where: and(
         eq(schema.webhooks.storeId, storeId),
         eq(schema.webhooks.isActive, true),
         sql`${schema.webhooks.events} ? ${eventType}`
@@ -186,20 +186,20 @@ class WebhookService extends BaseService {
     const [event] = await db
       .insert(schema.webhookEvents)
       .values({
-        webhookId: 0,
-        event: eventType,
-        payload: JSON.stringify(data),
-        createdAt: new Date()
+        _webhookId: 0,
+        _event: eventType,
+        _payload: JSON.stringify(data),
+        _createdAt: new Date()
       })
       .returning();
-    
+
     return event;
   }
 
   async deliverWebhook(webhook, event, data) {
     let attempt = 0;
     let lastError = null;
-    
+
     while (attempt < WebhookService.MAX_RETRY_ATTEMPTS) {
       try {
         const delivery = await this._createDeliveryRecord(webhook, event, attempt);
@@ -209,18 +209,18 @@ class WebhookService extends BaseService {
         lastError = error;
         attempt++;
         await this._handleDeliveryFailure(webhook, event, attempt, lastError);
-        
+
         if (attempt < WebhookService.MAX_RETRY_ATTEMPTS) {
           await this._waitBeforeRetry(attempt);
         }
       }
     }
-    
-    logger.error(`Webhook delivery failed after ${WebhookService.MAX_RETRY_ATTEMPTS} attempts:`, {
-      error: lastError?.message,
-      webhookId: webhook.id,
-      eventId: event.id,
-      context: 'deliverWebhook'
+
+    logger.error(`Webhook delivery failed after ${WebhookService.MAX_RETRY_ATTEMPTS} _attempts:`, {
+      _error: lastError?.message,
+      _webhookId: webhook.id,
+      _eventId: event.id,
+      _context: 'deliverWebhook'
     });
   }
 
@@ -228,30 +228,30 @@ class WebhookService extends BaseService {
     const [delivery] = await db
       .insert(schema.webhookDeliveries)
       .values({
-        webhookId: webhook.id,
-        eventId: event.id,
-        attempt: attempt + 1,
-        status: 'pending',
-        createdAt: new Date()
+        _webhookId: webhook.id,
+        _eventId: event.id,
+        _attempt: attempt + 1,
+        _status: 'pending',
+        _createdAt: new Date()
       })
       .returning();
-    
+
     return delivery;
   }
 
   async _sendWebhookRequest(webhook, event, data, delivery) {
     const signature = this.generateSignature(JSON.stringify(data), webhook.secret);
-    
+
     const response = await axios.post(webhook.url, data, {
-      headers: {
+      _headers: {
         'Content-Type': 'application/json',
         'X-Webhook-Signature': signature,
         'X-Webhook-Event': event.event,
         'User-Agent': 'ChainSync-Webhook/1.0'
       },
-      timeout: 30000
+      _timeout: 30000
     });
-    
+
     await this._updateDeliverySuccess(delivery.id, response.data);
   }
 
@@ -259,35 +259,35 @@ class WebhookService extends BaseService {
     await db
       .update(schema.webhookDeliveries)
       .set({
-        status: 'delivered',
-        response: JSON.stringify(responseData),
-        updatedAt: new Date()
+        _status: 'delivered',
+        _response: JSON.stringify(responseData),
+        _updatedAt: new Date()
       })
       .where(eq(schema.webhookDeliveries.id, deliveryId));
   }
 
   async _handleDeliveryFailure(webhook, event, attempt, lastError) {
     const deliveryRecord = await db.query.webhookDeliveries.findFirst({
-      where: and(
+      _where: and(
         eq(schema.webhookDeliveries.webhookId, webhook.id),
         eq(schema.webhookDeliveries.eventId, event.id),
         eq(schema.webhookDeliveries.attempt, attempt)
       )
     });
-    
+
     if (deliveryRecord) {
       await db
         .update(schema.webhookDeliveries)
         .set({
-          status: attempt >= WebhookService.MAX_RETRY_ATTEMPTS ? 'failed' : 'retrying',
-          response: lastError?.message ?? null
+          _status: attempt >= WebhookService.MAX_RETRY_ATTEMPTS ? 'failed' : 'retrying',
+          _response: lastError?.message ?? null
         })
         .where(eq(schema.webhookDeliveries.id, deliveryRecord.id));
     }
   }
 
   async _waitBeforeRetry(attempt) {
-    await new Promise(resolve => 
+    await new Promise(resolve =>
       setTimeout(resolve, WebhookService.RETRY_DELAY_MS * attempt)
     );
   }
@@ -302,8 +302,8 @@ class WebhookService extends BaseService {
   async getWebhookDeliveries(webhookId, limit = 50) {
     try {
       const deliveries = await db.query.webhookDeliveries.findMany({
-        where: eq(schema.webhookDeliveries.webhookId, webhookId),
-        orderBy: [desc(schema.webhookDeliveries.createdAt)],
+        _where: eq(schema.webhookDeliveries.webhookId, webhookId),
+        _orderBy: [desc(schema.webhookDeliveries.createdAt)],
         limit
       });
       return deliveries;
@@ -316,7 +316,7 @@ class WebhookService extends BaseService {
     try {
       const { delivery, webhook, event } = await this._getDeliveryDetails(deliveryId);
       const eventData = event.payload ? JSON.parse(event.payload) : {};
-      
+
       await this.deliverWebhook(webhook, event, eventData);
       return true;
     } catch (error) {
@@ -326,9 +326,9 @@ class WebhookService extends BaseService {
 
   async _getDeliveryDetails(deliveryId) {
     const delivery = await db.query.webhookDeliveries.findFirst({
-      where: eq(schema.webhookDeliveries.id, deliveryId)
+      _where: eq(schema.webhookDeliveries.id, deliveryId)
     });
-    
+
     if (!delivery) {
       throw new AppError(
         'Delivery not found',
@@ -336,15 +336,15 @@ class WebhookService extends BaseService {
         ErrorCategory.VALIDATION
       );
     }
-    
+
     const webhook = await db.query.webhooks.findFirst({
-      where: eq(schema.webhooks.id, delivery.webhookId)
+      _where: eq(schema.webhooks.id, delivery.webhookId)
     });
-    
+
     const event = await db.query.webhookEvents.findFirst({
-      where: eq(schema.webhookEvents.id, delivery.eventId)
+      _where: eq(schema.webhookEvents.id, delivery.eventId)
     });
-    
+
     if (!webhook || !event) {
       throw new AppError(
         'Related webhook or event not found',
@@ -352,7 +352,7 @@ class WebhookService extends BaseService {
         ErrorCategory.VALIDATION
       );
     }
-    
+
     return { delivery, webhook, event };
   }
 }

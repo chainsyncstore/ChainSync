@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.DrizzleAdapter = void 0;
 class DrizzleAdapter {
   // Placeholder adapter implementation to satisfy TypeScript until

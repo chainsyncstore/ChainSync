@@ -3,67 +3,67 @@ import * as path from 'path';
 import { z } from 'zod';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'environment-manager' });
+const logger = getLogger().child({ _component: 'environment-manager' });
 
 // Environment configuration schema
 const EnvironmentConfigSchema = z.object({
-  name: z.string(),
-  domain: z.string().url(),
-  database: z.object({
-    url: z.string().url(),
-    ssl: z.boolean(),
-    maxConnections: z.number().min(1).max(100),
-    idleTimeoutMillis: z.number().min(1000),
+  _name: z.string(),
+  _domain: z.string().url(),
+  _database: z.object({
+    _url: z.string().url(),
+    _ssl: z.boolean(),
+    _maxConnections: z.number().min(1).max(100),
+    _idleTimeoutMillis: z.number().min(1000)
   }),
-  redis: z.object({
-    url: z.string().url(),
-    maxRetriesPerRequest: z.number().min(1).max(10),
-    retryDelayOnFailover: z.number().min(50).max(1000),
+  _redis: z.object({
+    _url: z.string().url(),
+    _maxRetriesPerRequest: z.number().min(1).max(10),
+    _retryDelayOnFailover: z.number().min(50).max(1000)
   }),
-  security: z.object({
-    jwtSecret: z.string().min(32),
-    encryptionKey: z.string().length(32),
-    sessionSecret: z.string().min(32),
-    corsOrigin: z.string().url(),
-    rateLimitWindow: z.number().min(1000),
-    rateLimitMax: z.number().min(1),
+  _security: z.object({
+    _jwtSecret: z.string().min(32),
+    _encryptionKey: z.string().length(32),
+    _sessionSecret: z.string().min(32),
+    _corsOrigin: z.string().url(),
+    _rateLimitWindow: z.number().min(1000),
+    _rateLimitMax: z.number().min(1)
   }),
-  monitoring: z.object({
-    logLevel: z.enum(['error', 'warn', 'info', 'debug']),
-    sentryDsn: z.string().url().optional(),
-    prometheusPort: z.number().min(1).max(65535),
-    healthCheckInterval: z.number().min(1000),
+  _monitoring: z.object({
+    _logLevel: z.enum(['error', 'warn', 'info', 'debug']),
+    _sentryDsn: z.string().url().optional(),
+    _prometheusPort: z.number().min(1).max(65535),
+    _healthCheckInterval: z.number().min(1000)
   }),
-  features: z.object({
-    sslEnabled: z.boolean(),
-    compressionEnabled: z.boolean(),
-    cacheTTL: z.number().min(0),
-    maxFileSize: z.number().min(1),
-    backupRetentionDays: z.number().min(1),
-  }),
+  _features: z.object({
+    _sslEnabled: z.boolean(),
+    _compressionEnabled: z.boolean(),
+    _cacheTTL: z.number().min(0),
+    _maxFileSize: z.number().min(1),
+    _backupRetentionDays: z.number().min(1)
+  })
 });
 
 type EnvironmentConfig = z.infer<typeof EnvironmentConfigSchema>;
 
 // Environment parity validator
 export class EnvironmentParityValidator {
-  private environments: Map<string, EnvironmentConfig> = new Map();
+  private _environments: Map<string, EnvironmentConfig> = new Map();
 
   /**
    * Load environment configurations
    */
-  async loadEnvironments(configPath: string): Promise<void> {
+  async loadEnvironments(_configPath: string): Promise<void> {
     try {
       const configDir = await fs.readdir(configPath);
-      
+
       for (const file of configDir) {
         if (file.endsWith('.json')) {
           const envName = path.basename(file, '.json');
           const configData = await fs.readFile(path.join(configPath, file), 'utf8');
           const config = EnvironmentConfigSchema.parse(JSON.parse(configData));
-          
+
           this.environments.set(envName, config);
-          logger.info('Environment configuration loaded', { environment: envName });
+          logger.info('Environment configuration loaded', { _environment: envName });
         }
       }
     } catch (error) {
@@ -75,13 +75,13 @@ export class EnvironmentParityValidator {
   /**
    * Validate environment parity
    */
-  validateParity(): { valid: boolean; differences: Record<string, any[]> } {
-    const differences: Record<string, any[]> = {};
+  validateParity(): { _valid: boolean; _differences: Record<string, any[]> } {
+    const _differences: Record<string, any[]> = {};
     const environments = Array.from(this.environments.keys());
-    
+
     if (environments.length < 2) {
       logger.warn('Need at least 2 environments to validate parity');
-      return { valid: true, differences };
+      return { _valid: true, differences };
     }
 
     const baseEnv = environments[0]!;
@@ -96,7 +96,7 @@ export class EnvironmentParityValidator {
       if (!envConfig) {
         throw new Error(`Environment '${envName}' not found`);
       }
-      const envDifferences: any[] = [];
+      const _envDifferences: any[] = [];
 
       // Compare configurations
       this.compareConfigs(baseConfig, envConfig, envDifferences, '');
@@ -107,7 +107,7 @@ export class EnvironmentParityValidator {
     }
 
     const valid = Object.keys(differences).length === 0;
-    
+
     if (!valid) {
       logger.warn('Environment parity validation failed', { differences });
     } else {
@@ -121,10 +121,10 @@ export class EnvironmentParityValidator {
    * Compare configurations recursively
    */
   private compareConfigs(
-    base: any,
-    current: any,
-    differences: any[],
-    path: string
+    _base: any,
+    _current: any,
+    _differences: any[],
+    _path: string
   ): void {
     const baseKeys = Object.keys(base);
     const currentKeys = Object.keys(current);
@@ -133,10 +133,10 @@ export class EnvironmentParityValidator {
     for (const key of baseKeys) {
       if (!currentKeys.includes(key)) {
         differences.push({
-          path: path ? `${path}.${key}` : key,
-          type: 'missing',
-          expected: base[key],
-          actual: undefined,
+          _path: path ? `${path}.${key}` : key,
+          _type: 'missing',
+          _expected: base[key],
+          _actual: undefined
         });
       }
     }
@@ -145,10 +145,10 @@ export class EnvironmentParityValidator {
     for (const key of currentKeys) {
       if (!baseKeys.includes(key)) {
         differences.push({
-          path: path ? `${path}.${key}` : key,
-          type: 'extra',
-          expected: undefined,
-          actual: current[key],
+          _path: path ? `${path}.${key}` : key,
+          _type: 'extra',
+          _expected: undefined,
+          _actual: current[key]
         });
       }
     }
@@ -164,10 +164,10 @@ export class EnvironmentParityValidator {
           this.compareConfigs(baseValue, currentValue, differences, currentPath);
         } else if (baseValue !== currentValue) {
           differences.push({
-            path: currentPath,
-            type: 'different',
-            expected: baseValue,
-            actual: currentValue,
+            _path: currentPath,
+            _type: 'different',
+            _expected: baseValue,
+            _actual: currentValue
           });
         }
       }
@@ -177,8 +177,8 @@ export class EnvironmentParityValidator {
 
 // Secrets management
 export class SecretsManager {
-  private secrets: Map<string, string> = new Map();
-  private encryptedSecrets: Map<string, string> = new Map();
+  private _secrets: Map<string, string> = new Map();
+  private _encryptedSecrets: Map<string, string> = new Map();
 
   /**
    * Load secrets from environment variables
@@ -194,7 +194,7 @@ export class SecretsManager {
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
       'EMAIL_USER',
-      'EMAIL_PASS',
+      'EMAIL_PASS'
     ];
 
     for (const key of secretKeys) {
@@ -209,7 +209,7 @@ export class SecretsManager {
   /**
    * Load secrets from file
    */
-  async loadFromFile(filePath: string): Promise<void> {
+  async loadFromFile(_filePath: string): Promise<void> {
     try {
       const data = await fs.readFile(filePath, 'utf8');
       const secrets = JSON.parse(data);
@@ -227,14 +227,14 @@ export class SecretsManager {
   /**
    * Get secret value
    */
-  get(key: string): string | undefined {
+  get(_key: string): string | undefined {
     return this.secrets.get(key);
   }
 
   /**
    * Set secret value
    */
-  set(key: string, value: string): void {
+  set(_key: string, _value: string): void {
     this.secrets.set(key, value);
     logger.debug('Secret set', { key });
   }
@@ -242,8 +242,8 @@ export class SecretsManager {
   /**
    * Validate required secrets
    */
-  validateRequired(requiredSecrets: string[]): { valid: boolean; missing: string[] } {
-    const missing: string[] = [];
+  validateRequired(_requiredSecrets: string[]): { _valid: boolean; _missing: string[] } {
+    const _missing: string[] = [];
 
     for (const secret of requiredSecrets) {
       if (!this.secrets.has(secret)) {
@@ -252,7 +252,7 @@ export class SecretsManager {
     }
 
     const valid = missing.length === 0;
-    
+
     if (!valid) {
       logger.error('Required secrets validation failed', { missing });
     } else {
@@ -265,9 +265,9 @@ export class SecretsManager {
   /**
    * Export secrets for environment (sanitized for logging)
    */
-  exportForEnvironment(environment: string): Record<string, string> {
-    const envSecrets: Record<string, string> = {};
-    
+  exportForEnvironment(_environment: string): Record<string, string> {
+    const _envSecrets: Record<string, string> = {};
+
     for (const [key, value] of this.secrets.entries()) {
       if (this.shouldIncludeInEnvironment(key, environment)) {
         envSecrets[key] = value;
@@ -280,7 +280,7 @@ export class SecretsManager {
   /**
    * Check if secret should be included in environment
    */
-  private shouldIncludeInEnvironment(key: string, environment: string): boolean {
+  private shouldIncludeInEnvironment(_key: string, _environment: string): boolean {
     // Always include core secrets
     const coreSecrets = ['JWT_SECRET', 'ENCRYPTION_KEY', 'SESSION_SECRET'];
     if (coreSecrets.includes(key)) {
@@ -295,25 +295,24 @@ export class SecretsManager {
         return !key.includes('STRIPE_LIVE'); // Exclude live payment keys
       case 'development':
         return !key.includes('STRIPE_') && !key.includes('SENTRY_'); // Exclude external service keys
-      default:
-        return false;
+      return false;
     }
   }
 }
 
 // Environment validation
 export class EnvironmentValidator {
-  private config: EnvironmentConfig;
+  private _config: EnvironmentConfig;
 
-  constructor(config: EnvironmentConfig) {
+  constructor(_config: EnvironmentConfig) {
     this.config = config;
   }
 
   /**
    * Validate environment configuration
    */
-  validate(): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
+  validate(): { _valid: boolean; _errors: string[] } {
+    const _errors: string[] = [];
 
     // Validate database configuration
     if (!this.config.database.url) {
@@ -348,7 +347,7 @@ export class EnvironmentValidator {
     }
 
     const valid = errors.length === 0;
-    
+
     if (!valid) {
       logger.error('Environment validation failed', { errors });
     } else {
@@ -361,8 +360,8 @@ export class EnvironmentValidator {
   /**
    * Validate environment readiness for deployment
    */
-  validateDeploymentReadiness(): { ready: boolean; issues: string[] } {
-    const issues: string[] = [];
+  validateDeploymentReadiness(): { _ready: boolean; _issues: string[] } {
+    const _issues: string[] = [];
 
     // Check if all required services are accessible
     if (!this.canConnectToDatabase()) {
@@ -384,7 +383,7 @@ export class EnvironmentValidator {
     }
 
     const ready = issues.length === 0;
-    
+
     if (!ready) {
       logger.warn('Environment not ready for deployment', { issues });
     } else {
@@ -433,9 +432,9 @@ export class EnvironmentValidator {
 
 // Main environment manager
 export class EnvironmentManager {
-  private parityValidator: EnvironmentParityValidator;
-  private secretsManager: SecretsManager;
-  private validators: Map<string, EnvironmentValidator> = new Map();
+  private _parityValidator: EnvironmentParityValidator;
+  private _secretsManager: SecretsManager;
+  private _validators: Map<string, EnvironmentValidator> = new Map();
 
   constructor() {
     this.parityValidator = new EnvironmentParityValidator();
@@ -445,14 +444,14 @@ export class EnvironmentManager {
   /**
    * Initialize environment manager
    */
-  async initialize(configPath: string): Promise<void> {
+  async initialize(_configPath: string): Promise<void> {
     try {
       // Load environment configurations
       await this.parityValidator.loadEnvironments(configPath);
-      
+
       // Load secrets
       this.secretsManager.loadFromEnvironment();
-      
+
       logger.info('Environment manager initialized');
     } catch (error) {
       logger.error('Failed to initialize environment manager', { error });
@@ -463,8 +462,8 @@ export class EnvironmentManager {
   /**
    * Validate all environments
    */
-  async validateAll(): Promise<{ valid: boolean; results: Record<string, any> }> {
-    const results: Record<string, any> = {};
+  async validateAll(): Promise<{ _valid: boolean; _results: Record<string, any> }> {
+    const _results: Record<string, any> = {};
 
     // Validate environment parity
     const parityResult = this.parityValidator.validateParity();
@@ -475,13 +474,13 @@ export class EnvironmentManager {
       'JWT_SECRET',
       'ENCRYPTION_KEY',
       'SESSION_SECRET',
-      'DATABASE_URL',
+      'DATABASE_URL'
     ];
     const secretsResult = this.secretsManager.validateRequired(requiredSecrets);
     results.secrets = secretsResult;
 
     const valid = parityResult.valid && secretsResult.valid;
-    
+
     if (!valid) {
       logger.error('Environment validation failed', { results });
     } else {
@@ -494,7 +493,7 @@ export class EnvironmentManager {
   /**
    * Get environment configuration
    */
-  getEnvironmentConfig(environment: string): EnvironmentConfig | undefined {
+  getEnvironmentConfig(_environment: string): EnvironmentConfig | undefined {
     // This would return the actual environment configuration
     // For now, return undefined as a placeholder
     return undefined;
@@ -503,7 +502,7 @@ export class EnvironmentManager {
   /**
    * Get secrets for environment
    */
-  getSecretsForEnvironment(environment: string): Record<string, string> {
+  getSecretsForEnvironment(_environment: string): Record<string, string> {
     return this.secretsManager.exportForEnvironment(environment);
   }
-} 
+}

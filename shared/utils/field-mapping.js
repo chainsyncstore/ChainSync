@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.toDatabaseFields = toDatabaseFields;
 exports.fromDatabaseFields = fromDatabaseFields;
 exports.pickFields = pickFields;

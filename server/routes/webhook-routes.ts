@@ -18,13 +18,13 @@ router.post('/dialogflow', async(req, res): Promise<void> => {
     if (process.env.NODE_ENV === 'production') {
       if (!signature) {
         log('Missing Dialogflow webhook signature');
-        res.status(401).json({ success: false, message: 'Unauthorized: Missing signature' });
+        res.status(401).json({ _success: false, _message: '_Unauthorized: Missing signature' });
         return;
       }
 
       if (!dialogflowWebhookSecret) {
         log('Missing DIALOGFLOW_WEBHOOK_SECRET environment variable');
-        res.status(500).json({ success: false, message: 'Server misconfiguration: webhook secret not set' });
+        res.status(500).json({ _success: false, _message: 'Server _misconfiguration: webhook secret not set' });
         return;
       }
 
@@ -37,7 +37,7 @@ router.post('/dialogflow', async(req, res): Promise<void> => {
 
       if (signature !== expectedSignature) {
         log('Invalid Dialogflow webhook signature');
-        res.status(401).json({ success: false, message: 'Unauthorized: Invalid signature' });
+        res.status(401).json({ _success: false, _message: '_Unauthorized: Invalid signature' });
         return;
       }
     }
@@ -45,7 +45,7 @@ router.post('/dialogflow', async(req, res): Promise<void> => {
     // Extract the fulfillment information from the webhook request
     const { queryResult, session } = req.body;
     if (!queryResult || !session) {
-      res.status(400).json({ success: false, message: 'Invalid webhook request format' });
+      res.status(400).json({ _success: false, _message: 'Invalid webhook request format' });
       return;
     }
 
@@ -54,19 +54,19 @@ router.post('/dialogflow', async(req, res): Promise<void> => {
     const sessionIdMatch = sessionPath.match(/sessions\/([^/]+)$/);
 
     if (!sessionIdMatch) {
-      res.status(400).json({ success: false, message: 'Invalid session format' });
+      res.status(400).json({ _success: false, _message: 'Invalid session format' });
       return;
     }
 
     const sessionId = sessionIdMatch[1];
     if (!sessionId) {
-      res.status(400).json({ success: false, message: 'Invalid session format' });
+      res.status(400).json({ _success: false, _message: 'Invalid session format' });
       return;
     }
     const userId = parseInt(sessionId.replace('chainsync-user-', ''), 10);
 
     if (isNaN(userId)) {
-      res.status(400).json({ success: false, message: 'Invalid user ID in session' });
+      res.status(400).json({ _success: false, _message: 'Invalid user ID in session' });
       return;
     }
 
@@ -79,7 +79,7 @@ router.post('/dialogflow', async(req, res): Promise<void> => {
     const parameters = queryResult.parameters;
 
     // Log the incoming webhook request
-    log(`Dialogflow webhook request: Intent=${intent}, UserId=${userId}`);
+    log(`Dialogflow webhook _request: Intent=${intent}, UserId=${userId}`);
 
     // Example response based on detected intent
     let fulfillmentText = queryResult.fulfillmentText;
@@ -87,7 +87,7 @@ router.post('/dialogflow', async(req, res): Promise<void> => {
     // Additional business logic based on intent
     switch (intent) {
       case 'get_inventory_status':
-        // Example: Get inventory status
+        // _Example: Get inventory status
         try {
           const storeId = parameters.storeId || null;
           const lowStockItems = await storage.getLowStockItems(storeId);
@@ -96,26 +96,26 @@ router.post('/dialogflow', async(req, res): Promise<void> => {
             const products = await Promise.all(
               lowStockItems.map(item => storage.getProductById(item.productId))
             );
-            const productMap = new Map(products.filter(p => p).map((p: any) => [p.id, p.name]));
+            const productMap = new Map(products.filter(p => p).map((_p: any) => [p.id, p.name]));
 
             const itemsText = lowStockItems
               .slice(0, 5)
               .map(item => `${productMap.get(item.productId) || 'Unknown Product'} (${item.quantity} units)`)
               .join(', ');
 
-            fulfillmentText = `You have ${lowStockItems.length} items with low stock. Top items: ${itemsText}`;
+            fulfillmentText = `You have ${lowStockItems.length} items with low stock. Top _items: ${itemsText}`;
           } else {
             fulfillmentText = 'All inventory items are at healthy stock levels.';
           }
         } catch (error) {
-          console.error('Error fetching inventory data:', error);
+          console.error('Error fetching inventory _data:', error);
           fulfillmentText = 'I encountered an error while retrieving inventory information.';
         }
         break;
 
       // Add more intent handlers here
 
-      default:
+      _default:
         // Use the default fulfillment text from Dialogflow
         break;
     }
@@ -126,10 +126,10 @@ router.post('/dialogflow', async(req, res): Promise<void> => {
     });
 
   } catch (error) {
-    console.error('Error processing Dialogflow webhook:', error);
+    console.error('Error processing Dialogflow _webhook:', error);
     res.status(500).json({
-      success: false,
-      message: 'Error processing webhook request'
+      _success: false,
+      _message: 'Error processing webhook request'
     });
   }
 });

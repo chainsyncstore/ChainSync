@@ -10,7 +10,7 @@ import * as schema from '../../shared/schema.js';
 import { eq, gte, lte, desc, count, and, SQL } from 'drizzle-orm';
 import { queueTransactionForLoyalty } from '../../src/queue/processors/loyalty';
 
-const logger = getLogger().child({ component: 'transactions-api' });
+const logger = getLogger().child({ _component: 'transactions-api' });
 
 // Create router
 const router = Router();
@@ -23,99 +23,99 @@ router.use(sensitiveOpRateLimiter);
 /**
  * @swagger
  * /transactions:
- *   get:
- *     summary: Get all transactions
- *     description: Retrieve a list of all transactions with optional filtering
+ *   _get:
+ *     _summary: Get all transactions
+ *     _description: Retrieve a list of all transactions with optional filtering
  *     tags: [Transactions]
  *     security:
  *       - cookieAuth: []
  *       - csrfToken: []
  *     parameters:
- *       - in: query
- *         name: customerId
+ *       - _in: query
+ *         _name: customerId
  *         schema:
- *           type: string
- *           format: uuid
- *         description: Filter by customer ID
- *       - in: query
- *         name: storeId
+ *           _type: string
+ *           _format: uuid
+ *         _description: Filter by customer ID
+ *       - _in: query
+ *         _name: storeId
  *         schema:
- *           type: string
- *           format: uuid
- *         description: Filter by store ID
- *       - in: query
- *         name: type
+ *           _type: string
+ *           _format: uuid
+ *         _description: Filter by store ID
+ *       - _in: query
+ *         _name: type
  *         schema:
- *           type: string
+ *           _type: string
  *           enum: [purchase, refund, adjustment]
- *         description: Filter by transaction type
- *       - in: query
- *         name: status
+ *         _description: Filter by transaction type
+ *       - _in: query
+ *         _name: status
  *         schema:
- *           type: string
+ *           _type: string
  *           enum: [pending, completed, failed, canceled]
- *         description: Filter by transaction status
- *       - in: query
- *         name: from
+ *         _description: Filter by transaction status
+ *       - _in: query
+ *         _name: from
  *         schema:
- *           type: string
- *           format: date
- *         description: Filter by start date
- *       - in: query
- *         name: to
+ *           _type: string
+ *           _format: date
+ *         _description: Filter by start date
+ *       - _in: query
+ *         _name: to
  *         schema:
- *           type: string
- *           format: date
- *         description: Filter by end date
- *       - in: query
- *         name: page
+ *           _type: string
+ *           _format: date
+ *         _description: Filter by end date
+ *       - _in: query
+ *         _name: page
  *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number for pagination
- *       - in: query
- *         name: limit
+ *           _type: integer
+ *           _default: 1
+ *         _description: Page number for pagination
+ *       - _in: query
+ *         _name: limit
  *         schema:
- *           type: integer
- *           default: 20
- *         description: Number of items per page
+ *           _type: integer
+ *           _default: 20
+ *         _description: Number of items per page
  *     responses:
  *       200:
- *         description: A list of transactions
+ *         _description: A list of transactions
  *         content:
  *           application/json:
  *             schema:
- *               type: object
+ *               _type: object
  *               properties:
  *                 transactions:
- *                   type: array
+ *                   _type: array
  *                   items:
  *                     $ref: '#/components/schemas/Transaction'
  *                 pagination:
- *                   type: object
+ *                   _type: object
  *                   properties:
  *                     total:
- *                       type: integer
+ *                       _type: integer
  *                     pages:
- *                       type: integer
+ *                       _type: integer
  *                     page:
- *                       type: integer
+ *                       _type: integer
  *                     limit:
- *                       type: integer
+ *                       _type: integer
  *       401:
- *         description: Unauthorized
+ *         _description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       500:
- *         description: Server error
+ *         _description: Server error
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', async(req: Request, res: Response, next: NextFunction) => {
+router.get('/', async(_req: Request, _res: Response, _next: NextFunction) => {
   try {
     const { customerId, storeId, status, from, to } = req.query;
     const page = parseInt(req.query.page as string ?? '1', 10);
@@ -125,7 +125,7 @@ router.get('/', async(req: Request, res: Response, next: NextFunction) => {
     // Map query status to schema status enum
     const mappedStatus = status === 'failed' || status === 'canceled' ? 'cancelled' : status;
 
-    const conditions: (SQL<unknown> | undefined)[] = [
+    const _conditions: (SQL<unknown> | undefined)[] = [
       customerId ? eq(schema.transactions.customerId, parseInt(customerId as string, 10)) : undefined,
       storeId ? eq(schema.transactions.storeId, parseInt(storeId as string, 10)) : undefined,
       mappedStatus ? eq(schema.transactions.status, mappedStatus as 'pending' | 'completed' | 'cancelled') : undefined,
@@ -135,7 +135,7 @@ router.get('/', async(req: Request, res: Response, next: NextFunction) => {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const totalQuery = db.select({ count: count() }).from(schema.transactions).where(whereClause);
+    const totalQuery = db.select({ _count: count() }).from(schema.transactions).where(whereClause);
     const result = await totalQuery;
     const total = result[0]?.count ?? 0;
 
@@ -148,18 +148,18 @@ router.get('/', async(req: Request, res: Response, next: NextFunction) => {
 
     res.json({
       transactions,
-      pagination: {
+      _pagination: {
         total,
-        pages: Math.ceil(total / limit),
+        _pages: Math.ceil(total / limit),
         page,
         limit
       }
     });
   } catch (error) {
     logger.error('Error getting transactions', {
-      error: error instanceof Error ? error.message : String(error),
-      userId: req.session.userId,
-      query: req.query
+      _error: error instanceof Error ? error._message : String(error),
+      _userId: req.session.userId,
+      _query: req.query
     });
     next(error);
   }
@@ -168,78 +168,78 @@ router.get('/', async(req: Request, res: Response, next: NextFunction) => {
 /**
  * @swagger
  * /transactions/{id}:
- *   get:
- *     summary: Get a transaction by ID
- *     description: Retrieve details of a specific transaction
+ *   _get:
+ *     _summary: Get a transaction by ID
+ *     _description: Retrieve details of a specific transaction
  *     tags: [Transactions]
  *     security:
  *       - cookieAuth: []
  *       - csrfToken: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *       - _in: path
+ *         _name: id
+ *         _required: true
  *         schema:
- *           type: string
- *           format: uuid
- *         description: Transaction ID
+ *           _type: string
+ *           _format: uuid
+ *         _description: Transaction ID
  *     responses:
  *       200:
- *         description: Transaction details
+ *         _description: Transaction details
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Transaction'
  *       404:
- *         description: Transaction not found
+ *         _description: Transaction not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Unauthorized
+ *         _description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       500:
- *         description: Server error
+ *         _description: Server error
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', async(req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.get('/:id', async(_req: Request, _res: Response, _next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    
+
     if (!id) {
       res.status(400).json({
-        error: 'Transaction ID is required',
-        code: 'MISSING_TRANSACTION_ID'
+        _error: 'Transaction ID is required',
+        _code: 'MISSING_TRANSACTION_ID'
       });
       return;
     }
 
     // Get transaction with customer info
     const transaction = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.id, parseInt(id, 10)),
-      with: {
-        customer: true,
-        store: true
+      _where: eq(schema.transactions.id, parseInt(id, 10)),
+      _with: {
+        _customer: true,
+        _store: true
       }
     });
 
     if (!transaction) {
       res.status(404).json({
-        error: 'Transaction not found',
-        code: 'TRANSACTION_NOT_FOUND'
+        _error: 'Transaction not found',
+        _code: 'TRANSACTION_NOT_FOUND'
       });
       return;
     }
 
     const loyaltyTransactions = await db.query.loyaltyTransactions.findMany({
-      where: eq(schema.loyaltyTransactions.transactionId, parseInt(id!, 10))
+      _where: eq(schema.loyaltyTransactions.transactionId, parseInt(id!, 10))
     });
 
     res.json({
@@ -248,9 +248,9 @@ router.get('/:id', async(req: Request, res: Response, next: NextFunction): Promi
     });
   } catch (error) {
     logger.error('Error getting transaction', {
-      error: error instanceof Error ? error.message : String(error),
-      userId: req.session.userId,
-      transactionId: req.params.id
+      _error: error instanceof Error ? error._message : String(error),
+      _userId: req.session.userId,
+      _transactionId: req.params.id
     });
     next(error);
   }
@@ -258,36 +258,36 @@ router.get('/:id', async(req: Request, res: Response, next: NextFunction): Promi
 
 // Create transaction schema validation
 const createTransactionSchema = z.object({
-  userId: z.string().uuid(),
-  storeId: z.string().uuid(),
-  amount: z.number().positive(),
-  type: z.enum(['purchase', 'refund', 'adjustment']),
-  items: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    quantity: z.number().int().positive(),
-    price: z.number().positive(),
-    categoryId: z.string().optional()
+  _userId: z.string().uuid(),
+  _storeId: z.string().uuid(),
+  _amount: z.number().positive(),
+  _type: z.enum(['purchase', 'refund', 'adjustment']),
+  _items: z.array(z.object({
+    _id: z.string(),
+    _name: z.string(),
+    _quantity: z.number().int().positive(),
+    _price: z.number().positive(),
+    _categoryId: z.string().optional()
   })).optional(),
-  notes: z.string().optional()
+  _notes: z.string().optional()
 });
 
 /**
  * @swagger
  * /transactions:
- *   post:
- *     summary: Create a new transaction
- *     description: Create a new transaction and process loyalty points
+ *   _post:
+ *     _summary: Create a new transaction
+ *     _description: Create a new transaction and process loyalty points
  *     tags: [Transactions]
  *     security:
  *       - cookieAuth: []
  *       - csrfToken: []
  *     requestBody:
- *       required: true
+ *       _required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             _type: object
  *             required:
  *               - customerId
  *               - storeId
@@ -295,25 +295,25 @@ const createTransactionSchema = z.object({
  *               - type
  *             properties:
  *               customerId:
- *                 type: string
- *                 format: uuid
- *                 description: Customer ID
+ *                 _type: string
+ *                 _format: uuid
+ *                 _description: Customer ID
  *               storeId:
- *                 type: string
- *                 format: uuid
- *                 description: Store ID
+ *                 _type: string
+ *                 _format: uuid
+ *                 _description: Store ID
  *               amount:
- *                 type: number
- *                 format: float
- *                 description: Transaction amount
+ *                 _type: number
+ *                 _format: float
+ *                 _description: Transaction amount
  *               type:
- *                 type: string
+ *                 _type: string
  *                 enum: [purchase, refund, adjustment]
- *                 description: Transaction type
+ *                 _description: Transaction type
  *               items:
- *                 type: array
+ *                 _type: array
  *                 items:
- *                   type: object
+ *                   _type: object
  *                   required:
  *                     - id
  *                     - name
@@ -321,65 +321,66 @@ const createTransactionSchema = z.object({
  *                     - price
  *                   properties:
  *                     id:
- *                       type: string
- *                       description: Item ID
+ *                       _type: string
+ *                       _description: Item ID
  *                     name:
- *                       type: string
- *                       description: Item name
+ *                       _type: string
+ *                       _description: Item name
  *                     quantity:
- *                       type: integer
- *                       description: Quantity purchased
+ *                       _type: integer
+ *                       _description: Quantity purchased
  *                     price:
- *                       type: number
- *                       format: float
- *                       description: Item price
+ *                       _type: number
+ *                       _format: float
+ *                       _description: Item price
  *                     categoryId:
- *                       type: string
- *                       description: Item category ID
+ *                       _type: string
+ *                       _description: Item category ID
  *               notes:
- *                 type: string
- *                 description: Additional notes
+ *                 _type: string
+ *                 _description: Additional notes
  *     responses:
  *       201:
- *         description: Transaction created successfully
+ *         _description: Transaction created successfully
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Transaction'
  *       400:
- *         description: Invalid request data
+ *         _description: Invalid request data
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Unauthorized
+ *         _description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       500:
- *         description: Server error
+ *         _description: Server error
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', validateBody(createTransactionSchema), async(req: Request, res: Response, next: NextFunction) => {
+router.post('/', validateBody(createTransactionSchema), async(_req: Request, _res: Response, _next: NextFunction)
+   = > {
   try {
     const { userId, storeId, amount, type, items, notes } = req.body;
 
     const [transaction] = await db.insert(schema.transactions).values({
-      userId: parseInt(userId, 10),
-      storeId: parseInt(storeId, 10),
-      total: amount.toString(), // Use 'total' instead of 'totalAmount'
-      paymentMethod: 'card' as const, // TODO: get from request
-      subtotal: amount.toString() // TODO: calculate from items
+      _userId: parseInt(userId, 10),
+      _storeId: parseInt(storeId, 10),
+      _total: amount.toString(), // Use 'total' instead of 'totalAmount'
+      _paymentMethod: 'card' as const, // _TODO: get from request
+      _subtotal: amount.toString() // _TODO: calculate from items
     }).returning();
 
     // Log transaction creation
     logger.info('Transaction created', {
-      transactionId: transaction?.id, // Use transaction.id
+      _transactionId: transaction?.id, // Use transaction.id
       userId,
       storeId,
       amount,
@@ -387,37 +388,37 @@ router.post('/', validateBody(createTransactionSchema), async(req: Request, res:
     });
 
     if (items && items.length > 0 && transaction) {
-      const transactionItems = items.map((item: any) => ({
-        transactionId: transaction.id, // Use transaction.id
-        productId: parseInt(item.id, 10), // Parse item.id to integer
-        quantity: item.quantity,
-        unitPrice: item.price.toString()
+      const transactionItems = items.map((_item: any) => ({
+        _transactionId: transaction.id, // Use transaction.id
+        _productId: parseInt(item.id, 10), // Parse item.id to integer
+        _quantity: item.quantity,
+        _unitPrice: item.price.toString()
       }));
       await db.insert(schema.transactionItems).values(transactionItems);
     }
 
     if (type === 'purchase' && transaction) {
       await queueTransactionForLoyalty({
-        transactionId: String(transaction.id), // Use transaction.id
-        customerId: userId as string,
-        storeId: storeId as string,
-        amount: amount,
-        transactionDate: transaction.createdAt!.toISOString(),
+        _transactionId: String(transaction.id), // Use transaction.id
+        _customerId: userId as string,
+        _storeId: storeId as string,
+        _amount: amount,
+        _transactionDate: transaction.createdAt!.toISOString(),
         items
       });
 
       logger.info('Loyalty processing queued', {
-        transactionId: transaction.id, // Use transaction.id
-        customerId: userId
+        _transactionId: transaction.id, // Use transaction.id
+        _customerId: userId
       });
     }
 
     res.status(201).json(transaction);
   } catch (error) {
     logger.error('Error creating transaction', {
-      error: error instanceof Error ? error.message : String(error),
-      userId: req.session.userId,
-      body: req.body
+      _error: error instanceof Error ? error._message : String(error),
+      _userId: req.session.userId,
+      _body: req.body
     });
     next(error);
   }
@@ -425,120 +426,121 @@ router.post('/', validateBody(createTransactionSchema), async(req: Request, res:
 
 // Transaction update schema validation
 const updateTransactionSchema = z.object({
-  status: z.enum(['pending', 'completed', 'failed', 'canceled']).optional()
-  // notes: z.string().optional() // Remove notes as it's not in the schema
+  _status: z.enum(['pending', 'completed', 'failed', 'canceled']).optional()
+  // _notes: z.string().optional() // Remove notes as it's not in the schema
 });
 
 /**
  * @swagger
  * /transactions/{id}:
- *   patch:
- *     summary: Update a transaction
- *     description: Update a transaction's status or notes
+ *   _patch:
+ *     _summary: Update a transaction
+ *     _description: Update a transaction's status or notes
  *     tags: [Transactions]
  *     security:
  *       - cookieAuth: []
  *       - csrfToken: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *       - _in: path
+ *         _name: id
+ *         _required: true
  *         schema:
- *           type: string
- *           format: uuid
- *         description: Transaction ID
+ *           _type: string
+ *           _format: uuid
+ *         _description: Transaction ID
  *     requestBody:
- *       required: true
+ *       _required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             _type: object
  *             properties:
  *               status:
- *                 type: string
+ *                 _type: string
  *                 enum: [pending, completed, failed, canceled]
- *                 description: Transaction status
+ *                 _description: Transaction status
  *               notes:
- *                 type: string
- *                 description: Additional notes
+ *                 _type: string
+ *                 _description: Additional notes
  *     responses:
  *       200:
- *         description: Transaction updated successfully
+ *         _description: Transaction updated successfully
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Transaction'
  *       404:
- *         description: Transaction not found
+ *         _description: Transaction not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       400:
- *         description: Invalid request data
+ *         _description: Invalid request data
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Unauthorized
+ *         _description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       500:
- *         description: Server error
+ *         _description: Server error
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.patch('/:id', validateBody(updateTransactionSchema), async(req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.patch('/:id', validateBody(updateTransactionSchema), async(_req: Request, _res: Response, _next: NextFunction): Promise<void>
+   = > {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
-    
+
     if (!id) {
       res.status(400).json({
-        error: 'Transaction ID is required',
-        code: 'MISSING_TRANSACTION_ID'
+        _error: 'Transaction ID is required',
+        _code: 'MISSING_TRANSACTION_ID'
       });
       return;
     }
 
     // Check if transaction exists
     const existingTransaction = await db.query.transactions.findFirst({
-      where: eq(schema.transactions.id, parseInt(id, 10))
+      _where: eq(schema.transactions.id, parseInt(id, 10))
     });
 
     if (!existingTransaction) {
       res.status(404).json({
-        error: 'Transaction not found',
-        code: 'TRANSACTION_NOT_FOUND'
+        _error: 'Transaction not found',
+        _code: 'TRANSACTION_NOT_FOUND'
       });
       return;
     }
 
     const [updatedTransaction] = await db.update(schema.transactions)
       .set({
-        status: (status ?? existingTransaction.status) as 'pending' | 'completed' | 'cancelled'
+        _status: (status ?? existingTransaction.status) as 'pending' | 'completed' | 'cancelled'
       } as any)
       .where(eq(schema.transactions.id, parseInt(id!, 10)))
       .returning();
 
     logger.info('Transaction updated', {
-      transactionId: id,
+      _transactionId: id,
       status,
-      userId: req.session.userId
+      _userId: req.session.userId
     });
 
     res.json(updatedTransaction);
   } catch (error) {
     logger.error('Error updating transaction', {
-      error: error instanceof Error ? error.message : String(error),
-      userId: req.session.userId,
-      transactionId: req.params.id,
-      body: req.body
+      _error: error instanceof Error ? error._message : String(error),
+      _userId: req.session.userId,
+      _transactionId: req.params.id,
+      _body: req.body
     });
     next(error);
   }

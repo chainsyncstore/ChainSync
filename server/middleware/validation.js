@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ValidationError = void 0;
 exports.validateBody = validateBody;
 exports.validateParams = validateParams;
@@ -7,7 +7,7 @@ exports.validateQuery = validateQuery;
 const zod_1 = require('zod');
 const index_js_1 = require('../../src/logging/index.js');
 // Get centralized logger for validation middleware
-const logger = (0, index_js_1.getLogger)().child({ component: 'validation-middleware' });
+const logger = (0, index_js_1.getLogger)().child({ _component: 'validation-middleware' });
 /**
  * Custom error class for validation failures
  */
@@ -24,11 +24,11 @@ class ValidationError extends Error {
      */
   toJSON() {
     return {
-      message: this.message,
-      code: this.code,
-      errors: this.errors.errors.map(err => ({
-        path: err.path.join('.'),
-        message: err.message
+      _message: this.message,
+      _code: this.code,
+      _errors: this.errors.errors.map(err => ({
+        _path: err.path.join('.'),
+        _message: err.message
       }))
     };
   }
@@ -50,11 +50,11 @@ function validateBody(schema) {
     catch (error) {
       if (error instanceof zod_1.z.ZodError) {
         reqLogger.warn('Request body validation failed', {
-          path: req.path,
-          method: req.method,
-          validationErrors: error.errors.map(err => ({
-            path: err.path.join('.'),
-            message: err.message
+          _path: req.path,
+          _method: req.method,
+          _validationErrors: error.errors.map(err => ({
+            _path: err.path.join('.'),
+            _message: err.message
           }))
         });
         const validationError = new ValidationError('Invalid request data', error);
@@ -81,11 +81,11 @@ function validateParams(schema) {
     catch (error) {
       if (error instanceof zod_1.z.ZodError) {
         reqLogger.warn('Request params validation failed', {
-          path: req.path,
-          method: req.method,
-          validationErrors: error.errors.map(err => ({
-            path: err.path.join('.'),
-            message: err.message
+          _path: req.path,
+          _method: req.method,
+          _validationErrors: error.errors.map(err => ({
+            _path: err.path.join('.'),
+            _message: err.message
           }))
         });
         const validationError = new ValidationError('Invalid URL parameters', error);
@@ -112,11 +112,11 @@ function validateQuery(schema) {
     catch (error) {
       if (error instanceof zod_1.z.ZodError) {
         reqLogger.warn('Request query validation failed', {
-          path: req.path,
-          method: req.method,
-          validationErrors: error.errors.map(err => ({
-            path: err.path.join('.'),
-            message: err.message
+          _path: req.path,
+          _method: req.method,
+          _validationErrors: error.errors.map(err => ({
+            _path: err.path.join('.'),
+            _message: err.message
           }))
         });
         const validationError = new ValidationError('Invalid query parameters', error);

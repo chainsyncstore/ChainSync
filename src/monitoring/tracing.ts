@@ -11,17 +11,17 @@ import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import { getLogger } from '../logging';
 import { Request, Response, NextFunction } from 'express';
 
-const logger = getLogger().child({ component: 'tracing' });
+const logger = getLogger().child({ _component: 'tracing' });
 
 // OpenTelemetry SDK instance
-let sdk: opentelemetry.NodeSDK | null = null;
+const _sdk: opentelemetry.NodeSDK | null = null;
 
 // Configuration
 const OTEL_CONFIG = {
-  serviceName: process.env.OTEL_SERVICE_NAME || 'chainsync-api',
-  environment: process.env.NODE_ENV || 'development',
-  endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
-  sampleRate: process.env.OTEL_TRACE_SAMPLER_ARG ? 
+  _serviceName: process.env.OTEL_SERVICE_NAME || 'chainsync-api',
+  _environment: process.env.NODE_ENV || 'development',
+  _endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://_localhost:4318/v1/traces',
+  _sampleRate: process.env.OTEL_TRACE_SAMPLER_ARG ?
     parseFloat(process.env.OTEL_TRACE_SAMPLER_ARG) : 1.0
 };
 
@@ -32,56 +32,56 @@ const OTEL_CONFIG = {
 export function initTracing() {
   try {
     const exporter = new OTLPTraceExporter({
-      url: OTEL_CONFIG.endpoint
+      _url: OTEL_CONFIG.endpoint
     });
 
     const resource = Resource.default().merge(
       new Resource({
         [SemanticResourceAttributes.SERVICE_NAME]: OTEL_CONFIG.serviceName,
-        [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: OTEL_CONFIG.environment,
+        [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: OTEL_CONFIG.environment
       })
     );
 
     // Create and configure SDK
     sdk = new opentelemetry.NodeSDK({
       resource,
-      traceExporter: exporter,
-      instrumentations: [
+      _traceExporter: exporter,
+      _instrumentations: [
         // Auto-instrument common Node.js modules
         getNodeAutoInstrumentations({
           // Only enable specific instrumentations we need
           '@opentelemetry/instrumentation-fs': {
-            enabled: false, // Can generate a lot of noise
+            _enabled: false // Can generate a lot of noise
           },
           '@opentelemetry/instrumentation-express': {
-            enabled: true,
+            _enabled: true
           },
           '@opentelemetry/instrumentation-http': {
-            enabled: true,
+            _enabled: true
           },
           '@opentelemetry/instrumentation-pg': {
-            enabled: true,
+            _enabled: true
           },
           '@opentelemetry/instrumentation-redis': {
-            enabled: true,
+            _enabled: true
           }
         }),
         // Add additional instrumentations as needed
         new ExpressInstrumentation(),
         new HttpInstrumentation(),
         new PgInstrumentation(),
-        new RedisInstrumentation(),
-      ],
+        new RedisInstrumentation()
+      ]
     });
 
     // Initialize SDK
     sdk.start()
       .then(() => {
         logger.info('OpenTelemetry tracing initialized successfully', {
-          serviceName: OTEL_CONFIG.serviceName,
-          environment: OTEL_CONFIG.environment,
-          endpoint: OTEL_CONFIG.endpoint,
-          sampleRate: OTEL_CONFIG.sampleRate
+          _serviceName: OTEL_CONFIG.serviceName,
+          _environment: OTEL_CONFIG.environment,
+          _endpoint: OTEL_CONFIG.endpoint,
+          _sampleRate: OTEL_CONFIG.sampleRate
         });
       })
       .catch(err => {
@@ -117,39 +117,39 @@ export function getCurrentTraceContext() {
   try {
     const { trace, context } = require('@opentelemetry/api');
     const activeSpan = trace.getSpan(context.active());
-    
+
     if (activeSpan) {
       const spanContext = activeSpan.spanContext();
       return {
-        traceId: spanContext.traceId,
-        spanId: spanContext.spanId
+        _traceId: spanContext.traceId,
+        _spanId: spanContext.spanId
       };
     }
   } catch (error) {
-    logger.debug('Error getting trace context', { error: error as Error });
+    logger.debug('Error getting trace context', { _error: error as Error });
   }
-  
+
   return undefined;
 }
 
 /**
  * Express middleware to add trace context to logs
  */
-export function traceContextMiddleware(req: Request, res: Response, next: NextFunction) {
+export function traceContextMiddleware(_req: Request, _res: Response, _next: NextFunction) {
   try {
     const traceContext = getCurrentTraceContext();
-    
+
     if (traceContext) {
       // Add trace context to request for logging
       (req as any).traceContext = traceContext;
-      
+
       // Add trace ID to response headers for debugging
       res.setHeader('X-Trace-ID', traceContext.traceId);
     }
   } catch (error) {
-    logger.debug('Error in trace context middleware', { error: error as Error });
+    logger.debug('Error in trace context middleware', { _error: error as Error });
   }
-  
+
   next();
 }
 
@@ -159,25 +159,25 @@ export function traceContextMiddleware(req: Request, res: Response, next: NextFu
  * @param fn Function to execute within the span
  * @returns Result of the function
  */
-export async function withSpan<T>(name: string, fn: () => Promise<T>): Promise<T> {
+export async function withSpan<T>(_name: string, _fn: () => Promise<T>): Promise<T> {
   try {
     const { trace, context } = require('@opentelemetry/api');
     const tracer = trace.getTracer('chainsync-app');
-    
-    return await tracer.startActiveSpan(name, async (span: any) => {
+
+    return await tracer.startActiveSpan(name, async(_span: any) => {
       try {
         const result = await fn();
         span.end();
         return result;
       } catch (error) {
         span.recordException(error);
-        span.setStatus({ code: 2 }); // ERROR
+        span.setStatus({ _code: 2 }); // ERROR
         span.end();
         throw error;
       }
     });
   } catch (error) {
-    logger.debug(`Error creating span for ${name}`, { error: error as Error });
+    logger.debug(`Error creating span for ${name}`, { _error: error as Error });
     return await fn();
   }
 }

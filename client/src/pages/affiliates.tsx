@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'wouter';
-import { AppShell } from '@/components/layout/app-shell';
-import { AffiliateDashboard } from '@/components/affiliate/affiliate-dashboard';
-import { useAuth } from '@/providers/auth-provider';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from &apos;react&apos;;
+import { Link, useLocation } from &apos;wouter&apos;;
+import { AppShell } from &apos;@/components/layout/app-shell&apos;;
+import { AffiliateDashboard } from &apos;@/components/affiliate/affiliate-dashboard&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { z } from &apos;zod&apos;;
+import { useForm } from &apos;react-hook-form&apos;;
+import { zodResolver } from &apos;@hookform/resolvers/zod&apos;;
+import { useMutation } from &apos;@tanstack/react-query&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
 
 import {
   Card,
@@ -16,37 +16,37 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RefreshCwIcon, ArrowLeftIcon, UserIcon, UsersIcon, DollarSign } from 'lucide-react';
+  FormMessage
+} from &apos;@/components/ui/form&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Tabs, TabsContent, TabsList, TabsTrigger } from &apos;@/components/ui/tabs&apos;;
+import { Alert, AlertDescription } from &apos;@/components/ui/alert&apos;;
+import { RefreshCwIcon, ArrowLeftIcon, UserIcon, UsersIcon, DollarSign } from &apos;lucide-react&apos;;
 
 // Form schemas
 const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  _username: z.string().min(3, &apos;Username must be at least 3 characters&apos;),
+  _password: z.string().min(6, &apos;Password must be at least 6 characters&apos;)
 });
 
 const signupSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters"),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
+  _username: z.string().min(3, &apos;Username must be at least 3 characters&apos;),
+  _password: z.string().min(6, &apos;Password must be at least 6 characters&apos;),
+  _confirmPassword: z.string().min(6, &apos;Confirm password must be at least 6 characters&apos;),
+  _fullName: z.string().min(2, &apos;Full name must be at least 2 characters&apos;),
+  _email: z.string().email(&apos;Please enter a valid email&apos;)
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+  _message: &quot;Passwords don&apos;t match&quot;,
+  _path: [&apos;confirmPassword&apos;]
 });
 
 // Type definitions
@@ -56,107 +56,107 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 export default function AffiliatePage() {
   const { user, isAuthenticated, login } = useAuth();
   const [isRegistering, setIsRegistering] = useState(false);
-  // const [activeTab, setActiveTab] = useState<string>("login"); // Unused
+  // const [activeTab, setActiveTab] = useState<string>(&quot;login&quot;); // Unused
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
+    _resolver: zodResolver(loginSchema),
+    _defaultValues: {
+      username: &apos;&apos;,
+      _password: &apos;&apos;
+    }
   });
 
   // Signup form
   const signupForm = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-      confirmPassword: "",
-      fullName: "",
-      email: "",
-    },
+    _resolver: zodResolver(signupSchema),
+    _defaultValues: {
+      username: &apos;&apos;,
+      _password: &apos;&apos;,
+      _confirmPassword: &apos;&apos;,
+      _fullName: &apos;&apos;,
+      _email: &apos;&apos;
+    }
   });
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormValues) => {
-      const response = await apiRequest('POST', '/api/auth/login', data);
+    _mutationFn: async(_data: LoginFormValues) => {
+      const response = await apiRequest(&apos;POST&apos;, &apos;/api/auth/login&apos;, data);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
+        throw new Error(errorData.message || &apos;Login failed&apos;);
       }
       return response.json();
     },
-    onSuccess: () => { // data parameter removed
+    _onSuccess: () => { // data parameter removed
       // Call login with username and password from form data
       const formData = loginForm.getValues();
-      login({ username: formData.username, password: formData.password });
-      
+      login({ _username: formData.username, _password: formData.password });
+
       toast({
-        title: "Login successful!",
-        description: "Welcome to the ChainSync Affiliate Program",
+        _title: &apos;Login successful!&apos;,
+        _description: &apos;Welcome to the ChainSync Affiliate Program&apos;
       });
-      // No need to redirect, we'll stay on the affiliate page
+      // No need to redirect, we&apos;ll stay on the affiliate page
     },
-    onError: (error: Error) => {
+    _onError: (_error: Error) => {
       toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
+        _title: &apos;Login failed&apos;,
+        _description: error.message,
+        _variant: &apos;destructive&apos;
       });
     }
   });
 
   // Signup mutation
   const signupMutation = useMutation({
-    mutationFn: async (data: SignupFormValues) => {
+    _mutationFn: async(_data: SignupFormValues) => {
       const { confirmPassword, ...signupData } = data;
-      
+
       // First attempt signup
-      const response = await apiRequest('POST', '/api/auth/signup', {
+      const response = await apiRequest(&apos;POST&apos;, &apos;/api/auth/signup&apos;, {
         ...signupData,
-        role: "affiliate", // Special role for affiliate-only users
-        becomeAffiliate: true // Flag to automatically register as affiliate
+        _role: &apos;affiliate&apos;, // Special role for affiliate-only users
+        _becomeAffiliate: true // Flag to automatically register as affiliate
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
+        throw new Error(errorData.message || &apos;Registration failed&apos;);
       }
-      
+
       return response.json();
     },
-    onSuccess: () => { // data parameter removed
+    _onSuccess: () => { // data parameter removed
       // Call login with username and password from form data
       const formData = signupForm.getValues();
-      login({ username: formData.username, password: formData.password });
-      
+      login({ _username: formData.username, _password: formData.password });
+
       toast({
-        title: "Registration successful!",
-        description: "Welcome to the ChainSync Affiliate Program",
+        _title: &apos;Registration successful!&apos;,
+        _description: &apos;Welcome to the ChainSync Affiliate Program&apos;
       });
       setIsRegistering(false);
     },
-    onError: (error: Error) => {
+    _onError: (_error: Error) => {
       toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
+        _title: &apos;Registration failed&apos;,
+        _description: error.message,
+        _variant: &apos;destructive&apos;
       });
     }
   });
 
   // Submit login form
-  const onLoginSubmit = (data: LoginFormValues) => {
+  const onLoginSubmit = (_data: LoginFormValues) => {
     loginMutation.mutate(data);
   };
 
   // Submit signup form
-  const onSignupSubmit = (data: SignupFormValues) => {
+  const onSignupSubmit = (_data: SignupFormValues) => {
     signupMutation.mutate(data);
   };
 
@@ -165,23 +165,23 @@ export default function AffiliatePage() {
     return (
       <AppShell>
         {/* Page Title */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-neutral-800">Affiliate Program</h1>
-          <p className="text-neutral-500 mt-1">Earn commission by referring new users to ChainSync</p>
+        <div className=&quot;mb-6&quot;>
+          <h1 className=&quot;text-2xl font-bold text-neutral-800&quot;>Affiliate Program</h1>
+          <p className=&quot;text-neutral-500 mt-1&quot;>Earn commission by referring new users to ChainSync</p>
         </div>
-        
+
         {/* Affiliate Dashboard */}
         <AffiliateDashboard />
 
         {/* Return to main app link for existing users */}
-        {user?.role && user?.role !== 'affiliate' && (
-          <div className="mt-8">
-            <Button 
-              variant="outline" 
-              onClick={() => setLocation('/dashboard')}
-              className="flex items-center"
+        {user?.role && user?.role !== &apos;affiliate&apos; && (
+          <div className=&quot;mt-8&quot;>
+            <Button
+              variant=&quot;outline&quot;
+              onClick={() => setLocation(&apos;/dashboard&apos;)}
+              className=&quot;flex items-center&quot;
             >
-              <ArrowLeftIcon className="mr-2 h-4 w-4" />
+              <ArrowLeftIcon className=&quot;mr-2 h-4 w-4&quot; />
               Return to Dashboard
             </Button>
           </div>
@@ -190,62 +190,62 @@ export default function AffiliatePage() {
     );
   }
 
-  // For new visitors, show login/register options  
+  // For new visitors, show login/register options
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className=&quot;min-h-screen bg-neutral-50&quot;>
       {/* Header */}
-      <header className="w-full py-4 px-4 bg-white border-b">
-        <div className="container mx-auto max-w-screen-xl flex justify-between items-center">
-          <Link href="/">
-            <div className="flex items-center space-x-2 cursor-pointer">
-              <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="currentColor"/>
-                <path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="currentColor"/>
-                <path d="M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z" fill="currentColor"/>
+      <header className=&quot;w-full py-4 px-4 bg-white border-b&quot;>
+        <div className=&quot;container mx-auto max-w-screen-xl flex justify-between items-center&quot;>
+          <Link href=&quot;/&quot;>
+            <div className=&quot;flex items-center space-x-2 cursor-pointer&quot;>
+              <svg className=&quot;w-8 h-8 text-primary&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;>
+                <path d=&quot;M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z&quot; fill=&quot;currentColor&quot;/>
+                <path d=&quot;M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z&quot; fill=&quot;currentColor&quot;/>
+                <path d=&quot;M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z&quot; fill=&quot;currentColor&quot;/>
               </svg>
-              <span className="text-xl font-bold">ChainSync</span>
+              <span className=&quot;text-xl font-bold&quot;>ChainSync</span>
             </div>
           </Link>
-          <Link href="/">
-            <Button variant="ghost">Back to Home</Button>
+          <Link href=&quot;/&quot;>
+            <Button variant=&quot;ghost&quot;>Back to Home</Button>
           </Link>
         </div>
       </header>
 
-      <div className="container mx-auto max-w-screen-xl px-4 py-12">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-neutral-800">ChainSync Affiliate Program</h1>
-            <p className="text-neutral-500 mt-2">Earn 10% commission on referred users' subscriptions for 12 months</p>
+      <div className=&quot;container mx-auto max-w-screen-xl px-4 py-12&quot;>
+        <div className=&quot;max-w-3xl mx-auto&quot;>
+          <div className=&quot;text-center mb-8&quot;>
+            <h1 className=&quot;text-3xl font-bold text-neutral-800&quot;>ChainSync Affiliate Program</h1>
+            <p className=&quot;text-neutral-500 mt-2&quot;>Earn 10% commission on referred users&apos; subscriptions for 12 months</p>
           </div>
 
           {/* Benefits section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card className="p-4">
-              <div className="flex flex-col items-center text-center">
-                <UserIcon className="h-10 w-10 text-primary mb-2" />
-                <h3 className="font-medium">Quick Signup</h3>
-                <p className="text-sm text-gray-500">Create your affiliate account in minutes</p>
+          <div className=&quot;grid grid-cols-1 _md:grid-cols-3 gap-4 mb-8&quot;>
+            <Card className=&quot;p-4&quot;>
+              <div className=&quot;flex flex-col items-center text-center&quot;>
+                <UserIcon className=&quot;h-10 w-10 text-primary mb-2&quot; />
+                <h3 className=&quot;font-medium&quot;>Quick Signup</h3>
+                <p className=&quot;text-sm text-gray-500&quot;>Create your affiliate account in minutes</p>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex flex-col items-center text-center">
-                <UsersIcon className="h-10 w-10 text-primary mb-2" />
-                <h3 className="font-medium">Refer Businesses</h3>
-                <p className="text-sm text-gray-500">Share your unique link with potential customers</p>
+            <Card className=&quot;p-4&quot;>
+              <div className=&quot;flex flex-col items-center text-center&quot;>
+                <UsersIcon className=&quot;h-10 w-10 text-primary mb-2&quot; />
+                <h3 className=&quot;font-medium&quot;>Refer Businesses</h3>
+                <p className=&quot;text-sm text-gray-500&quot;>Share your unique link with potential customers</p>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex flex-col items-center text-center">
-                <DollarSign className="h-10 w-10 text-primary mb-2" />
-                <h3 className="font-medium">Earn Commission</h3>
-                <p className="text-sm text-gray-500">Get 10% of subscription payments for a year</p>
+            <Card className=&quot;p-4&quot;>
+              <div className=&quot;flex flex-col items-center text-center&quot;>
+                <DollarSign className=&quot;h-10 w-10 text-primary mb-2&quot; />
+                <h3 className=&quot;font-medium&quot;>Earn Commission</h3>
+                <p className=&quot;text-sm text-gray-500&quot;>Get 10% of subscription payments for a year</p>
               </div>
             </Card>
           </div>
 
           {isRegistering ? (
-            <Card className="w-full max-w-md mx-auto">
+            <Card className=&quot;w-full max-w-md mx-auto&quot;>
               <CardHeader>
                 <CardTitle>Create Affiliate Account</CardTitle>
                 <CardDescription>
@@ -254,15 +254,15 @@ export default function AffiliatePage() {
               </CardHeader>
               <CardContent>
                 <Form {...signupForm}>
-                  <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+                  <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className=&quot;space-y-4&quot;>
                     <FormField
                       control={signupForm.control}
-                      name="fullName"
+                      name=&quot;fullName&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Full Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="John Doe" {...field} />
+                            <Input placeholder=&quot;John Doe&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -270,12 +270,12 @@ export default function AffiliatePage() {
                     />
                     <FormField
                       control={signupForm.control}
-                      name="email"
+                      name=&quot;email&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="john@example.com" {...field} />
+                            <Input type=&quot;email&quot; placeholder=&quot;john@example.com&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -283,12 +283,12 @@ export default function AffiliatePage() {
                     />
                     <FormField
                       control={signupForm.control}
-                      name="username"
+                      name=&quot;username&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Username</FormLabel>
                           <FormControl>
-                            <Input placeholder="johndoe" {...field} />
+                            <Input placeholder=&quot;johndoe&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -296,12 +296,12 @@ export default function AffiliatePage() {
                     />
                     <FormField
                       control={signupForm.control}
-                      name="password"
+                      name=&quot;password&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
+                            <Input type=&quot;password&quot; placeholder=&quot;••••••••&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -309,25 +309,25 @@ export default function AffiliatePage() {
                     />
                     <FormField
                       control={signupForm.control}
-                      name="confirmPassword"
+                      name=&quot;confirmPassword&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Confirm Password</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
+                            <Input type=&quot;password&quot; placeholder=&quot;••••••••&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div className="pt-2">
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
+                    <div className=&quot;pt-2&quot;>
+                      <Button
+                        type=&quot;submit&quot;
+                        className=&quot;w-full&quot;
                         disabled={signupMutation.isPending}
                       >
                         {signupMutation.isPending ? (
-                          <><RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" /> Creating Account...</>
+                          <><RefreshCwIcon className=&quot;mr-2 h-4 w-4 animate-spin&quot; /> Creating Account...</>
                         ) : (
                           <>Create Account</>
                         )}
@@ -336,12 +336,12 @@ export default function AffiliatePage() {
                   </form>
                 </Form>
               </CardContent>
-              <CardFooter className="flex flex-col space-y-4">
-                <div className="text-center w-full">
-                  <Button 
-                    variant="link" 
+              <CardFooter className=&quot;flex flex-col space-y-4&quot;>
+                <div className=&quot;text-center w-full&quot;>
+                  <Button
+                    variant=&quot;link&quot;
                     onClick={() => setIsRegistering(false)}
-                    className="text-sm"
+                    className=&quot;text-sm&quot;
                   >
                     Already have an account? Log in
                   </Button>
@@ -349,7 +349,7 @@ export default function AffiliatePage() {
               </CardFooter>
             </Card>
           ) : (
-            <Card className="w-full max-w-md mx-auto">
+            <Card className=&quot;w-full max-w-md mx-auto&quot;>
               <CardHeader>
                 <CardTitle>Login to your Affiliate Account</CardTitle>
                 <CardDescription>
@@ -358,15 +358,15 @@ export default function AffiliatePage() {
               </CardHeader>
               <CardContent>
                 <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className=&quot;space-y-4&quot;>
                     <FormField
                       control={loginForm.control}
-                      name="username"
+                      name=&quot;username&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Username</FormLabel>
                           <FormControl>
-                            <Input placeholder="johndoe" {...field} />
+                            <Input placeholder=&quot;johndoe&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -374,25 +374,25 @@ export default function AffiliatePage() {
                     />
                     <FormField
                       control={loginForm.control}
-                      name="password"
+                      name=&quot;password&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
+                            <Input type=&quot;password&quot; placeholder=&quot;••••••••&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div className="pt-2">
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
+                    <div className=&quot;pt-2&quot;>
+                      <Button
+                        type=&quot;submit&quot;
+                        className=&quot;w-full&quot;
                         disabled={loginMutation.isPending}
                       >
                         {loginMutation.isPending ? (
-                          <><RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" /> Logging in...</>
+                          <><RefreshCwIcon className=&quot;mr-2 h-4 w-4 animate-spin&quot; /> Logging in...</>
                         ) : (
                           <>Log in</>
                         )}
@@ -402,36 +402,36 @@ export default function AffiliatePage() {
                 </Form>
               </CardContent>
               <CardFooter>
-                {/* Removed "Don't have an account? Sign up" button */}
+                {/* Removed &quot;Don&apos;t have an account? Sign up&quot; button */}
               </CardFooter>
             </Card>
           )}
 
           {/* Program details */}
-          <div className="mt-12 bg-white p-6 rounded-lg border">
-            <h2 className="text-xl font-bold mb-4">Affiliate Program Details</h2>
-            <div className="space-y-4">
+          <div className=&quot;mt-12 bg-white p-6 rounded-lg border&quot;>
+            <h2 className=&quot;text-xl font-bold mb-4&quot;>Affiliate Program Details</h2>
+            <div className=&quot;space-y-4&quot;>
               <div>
-                <h3 className="font-medium">How It Works</h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className=&quot;font-medium&quot;>How It Works</h3>
+                <p className=&quot;text-sm text-gray-600 mt-1&quot;>
                   When you share your unique referral link and someone signs up through it, they receive a 10% discount on their subscription for 12 months. You earn 10% commission on all their payments for 12 months.
                 </p>
               </div>
               <div>
-                <h3 className="font-medium">Commission Structure</h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className=&quot;font-medium&quot;>Commission Structure</h3>
+                <p className=&quot;text-sm text-gray-600 mt-1&quot;>
                   10% commission on all subscription payments made by your referred users for 12 months.
                 </p>
               </div>
               <div>
-                <h3 className="font-medium">Payment Methods</h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className=&quot;font-medium&quot;>Payment Methods</h3>
+                <p className=&quot;text-sm text-gray-600 mt-1&quot;>
                   Paystack for Nigerian affiliates and Flutterwave for international users. Minimum payout is ₦10,000 or $10.
                 </p>
               </div>
               <div>
-                <h3 className="font-medium">Payment Schedule</h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className=&quot;font-medium&quot;>Payment Schedule</h3>
+                <p className=&quot;text-sm text-gray-600 mt-1&quot;>
                   Payments are processed monthly for all qualifying earnings.
                 </p>
               </div>

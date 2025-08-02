@@ -13,19 +13,19 @@ describe('Field Mapping Utilities', () => {
   describe('toDatabaseFields', () => {
     it('should convert camelCase to snake_case', () => {
       const input = {
-        userId: 1,
-        firstName: 'John',
-        lastName: 'Doe',
-        emailAddress: 'john.doe@example.com',
-        isActive: true
+        _userId: 1,
+        _firstName: 'John',
+        _lastName: 'Doe',
+        _emailAddress: 'john.doe@example.com',
+        _isActive: true
       };
 
       const expected = {
-        user_id: 1,
-        first_name: 'John',
-        last_name: 'Doe',
-        email_address: 'john.doe@example.com',
-        is_active: true
+        _user_id: 1,
+        _first_name: 'John',
+        _last_name: 'Doe',
+        _email_address: 'john.doe@example.com',
+        _is_active: true
       };
 
       expect(toDatabaseFields(input)).toEqual(expected);
@@ -42,7 +42,7 @@ describe('Field Mapping Utilities', () => {
 
     it('should preserve non-camelCase keys', () => {
       const input = {
-        normal: 'value',
+        _normal: 'value',
         'with-dash': 'value',
         'with_underscore': 'value'
       };
@@ -52,19 +52,19 @@ describe('Field Mapping Utilities', () => {
 
     it('should handle nested properties correctly', () => {
       const input = {
-        userId: 1,
-        userProfile: {
+        _userId: 1,
+        _userProfile: {
           firstName: 'John',
-          lastName: 'Doe'
+          _lastName: 'Doe'
         }
       };
 
-      // Note: The function doesn't recursively transform nested objects
+      // _Note: The function doesn't recursively transform nested objects
       const expected = {
-        user_id: 1,
-        user_profile: {
+        _user_id: 1,
+        _user_profile: {
           firstName: 'John',
-          lastName: 'Doe'
+          _lastName: 'Doe'
         }
       };
 
@@ -75,19 +75,19 @@ describe('Field Mapping Utilities', () => {
   describe('fromDatabaseFields', () => {
     it('should convert snake_case to camelCase', () => {
       const input = {
-        user_id: 1,
-        first_name: 'John',
-        last_name: 'Doe',
-        email_address: 'john.doe@example.com',
-        is_active: true
+        _user_id: 1,
+        _first_name: 'John',
+        _last_name: 'Doe',
+        _email_address: 'john.doe@example.com',
+        _is_active: true
       };
 
       const expected = {
-        userId: 1,
-        firstName: 'John',
-        lastName: 'Doe',
-        emailAddress: 'john.doe@example.com',
-        isActive: true
+        _userId: 1,
+        _firstName: 'John',
+        _lastName: 'Doe',
+        _emailAddress: 'john.doe@example.com',
+        _isActive: true
       };
 
       expect(fromDatabaseFields(input)).toEqual(expected);
@@ -104,9 +104,9 @@ describe('Field Mapping Utilities', () => {
 
     it('should preserve non-snake_case keys', () => {
       const input = {
-        normal: 'value',
+        _normal: 'value',
         'with-dash': 'value',
-        camelCase: 'value'
+        _camelCase: 'value'
       };
 
       expect(fromDatabaseFields(input)).toEqual(input);
@@ -114,19 +114,19 @@ describe('Field Mapping Utilities', () => {
 
     it('should handle nested properties correctly', () => {
       const input = {
-        user_id: 1,
-        user_profile: {
+        _user_id: 1,
+        _user_profile: {
           first_name: 'John',
-          last_name: 'Doe'
+          _last_name: 'Doe'
         }
       };
 
-      // Note: The function doesn't recursively transform nested objects
+      // _Note: The function doesn't recursively transform nested objects
       const expected = {
-        userId: 1,
-        userProfile: {
+        _userId: 1,
+        _userProfile: {
           first_name: 'John',
-          last_name: 'Doe'
+          _last_name: 'Doe'
         }
       };
 
@@ -137,31 +137,31 @@ describe('Field Mapping Utilities', () => {
   describe('pickFields', () => {
     it('should pick only specified fields', () => {
       const input = {
-        id: 1,
-        name: 'John',
-        email: 'john@example.com',
-        age: 30,
-        address: '123 Main St'
+        _id: 1,
+        _name: 'John',
+        _email: 'john@example.com',
+        _age: 30,
+        _address: '123 Main St'
       };
 
       const fields = ['id', 'name', 'email'];
       const expected = {
-        id: 1,
-        name: 'John',
-        email: 'john@example.com'
+        _id: 1,
+        _name: 'John',
+        _email: 'john@example.com'
       };
 
       expect(pickFields(input, fields)).toEqual(expected);
     });
 
     it('should handle empty fields array', () => {
-      const input = { id: 1, name: 'John' };
+      const input = { _id: 1, _name: 'John' };
       expect(pickFields(input, [])).toEqual({});
     });
 
     it('should handle fields that do not exist', () => {
-      const input = { id: 1, name: 'John' };
-      expect(pickFields(input, ['id', 'unknown'])).toEqual({ id: 1 });
+      const input = { _id: 1, _name: 'John' };
+      expect(pickFields(input, ['id', 'unknown'])).toEqual({ _id: 1 });
     });
 
     it('should handle null or undefined input', () => {
@@ -172,19 +172,19 @@ describe('Field Mapping Utilities', () => {
 
   describe('hasField', () => {
     it('should return true if field exists', () => {
-      const input = { id: 1, name: 'John', value: null };
+      const input = { _id: 1, _name: 'John', _value: null };
       expect(hasField(input, 'id')).toBe(true);
       expect(hasField(input, 'name')).toBe(true);
       expect(hasField(input, 'value')).toBe(true);
     });
 
     it('should return false if field does not exist', () => {
-      const input = { id: 1, name: 'John' };
+      const input = { _id: 1, _name: 'John' };
       expect(hasField(input, 'unknown')).toBe(false);
     });
 
     it('should return false if field is undefined', () => {
-      const input = { id: 1, name: undefined };
+      const input = { _id: 1, _name: undefined };
       expect(hasField(input, 'name')).toBe(false);
     });
 

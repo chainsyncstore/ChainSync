@@ -7,82 +7,82 @@
  */
 
 // Mock environment variables required for tests
-process.env.DATABASE_URL = 'postgres://test:test@localhost:5432/test_db';
+process.env.DATABASE_URL = 'postgres://_test:test@_localhost:5432/test_db';
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret-key';
-process.env.API_URL = 'http://localhost:3000';
-process.env.CLIENT_URL = 'http://localhost:5173';
+process.env.API_URL = 'http://_localhost:3000';
+process.env.CLIENT_URL = 'http://_localhost:5173';
 
 // Ensure Prisma mock is loaded so global prisma getter is defined
 import '@prisma/client';
 
 // Mock the database connection
 jest.mock('../server/database', () => ({
-  db: {
-    execute: jest.fn().mockResolvedValue({ rows: [] }),
-    query: {
+  _db: {
+    _execute: jest.fn().mockResolvedValue({ _rows: [] }),
+    _query: {
       users: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      products: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _products: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      stores: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _stores: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      inventory: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _inventory: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      inventoryBatches: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _inventoryBatches: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      subscriptions: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _subscriptions: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      loyalty: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _loyalty: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      loyaltyMembers: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _loyaltyMembers: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      loyaltyTransactions: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _loyaltyTransactions: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       },
-      transactions: {
-        findFirst: jest.fn(),
-        findMany: jest.fn()
+      _transactions: {
+        _findFirst: jest.fn(),
+        _findMany: jest.fn()
       }
     },
-    insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockReturnValue({
-        returning: jest.fn()
+    _insert: jest.fn().mockReturnValue({
+      _values: jest.fn().mockReturnValue({
+        _returning: jest.fn()
       })
     }),
-    update: jest.fn().mockReturnValue({
-      set: jest.fn().mockReturnValue({
-        where: jest.fn().mockReturnValue({
-          returning: jest.fn()
+    _update: jest.fn().mockReturnValue({
+      _set: jest.fn().mockReturnValue({
+        _where: jest.fn().mockReturnValue({
+          _returning: jest.fn()
         })
       })
     }),
-    delete: jest.fn().mockReturnValue({
-      where: jest.fn().mockReturnValue({
-        returning: jest.fn()
+    _delete: jest.fn().mockReturnValue({
+      _where: jest.fn().mockReturnValue({
+        _returning: jest.fn()
       })
     }),
-    transaction: jest.fn()
+    _transaction: jest.fn()
   },
-  sql: {
-    raw: jest.fn(query => query)
+  _sql: {
+    _raw: jest.fn(query => query)
   }
 }));
 
@@ -90,35 +90,35 @@ jest.mock('../server/database', () => ({
 jest.mock('../shared/schema-validation', () => {
   const actual = jest.requireActual('../shared/schema-validation');
   return {
-    userValidation: {
-      insert: jest.fn().mockImplementation(data => data),
-      update: jest.fn().mockImplementation(data => data)
+    _userValidation: {
+      _insert: jest.fn().mockImplementation(data => data),
+      _update: jest.fn().mockImplementation(data => data)
     },
-    productValidation: {
-      insert: jest.fn().mockImplementation(data => data),
-      update: jest.fn().mockImplementation(data => data)
+    _productValidation: {
+      _insert: jest.fn().mockImplementation(data => data),
+      _update: jest.fn().mockImplementation(data => data)
     },
-    storeValidation: {
-      insert: jest.fn().mockImplementation(data => data),
-      update: jest.fn().mockImplementation(data => data)
+    _storeValidation: {
+      _insert: jest.fn().mockImplementation(data => data),
+      _update: jest.fn().mockImplementation(data => data)
     },
-    inventoryValidation: {
-      insert: jest.fn().mockImplementation(data => data),
-      update: jest.fn().mockImplementation(data => data)
+    _inventoryValidation: {
+      _insert: jest.fn().mockImplementation(data => data),
+      _update: jest.fn().mockImplementation(data => data)
     },
-    subscriptionValidation: {
-      insert: jest.fn().mockImplementation(data => data),
-      update: jest.fn().mockImplementation(data => data)
+    _subscriptionValidation: {
+      _insert: jest.fn().mockImplementation(data => data),
+      _update: jest.fn().mockImplementation(data => data)
     },
-    loyaltyValidation: {
-      insert: jest.fn().mockImplementation(data => data),
-      update: jest.fn().mockImplementation(data => data)
+    _loyaltyValidation: {
+      _insert: jest.fn().mockImplementation(data => data),
+      _update: jest.fn().mockImplementation(data => data)
     },
-    transactionValidation: {
-      insert: jest.fn().mockImplementation(data => data),
-      update: jest.fn().mockImplementation(data => data)
+    _transactionValidation: {
+      _insert: jest.fn().mockImplementation(data => data),
+      _update: jest.fn().mockImplementation(data => data)
     },
-    SchemaValidationError: actual.SchemaValidationError
+    _SchemaValidationError: actual.SchemaValidationError
   };
 });
 
@@ -128,24 +128,24 @@ jest.mock('../server/services/loyalty/types', () => {
   const { ErrorCode } = require('../shared/types/errors');
 
   return {
-    LoyaltyServiceErrors: {
-      CUSTOMER_NOT_FOUND: new AppError(
+    _LoyaltyServiceErrors: {
+      _CUSTOMER_NOT_FOUND: new AppError(
         ErrorCode.RESOURCE_NOT_FOUND,
         'Customer not found'
       ),
-      PROGRAM_NOT_FOUND: new AppError(
+      _PROGRAM_NOT_FOUND: new AppError(
         ErrorCode.RESOURCE_NOT_FOUND,
         'Loyalty program not found'
       ),
-      MEMBER_NOT_FOUND: new AppError(
+      _MEMBER_NOT_FOUND: new AppError(
         ErrorCode.RESOURCE_NOT_FOUND,
         'Loyalty member not found'
       ),
-      TRANSACTION_NOT_FOUND: new AppError(
+      _TRANSACTION_NOT_FOUND: new AppError(
         ErrorCode.RESOURCE_NOT_FOUND,
         'Loyalty transaction not found'
       ),
-      INVALID_POINTS: new AppError(
+      _INVALID_POINTS: new AppError(
         ErrorCode.VALIDATION_ERROR,
         'Invalid points value'
       )

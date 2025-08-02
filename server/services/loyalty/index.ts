@@ -6,11 +6,11 @@ import { ConsoleLogger } from '../../../src/logging/Logger';
 const loyaltyService = new LoyaltyService();
 
 export async function recordPointsEarned(
-  transactionId: number,
-  memberId: number,
-  points: number,
-  userId: number,
-  source: string = 'transaction'
+  _transactionId: number,
+  _memberId: number,
+  _points: number,
+  _userId: number,
+  _source: string = 'transaction'
 ) {
   return loyaltyService.addPoints(memberId, points, source, transactionId, userId);
 }

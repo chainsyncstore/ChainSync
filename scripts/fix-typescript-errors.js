@@ -10,12 +10,12 @@ const __dirname = path.dirname(__filename);
 // Common import fixes
 const importFixes = [
   {
-    pattern: /import ws from 'ws';/g,
-    replacement: "import * as ws from 'ws';"
+    _pattern: /import ws from 'ws';/g,
+    _replacement: "import * as ws from 'ws';"
   },
   {
-    pattern: /import RedisStore from 'connect-redis';/g,
-    replacement: "import RedisStore from 'connect-redis';"
+    _pattern: /import RedisStore from 'connect-redis';/g,
+    _replacement: "import RedisStore from 'connect-redis';"
   }
 ];
 
@@ -30,7 +30,7 @@ function fixImportsInFile(filePath) {
   try {
     const fullPath = path.join(process.cwd(), filePath);
     if (!fs.existsSync(fullPath)) {
-      console.log(`File not found: ${filePath}`);
+      console.log(`File not _found: ${filePath}`);
       return false;
     }
 
@@ -59,7 +59,7 @@ function fixImportsInFile(filePath) {
 
 function main() {
   console.log('Fixing TypeScript import issues...');
-  
+
   let fixedCount = 0;
   filesToCheck.forEach(file => {
     if (fixImportsInFile(file)) {
@@ -68,7 +68,7 @@ function main() {
   });
 
   console.log(`Fixed ${fixedCount} files.`);
-  
+
   // Check for common missing dependencies
   const missingDeps = [
     '@types/redis',
@@ -87,4 +87,4 @@ function main() {
   });
 }
 
-main(); 
+main();

@@ -30,36 +30,36 @@ export type LoyaltyTransactionInsert = typeof loyaltyTransactions.$inferInsert;
 
 // Service operation parameters
 export type CreateProgramParams = Omit<LoyaltyProgramInsert, 'id' | 'createdAt' | 'updatedAt'> & {
-  tiers: Omit<LoyaltyTierInsert, 'id' | 'programId' | 'createdAt' | 'updatedAt'>[];
+  _tiers: Omit<LoyaltyTierInsert, 'id' | 'programId' | 'createdAt' | 'updatedAt'>[];
 };
 
-export type UpdateProgramParams = Partial<CreateProgramParams> & { id: number };
+export type UpdateProgramParams = Partial<CreateProgramParams> & { _id: number };
 
 export type EnrollCustomerParams = {
-  customerId: number;
-  programId: number;
-  storeId: number; // storeId is required to check for existing members
+  _customerId: number;
+  _programId: number;
+  _storeId: number; // storeId is required to check for existing members
 };
 
 export type AddPointsParams = {
-  memberId: number;
-  points: number;
-  source: string; // e.g., 'purchase', 'manual_adjustment'
+  _memberId: number;
+  _points: number;
+  _source: string; // e.g., 'purchase', 'manual_adjustment'
   transactionId?: number;
-  storeId: number;
-  userId: number;
+  _storeId: number;
+  _userId: number;
 };
 
 export type RedeemPointsParams = {
-  memberId: number;
-  rewardId: number;
-  storeId: number;
-  userId: number;
+  _memberId: number;
+  _rewardId: number;
+  _storeId: number;
+  _userId: number;
 };
 
 // Error classes
 export class LoyaltyProgramNotFoundError extends AppError {
-  constructor(programId: number) {
+  constructor(_programId: number) {
     super(
       `Loyalty program with ID ${programId} not found`,
       ErrorCategory.RESOURCE,
@@ -71,7 +71,7 @@ export class LoyaltyProgramNotFoundError extends AppError {
 }
 
 export class LoyaltyMemberNotFoundError extends AppError {
-  constructor(memberId: number) {
+  constructor(_memberId: number) {
     super(
       `Loyalty member with ID ${memberId} not found`,
       ErrorCategory.RESOURCE,
@@ -83,9 +83,9 @@ export class LoyaltyMemberNotFoundError extends AppError {
 }
 
 export class InsufficientPointsError extends AppError {
-  constructor(memberId: number, requiredPoints: number) {
+  constructor(_memberId: number, _requiredPoints: number) {
     super(
-      `Member ${memberId} has insufficient points. Required: ${requiredPoints}`,
+      `Member ${memberId} has insufficient points. _Required: ${requiredPoints}`,
       ErrorCategory.BUSINESS,
       ErrorCode.INSUFFICIENT_BALANCE,
       { memberId, requiredPoints },
@@ -95,7 +95,7 @@ export class InsufficientPointsError extends AppError {
 }
 
 export class RewardNotFoundError extends AppError {
-  constructor(rewardId: number) {
+  constructor(_rewardId: number) {
     super(
       `Reward with ID ${rewardId} not found`,
       ErrorCategory.RESOURCE,
@@ -107,7 +107,7 @@ export class RewardNotFoundError extends AppError {
 }
 
 export class ProgramAlreadyExistsError extends AppError {
-  constructor(name: string, storeId: number) {
+  constructor(_name: string, _storeId: number) {
     super(
       `A loyalty program with name "${name}" already exists for store ${storeId}`,
       ErrorCategory.BUSINESS,
@@ -119,7 +119,7 @@ export class ProgramAlreadyExistsError extends AppError {
 }
 
 export class MemberAlreadyEnrolledError extends AppError {
-  constructor(customerId: number, programId: number) {
+  constructor(_customerId: number, _programId: number) {
     super(
       `Customer ${customerId} is already enrolled in program ${programId}`,
       ErrorCategory.BUSINESS,
@@ -131,18 +131,18 @@ export class MemberAlreadyEnrolledError extends AppError {
 }
 
 export class InvalidTierError extends AppError {
-  constructor(message: string) {
+  constructor(_message: string) {
     super(message, ErrorCategory.VALIDATION, ErrorCode.INVALID_FIELD_VALUE, {}, 400);
   }
 }
 
 export class DatabaseOperationError extends AppError {
-  constructor(operation: string, error?: any) {
+  constructor(_operation: string, error?: any) {
     super(
       `Database operation "${operation}" failed`,
       ErrorCategory.DATABASE,
       ErrorCode.DATABASE_ERROR,
-      { error: error?.message },
+      { _error: error?.message },
       500,
       true // retryable
     );
@@ -151,52 +151,52 @@ export class DatabaseOperationError extends AppError {
 
 export interface ILoyaltyService {
   generateLoyaltyId(): Promise<string>;
-  enrollCustomer(customerId: number, storeId: number, userId: number): Promise<LoyaltyMember>;
+  enrollCustomer(_customerId: number, _storeId: number, _userId: number): Promise<LoyaltyMember>;
   calculatePointsForTransaction(
-    subtotal: string | number,
-    storeId: number,
-    userId: number
+    _subtotal: string | number,
+    _storeId: number,
+    _userId: number
   ): Promise<number>;
   addPoints(
-    memberId: number,
-    points: number,
-    source: string,
-    transactionId: number | undefined,
-    userId: number
+    _memberId: number,
+    _points: number,
+    _source: string,
+    _transactionId: number | undefined,
+    _userId: number
   ): Promise<{
-    success: boolean;
+    _success: boolean;
     transaction?: LoyaltyTransaction;
   }>;
-  getAvailableRewards(memberId: number): Promise<LoyaltyReward[]>;
+  getAvailableRewards(_memberId: number): Promise<LoyaltyReward[]>;
   applyReward(
-    memberId: number,
-    rewardId: number,
-    currentTotal: number
+    _memberId: number,
+    _rewardId: number,
+    _currentTotal: number
   ): Promise<{
-    success: boolean;
+    _success: boolean;
     newTotal?: number;
     pointsRedeemed?: string;
     message?: string;
   }>;
-  getLoyaltyMember(identifier: string | number): Promise<LoyaltyMember | null>;
-  getLoyaltyMemberByCustomerId(customerId: number): Promise<LoyaltyMember | null>;
+  getLoyaltyMember(_identifier: string | number): Promise<LoyaltyMember | null>;
+  getLoyaltyMemberByCustomerId(_customerId: number): Promise<LoyaltyMember | null>;
   getMemberActivityHistory(
-    memberId: number,
+    _memberId: number,
     limit?: number,
     offset?: number
   ): Promise<LoyaltyTransaction[]>;
-  getLoyaltyProgram(storeId: number): Promise<LoyaltyProgram | null>;
+  getLoyaltyProgram(_storeId: number): Promise<LoyaltyProgram | null>;
   upsertLoyaltyProgram(
-    storeId: number,
-    programData: Partial<LoyaltyProgramInsert>
+    _storeId: number,
+    _programData: Partial<LoyaltyProgramInsert>
   ): Promise<LoyaltyProgram>;
-  createLoyaltyTier(tierData: LoyaltyTierInsert): Promise<LoyaltyTier>;
-  createLoyaltyReward(rewardData: LoyaltyRewardInsert): Promise<LoyaltyReward>;
-  processExpiredPoints(userId: number): Promise<number>;
-  checkAndUpdateMemberTier(memberId: number): Promise<boolean>;
-  getLoyaltyAnalytics(storeId: number): Promise<{
-    totalMembers: number;
-    totalPointsEarned: number;
-    totalPointsRedeemed: number;
+  createLoyaltyTier(_tierData: LoyaltyTierInsert): Promise<LoyaltyTier>;
+  createLoyaltyReward(_rewardData: LoyaltyRewardInsert): Promise<LoyaltyReward>;
+  processExpiredPoints(_userId: number): Promise<number>;
+  checkAndUpdateMemberTier(_memberId: number): Promise<boolean>;
+  getLoyaltyAnalytics(_storeId: number): Promise<{
+    _totalMembers: number;
+    _totalPointsEarned: number;
+    _totalPointsRedeemed: number;
   }>;
 }

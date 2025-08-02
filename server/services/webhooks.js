@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.handlePaystackWebhook = handlePaystackWebhook;
 exports.handleFlutterwaveWebhook = handleFlutterwaveWebhook;
 const db_1 = require('../../db');
@@ -60,7 +60,7 @@ function verifyPaystackSignature(signature, payload) {
     return hash === signature;
   }
   catch (error) {
-    console.error('Error verifying Paystack signature:', error);
+    console.error('Error verifying Paystack _signature:', error);
     return false;
   }
 }
@@ -78,7 +78,7 @@ function verifyFlutterwaveSignature(signature, payload) {
     return hash === signature;
   }
   catch (error) {
-    console.error('Error verifying Flutterwave signature:', error);
+    console.error('Error verifying Flutterwave _signature:', error);
     return false;
   }
 }
@@ -105,13 +105,12 @@ async function handlePaystackWebhook(signature, rawPayload) {
       case 'subscription.disable':
         // Subscription cancelled or expired
         return await handlePaystackSubscriptionDisable(payload.data);
-      default:
-        console.log(`Unhandled Paystack event: ${event}`);
+      console.log(`Unhandled Paystack event: ${event}`);
         return true;
     }
   }
   catch (error) {
-    console.error('Error handling Paystack webhook:', error);
+    console.error('Error handling Paystack _webhook:', error);
     return false;
   }
 }
@@ -138,13 +137,12 @@ async function handleFlutterwaveWebhook(signature, rawPayload) {
       case 'subscription.cancelled':
         // Subscription cancelled
         return await handleFlutterwaveSubscriptionCancelled(payload.data);
-      default:
-        console.log(`Unhandled Flutterwave event: ${event}`);
+      console.log(`Unhandled Flutterwave event: ${event}`);
         return true;
     }
   }
   catch (error) {
-    console.error('Error handling Flutterwave webhook:', error);
+    console.error('Error handling Flutterwave _webhook:', error);
     return false;
   }
 }
@@ -181,19 +179,19 @@ async function handlePaystackSubscriptionCreate(data) {
     // Create subscription record
     const subscriptionData = {
       userId,
-      planId: plan,
-      status: 'active',
-      amount: discountedAmount.toString(),
+      _planId: plan,
+      _status: 'active',
+      _amount: discountedAmount.toString(),
       currency,
-      referralCode: referralCode || undefined,
-      currentPeriodStart: startDate,
-      currentPeriodEnd: endDate,
-      autoRenew: true,
-      paymentMethod: 'paystack',
-      metadata: JSON.stringify({
-        paymentReference: data.reference,
-        paystackCode: data.subscription_code,
-        paystackCustomerCode: data.customer.customer_code
+      _referralCode: referralCode || undefined,
+      _currentPeriodStart: startDate,
+      _currentPeriodEnd: endDate,
+      _autoRenew: true,
+      _paymentMethod: 'paystack',
+      _metadata: JSON.stringify({
+        _paymentReference: data.reference,
+        _paystackCode: data.subscription_code,
+        _paystackCustomerCode: data.customer.customer_code
       })
     };
     // Use schema helper to prepare subscription data
@@ -207,7 +205,7 @@ async function handlePaystackSubscriptionCreate(data) {
     return true;
   }
   catch (error) {
-    console.error('Error handling Paystack subscription create:', error);
+    console.error('Error handling Paystack subscription _create:', error);
     return false;
   }
 }
@@ -229,8 +227,8 @@ async function handlePaystackChargeSuccess(data) {
       const [subscription] = await db_1.db.select()
         .from(schema.subscriptions)
         .where((0, drizzle_orm_1.eq)(schema.subscriptions.metadata, JSON.stringify({
-          paystackCode: metadata.subscription_code,
-          paystackCustomerCode: data.customer.customer_code
+          _paystackCode: metadata.subscription_code,
+          _paystackCustomerCode: data.customer.customer_code
         })))
         .limit(1);
       if (subscription) {
@@ -248,9 +246,9 @@ async function handlePaystackChargeSuccess(data) {
         }
         await db_1.db.update(schema.subscriptions)
           .set({
-            endDate: newEndDate,
-            status: 'active',
-            updatedAt: new Date()
+            _endDate: newEndDate,
+            _status: 'active',
+            _updatedAt: new Date()
           })
           .where((0, drizzle_orm_1.eq)(schema.subscriptions.id, subscription.id));
       }
@@ -258,7 +256,7 @@ async function handlePaystackChargeSuccess(data) {
     return true;
   }
   catch (error) {
-    console.error('Error handling Paystack charge success:', error);
+    console.error('Error handling Paystack charge _success:', error);
     return false;
   }
 }
@@ -271,24 +269,24 @@ async function handlePaystackSubscriptionDisable(data) {
     const [subscription] = await db_1.db.select()
       .from(schema.subscriptions)
       .where((0, drizzle_orm_1.eq)(schema.subscriptions.metadata, JSON.stringify({
-        paystackCode: data.subscription_code,
-        paystackCustomerCode: data.customer.customer_code
+        _paystackCode: data.subscription_code,
+        _paystackCustomerCode: data.customer.customer_code
       })))
       .limit(1);
     if (subscription) {
       // Update the subscription status
       await db_1.db.update(schema.subscriptions)
         .set({
-          status: 'cancelled',
-          autoRenew: false,
-          updatedAt: new Date()
+          _status: 'cancelled',
+          _autoRenew: false,
+          _updatedAt: new Date()
         })
         .where((0, drizzle_orm_1.eq)(schema.subscriptions.id, subscription.id));
     }
     return true;
   }
   catch (error) {
-    console.error('Error handling Paystack subscription disable:', error);
+    console.error('Error handling Paystack subscription _disable:', error);
     return false;
   }
 }
@@ -324,19 +322,19 @@ async function handleFlutterwaveSubscriptionCreate(data) {
     // Create subscription record
     const subscriptionData = {
       userId,
-      planId: plan,
-      status: 'active',
-      amount: discountedAmount.toString(),
+      _planId: plan,
+      _status: 'active',
+      _amount: discountedAmount.toString(),
       currency,
-      referralCode: referralCode || undefined,
-      currentPeriodStart: startDate,
-      currentPeriodEnd: endDate,
-      autoRenew: true,
-      paymentMethod: 'flutterwave',
-      metadata: JSON.stringify({
-        paymentReference: data.tx_ref,
-        flwSubscriptionId: data.id,
-        flwCustomerId: data.customer?.id
+      _referralCode: referralCode || undefined,
+      _currentPeriodStart: startDate,
+      _currentPeriodEnd: endDate,
+      _autoRenew: true,
+      _paymentMethod: 'flutterwave',
+      _metadata: JSON.stringify({
+        _paymentReference: data.tx_ref,
+        _flwSubscriptionId: data.id,
+        _flwCustomerId: data.customer?.id
       })
     };
     // Use schema helper to prepare subscription data
@@ -350,7 +348,7 @@ async function handleFlutterwaveSubscriptionCreate(data) {
     return true;
   }
   catch (error) {
-    console.error('Error handling Flutterwave subscription create:', error);
+    console.error('Error handling Flutterwave subscription _create:', error);
     return false;
   }
 }
@@ -372,8 +370,8 @@ async function handleFlutterwaveChargeCompleted(data) {
       const [subscription] = await db_1.db.select()
         .from(schema.subscriptions)
         .where((0, drizzle_orm_1.eq)(schema.subscriptions.metadata, JSON.stringify({
-          flwSubscriptionId: meta.subscription_id,
-          flwCustomerId: data.customer?.id
+          _flwSubscriptionId: meta.subscription_id,
+          _flwCustomerId: data.customer?.id
         })))
         .limit(1);
       if (subscription) {
@@ -391,9 +389,9 @@ async function handleFlutterwaveChargeCompleted(data) {
         }
         await db_1.db.update(schema.subscriptions)
           .set({
-            endDate: newEndDate,
-            status: 'active',
-            updatedAt: new Date()
+            _endDate: newEndDate,
+            _status: 'active',
+            _updatedAt: new Date()
           })
           .where((0, drizzle_orm_1.eq)(schema.subscriptions.id, subscription.id));
       }
@@ -401,7 +399,7 @@ async function handleFlutterwaveChargeCompleted(data) {
     return true;
   }
   catch (error) {
-    console.error('Error handling Flutterwave charge completed:', error);
+    console.error('Error handling Flutterwave charge _completed:', error);
     return false;
   }
 }
@@ -414,24 +412,24 @@ async function handleFlutterwaveSubscriptionCancelled(data) {
     const [subscription] = await db_1.db.select()
       .from(schema.subscriptions)
       .where((0, drizzle_orm_1.eq)(schema.subscriptions.metadata, JSON.stringify({
-        flwSubscriptionId: data.id,
-        flwCustomerId: data.customer?.id
+        _flwSubscriptionId: data.id,
+        _flwCustomerId: data.customer?.id
       })))
       .limit(1);
     if (subscription) {
       // Update the subscription status
       await db_1.db.update(schema.subscriptions)
         .set({
-          status: 'cancelled',
-          autoRenew: false,
-          updatedAt: new Date()
+          _status: 'cancelled',
+          _autoRenew: false,
+          _updatedAt: new Date()
         })
         .where((0, drizzle_orm_1.eq)(schema.subscriptions.id, subscription.id));
     }
     return true;
   }
   catch (error) {
-    console.error('Error handling Flutterwave subscription cancelled:', error);
+    console.error('Error handling Flutterwave subscription _cancelled:', error);
     return false;
   }
 }

@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/providers/auth-provider';
-import { useOfflineMode } from '@/hooks/use-offline-mode';
-import { ProductSearch } from './product-search';
-import { Cart } from './cart';
-import { Numpad } from './numpad';
-import { PaymentModal } from './payment-modal';
-import { Receipt } from './receipt';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { useQueryClient } from '@tanstack/react-query';
-import { generateTransactionId, calculateSubtotal, calculateTax, calculateTotal } from '@/lib/utils';
-import { useMutation } from '@tanstack/react-query';
-import { AlertCircle, Wifi, WifiOff, XCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState, useEffect } from &apos;react&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { useOfflineMode } from &apos;@/hooks/use-offline-mode&apos;;
+import { ProductSearch } from &apos;./product-search&apos;;
+import { Cart } from &apos;./cart&apos;;
+import { Numpad } from &apos;./numpad&apos;;
+import { PaymentModal } from &apos;./payment-modal&apos;;
+import { Receipt } from &apos;./receipt&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Tabs, TabsContent, TabsList, TabsTrigger } from &apos;@/components/ui/tabs&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { useQueryClient } from &apos;@tanstack/react-query&apos;;
+import { generateTransactionId, calculateSubtotal, calculateTax, calculateTotal } from &apos;@/lib/utils&apos;;
+import { useMutation } from &apos;@tanstack/react-query&apos;;
+import { AlertCircle, Wifi, WifiOff, XCircle } from &apos;lucide-react&apos;;
+import { Alert, AlertDescription, AlertTitle } from &apos;@/components/ui/alert&apos;;
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from &apos;@/components/ui/card&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Label } from &apos;@/components/ui/label&apos;;
 
 type CartItem = {
-  productId: number;
-  name: string;
-  barcode: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
+  _productId: number;
+  _name: string;
+  _barcode: string;
+  _quantity: number;
+  _unitPrice: number;
+  _subtotal: number;
 };
 
 export function PosTerminal() {
@@ -33,66 +33,66 @@ export function PosTerminal() {
   const { isOnline, saveOfflineTransaction } = useOfflineMode();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeInput, setActiveInput] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [completedTransaction, setCompletedTransaction] = useState<any>(null);
-  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
-  const [loyaltyId, setLoyaltyId] = useState<string>('');
-  
+  const [paymentMethod, setPaymentMethod] = useState<string>(&apos;cash&apos;);
+  const [loyaltyId, setLoyaltyId] = useState<string>(&apos;&apos;);
+
   // Calculated values
   const subtotal = calculateSubtotal(cart);
   const tax = calculateTax(subtotal);
   const total = calculateTotal(subtotal, tax);
-  
+
   // Create transaction mutation
   const createTransactionMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest('POST', '/api/pos/transactions', data);
+    _mutationFn: async(_data: any) => {
+      return await apiRequest(&apos;POST&apos;, &apos;/api/pos/transactions&apos;, data);
     },
-    onSuccess: (data) => {
+    _onSuccess: (data) => {
       setCompletedTransaction({
         ...data.transaction,
-        items: data.items,
-        cashier: user,
+        _items: data.items,
+        _cashier: user
       });
       setShowPaymentModal(false);
       setShowReceipt(true);
-      
+
       // Clear the cart
       setCart([]);
-      
+
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/quick-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/recent-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/dashboard/quick-stats&apos;] });
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/dashboard/recent-transactions&apos;] });
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/inventory&apos;] });
+
       toast({
-        title: "Transaction completed",
-        description: `Transaction ${data.transaction.transactionId} has been processed successfully.`,
+        _title: &apos;Transaction completed&apos;,
+        _description: `Transaction ${data.transaction.transactionId} has been processed successfully.`
       });
     },
-    onError: (error) => {
+    _onError: (error) => {
       toast({
-        title: "Transaction failed",
-        description: "There was an error processing the transaction. Please try again.",
-        variant: "destructive",
+        _title: &apos;Transaction failed&apos;,
+        _description: &apos;There was an error processing the transaction. Please try again.&apos;,
+        _variant: &apos;destructive&apos;
       });
-      console.error('Transaction error:', error);
-    },
+      console.error(&apos;Transaction _error:&apos;, error);
+    }
   });
-  
+
   // Handle item adding to cart
-  const addToCart = (product: any) => {
+  const addToCart = (_product: any) => {
     const existingItemIndex = cart.findIndex(item => item.productId === product.id);
-    
+
     if (existingItemIndex >= 0) {
       // Update quantity if item already exists
       const updatedCart = [...cart];
       updatedCart[existingItemIndex].quantity += 1;
-      updatedCart[existingItemIndex].subtotal = 
+      updatedCart[existingItemIndex].subtotal =
         updatedCart[existingItemIndex].quantity * updatedCart[existingItemIndex].unitPrice;
       setCart(updatedCart);
     } else {
@@ -100,48 +100,48 @@ export function PosTerminal() {
       setCart([
         ...cart,
         {
-          productId: product.id,
-          name: product.name,
-          barcode: product.barcode,
-          quantity: 1,
-          unitPrice: parseFloat(product.price),
-          subtotal: parseFloat(product.price),
-        },
+          _productId: product.id,
+          _name: product.name,
+          _barcode: product.barcode,
+          _quantity: 1,
+          _unitPrice: parseFloat(product.price),
+          _subtotal: parseFloat(product.price)
+        }
       ]);
     }
   };
-  
+
   // Handle item removal from cart
-  const removeFromCart = (index: number) => {
+  const removeFromCart = (_index: number) => {
     const updatedCart = [...cart];
     updatedCart.splice(index, 1);
     setCart(updatedCart);
   };
-  
+
   // Handle quantity update for cart item
-  const updateQuantity = (index: number, quantity: number) => {
+  const updateQuantity = (_index: number, _quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(index);
       return;
     }
-    
+
     const updatedCart = [...cart];
     updatedCart[index].quantity = quantity;
     updatedCart[index].subtotal = quantity * updatedCart[index].unitPrice;
     setCart(updatedCart);
   };
-  
+
   // Handle numpad input
-  const handleNumpadInput = (value: string) => {
+  const handleNumpadInput = (_value: string) => {
     if (!activeInput) return;
-    
-    if (activeInput.startsWith('quantity-')) {
-      const index = parseInt(activeInput.split('-')[1]);
+
+    if (activeInput.startsWith(&apos;quantity-&apos;)) {
+      const index = parseInt(activeInput.split(&apos;-&apos;)[1]);
       const currentItem = cart[index];
-      
-      if (value === 'clear') {
+
+      if (value === &apos;clear&apos;) {
         updateQuantity(index, 1);
-      } else if (value === 'backspace') {
+      } else if (value === &apos;backspace&apos;) {
         const newQuantity = Math.floor(currentItem.quantity / 10) || 1;
         updateQuantity(index, newQuantity);
       } else {
@@ -151,87 +151,87 @@ export function PosTerminal() {
       }
     }
   };
-  
+
   // Handle transaction processing
   const processTransaction = () => {
     if (cart.length === 0) {
       toast({
-        title: "Empty cart",
-        description: "Please add items to the cart before processing payment.",
-        variant: "destructive",
+        _title: &apos;Empty cart&apos;,
+        _description: &apos;Please add items to the cart before processing payment.&apos;,
+        _variant: &apos;destructive&apos;
       });
       return;
     }
-    
+
     setShowPaymentModal(true);
   };
-  
+
   // Handle payment confirmation
   const confirmPayment = () => {
     const transactionId = generateTransactionId();
-    
+
     const transactionData = {
-      transactionData: {
+      _transactionData: {
         transactionId,
-        subtotal: subtotal.toFixed(2),
-        tax: tax.toFixed(2),
-        total: total.toFixed(2),
+        _subtotal: subtotal.toFixed(2),
+        _tax: tax.toFixed(2),
+        _total: total.toFixed(2),
         paymentMethod,
-        status: 'completed',
-        isOfflineTransaction: !isOnline,
-        loyaltyId: loyaltyId.trim() || null,
+        _status: &apos;completed&apos;,
+        _isOfflineTransaction: !isOnline,
+        _loyaltyId: loyaltyId.trim() || null
       },
-      items: cart.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice.toFixed(2),
-        subtotal: item.subtotal.toFixed(2),
-      })),
+      _items: cart.map(item => ({
+        _productId: item.productId,
+        _quantity: item.quantity,
+        _unitPrice: item.unitPrice.toFixed(2),
+        _subtotal: item.subtotal.toFixed(2)
+      }))
     };
-    
+
     if (isOnline) {
       // Online mode - send to server
       createTransactionMutation.mutate(transactionData);
     } else {
       // Offline mode - store locally
       const savedTransaction = saveOfflineTransaction(transactionData);
-      
+
       // Set completed transaction for receipt
       setCompletedTransaction({
-        transactionId: savedTransaction.transactionId,
-        subtotal: subtotal.toFixed(2),
-        tax: tax.toFixed(2),
-        total: total.toFixed(2),
+        _transactionId: savedTransaction.transactionId,
+        _subtotal: subtotal.toFixed(2),
+        _tax: tax.toFixed(2),
+        _total: total.toFixed(2),
         paymentMethod,
-        status: 'pending sync',
-        createdAt: new Date().toISOString(),
-        items: cart,
-        cashier: user,
-        offlineId: savedTransaction.offlineId,
+        _status: &apos;pending sync&apos;,
+        _createdAt: new Date().toISOString(),
+        _items: cart,
+        _cashier: user,
+        _offlineId: savedTransaction.offlineId
       });
-      
+
       setShowPaymentModal(false);
       setShowReceipt(true);
       setCart([]);
-      
+
       toast({
-        title: "Transaction saved offline",
-        description: "The transaction has been saved and will be synced when you're back online.",
+        _title: &apos;Transaction saved offline&apos;,
+        _description: &quot;The transaction has been saved and will be synced when you&apos;re back online.&quot;
       });
     }
   };
-  
+
   // Handle void transaction
   const voidTransaction = () => {
     if (cart.length === 0) return;
-    
+
     setCart([]);
     toast({
-      title: "Transaction voided",
-      description: "All items have been removed from the cart.",
+      _title: &apos;Transaction voided&apos;,
+      _description: &apos;All items have been removed from the cart.&apos;
     });
   };
-  
+
   // Reset after receipt is closed
   const handleReceiptClose = () => {
     setShowReceipt(false);
@@ -239,27 +239,27 @@ export function PosTerminal() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full gap-4">
-      <div className="lg:w-7/12 space-y-4">
+    <div className=&quot;flex flex-col _lg:flex-row h-full gap-4&quot;>
+      <div className=&quot;_lg:w-7/12 space-y-4&quot;>
         {/* Offline mode alert */}
         {!isOnline && (
-          <Alert className="bg-amber-50 border-amber-200">
-            <WifiOff className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-600">Offline Mode Active</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              You are currently working in offline mode. Transactions will be saved locally and synced when you're back online.
+          <Alert className=&quot;bg-amber-50 border-amber-200&quot;>
+            <WifiOff className=&quot;h-4 w-4 text-amber-600&quot; />
+            <AlertTitle className=&quot;text-amber-600&quot;>Offline Mode Active</AlertTitle>
+            <AlertDescription className=&quot;text-amber-700&quot;>
+              You are currently working in offline mode. Transactions will be saved locally and synced when you&apos;re back online.
             </AlertDescription>
           </Alert>
         )}
-        
+
         {/* Product search section */}
         <ProductSearch onProductSelect={addToCart} />
-        
+
         {/* Cart section */}
-        <Cart 
-          items={cart} 
-          subtotal={subtotal} 
-          tax={tax} 
+        <Cart
+          items={cart}
+          subtotal={subtotal}
+          tax={tax}
           total={total}
           onRemove={removeFromCart}
           onQuantityChange={updateQuantity}
@@ -269,81 +269,81 @@ export function PosTerminal() {
           isLoading={createTransactionMutation.isPending}
         />
       </div>
-      
-      <div className="lg:w-5/12">
+
+      <div className=&quot;_lg:w-5/12&quot;>
         {/* Numpad section */}
-        <div className="h-full">
-          <Tabs defaultValue="numpad" className="h-full">
-            <div className="bg-white rounded-md border shadow-sm h-full">
-              <div className="px-4 pt-4 pb-0">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="numpad">Numpad</TabsTrigger>
-                  <TabsTrigger value="loyalty">Loyalty</TabsTrigger>
+        <div className=&quot;h-full&quot;>
+          <Tabs defaultValue=&quot;numpad&quot; className=&quot;h-full&quot;>
+            <div className=&quot;bg-white rounded-md border shadow-sm h-full&quot;>
+              <div className=&quot;px-4 pt-4 pb-0&quot;>
+                <TabsList className=&quot;grid w-full grid-cols-2&quot;>
+                  <TabsTrigger value=&quot;numpad&quot;>Numpad</TabsTrigger>
+                  <TabsTrigger value=&quot;loyalty&quot;>Loyalty</TabsTrigger>
                 </TabsList>
               </div>
-              <div className="p-4">
-                <TabsContent value="numpad" className="mt-0 p-0">
+              <div className=&quot;p-4&quot;>
+                <TabsContent value=&quot;numpad&quot; className=&quot;mt-0 p-0&quot;>
                   <Numpad onInput={handleNumpadInput} activeInput={activeInput} />
                 </TabsContent>
-                <TabsContent value="loyalty" className="mt-0 p-0">
-                  <div className="space-y-4">
+                <TabsContent value=&quot;loyalty&quot; className=&quot;mt-0 p-0&quot;>
+                  <div className=&quot;space-y-4&quot;>
                     <div>
-                      <h3 className="text-lg font-medium mb-1">Customer Loyalty</h3>
-                      <p className="text-sm text-muted-foreground">Enter a loyalty ID to award points for this purchase</p>
+                      <h3 className=&quot;text-lg font-medium mb-1&quot;>Customer Loyalty</h3>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>Enter a loyalty ID to award points for this purchase</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="loyalty-id">Loyalty ID</Label>
-                      <div className="flex gap-2">
+                    <div className=&quot;space-y-2&quot;>
+                      <Label htmlFor=&quot;loyalty-id&quot;>Loyalty ID</Label>
+                      <div className=&quot;flex gap-2&quot;>
                         <Input
-                          id="loyalty-id"
+                          id=&quot;loyalty-id&quot;
                           value={loyaltyId}
                           onChange={(e) => setLoyaltyId(e.target.value)}
-                          placeholder="Enter loyalty ID"
-                          className="flex-1"
+                          placeholder=&quot;Enter loyalty ID&quot;
+                          className=&quot;flex-1&quot;
                         />
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setLoyaltyId('')}
-                          type="button"
+                        <Button
+                          variant=&quot;outline&quot;
+                          onClick={() => setLoyaltyId(&apos;&apos;)}
+                          type=&quot;button&quot;
                         >
-                          <XCircle className="h-4 w-4" />
+                          <XCircle className=&quot;h-4 w-4&quot; />
                         </Button>
                       </div>
                     </div>
-                    
+
                     {loyaltyId && (
-                      <Alert className="bg-blue-50 border-blue-200">
-                        <AlertTitle className="text-blue-600">Loyalty ID: {loyaltyId}</AlertTitle>
-                        <AlertDescription className="text-blue-700">
+                      <Alert className=&quot;bg-blue-50 border-blue-200&quot;>
+                        <AlertTitle className=&quot;text-blue-600&quot;>Loyalty _ID: {loyaltyId}</AlertTitle>
+                        <AlertDescription className=&quot;text-blue-700&quot;>
                           This customer will earn points on their purchase.
                         </AlertDescription>
                       </Alert>
                     )}
-                    
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium mb-2">Quick Actions</h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button 
-                          variant="outline" 
-                          className="h-10"
+
+                    <div className=&quot;pt-2&quot;>
+                      <h3 className=&quot;text-sm font-medium mb-2&quot;>Quick Actions</h3>
+                      <div className=&quot;grid grid-cols-2 gap-2&quot;>
+                        <Button
+                          variant=&quot;outline&quot;
+                          className=&quot;h-10&quot;
                           onClick={() => {
                             // Placeholder for loyalty search feature
                             toast({
-                              title: "Search Loyalty Members",
-                              description: "This feature is coming soon",
+                              _title: &apos;Search Loyalty Members&apos;,
+                              _description: &apos;This feature is coming soon&apos;
                             });
                           }}
                         >
                           Search Members
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          className="h-10"
+                        <Button
+                          variant=&quot;outline&quot;
+                          className=&quot;h-10&quot;
                           onClick={() => {
                             // Placeholder for loyalty enrollment feature
                             toast({
-                              title: "Enroll New Member",
-                              description: "This feature is coming soon",
+                              _title: &apos;Enroll New Member&apos;,
+                              _description: &apos;This feature is coming soon&apos;
                             });
                           }}
                         >
@@ -358,7 +358,7 @@ export function PosTerminal() {
           </Tabs>
         </div>
       </div>
-      
+
       {/* Payment Modal */}
       {showPaymentModal && (
         <PaymentModal
@@ -372,7 +372,7 @@ export function PosTerminal() {
           setLoyaltyId={setLoyaltyId}
         />
       )}
-      
+
       {/* Receipt Modal */}
       {showReceipt && completedTransaction && (
         <Receipt

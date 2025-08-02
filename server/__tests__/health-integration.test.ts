@@ -6,36 +6,36 @@ import { getQueue, QueueType } from '../../src/queue';
 
 // Mock the dependencies
 jest.mock('../../src/cache/redis', () => ({
-  getRedisClient: jest.fn()
+  _getRedisClient: jest.fn()
 }));
 
 jest.mock('../../src/queue', () => ({
-  getQueue: jest.fn(),
-  QueueType: {
+  _getQueue: jest.fn(),
+  _QueueType: {
     NOTIFICATIONS: 'notifications',
-    IMPORTS: 'imports',
-    EXPORTS: 'exports'
+    _IMPORTS: 'imports',
+    _EXPORTS: 'exports'
   }
 }));
 
 describe('Health Check Endpoints', () => {
   // Mock database
   const mockDbPool = {
-    query: jest.fn().mockResolvedValue({ rows: [{ '?column?': 1 }] })
+    _query: jest.fn().mockResolvedValue({ _rows: [{ '?column?': 1 }] })
   };
 
   // Mock Redis client
   const mockRedisClient = {
-    ping: jest.fn().mockResolvedValue('PONG')
+    _ping: jest.fn().mockResolvedValue('PONG')
   };
 
   // Mock queue
   const mockQueue = {
-    getWaitingCount: jest.fn().mockResolvedValue(0),
-    getActiveCount: jest.fn().mockResolvedValue(0),
-    getDelayedCount: jest.fn().mockResolvedValue(0),
-    getFailedCount: jest.fn().mockResolvedValue(0),
-    getCompletedCount: jest.fn().mockResolvedValue(0)
+    _getWaitingCount: jest.fn().mockResolvedValue(0),
+    _getActiveCount: jest.fn().mockResolvedValue(0),
+    _getDelayedCount: jest.fn().mockResolvedValue(0),
+    _getFailedCount: jest.fn().mockResolvedValue(0),
+    _getCompletedCount: jest.fn().mockResolvedValue(0)
   };
 
   beforeAll(() => {
@@ -90,7 +90,7 @@ describe('Health Check Endpoints', () => {
     });
 
     it('should return 503 when Redis is down (if configured)', async() => {
-      process.env.REDIS_URL = 'redis://localhost:6379';
+      process.env.REDIS_URL = 'redis://_localhost:6379';
       mockRedisClient.ping.mockRejectedValueOnce(new Error('Redis Connection Failed'));
 
       const response = await request(app).get('/readyz');

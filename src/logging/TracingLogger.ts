@@ -7,13 +7,13 @@ import { getCurrentTraceContext } from '../monitoring/tracing';
  * This enhances the base logger implementation by adding traceId and spanId to all log messages
  */
 export class TracingLogger implements Logger {
-  private baseLogger: Logger;
+  private _baseLogger: Logger;
 
-  constructor(baseLogger: Logger) {
+  constructor(_baseLogger: Logger) {
     this.baseLogger = baseLogger;
   }
 
-  setLevel(level: LogLevel): void {
+  setLevel(_level: LogLevel): void {
     this.baseLogger.setLevel(level);
   }
 
@@ -21,11 +21,11 @@ export class TracingLogger implements Logger {
     return this.baseLogger.getLevel();
   }
 
-  addContext(context: LogMeta): void {
+  addContext(_context: LogMeta): void {
     this.baseLogger.addContext(context);
   }
 
-  child(context: LogMeta): Logger {
+  child(_context: LogMeta): Logger {
     // Return a new TracingLogger wrapping the child logger
     return new TracingLogger(this.baseLogger.child(context));
   }
@@ -39,29 +39,29 @@ export class TracingLogger implements Logger {
 
     return {
       ...meta,
-      traceId: traceContext.traceId,
-      spanId: traceContext.spanId
+      _traceId: traceContext.traceId,
+      _spanId: traceContext.spanId
     };
   }
 
   // Implement all logging methods
-  trace(message: string, meta?: LogMeta): void {
+  trace(_message: string, meta?: LogMeta): void {
     this.baseLogger.trace(message, this.addTraceContext(meta));
   }
 
-  debug(message: string, meta?: LogMeta): void {
+  debug(_message: string, meta?: LogMeta): void {
     this.baseLogger.debug(message, this.addTraceContext(meta));
   }
 
-  info(message: string, meta?: LogMeta): void {
+  info(_message: string, meta?: LogMeta): void {
     this.baseLogger.info(message, this.addTraceContext(meta));
   }
 
-  warn(message: string, meta?: LogMeta): void {
+  warn(_message: string, meta?: LogMeta): void {
     this.baseLogger.warn(message, this.addTraceContext(meta));
   }
 
-  error(message: string, errorOrMeta?: Error | LogMeta, meta?: LogMeta): void {
+  error(_message: string, errorOrMeta?: Error | LogMeta, meta?: LogMeta): void {
     if (errorOrMeta instanceof Error) {
       this.baseLogger.error(message, errorOrMeta, this.addTraceContext(meta));
     } else {
@@ -69,7 +69,7 @@ export class TracingLogger implements Logger {
     }
   }
 
-  fatal(message: string, errorOrMeta?: Error | LogMeta, meta?: LogMeta): void {
+  fatal(_message: string, errorOrMeta?: Error | LogMeta, meta?: LogMeta): void {
     if (errorOrMeta instanceof Error) {
       this.baseLogger.fatal(message, errorOrMeta, this.addTraceContext(meta));
     } else {
@@ -92,16 +92,16 @@ export function createTracingLogger(
   // Create base logger if not provided
   if (!baseLogger) {
     baseLogger = new ConsoleLogger(
-      level || (process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG),
+      level || (process.env.NODE_ENV === 'production' ? LogLevel._INFO : LogLevel.DEBUG),
       context
     );
   } else if (level !== undefined) {
     baseLogger.setLevel(level);
   }
-  
+
   if (context) {
     baseLogger.addContext(context);
   }
-  
+
   return new TracingLogger(baseLogger);
 }

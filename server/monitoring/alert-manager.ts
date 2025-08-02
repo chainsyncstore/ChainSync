@@ -9,6 +9,6 @@ export class AlertManager {
     return this._instance;
   }
   triggerAlert(_msg: string) {
-    console.warn('[AlertManager] alert triggered:', _msg);
+    console.warn('[AlertManager] alert _triggered:', _msg);
   }
 }

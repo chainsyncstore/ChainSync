@@ -15,21 +15,21 @@ import { MetricsCollector } from '../server/monitoring/metrics-collector';
  * is ready for production and meets all requirements.
  */
 class DeploymentValidator {
-  private metricsCollector: MetricsCollector;
-  private alertManager: AlertManager;
+  private _metricsCollector: MetricsCollector;
+  private _alertManager: AlertManager;
   private results: {
-    passed: string[];
-    warnings: string[];
-    failures: string[];
+    _passed: string[];
+    _warnings: string[];
+    _failures: string[];
   };
 
   constructor() {
     this.metricsCollector = MetricsCollector.getInstance();
     this.alertManager = AlertManager.getInstance();
     this.results = {
-      passed: [],
-      warnings: [],
-      failures: [],
+      _passed: [],
+      _warnings: [],
+      _failures: []
     };
   }
 
@@ -69,7 +69,7 @@ class DeploymentValidator {
 
       return this.results.failures.length === 0;
     } catch (error) {
-      console.error('Validation failed with error:', error);
+      console.error('Validation failed with _error:', error);
       return false;
     }
   }
@@ -95,11 +95,11 @@ class DeploymentValidator {
         this.results.passed.push('All migrations are backward compatible');
       } else {
         this.results.failures.push(
-          `Migration compatibility issues: ${validation.issues.join(', ')}`
+          `Migration compatibility _issues: ${validation.issues.join(', ')}`
         );
       }
     } catch (error) {
-      this.results.failures.push(`Failed to validate database migrations: ${error}`);
+      this.results.failures.push(`Failed to validate database _migrations: ${error}`);
     }
   }
 
@@ -114,7 +114,7 @@ class DeploymentValidator {
       // For this example, we'll simulate success
       this.results.passed.push('Database connectivity check passed');
     } catch (error) {
-      this.results.failures.push(`Database connectivity check failed: ${error}`);
+      this.results.failures.push(`Database connectivity check _failed: ${error}`);
     }
   }
 
@@ -129,7 +129,7 @@ class DeploymentValidator {
       // For this example, we'll simulate success
       this.results.passed.push('Database indexes check passed');
     } catch (error) {
-      this.results.failures.push(`Database indexes check failed: ${error}`);
+      this.results.failures.push(`Database indexes check _failed: ${error}`);
     }
   }
 
@@ -145,9 +145,9 @@ class DeploymentValidator {
 
       // Check for security vulnerabilities using npm audit
       try {
-        execSync('npm audit --production', { stdio: 'pipe' });
+        execSync('npm audit --production', { _stdio: 'pipe' });
         this.results.passed.push('No security vulnerabilities found in dependencies');
-      } catch (auditError: any) {
+      } catch (_auditError: any) {
         // npm audit exits with non-zero code if vulnerabilities are found
         if (auditError.status > 1) {
           // Critical vulnerabilities
@@ -158,7 +158,7 @@ class DeploymentValidator {
         }
       }
     } catch (error) {
-      this.results.failures.push(`Dependencies check failed: ${error}`);
+      this.results.failures.push(`Dependencies check _failed: ${error}`);
     }
   }
 
@@ -173,7 +173,7 @@ class DeploymentValidator {
       // For this example, we'll simulate success
       this.results.passed.push('Redis connectivity check passed');
     } catch (error) {
-      this.results.failures.push(`Redis connectivity check failed: ${error}`);
+      this.results.failures.push(`Redis connectivity check _failed: ${error}`);
     }
   }
 
@@ -196,7 +196,7 @@ class DeploymentValidator {
         'X-Content-Type-Options',
         'X-Frame-Options',
         'X-XSS-Protection',
-        'Content-Security-Policy',
+        'Content-Security-Policy'
       ];
 
       const missingHeaders = requiredHeaders.filter(header => !nginxConfig.includes(header));
@@ -204,10 +204,10 @@ class DeploymentValidator {
       if (missingHeaders.length === 0) {
         this.results.passed.push('All required security headers are configured');
       } else {
-        this.results.failures.push(`Missing security headers: ${missingHeaders.join(', ')}`);
+        this.results.failures.push(`Missing security _headers: ${missingHeaders.join(', ')}`);
       }
     } catch (error) {
-      this.results.failures.push(`Security headers check failed: ${error}`);
+      this.results.failures.push(`Security headers check _failed: ${error}`);
     }
   }
 
@@ -233,7 +233,7 @@ class DeploymentValidator {
         'DB_PASSWORD',
         'DB_NAME',
         'REDIS_URL',
-        'JWT_SECRET',
+        'JWT_SECRET'
       ];
 
       const missingEnvVars = requiredEnvVars.filter(envVar => !k8sConfig.includes(envVar));
@@ -241,10 +241,10 @@ class DeploymentValidator {
       if (missingEnvVars.length === 0) {
         this.results.passed.push('All required environment variables are configured');
       } else {
-        this.results.failures.push(`Missing environment variables: ${missingEnvVars.join(', ')}`);
+        this.results.failures.push(`Missing environment _variables: ${missingEnvVars.join(', ')}`);
       }
     } catch (error) {
-      this.results.failures.push(`Environment variables check failed: ${error}`);
+      this.results.failures.push(`Environment variables check _failed: ${error}`);
     }
   }
 
@@ -268,7 +268,7 @@ class DeploymentValidator {
         this.results.failures.push('Content Security Policy is not configured');
       }
     } catch (error) {
-      this.results.failures.push(`Content Security Policy check failed: ${error}`);
+      this.results.failures.push(`Content Security Policy check _failed: ${error}`);
     }
   }
 
@@ -294,7 +294,7 @@ class DeploymentValidator {
         this.results.warnings.push('Deployment may not have enough replicas for high load');
       }
     } catch (error) {
-      this.results.failures.push(`Load capacity check failed: ${error}`);
+      this.results.failures.push(`Load capacity check _failed: ${error}`);
     }
   }
 
@@ -318,10 +318,10 @@ class DeploymentValidator {
       if (missingProbes.length === 0) {
         this.results.passed.push('Health endpoints are configured in Kubernetes');
       } else {
-        this.results.failures.push(`Missing health probes: ${missingProbes.join(', ')}`);
+        this.results.failures.push(`Missing health _probes: ${missingProbes.join(', ')}`);
       }
     } catch (error) {
-      this.results.failures.push(`Health endpoints check failed: ${error}`);
+      this.results.failures.push(`Health endpoints check _failed: ${error}`);
     }
   }
 
@@ -345,7 +345,7 @@ class DeploymentValidator {
         this.results.warnings.push('Metrics endpoints are not configured for Prometheus scraping');
       }
     } catch (error) {
-      this.results.failures.push(`Metrics endpoints check failed: ${error}`);
+      this.results.failures.push(`Metrics endpoints check _failed: ${error}`);
     }
   }
 
@@ -364,7 +364,7 @@ class DeploymentValidator {
         this.results.failures.push('Alert manager is not initialized');
       }
     } catch (error) {
-      this.results.failures.push(`Alert configuration check failed: ${error}`);
+      this.results.failures.push(`Alert configuration check _failed: ${error}`);
     }
   }
 
@@ -379,21 +379,21 @@ class DeploymentValidator {
 
       // Check for best practices
       const checks = [
-        { name: 'Uses multi-stage build', check: dockerfile.includes('AS builder') },
-        { name: 'Uses non-root user', check: dockerfile.includes('USER node') },
-        { name: 'Has health check', check: dockerfile.includes('HEALTHCHECK') },
-        { name: 'Sets NODE_ENV=production', check: dockerfile.includes('NODE_ENV=production') },
+        { _name: 'Uses multi-stage build', _check: dockerfile.includes('AS builder') },
+        { _name: 'Uses non-root user', _check: dockerfile.includes('USER node') },
+        { _name: 'Has health check', _check: dockerfile.includes('HEALTHCHECK') },
+        { _name: 'Sets NODE_ENV=production', _check: dockerfile.includes('NODE_ENV=production') }
       ];
 
       checks.forEach(({ name, check }) => {
         if (check) {
           this.results.passed.push(`Dockerfile: ${name}`);
         } else {
-          this.results.warnings.push(`Dockerfile missing: ${name}`);
+          this.results.warnings.push(`Dockerfile _missing: ${name}`);
         }
       });
     } catch (error) {
-      this.results.failures.push(`Dockerfile check failed: ${error}`);
+      this.results.failures.push(`Dockerfile check _failed: ${error}`);
     }
   }
 
@@ -409,19 +409,19 @@ class DeploymentValidator {
         'blue-deployment.yaml',
         'green-deployment.yaml',
         'ingress.yaml',
-        'config.yaml',
+        'config.yaml'
       ];
 
       for (const file of requiredFiles) {
         try {
           await fs.access(path.resolve(__dirname, `./kubernetes/${file}`));
-          this.results.passed.push(`Kubernetes config: ${file} exists`);
+          this.results.passed.push(`Kubernetes _config: ${file} exists`);
         } catch {
-          this.results.failures.push(`Kubernetes config: ${file} is missing`);
+          this.results.failures.push(`Kubernetes _config: ${file} is missing`);
         }
       }
     } catch (error) {
-      this.results.failures.push(`Kubernetes configs check failed: ${error}`);
+      this.results.failures.push(`Kubernetes configs check _failed: ${error}`);
     }
   }
 
@@ -431,16 +431,16 @@ class DeploymentValidator {
   private printResults(): void {
     console.log('\n--- Deployment Validation Results ---\n');
 
-    console.log('✅ Passed:');
+    console.log('✅ _Passed:');
     this.results.passed.forEach(result => console.log(` - ${result}`));
 
     if (this.results.warnings.length > 0) {
-      console.log('\n⚠️ Warnings:');
+      console.log('\n⚠️ _Warnings:');
       this.results.warnings.forEach(result => console.log(` - ${result}`));
     }
 
     if (this.results.failures.length > 0) {
-      console.log('\n❌ Failures:');
+      console.log('\n❌ _Failures:');
       this.results.failures.forEach(result => console.log(` - ${result}`));
     }
 
@@ -469,10 +469,10 @@ if (require.main === module) {
   validator
     .validateAll()
     .then(success => {
-      process.exit(success ? 0 : 1);
+      process.exit(success ? _0 : 1);
     })
     .catch(error => {
-      console.error('Validation failed with error:', error);
+      console.error('Validation failed with _error:', error);
       process.exit(1);
     });
 }

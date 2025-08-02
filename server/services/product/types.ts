@@ -9,15 +9,15 @@ import { InferSelectModel } from 'drizzle-orm';
 
 export type SelectProduct = InferSelectModel<typeof products>;
 export interface CreateProductParams {
-  name: string;
+  _name: string;
   description?: string;
-  sku: string;
-  price: string;
+  _sku: string;
+  _price: string;
   cost?: string;
   categoryId?: number;
   brandId?: number;
   isActive?: boolean;
-  storeId: number;
+  _storeId: number;
   imageUrl?: string;
   barcode?: string;
   attributes?: Record<string, unknown>;
@@ -38,7 +38,7 @@ export interface UpdateProductParams {
 }
 
 export interface ProductSearchParams {
-  storeId: number;
+  _storeId: number;
   query?: string;
   categoryId?: number;
   brandId?: number;
@@ -51,36 +51,36 @@ export interface ProductSearchParams {
 }
 
 export interface ProductServiceErrors {
-  PRODUCT_NOT_FOUND: Error;
-  DUPLICATE_SKU: Error;
-  DUPLICATE_BARCODE: Error;
-  INVALID_STORE: Error;
-  INVALID_CATEGORY: Error;
-  INVALID_BRAND: Error;
+  _PRODUCT_NOT_FOUND: Error;
+  _DUPLICATE_SKU: Error;
+  _DUPLICATE_BARCODE: Error;
+  _INVALID_STORE: Error;
+  _INVALID_CATEGORY: Error;
+  _INVALID_BRAND: Error;
 }
 
-export const ProductServiceErrors: ProductServiceErrors = {
-  PRODUCT_NOT_FOUND: new Error('Product not found'),
-  DUPLICATE_SKU: new Error('SKU already exists'),
-  DUPLICATE_BARCODE: new Error('Barcode already exists'),
-  INVALID_STORE: new Error('Invalid store ID'),
-  INVALID_CATEGORY: new Error('Invalid category ID'),
-  INVALID_BRAND: new Error('Invalid brand ID')
+export const _ProductServiceErrors: ProductServiceErrors = {
+  _PRODUCT_NOT_FOUND: new Error('Product not found'),
+  _DUPLICATE_SKU: new Error('SKU already exists'),
+  _DUPLICATE_BARCODE: new Error('Barcode already exists'),
+  _INVALID_STORE: new Error('Invalid store ID'),
+  _INVALID_CATEGORY: new Error('Invalid category ID'),
+  _INVALID_BRAND: new Error('Invalid brand ID')
 };
 
 export interface IProductService {
-  createProduct(params: CreateProductParams): Promise<SelectProduct>;
-  updateProduct(productId: number, params: UpdateProductParams): Promise<SelectProduct>;
-  deleteProduct(productId: number): Promise<boolean>;
-  getProductById(productId: number): Promise<SelectProduct | null>;
-  getProductBySku(sku: string, storeId: number): Promise<SelectProduct | null>;
-  getProductByBarcode(barcode: string, storeId: number): Promise<SelectProduct | null>;
-  searchProducts(params: ProductSearchParams): Promise<{
-    products: SelectProduct[];
-    total: number;
-    page: number;
-    limit: number;
+  createProduct(_params: CreateProductParams): Promise<SelectProduct>;
+  updateProduct(_productId: number, _params: UpdateProductParams): Promise<SelectProduct>;
+  deleteProduct(_productId: number): Promise<boolean>;
+  getProductById(_productId: number): Promise<SelectProduct | null>;
+  getProductBySku(_sku: string, _storeId: number): Promise<SelectProduct | null>;
+  getProductByBarcode(_barcode: string, _storeId: number): Promise<SelectProduct | null>;
+  searchProducts(_params: ProductSearchParams): Promise<{
+    _products: SelectProduct[];
+    _total: number;
+    _page: number;
+    _limit: number;
   }>;
-  getProductsWithLowStock(storeId: number, limit?: number): Promise<SelectProduct[]>;
-  updateProductInventory(productId: number, quantity: number, reason: string): Promise<boolean>;
+  getProductsWithLowStock(_storeId: number, limit?: number): Promise<SelectProduct[]>;
+  updateProductInventory(_productId: number, _quantity: number, _reason: string): Promise<boolean>;
 }

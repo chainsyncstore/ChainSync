@@ -6,18 +6,18 @@ export type Logger = winston.Logger;
 // Create the default logger instance
 export const logger = process.env.SKIP_LOGGER
   ? winston.createLogger({
-      level: 'info',
-      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-      transports: [new winston.transports.Console()]
+      _level: 'info',
+      _format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+      _transports: [new winston.transports.Console()]
     })
   : winston.createLogger({
-      level: process.env.LOG_LEVEL || 'info',
-      format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-      transports: [
+      _level: process.env.LOG_LEVEL || 'info',
+      _format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+      _transports: [
         new winston.transports.Console({
-          format: winston.format.combine(winston.format.colorize(), winston.format.simple())
+          _format: winston.format.combine(winston.format.colorize(), winston.format.simple())
         }),
-        new winston.transports.File({ filename: 'error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'combined.log' })
+        new winston.transports.File({ _filename: 'error.log', _level: 'error' }),
+        new winston.transports.File({ _filename: 'combined.log' })
       ]
     });

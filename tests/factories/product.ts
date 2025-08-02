@@ -3,15 +3,15 @@
 import * as schema from '@shared/schema';
 
 export function makeMockProduct(
-  overrides: Partial<schema.ProductInsert> = {}
+  _overrides: Partial<schema.ProductInsert> = {}
 ): schema.ProductInsert {
   return {
-    name: 'Test Product',
-    storeId: 1,
-    sku: `SKU-${Date.now()}`,
-    price: '10.00',
-    cost: '5.00',
-    categoryId: 1, // Default category, can be overridden in tests
-    ...overrides,
+    _name: 'Test Product',
+    _storeId: 1,
+    _sku: `SKU-${Date.now()}`,
+    _price: '10.00',
+    _cost: '5.00',
+    _categoryId: 1, // Default category, can be overridden in tests
+    ...overrides
   };
 }

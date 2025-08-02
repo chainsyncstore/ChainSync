@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.TransactionPaymentFormatter = exports.TransactionItemFormatter = exports.TransactionFormatter = void 0;
 /**
  * Transaction Formatter
@@ -31,17 +31,17 @@ class TransactionFormatter extends service_helpers_1.ResultFormatter {
     // Format the transaction with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      storeId: Number(withDates.storeId),
-      userId: Number(withDates.userId),
-      customerId: Number(withDates.customerId || null),
-      status: (withDates.status || 'pending'),
-      subtotal: String(withDates.subtotal || '0.00'),
-      tax: String(withDates.tax || '0.00'),
-      discount: String(withDates.discount || '0.00'),
-      total: String(withDates.total || '0.00'),
-      paymentMethod: (withDates.paymentMethod || 'cash'),
-      items: withDates.items || null
+      _id: Number(withDates.id),
+      _storeId: Number(withDates.storeId),
+      _userId: Number(withDates.userId),
+      _customerId: Number(withDates.customerId || null),
+      _status: (withDates.status || 'pending'),
+      _subtotal: String(withDates.subtotal || '0.00'),
+      _tax: String(withDates.tax || '0.00'),
+      _discount: String(withDates.discount || '0.00'),
+      _total: String(withDates.total || '0.00'),
+      _paymentMethod: (withDates.paymentMethod || 'cash'),
+      _items: withDates.items || null
     };
   }
 }
@@ -69,11 +69,11 @@ class TransactionItemFormatter extends service_helpers_1.ResultFormatter {
     // Format the transaction item with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      transactionId: Number(withDates.transactionId),
-      productId: Number(withDates.productId),
-      quantity: Number(withDates.quantity || 0),
-      unitPrice: String(withDates.unitPrice || '0.00')
+      _id: Number(withDates.id),
+      _transactionId: Number(withDates.transactionId),
+      _productId: Number(withDates.productId),
+      _quantity: Number(withDates.quantity || 0),
+      _unitPrice: String(withDates.unitPrice || '0.00')
     };
   }
 }
@@ -101,10 +101,10 @@ class TransactionPaymentFormatter extends service_helpers_1.ResultFormatter {
     // Format the transaction payment with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      transactionId: Number(withDates.transactionId),
-      amount: String(withDates.amount || '0.00'),
-      method: (withDates.method || 'cash')
+      _id: Number(withDates.id),
+      _transactionId: Number(withDates.transactionId),
+      _amount: String(withDates.amount || '0.00'),
+      _method: (withDates.method || 'cash')
     };
   }
 }

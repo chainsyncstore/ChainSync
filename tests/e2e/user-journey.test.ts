@@ -2,17 +2,17 @@ import { test, expect } from '@playwright/test';
 import { setupTestDatabase, teardownTestDatabase } from '../setup/e2e-setup';
 
 test.describe('User Journey E2E Tests', () => {
-  let testDb: any;
+  let _testDb: any;
 
-  test.beforeAll(async () => {
+  test.beforeAll(async() => {
     testDb = await setupTestDatabase();
   });
 
-  test.afterAll(async () => {
+  test.afterAll(async() => {
     await teardownTestDatabase(testDb);
   });
 
-  test('Complete customer purchase journey', async ({ page }) => {
+  test('Complete customer purchase journey', async({ page }) => {
     // 1. User registration
     await page.goto('/register');
     await page.fill('[data-testid="email"]', 'test@example.com');
@@ -32,7 +32,7 @@ test.describe('User Journey E2E Tests', () => {
     // 3. Add items to cart
     const firstProduct = page.locator('[data-testid="product-card"]').first();
     await firstProduct.locator('[data-testid="add-to-cart"]').click();
-    
+
     // Verify item added to cart
     await expect(page.locator('[data-testid="cart-count"]')).toHaveText('1');
 
@@ -71,7 +71,7 @@ test.describe('User Journey E2E Tests', () => {
     await expect(page.locator('[data-testid="order-item"]')).toHaveCount(1);
   });
 
-  test('Inventory management journey', async ({ page }) => {
+  test('Inventory management journey', async({ page }) => {
     // Login as admin
     await page.goto('/login');
     await page.fill('[data-testid="email"]', 'admin@example.com');
@@ -97,7 +97,7 @@ test.describe('User Journey E2E Tests', () => {
     await expect(page.locator('[data-testid="success-message"]')).toContainText('Product added successfully');
 
     // 3. Update inventory
-    const productRow = page.locator('[data-testid="product-row"]').filter({ hasText: 'Test Product' });
+    const productRow = page.locator('[data-testid="product-row"]').filter({ _hasText: 'Test Product' });
     await productRow.locator('[data-testid="edit-button"]').click();
     await page.fill('[data-testid="product-quantity"]', '95');
     await page.click('[data-testid="save-button"]');
@@ -114,7 +114,7 @@ test.describe('User Journey E2E Tests', () => {
     await expect(page.locator('[data-testid="import-results"]')).toBeVisible();
   });
 
-  test('Analytics and reporting journey', async ({ page }) => {
+  test('Analytics and reporting journey', async({ page }) => {
     // Login as admin
     await page.goto('/login');
     await page.fill('[data-testid="email"]', 'admin@example.com');
@@ -155,7 +155,7 @@ test.describe('User Journey E2E Tests', () => {
     expect(download.suggestedFilename()).toMatch(/\.csv$/);
   });
 
-  test('Customer support journey', async ({ page }) => {
+  test('Customer support journey', async({ page }) => {
     // Login as customer
     await page.goto('/login');
     await page.fill('[data-testid="email"]', 'customer@example.com');
@@ -188,9 +188,9 @@ test.describe('User Journey E2E Tests', () => {
     await expect(page.locator('[data-testid="comment-list"]')).toContainText('Please provide tracking information.');
   });
 
-  test('Mobile responsive journey', async ({ page }) => {
+  test('Mobile responsive journey', async({ page }) => {
     // Set mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
+    await page.setViewportSize({ _width: 375, _height: 667 });
 
     // 1. Mobile navigation
     await page.goto('/');
@@ -201,7 +201,7 @@ test.describe('User Journey E2E Tests', () => {
     // 2. Mobile product browsing
     await page.goto('/products');
     await expect(page.locator('[data-testid="mobile-product-grid"]')).toBeVisible();
-    
+
     // Test touch interactions
     await page.locator('[data-testid="product-card"]').first().tap();
     await expect(page.locator('[data-testid="product-details"]')).toBeVisible();
@@ -209,24 +209,24 @@ test.describe('User Journey E2E Tests', () => {
     // 3. Mobile checkout
     await page.goto('/checkout');
     await expect(page.locator('[data-testid="mobile-checkout-form"]')).toBeVisible();
-    
+
     // Test form inputs on mobile
     await page.fill('[data-testid="mobile-email"]', 'mobile@example.com');
     await page.fill('[data-testid="mobile-card-number"]', '4242424242424242');
-    
+
     // Test mobile keyboard
     await page.locator('[data-testid="mobile-card-expiry"]').tap();
     await page.keyboard.type('12/25');
   });
 
-  test('Offline functionality journey', async ({ page }) => {
+  test('Offline functionality journey', async({ page }) => {
     // 1. Enable offline mode
     await page.goto('/');
     await page.evaluate(() => {
       // Simulate offline mode
       Object.defineProperty(navigator, 'onLine', {
-        writable: true,
-        value: false
+        _writable: true,
+        _value: false
       });
       window.dispatchEvent(new Event('offline'));
     });
@@ -237,7 +237,7 @@ test.describe('User Journey E2E Tests', () => {
     // 3. Test offline cart functionality
     await page.goto('/products');
     await page.locator('[data-testid="add-to-cart"]').first().click();
-    
+
     // Verify item saved to local storage
     const cartData = await page.evaluate(() => {
       return localStorage.getItem('offline-cart');
@@ -248,11 +248,11 @@ test.describe('User Journey E2E Tests', () => {
     await page.goto('/checkout');
     await page.fill('[data-testid="customer-name"]', 'Offline User');
     await page.fill('[data-testid="customer-email"]', 'offline@example.com');
-    
+
     // Navigate away and back
     await page.goto('/products');
     await page.goto('/checkout');
-    
+
     // Verify form data persisted
     await expect(page.locator('[data-testid="customer-name"]')).toHaveValue('Offline User');
     await expect(page.locator('[data-testid="customer-email"]')).toHaveValue('offline@example.com');
@@ -260,8 +260,8 @@ test.describe('User Journey E2E Tests', () => {
     // 5. Test sync when back online
     await page.evaluate(() => {
       Object.defineProperty(navigator, 'onLine', {
-        writable: true,
-        value: true
+        _writable: true,
+        _value: true
       });
       window.dispatchEvent(new Event('online'));
     });
@@ -269,4 +269,4 @@ test.describe('User Journey E2E Tests', () => {
     await expect(page.locator('[data-testid="sync-indicator"]')).toBeVisible();
     await expect(page.locator('[data-testid="sync-complete"]')).toBeVisible();
   });
-}); 
+});

@@ -6,9 +6,9 @@
 
 // Base no-op logger implementation
 const ConsoleLogger = {
-  info: () => {},
-  warn: () => {},
-  error: () => {},
+  _info: () => {},
+  _warn: () => {},
+  _error: () => {},
   child() {
     return ConsoleLogger;
   }
@@ -40,10 +40,10 @@ class ConsoleLoggerStub {
 }
 
 module.exports = {
-  ConsoleLogger: ConsoleLoggerStub,
-  Logger: ConsoleLoggerStub,
+  _ConsoleLogger: ConsoleLoggerStub,
+  _Logger: ConsoleLoggerStub,
   createLogger,
   getLogger,
   setLogger,
-  default: ConsoleLoggerStub
+  _default: ConsoleLoggerStub
 };

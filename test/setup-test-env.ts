@@ -13,7 +13,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '../server/db/connection';
 
 // Load test environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
+dotenv.config({ _path: path.resolve(process.cwd(), '.env.test') });
 
 // Set test environment
 process.env.NODE_ENV = 'test';
@@ -22,7 +22,7 @@ process.env.NODE_ENV = 'test';
 jest.setTimeout(30000);
 
 // Global setup - runs before all tests
-beforeAll(async () => {
+beforeAll(async() => {
   // Ensure we're using the test database
   if (!process.env.DATABASE_URL?.includes('test')) {
     throw new Error('Tests must use a test database! Check your .env.test file.');
@@ -39,7 +39,7 @@ beforeAll(async () => {
 });
 
 // Global teardown - runs after all tests
-afterAll(async () => {
+afterAll(async() => {
   // Close database connection
   // This is important to prevent Jest from hanging
   try {
@@ -53,18 +53,18 @@ afterAll(async () => {
 
 // Add global Jest matchers
 expect.extend({
-  toBeWithinRange(received: number, floor: number, ceiling: number) {
+  toBeWithinRange(_received: number, _floor: number, _ceiling: number) {
     const pass = received >= floor && received <= ceiling;
     if (pass) {
       return {
-        message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
-        pass: true,
+        _message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        _pass: true
       };
     } else {
       return {
         message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
-        pass: false,
+        _pass: false
       };
     }
-  },
+  }
 });

@@ -34,26 +34,26 @@ const logger = getLogger('security-routes');
 
 // Validation schemas
 const mfaSetupSchema = z.object({
-  token: z.string().length(6),
-  secret: z.string().optional()
+  _token: z.string().length(6),
+  _secret: z.string().optional()
 });
 
 const passwordChangeSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(12),
-  confirmPassword: z.string().min(12)
+  _currentPassword: z.string().min(1),
+  _newPassword: z.string().min(12),
+  _confirmPassword: z.string().min(12)
 });
 
 const gdprRequestSchema = z.object({
-  requestType: z.enum(['access', 'erasure', 'portability']),
-  reason: z.string().optional()
+  _requestType: z.enum(['access', 'erasure', 'portability']),
+  _reason: z.string().optional()
 });
 
 // Initialize services
-let gdprService: GDPRService;
-let securityMonitoring: SecurityMonitoringService;
+let _gdprService: GDPRService;
+let _securityMonitoring: SecurityMonitoringService;
 
-export const initializeSecurityRoutes = (db: Pool) => {
+export const initializeSecurityRoutes = (_db: Pool) => {
   gdprService = new GDPRService(db);
   securityMonitoring = new SecurityMonitoringService(db);
 };
@@ -64,7 +64,7 @@ export const initializeSecurityRoutes = (db: Pool) => {
  */
 router.get('/mfa/setup',
   isAuthenticated,
-  async(req: Request, res: Response) => {
+  async(_req: Request, _res: Response) => {
     try {
       const userId = (req.session as any).userId;
       const userEmail = (req.session as any).email || 'user@example.com';
@@ -79,23 +79,23 @@ router.get('/mfa/setup',
       // Log MFA setup initiation
       await securityMonitoring.logSecurityEvent(
         SecurityEventType.MFA_ENABLED,
-        { userId, setupInitiated: true },
+        { userId, _setupInitiated: true },
         SecurityRiskLevel.LOW
       );
 
       res.json({
-        success: true,
-        data: {
+        _success: true,
+        _data: {
           secret,
           qrUrl,
-          setupComplete: false
+          _setupComplete: false
         }
       });
     } catch (error) {
       logger.error('MFA setup failed', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to setup MFA'
+        _success: false,
+        _error: 'Failed to setup MFA'
       });
     }
   }
@@ -108,7 +108,7 @@ router.get('/mfa/setup',
 router.post('/mfa/verify',
   isAuthenticated,
   validateBody(mfaSetupSchema),
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const { token } = req.body;
       const userId = (req.session as any).userId;
@@ -116,8 +116,8 @@ router.post('/mfa/verify',
 
       if (!secret) {
         res.status(400).json({
-          success: false,
-          error: 'MFA setup not initiated'
+          _success: false,
+          _error: 'MFA setup not initiated'
         });
         return;
       }
@@ -128,13 +128,13 @@ router.post('/mfa/verify',
       if (!isValid) {
         await securityMonitoring.logSecurityEvent(
           SecurityEventType.LOGIN_FAILURE,
-          { userId, reason: 'Invalid MFA token' },
+          { userId, _reason: 'Invalid MFA token' },
           SecurityRiskLevel.MEDIUM
         );
 
         res.status(400).json({
-          success: false,
-          error: 'Invalid MFA token'
+          _success: false,
+          _error: 'Invalid MFA token'
         });
         return;
       }
@@ -147,19 +147,19 @@ router.post('/mfa/verify',
       // Log successful MFA setup
       await securityMonitoring.logSecurityEvent(
         SecurityEventType.MFA_ENABLED,
-        { userId, setupComplete: true },
+        { userId, _setupComplete: true },
         SecurityRiskLevel.LOW
       );
 
       res.json({
-        success: true,
-        message: 'MFA setup completed successfully'
+        _success: true,
+        _message: 'MFA setup completed successfully'
       });
     } catch (error) {
       logger.error('MFA verification failed', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to verify MFA'
+        _success: false,
+        _error: 'Failed to verify MFA'
       });
     }
   }
@@ -172,7 +172,7 @@ router.post('/mfa/verify',
 router.post('/password/change',
   isAuthenticated,
   validateBody(passwordChangeSchema),
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const { currentPassword, newPassword, confirmPassword } = req.body;
       const userId = (req.session as any).userId;
@@ -181,9 +181,9 @@ router.post('/password/change',
       const passwordValidation = validatePassword(newPassword);
       if (!passwordValidation.isValid) {
                   res.status(400).json({
-            success: false,
-            error: 'Password does not meet requirements',
-            details: passwordValidation.errors
+            _success: false,
+            _error: 'Password does not meet requirements',
+            _details: passwordValidation.errors
           });
           return;
       }
@@ -191,31 +191,31 @@ router.post('/password/change',
       // Confirm password match
       if (newPassword !== confirmPassword) {
         res.status(400).json({
-          success: false,
-          error: 'Passwords do not match'
+          _success: false,
+          _error: 'Passwords do not match'
         });
         return;
       }
 
-      // TODO: Verify current password against database
+      // _TODO: Verify current password against database
       // For now, just log the change
 
       // Log password change
       await securityMonitoring.logSecurityEvent(
         SecurityEventType.PASSWORD_CHANGE,
-        { userId, passwordChanged: true },
+        { userId, _passwordChanged: true },
         SecurityRiskLevel.MEDIUM
       );
 
       res.json({
-        success: true,
-        message: 'Password changed successfully'
+        _success: true,
+        _message: 'Password changed successfully'
       });
     } catch (error) {
       logger.error('Password change failed', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to change password'
+        _success: false,
+        _error: 'Failed to change password'
       });
     }
   }
@@ -227,22 +227,22 @@ router.post('/password/change',
  */
 router.post('/password/generate',
   isAuthenticated,
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const password = generateToken(16); // Generate 16-character password
 
       res.json({
-        success: true,
-        data: {
+        _success: true,
+        _data: {
           password,
-          strength: 'high'
+          _strength: 'high'
         }
       });
     } catch (error) {
       logger.error('Password generation failed', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to generate password'
+        _success: false,
+        _error: 'Failed to generate password'
       });
     }
   }
@@ -255,7 +255,7 @@ router.post('/password/generate',
 router.post('/gdpr/request',
   isAuthenticated,
   validateBody(gdprRequestSchema),
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const { requestType, reason } = req.body;
       const userId = (req.session as any).userId;
@@ -272,10 +272,9 @@ router.post('/gdpr/request',
         case 'portability':
           result = await gdprService.processPortabilityRequest(userId);
           break;
-        default:
-          res.status(400).json({
-            success: false,
-            error: 'Invalid request type'
+        res.status(400).json({
+            _success: false,
+            _error: 'Invalid request type'
           });
           return;
       }
@@ -288,14 +287,14 @@ router.post('/gdpr/request',
       );
 
       res.json({
-        success: true,
-        data: result
+        _success: true,
+        _data: result
       });
     } catch (error) {
       logger.error('GDPR request failed', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to process GDPR request'
+        _success: false,
+        _error: 'Failed to process GDPR request'
       });
     }
   }
@@ -308,7 +307,7 @@ router.post('/gdpr/request',
 router.get('/events',
   isAuthenticated,
   authorizeRoles(['admin']),
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const { timeframe = '24', limit = '50' } = req.query;
 
@@ -317,14 +316,14 @@ router.get('/events',
       );
 
       res.json({
-        success: true,
-        data: report
+        _success: true,
+        _data: report
       });
     } catch (error) {
       logger.error('Failed to get security events', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to retrieve security events'
+        _success: false,
+        _error: 'Failed to retrieve security events'
       });
     }
   }
@@ -336,7 +335,7 @@ router.get('/events',
  */
 router.post('/analyze',
   isAuthenticated,
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const analysis = securityMonitoring.analyzeRequest(req);
 
@@ -344,25 +343,25 @@ router.post('/analyze',
         await securityMonitoring.logSecurityEvent(
           SecurityEventType.SUSPICIOUS_ACTIVITY,
           {
-            threatType: analysis.threatType,
-            riskLevel: analysis.riskLevel,
-            details: analysis.details,
-            ip: req.ip,
-            userId: (req.session as any).userId
+            _threatType: analysis.threatType,
+            _riskLevel: analysis.riskLevel,
+            _details: analysis.details,
+            _ip: req.ip,
+            _userId: (req.session as any).userId
           },
           analysis.riskLevel
         );
       }
 
       res.json({
-        success: true,
-        data: analysis
+        _success: true,
+        _data: analysis
       });
     } catch (error) {
       logger.error('Security analysis failed', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to analyze request'
+        _success: false,
+        _error: 'Failed to analyze request'
       });
     }
   }
@@ -374,7 +373,7 @@ router.post('/analyze',
  */
 router.get('/status',
   isAuthenticated,
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const userId = (req.session as any).userId;
 
@@ -382,23 +381,23 @@ router.get('/status',
       const suspiciousActivity = await securityMonitoring.detectSuspiciousActivity(userId);
 
       const status = {
-        mfaEnabled: !!(req.session as any).mfaRequired,
-        mfaVerified: !!(req.session as any).mfaVerified,
-        accountLocked: ((req.session as any).loginAttempts || 0) >= 5,
-        suspiciousActivity: suspiciousActivity.isSuspicious,
-        riskScore: suspiciousActivity.riskScore,
-        lastLogin: (req.session as any).lastLogin || null
+        _mfaEnabled: !!(req.session as any).mfaRequired,
+        _mfaVerified: !!(req.session as any).mfaVerified,
+        _accountLocked: ((req.session as any).loginAttempts || 0) >= 5,
+        _suspiciousActivity: suspiciousActivity.isSuspicious,
+        _riskScore: suspiciousActivity.riskScore,
+        _lastLogin: (req.session as any).lastLogin || null
       };
 
       res.json({
-        success: true,
-        data: status
+        _success: true,
+        _data: status
       });
     } catch (error) {
       logger.error('Failed to get security status', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to get security status'
+        _success: false,
+        _error: 'Failed to get security status'
       });
     }
   }
@@ -411,14 +410,14 @@ router.get('/status',
 router.post('/encrypt',
   isAuthenticated,
   authorizeRoles(['admin']),
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const { data, context } = req.body;
 
       if (!data) {
         res.status(400).json({
-          success: false,
-          error: 'Data is required'
+          _success: false,
+          _error: 'Data is required'
         });
         return;
       }
@@ -426,17 +425,17 @@ router.post('/encrypt',
       const encrypted = encryptionService.encrypt(data, context);
 
       res.json({
-        success: true,
-        data: {
+        _success: true,
+        _data: {
           encrypted,
-          algorithm: 'AES-256-GCM'
+          _algorithm: 'AES-256-GCM'
         }
       });
     } catch (error) {
       logger.error('Encryption failed', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to encrypt data'
+        _success: false,
+        _error: 'Failed to encrypt data'
       });
     }
   }
@@ -449,14 +448,14 @@ router.post('/encrypt',
 router.post('/decrypt',
   isAuthenticated,
   authorizeRoles(['admin']),
-  async(req: Request, res: Response): Promise<void> => {
+  async(_req: Request, _res: Response): Promise<void> => {
     try {
       const { encryptedData, context } = req.body;
 
       if (!encryptedData) {
         res.status(400).json({
-          success: false,
-          error: 'Encrypted data is required'
+          _success: false,
+          _error: 'Encrypted data is required'
         });
         return;
       }
@@ -464,16 +463,16 @@ router.post('/decrypt',
       const decrypted = encryptionService.decrypt(encryptedData, context);
 
       res.json({
-        success: true,
-        data: {
+        _success: true,
+        _data: {
           decrypted
         }
       });
     } catch (error) {
       logger.error('Decryption failed', { error });
       res.status(500).json({
-        success: false,
-        error: 'Failed to decrypt data'
+        _success: false,
+        _error: 'Failed to decrypt data'
       });
     }
   }

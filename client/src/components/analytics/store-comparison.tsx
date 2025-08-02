@@ -1,18 +1,18 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { StorePerformanceResponse, StoreWithMetrics, TopProduct } from '@/types/analytics';
-import { 
+import { useState } from &apos;react&apos;;
+import { useQuery } from &apos;@tanstack/react-query&apos;;
+import { StorePerformanceResponse, StoreWithMetrics, TopProduct } from &apos;@/types/analytics&apos;;
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { CalendarIcon, BarChart2, MapPin } from 'lucide-react';
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Calendar } from &apos;@/components/ui/calendar&apos;;
+import { Popover, PopoverContent, PopoverTrigger } from &apos;@/components/ui/popover&apos;;
+import { format } from &apos;date-fns&apos;;
+import { CalendarIcon, BarChart2, MapPin } from &apos;lucide-react&apos;;
 import {
   BarChart,
   Bar,
@@ -25,16 +25,16 @@ import {
   PieChart,
   Pie,
   Cell
-} from 'recharts';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { apiRequest } from '@/lib/queryClient';
+} from &apos;recharts&apos;;
+import { Skeleton } from &apos;@/components/ui/skeleton&apos;;
+import { Tabs, TabsContent, TabsList, TabsTrigger } from &apos;@/components/ui/tabs&apos;;
+import { ScrollArea } from &apos;@/components/ui/scroll-area&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
 
 // Generate vibrant colors for charts
 const COLORS = [
-  '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', 
-  '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
+  &apos;#8884d8&apos;, &apos;#82ca9d&apos;, &apos;#ffc658&apos;, &apos;#ff8042&apos;, &apos;#0088FE&apos;,
+  &apos;#00C49F&apos;, &apos;#FFBB28&apos;, &apos;#FF8042&apos;, &apos;#8884d8&apos;, &apos;#82ca9d&apos;
 ];
 
 export const StoreComparison = () => {
@@ -50,40 +50,40 @@ export const StoreComparison = () => {
   const [endDate, setEndDate] = useState<Date | undefined>();
 
   // Fetch store performance data
-  const { 
-    data: storePerformance, 
-    isLoading, 
-    isError, 
-    refetch 
+  const {
+    _data: storePerformance,
+    isLoading,
+    isError,
+    refetch
   } = useQuery<StorePerformanceResponse>({
-    queryKey: ['/api/analytics/store-performance', startDate, endDate],
-    queryFn: async () => {
+    _queryKey: [&apos;/api/analytics/store-performance&apos;, startDate, endDate],
+    _queryFn: async() => {
       // Build URL with query parameters
-      const url = new URL('/api/analytics/store-performance', window.location.origin);
-      
+      const url = new URL(&apos;/api/analytics/store-performance&apos;, window.location.origin);
+
       if (startDate) {
-        url.searchParams.append('startDate', startDate.toISOString());
+        url.searchParams.append(&apos;startDate&apos;, startDate.toISOString());
       }
-      
+
       if (endDate) {
-        url.searchParams.append('endDate', endDate.toISOString());
+        url.searchParams.append(&apos;endDate&apos;, endDate.toISOString());
       }
-      
-      return await apiRequest('GET', url.toString());
+
+      return await apiRequest(&apos;GET&apos;, url.toString());
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    initialData: {
+    _staleTime: 5 * 60 * 1000, // 5 minutes
+    _initialData: {
       storePerformance: [],
-      globalMetrics: { totalRevenue: 0, averageTransaction: 0, transactionCount: 0 },
-      dateRangeDescription: 'Compare performance metrics across all store locations',
-    },
+      _globalMetrics: { _totalRevenue: 0, _averageTransaction: 0, _transactionCount: 0 },
+      _dateRangeDescription: &apos;Compare performance metrics across all store locations&apos;
+    }
   });
 
   // Currency formatter
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+  const formatCurrency = (_value: number) => {
+    return new Intl.NumberFormat(&apos;en-US&apos;, {
+      _style: &apos;currency&apos;,
+      _currency: &apos;USD&apos;
     }).format(value);
   };
 
@@ -91,10 +91,10 @@ export const StoreComparison = () => {
   const generateRevenueData = () => {
     if (!storePerformance.storePerformance.length) return [];
 
-    return storePerformance.storePerformance.map((store: StoreWithMetrics, index: number) => ({
-      name: store.name,
-      revenue: store.metrics.totalRevenue,
-      color: COLORS[index % COLORS.length]
+    return storePerformance.storePerformance.map((_store: StoreWithMetrics, _index: number) => ({
+      _name: store.name,
+      _revenue: store.metrics.totalRevenue,
+      _color: COLORS[index % COLORS.length]
     }));
   };
 
@@ -102,57 +102,57 @@ export const StoreComparison = () => {
   const generateAvgTransactionData = () => {
     if (!storePerformance.storePerformance.length) return [];
 
-    return storePerformance.storePerformance.map((store: StoreWithMetrics, index: number) => ({
-      name: store.name,
-      value: store.metrics.averageTransaction,
-      color: COLORS[index % COLORS.length]
+    return storePerformance.storePerformance.map((_store: StoreWithMetrics, _index: number) => ({
+      _name: store.name,
+      _value: store.metrics.averageTransaction,
+      _color: COLORS[index % COLORS.length]
     }));
   };
 
   // Render the revenue comparison chart
   const renderRevenueChart = () => {
     const data = generateRevenueData();
-    
+
     if (!data.length) {
       return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <p className="text-muted-foreground">No data available for the selected period</p>
+        <div className=&quot;flex flex-col items-center justify-center h-64&quot;>
+          <p className=&quot;text-muted-foreground&quot;>No data available for the selected period</p>
         </div>
       );
     }
 
     return (
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width=&quot;100%&quot; height={400}>
         <BarChart
           data={data}
           margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 80,
+            _top: 20,
+            _right: 30,
+            _left: 20,
+            _bottom: 80
           }}
         >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="name"
+          <CartesianGrid strokeDasharray=&quot;3 3&quot; />
+          <XAxis
+            dataKey=&quot;name&quot;
             angle={-45}
-            textAnchor="end"
+            textAnchor=&quot;end&quot;
             height={80}
           />
-          <YAxis 
+          <YAxis
             tickFormatter={(value) => formatCurrency(value)}
           />
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(_value: number) => formatCurrency(value)}
             labelFormatter={(label) => `Store: ${label}`}
           />
           <Legend />
-          <Bar 
-            dataKey="revenue" 
-            name="Revenue" 
-            fill="#8884d8"
+          <Bar
+            dataKey=&quot;revenue&quot;
+            name=&quot;Revenue&quot;
+            fill=&quot;#8884d8&quot;
           >
-            {data.map((entry: { color: string }, index: number) => (
+            {data.map((entry: { _color: string }, _index: number) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Bar>
@@ -164,33 +164,33 @@ export const StoreComparison = () => {
   // Render average transaction chart
   const renderAvgTransactionChart = () => {
     const data = generateAvgTransactionData();
-    
+
     if (!data.length) {
       return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <p className="text-muted-foreground">No data available for the selected period</p>
+        <div className=&quot;flex flex-col items-center justify-center h-64&quot;>
+          <p className=&quot;text-muted-foreground&quot;>No data available for the selected period</p>
         </div>
       );
     }
 
     return (
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width=&quot;100%&quot; height={400}>
         <PieChart>
           <Pie
             data={data}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
+            dataKey=&quot;value&quot;
+            nameKey=&quot;name&quot;
+            cx=&quot;50%&quot;
+            cy=&quot;50%&quot;
             outerRadius={150}
-            fill="#8884d8"
-            label={(entry: { name: string; value: number }) => `${entry.name}: ${formatCurrency(entry.value)}`}
+            fill=&quot;#8884d8&quot;
+            label={(entry: { _name: string; _value: number }) => `${entry.name}: ${formatCurrency(entry.value)}`}
           >
-            {data.map((entry: { color: string }, index: number) => (
+            {data.map((entry: { _color: string }, _index: number) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => formatCurrency(value)} />
+          <Tooltip formatter={(_value: number) => formatCurrency(value)} />
           <Legend />
         </PieChart>
       </ResponsiveContainer>
@@ -202,68 +202,68 @@ export const StoreComparison = () => {
     if (!storePerformance.storePerformance.length) return null;
 
     return (
-      <div className="space-y-6">
-        {storePerformance.storePerformance.map((store: StoreWithMetrics) => (
-          <Card key={store.id} className="overflow-hidden">
-            <CardHeader className="bg-muted/50">
-              <div className="flex items-start justify-between">
+      <div className=&quot;space-y-6&quot;>
+        {storePerformance.storePerformance.map((_store: StoreWithMetrics) => (
+          <Card key={store.id} className=&quot;overflow-hidden&quot;>
+            <CardHeader className=&quot;bg-muted/50&quot;>
+              <div className=&quot;flex items-start justify-between&quot;>
                 <div>
-                  <CardTitle className="flex items-center">
-                    <MapPin className="mr-2 h-4 w-4" />
+                  <CardTitle className=&quot;flex items-center&quot;>
+                    <MapPin className=&quot;mr-2 h-4 w-4&quot; />
                     {store.name}
                   </CardTitle>
                   <CardDescription>{store.address}, {store.city}, {store.state}</CardDescription>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold">{formatCurrency(store.metrics.totalRevenue)}</p>
-                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                <div className=&quot;text-right&quot;>
+                  <p className=&quot;text-lg font-bold&quot;>{formatCurrency(store.metrics.totalRevenue)}</p>
+                  <p className=&quot;text-sm text-muted-foreground&quot;>Total Revenue</p>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className=&quot;p-6&quot;>
+              <div className=&quot;grid grid-cols-1 _md:grid-cols-2 gap-6&quot;>
                 <div>
-                  <h4 className="text-sm font-medium mb-3">Store Performance</h4>
-                  <dl className="space-y-2">
-                    <div className="flex justify-between">
-                      <dt className="text-sm text-muted-foreground">Transactions:</dt>
-                      <dd className="text-sm font-medium">{store.metrics.transactionCount}</dd>
+                  <h4 className=&quot;text-sm font-medium mb-3&quot;>Store Performance</h4>
+                  <dl className=&quot;space-y-2&quot;>
+                    <div className=&quot;flex justify-between&quot;>
+                      <dt className=&quot;text-sm text-muted-foreground&quot;>Transactions:</dt>
+                      <dd className=&quot;text-sm font-medium&quot;>{store.metrics.transactionCount}</dd>
                     </div>
-                    <div className="flex justify-between">
-                      <dt className="text-sm text-muted-foreground">Avg. Transaction:</dt>
-                      <dd className="text-sm font-medium">{formatCurrency(store.metrics.averageTransaction)}</dd>
+                    <div className=&quot;flex justify-between&quot;>
+                      <dt className=&quot;text-sm text-muted-foreground&quot;>Avg. Transaction:</dt>
+                      <dd className=&quot;text-sm font-medium&quot;>{formatCurrency(store.metrics.averageTransaction)}</dd>
                     </div>
-                    <div className="flex justify-between">
-                      <dt className="text-sm text-muted-foreground">Share of Revenue:</dt>
-                      <dd className="text-sm font-medium">
-                        {storePerformance.globalMetrics.totalRevenue > 0 
-                          ? `${((store.metrics.totalRevenue / storePerformance.globalMetrics.totalRevenue) * 100).toFixed(1)}%` 
-                          : '0%'}
+                    <div className=&quot;flex justify-between&quot;>
+                      <dt className=&quot;text-sm text-muted-foreground&quot;>Share of _Revenue:</dt>
+                      <dd className=&quot;text-sm font-medium&quot;>
+                        {storePerformance.globalMetrics.totalRevenue > 0
+                          ? `${((store.metrics.totalRevenue / storePerformance.globalMetrics.totalRevenue) * 100).toFixed(1)}%`
+                          : &apos;0%&apos;}
                       </dd>
                     </div>
                   </dl>
                 </div>
-                
+
                 <div>
-                  <h4 className="text-sm font-medium mb-3">Top Products</h4>
+                  <h4 className=&quot;text-sm font-medium mb-3&quot;>Top Products</h4>
                   {store.topProducts.length > 0 ? (
-                    <ScrollArea className="h-28">
-                      <ul className="space-y-1">
-                        {store.topProducts.map((product: TopProduct) => (
-                          <li key={product.id} className="text-sm">
-                            <div className="flex justify-between">
-                              <span className="truncate">{product.name}</span>
-                              <span className="font-medium">{formatCurrency(product.total)}</span>
+                    <ScrollArea className=&quot;h-28&quot;>
+                      <ul className=&quot;space-y-1&quot;>
+                        {store.topProducts.map((_product: TopProduct) => (
+                          <li key={product.id} className=&quot;text-sm&quot;>
+                            <div className=&quot;flex justify-between&quot;>
+                              <span className=&quot;truncate&quot;>{product.name}</span>
+                              <span className=&quot;font-medium&quot;>{formatCurrency(product.total)}</span>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              Qty: {product.quantity}
+                            <div className=&quot;text-xs text-muted-foreground&quot;>
+                              _Qty: {product.quantity}
                             </div>
                           </li>
                         ))}
                       </ul>
                     </ScrollArea>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No product data available</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>No product data available</p>
                   )}
                 </div>
               </div>
@@ -279,29 +279,29 @@ export const StoreComparison = () => {
     if (!storePerformance.globalMetrics) return null;
 
     const { globalMetrics } = storePerformance;
-    
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className=&quot;grid grid-cols-1 _md:grid-cols-3 gap-4 mb-6&quot;>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className=&quot;pb-2&quot;>
             <CardDescription>Total Revenue</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className=&quot;text-2xl&quot;>
               {formatCurrency(globalMetrics.totalRevenue)}
             </CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className=&quot;pb-2&quot;>
             <CardDescription>Transaction Count</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className=&quot;text-2xl&quot;>
               {globalMetrics.transactionCount}
             </CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className=&quot;pb-2&quot;>
             <CardDescription>Average Transaction</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className=&quot;text-2xl&quot;>
               {formatCurrency(globalMetrics.averageTransaction)}
             </CardTitle>
           </CardHeader>
@@ -311,7 +311,7 @@ export const StoreComparison = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className=&quot;space-y-4&quot;>
       <Card>
         <CardHeader>
           <CardTitle>Store Performance Comparison</CardTitle>
@@ -321,23 +321,23 @@ export const StoreComparison = () => {
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 mb-6">
-            <div className="flex space-x-4">
+          <div className=&quot;flex flex-col space-y-4 _md:flex-row _md:space-y-0 _md:space-x-4 mb-6&quot;>
+            <div className=&quot;flex space-x-4&quot;>
               {/* Date Range Selector - Start Date */}
               <div>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      variant="outline"
-                      className="w-[200px] justify-start text-left font-normal"
+                      variant=&quot;outline&quot;
+                      className=&quot;w-[200px] justify-start text-left font-normal&quot;
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, 'PPP') : 'Start date'}
+                      <CalendarIcon className=&quot;mr-2 h-4 w-4&quot; />
+                      {startDate ? format(startDate, &apos;PPP&apos;) : &apos;Start date&apos;}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className=&quot;w-auto p-0&quot;>
                     <Calendar
-                      mode="single"
+                      mode=&quot;single&quot;
                       selected={startDate}
                       onSelect={setStartDate}
                       initialFocus
@@ -351,21 +351,21 @@ export const StoreComparison = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      variant="outline"
-                      className="w-[200px] justify-start text-left font-normal"
+                      variant=&quot;outline&quot;
+                      className=&quot;w-[200px] justify-start text-left font-normal&quot;
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, 'PPP') : 'End date'}
+                      <CalendarIcon className=&quot;mr-2 h-4 w-4&quot; />
+                      {endDate ? format(endDate, &apos;PPP&apos;) : &apos;End date&apos;}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className=&quot;w-auto p-0&quot;>
                     <Calendar
-                      mode="single"
+                      mode=&quot;single&quot;
                       selected={endDate}
                       onSelect={setEndDate}
                       initialFocus
-                      disabled={(date: Date) =>
-                        startDate ? date < startDate : false
+                      disabled={(_date: Date) =>
+                        startDate ? date < _startDate : false
                       }
                     />
                   </PopoverContent>
@@ -381,40 +381,40 @@ export const StoreComparison = () => {
 
           {/* Global Metrics */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Skeleton className="h-24" />
-              <Skeleton className="h-24" />
-              <Skeleton className="h-24" />
+            <div className=&quot;grid grid-cols-1 _md:grid-cols-3 gap-4 mb-6&quot;>
+              <Skeleton className=&quot;h-24&quot; />
+              <Skeleton className=&quot;h-24&quot; />
+              <Skeleton className=&quot;h-24&quot; />
             </div>
           ) : (
             renderGlobalMetrics()
           )}
 
           {/* Charts */}
-          <Tabs defaultValue="revenue" className="mb-6">
+          <Tabs defaultValue=&quot;revenue&quot; className=&quot;mb-6&quot;>
             <TabsList>
-              <TabsTrigger value="revenue">Revenue Comparison</TabsTrigger>
-              <TabsTrigger value="avgTransaction">Avg. Transaction</TabsTrigger>
+              <TabsTrigger value=&quot;revenue&quot;>Revenue Comparison</TabsTrigger>
+              <TabsTrigger value=&quot;avgTransaction&quot;>Avg. Transaction</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="revenue" className="pt-4">
+
+            <TabsContent value=&quot;revenue&quot; className=&quot;pt-4&quot;>
               {isLoading ? (
-                <Skeleton className="h-[400px] w-full" />
+                <Skeleton className=&quot;h-[400px] w-full&quot; />
               ) : isError ? (
-                <div className="flex flex-col items-center justify-center h-64">
-                  <p className="text-red-500">Failed to load comparison data. Please try again.</p>
+                <div className=&quot;flex flex-col items-center justify-center h-64&quot;>
+                  <p className=&quot;text-red-500&quot;>Failed to load comparison data. Please try again.</p>
                 </div>
               ) : (
                 renderRevenueChart()
               )}
             </TabsContent>
-            
-            <TabsContent value="avgTransaction" className="pt-4">
+
+            <TabsContent value=&quot;avgTransaction&quot; className=&quot;pt-4&quot;>
               {isLoading ? (
-                <Skeleton className="h-[400px] w-full" />
+                <Skeleton className=&quot;h-[400px] w-full&quot; />
               ) : isError ? (
-                <div className="flex flex-col items-center justify-center h-64">
-                  <p className="text-red-500">Failed to load comparison data. Please try again.</p>
+                <div className=&quot;flex flex-col items-center justify-center h-64&quot;>
+                  <p className=&quot;text-red-500&quot;>Failed to load comparison data. Please try again.</p>
                 </div>
               ) : (
                 renderAvgTransactionChart()
@@ -426,16 +426,16 @@ export const StoreComparison = () => {
 
       {/* Store Metrics Cards */}
       <div>
-        <h3 className="text-lg font-medium mb-4">Store Details</h3>
+        <h3 className=&quot;text-lg font-medium mb-4&quot;>Store Details</h3>
         {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-48 w-full" />
+          <div className=&quot;space-y-4&quot;>
+            <Skeleton className=&quot;h-48 w-full&quot; />
+            <Skeleton className=&quot;h-48 w-full&quot; />
           </div>
         ) : isError ? (
           <Card>
-            <CardContent className="p-6">
-              <p className="text-red-500">Failed to load store details. Please try again.</p>
+            <CardContent className=&quot;p-6&quot;>
+              <p className=&quot;text-red-500&quot;>Failed to load store details. Please try again.</p>
             </CardContent>
           </Card>
         ) : (

@@ -2,10 +2,10 @@ import cors from 'cors';
 import { RequestHandler } from 'express';
 
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN || '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    _origin: process.env.CORS_ORIGIN || '*',
+    _methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    _allowedHeaders: ['Content-Type', 'Authorization'],
+    _credentials: true
 };
 
-export const applyCORS: RequestHandler = cors(corsOptions);
+export const _applyCORS: RequestHandler = cors(corsOptions);

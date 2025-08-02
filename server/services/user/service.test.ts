@@ -15,46 +15,46 @@ import * as bcrypt from 'bcrypt';
 
 // Mock DB and schema validation
 jest.mock('@db', () => ({
-  query: {
+  _query: {
     users: {
-      findFirst: jest.fn()
+      _findFirst: jest.fn()
     }
   },
-  insert: jest.fn().mockReturnThis(),
-  update: jest.fn().mockReturnThis(),
-  delete: jest.fn().mockReturnThis(),
-  where: jest.fn().mockReturnThis(),
-  set: jest.fn().mockReturnThis(),
-  returning: jest.fn()
+  _insert: jest.fn().mockReturnThis(),
+  _update: jest.fn().mockReturnThis(),
+  _delete: jest.fn().mockReturnThis(),
+  _where: jest.fn().mockReturnThis(),
+  _set: jest.fn().mockReturnThis(),
+  _returning: jest.fn()
 }));
 
 jest.mock('@shared/schema-validation', () => ({
-  userValidation: {
-    insert: jest.fn(data => data),
-    update: jest.fn(data => data),
-    passwordReset: jest.fn(data => data)
+  _userValidation: {
+    _insert: jest.fn(data => data),
+    _update: jest.fn(data => data),
+    _passwordReset: jest.fn(data => data)
   },
-  SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: Record<string, unknown>) {
+  _SchemaValidationError: class SchemaValidationError extends Error {
+    constructor(_message: string, options?: Record<string, unknown>) {
       super(message);
       this.name = 'SchemaValidationError';
     }
     toJSON() {
       return {
-        error: this.name,
-        message: this.message
+        _error: this.name,
+        _message: this.message
       };
     }
   }
 }));
 
 jest.mock('bcrypt', () => ({
-  hash: jest.fn().mockResolvedValue('hashed_password'),
-  compare: jest.fn().mockResolvedValue(true)
+  _hash: jest.fn().mockResolvedValue('hashed_password'),
+  _compare: jest.fn().mockResolvedValue(true)
 }));
 
 describe('UserService', () => {
-  let userService: UserService;
+  let _userService: UserService;
 
   beforeEach(() => {
     userService = new UserService();
@@ -63,12 +63,12 @@ describe('UserService', () => {
 
   describe('createUser', () => {
     const validUserData = {
-      username: 'testuser',
-      password: 'Test@123',
-      fullName: 'Test User',
-      email: 'test@example.com',
-      role: UserRole.CASHIER,
-      storeId: 1
+      _username: 'testuser',
+      _password: 'Test@123',
+      _fullName: 'Test User',
+      _email: 'test@example.com',
+      _role: UserRole.CASHIER,
+      _storeId: 1
     };
 
     it('should create a new user with validated data', async() => {
@@ -77,7 +77,7 @@ describe('UserService', () => {
 
       // Mock returning to return the created user
       (db.insert().values().returning as jest.Mock).mockResolvedValue([
-        { id: 1, ...validUserData, password: 'hashed_password' }
+        { _id: 1, ...validUserData, _password: 'hashed_password' }
       ]);
 
       const result = await userService.createUser(validUserData);
@@ -90,18 +90,18 @@ describe('UserService', () => {
 
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
-        id: 1,
-        username: validUserData.username,
-        fullName: validUserData.fullName,
-        email: validUserData.email
+        _id: 1,
+        _username: validUserData.username,
+        _fullName: validUserData.fullName,
+        _email: validUserData.email
       }));
     });
 
     it('should throw error when username already exists', async() => {
       // Mock findFirst to return an existing user
       (db.query.users.findFirst as jest.Mock).mockResolvedValueOnce({
-        id: 1,
-        username: validUserData.username
+        _id: 1,
+        _username: validUserData.username
       });
 
       await expect(userService.createUser(validUserData))
@@ -113,8 +113,8 @@ describe('UserService', () => {
       (db.query.users.findFirst as jest.Mock)
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({
-          id: 1,
-          email: validUserData.email
+          _id: 1,
+          _email: validUserData.email
         });
 
       await expect(userService.createUser(validUserData))
@@ -147,18 +147,18 @@ describe('UserService', () => {
     it('should validate correct credentials', async() => {
       // Mock getUserByUsername to return a user
       jest.spyOn(userService, 'getUserByUsername').mockResolvedValue({
-        id: 1,
-        username: 'testuser',
-        password: 'hashed_password',
-        fullName: 'Test User',
-        email: 'test@example.com',
-        role: 'cashier'
+        _id: 1,
+        _username: 'testuser',
+        _password: 'hashed_password',
+        _fullName: 'Test User',
+        _email: 'test@example.com',
+        _role: 'cashier'
       } as schema.User);
 
       // Mock db.update for lastLogin update
       (db.update as jest.Mock).mockReturnValue({
-        set: jest.fn().mockReturnValue({
-          where: jest.fn()
+        _set: jest.fn().mockReturnValue({
+          _where: jest.fn()
         })
       });
 
@@ -169,8 +169,8 @@ describe('UserService', () => {
 
       // Check result is the user
       expect(result).toEqual(expect.objectContaining({
-        id: 1,
-        username: 'testuser'
+        _id: 1,
+        _username: 'testuser'
       }));
     });
 
@@ -185,9 +185,9 @@ describe('UserService', () => {
     it('should throw error for incorrect password', async() => {
       // Mock getUserByUsername to return a user
       jest.spyOn(userService, 'getUserByUsername').mockResolvedValue({
-        id: 1,
-        username: 'testuser',
-        password: 'hashed_password'
+        _id: 1,
+        _username: 'testuser',
+        _password: 'hashed_password'
       } as schema.User);
 
       // Mock bcrypt.compare to return false

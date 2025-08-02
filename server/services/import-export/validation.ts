@@ -2,25 +2,25 @@ import { AppError, ErrorCategory } from '@shared/types/errors';
 import { ValidationOptions } from './types';
 
 export interface ValidationService {
-  validate(data: any[], options?: ValidationOptions): Promise<{
-    validCount: number;
-    invalidCount: number;
-    validRecords: any[];
-    invalidRecords: any[];
+  validate(_data: any[], options?: ValidationOptions): Promise<{
+    _validCount: number;
+    _invalidCount: number;
+    _validRecords: any[];
+    _invalidRecords: any[];
   }>;
 }
 
 export class ValidationService implements ValidationService {
-  async validate(data: any[], options?: ValidationOptions): Promise<{
-    validCount: number;
-    invalidCount: number;
-    validRecords: any[];
-    invalidRecords: { record: any; errors: string[] }[];
+  async validate(_data: any[], options?: ValidationOptions): Promise<{
+    _validCount: number;
+    _invalidCount: number;
+    _validRecords: any[];
+    invalidRecords: { _record: any; _errors: string[] }[];
   }> {
     try {
       const { requiredFields = [], filters = {} } = options || {};
-      const validRecords: any[] = [];
-      const invalidRecords: { record: any; errors: string[] }[] = [];
+      const _validRecords: any[] = [];
+      const invalidRecords: { _record: any; _errors: string[] }[] = [];
 
       if (!Array.isArray(data)) {
         throw new AppError('Data must be an array', ErrorCategory.IMPORT_EXPORT, 'INVALID_DATA');
@@ -30,19 +30,19 @@ export class ValidationService implements ValidationService {
         if (typeof record !== 'object' || record === null) {
           invalidRecords.push({
             record,
-            errors: ['Invalid record format']
+            _errors: ['Invalid record format']
           });
           continue;
         }
 
         let isValid = true;
-        const validationErrors: string[] = [];
+        const _validationErrors: string[] = [];
 
         // Check required fields
         for (const field of requiredFields) {
           if (!record[field]) {
             isValid = false;
-            validationErrors.push(`Missing required field: ${field}`);
+            validationErrors.push(`Missing required _field: ${field}`);
           }
         }
 
@@ -59,14 +59,14 @@ export class ValidationService implements ValidationService {
         } else {
           invalidRecords.push({
             record,
-            errors: validationErrors
+            _errors: validationErrors
           });
         }
       }
 
       return {
-        validCount: validRecords.length,
-        invalidCount: invalidRecords.length,
+        _validCount: validRecords.length,
+        _invalidCount: invalidRecords.length,
         validRecords,
         invalidRecords
       };

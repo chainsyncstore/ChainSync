@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.getLoyaltyProgram = getLoyaltyProgram;
 exports.generateLoyaltyId = generateLoyaltyId;
 exports.enrollCustomer = enrollCustomer;
@@ -50,7 +50,7 @@ let db;
 });
 async function getLoyaltyProgram(programId) {
   const program = await db.query.loyaltyPrograms.findFirst({
-    where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, programId)
+    _where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, programId)
   });
   return program;
 }
@@ -59,7 +59,7 @@ async function getLoyaltyProgram(programId) {
  */
 async function checkAndUpdateMemberTier(memberId, currentPoints) {
   const member = await db.query.loyaltyMembers.findFirst({
-    where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
+    _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
   });
   if (!member) {
     return;
@@ -77,7 +77,7 @@ async function checkAndUpdateMemberTier(memberId, currentPoints) {
   if (newTier && newTier.id !== member.id) {
     await db
       .update(schema.loyaltyMembers)
-      .set({ id: newTier.id })
+      .set({ _id: newTier.id })
       .where((0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId));
   }
 }
@@ -100,13 +100,13 @@ async function generateLoyaltyId() {
   let loyaltyId = prefix + generateRandomString(5).toUpperCase();
   // Check if ID already exists
   let existingMember = await db.query.loyaltyMembers.findFirst({
-    where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.loyaltyId, loyaltyId)
+    _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.loyaltyId, loyaltyId)
   });
     // Generate new IDs until we find a unique one
   while (existingMember) {
     loyaltyId = prefix + generateRandomString(5).toUpperCase();
     existingMember = await db.query.loyaltyMembers.findFirst({
-      where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.loyaltyId, loyaltyId)
+      _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.loyaltyId, loyaltyId)
     });
   }
   return loyaltyId;
@@ -117,21 +117,21 @@ async function generateLoyaltyId() {
 async function enrollCustomer(customerId, storeId, userId) {
   // Check if already enrolled
   const existingMember = await db.query.loyaltyMembers.findFirst({
-    where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.userId, customerId)
+    _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.userId, customerId)
   });
   if (existingMember) {
     return existingMember;
   }
   // Get loyalty program for the store
   let program = await db.query.loyaltyPrograms.findFirst({
-    where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, storeId))
+    _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, storeId))
   });
     // If no program exists for this store, create a default one
   if (!program) {
     const [newProgram] = await db.insert(schema.loyaltyPrograms)
       .values({
-        name: 'ChainSync Rewards',
-        description: 'Default loyalty program'
+        _name: 'ChainSync Rewards',
+        _description: 'Default loyalty program'
       })
       .returning();
     program = newProgram;
@@ -141,19 +141,19 @@ async function enrollCustomer(customerId, storeId, userId) {
   // Create a new loyalty member
   const [member] = await db.insert(schema.loyaltyMembers)
     .values({
-      userId: customerId,
+      _userId: customerId,
       loyaltyId,
-      currentPoints: '0',
-      createdAt: new Date()
+      _currentPoints: '0',
+      _createdAt: new Date()
     })
     .returning();
     // Record loyalty transaction for enrollment
   await db.insert(schema.loyaltyTransactions)
     .values({
-      memberId: member.id,
-      source: 'enrollment',
-      points: '0',
-      transactionId: 0
+      _memberId: member.id,
+      _source: 'enrollment',
+      _points: '0',
+      _transactionId: 0
     });
   return member;
 }
@@ -163,7 +163,7 @@ async function enrollCustomer(customerId, storeId, userId) {
 async function calculatePointsForTransaction(subtotal, storeId, items) {
   // Get loyalty program for the store
   const program = await db.query.loyaltyPrograms.findFirst({
-    where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, storeId)
+    _where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, storeId)
   });
   if (!program) {
     return 0; // No active loyalty program
@@ -177,11 +177,11 @@ async function calculatePointsForTransaction(subtotal, storeId, items) {
   if (items && items.length > 0) {
     const productIds = items.map(item => item.productId);
     const products = await db.query.products.findMany({
-      where: (0, drizzle_orm_1.sql) `${schema.products.id} IN (${productIds.join(', ')})`,
-      columns: {
-        id: true,
-        price: true,
-        description: true
+      _where: (0, drizzle_orm_1.sql) `${schema.products.id} IN (${productIds.join(', ')})`,
+      _columns: {
+        _id: true,
+        _price: true,
+        _description: true
       }
     });
     // Map products by ID for easy lookup
@@ -208,8 +208,8 @@ async function calculatePointsForTransaction(subtotal, storeId, items) {
 async function recordPointsEarned(transactionId, memberId, points, userId) {
   try {
     if (points <= 0) {
-      logger_1.logger.info('No points to accrue', { transactionId, memberId, points, userId, timestamp: new Date().toISOString() });
-      return { success: false };
+      logger_1.logger.info('No points to accrue', { transactionId, memberId, points, userId, _timestamp: new Date().toISOString() });
+      return { _success: false };
     }
     // Get the member to check their tier and customer
     const member = await db.query.loyaltyMembers.findFirst({
@@ -217,7 +217,7 @@ async function recordPointsEarned(transactionId, memberId, points, userId) {
     });
     if (!member) {
       logger_1.logger.error('Member not found', { memberId });
-      return { success: false };
+      return { _success: false };
     }
     // Get member's tier if any
     const pointsToAdd = points;
@@ -228,8 +228,8 @@ async function recordPointsEarned(transactionId, memberId, points, userId) {
       await tx
         .update(schema.loyaltyMembers)
         .set({
-          currentPoints: updatedPoints,
-          updatedAt: new Date()
+          _currentPoints: updatedPoints,
+          _updatedAt: new Date()
         })
         .where((0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId));
       // Record transaction
@@ -238,8 +238,8 @@ async function recordPointsEarned(transactionId, memberId, points, userId) {
         .values({
           memberId,
           transactionId,
-          source: 'purchase',
-          points: pointsToAdd.toFixed(2)
+          _source: 'purchase',
+          _points: pointsToAdd.toFixed(2)
         })
         .returning();
       return txn[0];
@@ -249,15 +249,15 @@ async function recordPointsEarned(transactionId, memberId, points, userId) {
     }
     // Update member tier if needed
     await checkAndUpdateMemberTier(memberId, updatedPoints);
-    logger_1.logger.info('Points accrued', { memberId, transactionId, points: pointsToAdd, userId, timestamp: new Date().toISOString() });
+    logger_1.logger.info('Points accrued', { memberId, transactionId, _points: pointsToAdd, userId, _timestamp: new Date().toISOString() });
     return {
-      success: true,
-      transaction: result
+      _success: true,
+      _transaction: result
     };
   }
   catch (error) {
     logger_1.logger.error('Error recording points earned', { error, transactionId, memberId, userId });
-    return { success: false };
+    return { _success: false };
   }
 }
 /**
@@ -273,17 +273,17 @@ async function getLoyaltyAnalytics(storeId) {
   // Get program for store
   const program = await getLoyaltyProgram(storeId);
   const members = await db.query.loyaltyMembers.findMany({
-    columns: {
-      id: true,
-      currentPoints: true,
-      userId: true
+    _columns: {
+      _id: true,
+      _currentPoints: true,
+      _userId: true
     }
   });
     // Filter members by store
   const storeMembers = members;
   // Calculate summary stats
   const activeMembers = storeMembers.reduce((acc, member) => {
-    return acc + (member.isActive ? 1 : 0);
+    return acc + (member.isActive ? _1 : 0);
   }, 0);
   const totalPointsEarned = storeMembers.reduce((acc, member) => {
     return acc + parseFloat(member.totalPointsEarned || '0');
@@ -297,11 +297,11 @@ async function getLoyaltyAnalytics(storeId) {
   // Get redemption counts for rewards
   const redemptionCounts = await Promise.all(rewards.map(async(reward) => {
     const redemptions = await db.query.loyaltyTransactions.findMany({
-      where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.loyaltyTransactions.source, 'redeem'), (0, drizzle_orm_1.eq)(schema.loyaltyTransactions.id, reward.id))
+      _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.loyaltyTransactions.source, 'redeem'), (0, drizzle_orm_1.eq)(schema.loyaltyTransactions.id, reward.id))
     });
     return {
-      name: reward.name,
-      redemptions: redemptions.length
+      _name: reward.name,
+      _redemptions: redemptions.length
     };
   }));
     // Get top rewards by redemption count
@@ -318,15 +318,15 @@ async function getLoyaltyAnalytics(storeId) {
     // Calculate points balance
   const pointsBalance = (parseFloat(totalPointsEarned) - parseFloat(totalPointsRedeemed)).toFixed(2);
   return {
-    memberCount: storeMembers.length,
+    _memberCount: storeMembers.length,
     activeMembers,
     totalPointsEarned,
     totalPointsRedeemed,
-    pointsBalance: (parseFloat(totalPointsEarned) - parseFloat(totalPointsRedeemed)).toFixed(2),
+    _pointsBalance: (parseFloat(totalPointsEarned) - parseFloat(totalPointsRedeemed)).toFixed(2),
     averagePoints,
-    programDetails: program,
+    _programDetails: program,
     topRewards,
-    recentRedemptions: [],
+    _recentRedemptions: [],
     membersByTier
   };
 }

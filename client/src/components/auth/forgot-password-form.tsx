@@ -1,25 +1,25 @@
-import { useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
+import { useState } from &apos;react&apos;;
+import { z } from &apos;zod&apos;;
+import { useForm } from &apos;react-hook-form&apos;;
+import { zodResolver } from &apos;@hookform/resolvers/zod&apos;;
+import { useMutation } from &apos;@tanstack/react-query&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+  FormMessage
+} from &apos;@/components/ui/form&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import { Loader2 } from &apos;lucide-react&apos;;
 
 // Form schema for password reset request
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  _email: z.string().email(&apos;Please enter a valid email address&apos;)
 });
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
@@ -30,54 +30,54 @@ export function ForgotPasswordForm() {
 
   // Initialize form
   const form = useForm<ForgotPasswordFormValues>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: {
-      email: "",
-    },
+    _resolver: zodResolver(forgotPasswordSchema),
+    _defaultValues: {
+      email: &apos;&apos;
+    }
   });
 
   // Define mutation for password reset request
   const forgotPasswordMutation = useMutation({
-    mutationFn: async (data: ForgotPasswordFormValues) => {
-      return await apiRequest("POST", "/api/auth/forgot-password", data);
+    _mutationFn: async(_data: ForgotPasswordFormValues) => {
+      return await apiRequest(&apos;POST&apos;, &apos;/api/auth/forgot-password&apos;, data);
     },
-    onSuccess: () => {
+    _onSuccess: () => {
       setSubmitted(true);
       toast({
-        title: "Password reset request sent",
-        description:
-          "If an account with that email exists, a password reset link has been sent.",
+        _title: &apos;Password reset request sent&apos;,
+        _description:
+          &apos;If an account with that email exists, a password reset link has been sent.&apos;
       });
     },
-    onError: (error: Error) => {
+    _onError: (_error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to send password reset request. Please try again.",
-        variant: "destructive",
+        _title: &apos;Error&apos;,
+        _description: error.message || &apos;Failed to send password reset request. Please try again.&apos;,
+        _variant: &apos;destructive&apos;
       });
-    },
+    }
   });
 
   // Form submission handler
-  const onSubmit = (data: ForgotPasswordFormValues) => {
+  const onSubmit = (_data: ForgotPasswordFormValues) => {
     forgotPasswordMutation.mutate(data);
   };
 
   // If form was submitted, show success message
   if (submitted) {
     return (
-      <div className="flex flex-col items-center justify-center space-y-4 text-center">
-        <h2 className="text-2xl font-bold">Check Your Email</h2>
-        <p className="text-muted-foreground">
-          If an account with that email exists, we've sent a password reset link.
+      <div className=&quot;flex flex-col items-center justify-center space-y-4 text-center&quot;>
+        <h2 className=&quot;text-2xl font-bold&quot;>Check Your Email</h2>
+        <p className=&quot;text-muted-foreground&quot;>
+          If an account with that email exists, we&apos;ve sent a password reset link.
         </p>
-        <p className="text-muted-foreground">
+        <p className=&quot;text-muted-foreground&quot;>
           Please check your inbox and spam folder. The link will expire in 1 hour.
         </p>
         <Button
-          variant="outline"
+          variant=&quot;outline&quot;
           onClick={() => setSubmitted(false)}
-          className="mt-4"
+          className=&quot;mt-4&quot;
         >
           Send Another Email
         </Button>
@@ -87,25 +87,25 @@ export function ForgotPasswordForm() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Reset Your Password</h2>
-        <p className="text-muted-foreground mt-2">
-          Enter your email address and we'll send you a link to reset your password.
+      <div className=&quot;mb-6&quot;>
+        <h2 className=&quot;text-2xl font-bold&quot;>Reset Your Password</h2>
+        <p className=&quot;text-muted-foreground mt-2&quot;>
+          Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className=&quot;space-y-4&quot;>
           <FormField
             control={form.control}
-            name="email"
+            name=&quot;email&quot;
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input
-                    type="email"
-                    placeholder="Enter your email address"
+                    type=&quot;email&quot;
+                    placeholder=&quot;Enter your email address&quot;
                     {...field}
                   />
                 </FormControl>
@@ -114,25 +114,25 @@ export function ForgotPasswordForm() {
             )}
           />
 
-          <div className="flex justify-between items-center mt-6">
+          <div className=&quot;flex justify-between items-center mt-6&quot;>
             <Button
-              type="button"
-              variant="outline"
+              type=&quot;button&quot;
+              variant=&quot;outline&quot;
               onClick={() => window.history.back()}
             >
               Back to Login
             </Button>
             <Button
-              type="submit"
+              type=&quot;submit&quot;
               disabled={forgotPasswordMutation.isPending}
             >
               {forgotPasswordMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className=&quot;mr-2 h-4 w-4 animate-spin&quot; />
                   Sending...
                 </>
               ) : (
-                "Send Reset Link"
+                &apos;Send Reset Link&apos;
               )}
             </Button>
           </div>

@@ -2,20 +2,20 @@ import { Request } from 'express';
 
 declare module 'multer' {
     interface MulterError extends Error {
-        code: string;
+        _code: string;
         field?: string;
         storageErrors?: Error[];
     }
 
     interface File {
-        fieldname: string;
-        originalname: string;
-        encoding: string;
-        mimetype: string;
-        size: number;
-        destination: string;
-        filename: string;
-        path: string;
+        _fieldname: string;
+        _originalname: string;
+        _encoding: string;
+        _mimetype: string;
+        _size: number;
+        _destination: string;
+        _filename: string;
+        _path: string;
         buffer?: Buffer;
     }
 
@@ -31,22 +31,22 @@ declare module 'multer' {
             headerPairs?: number;
         };
         fileFilter?: (
-            req: Request,
-            file: File,
-            callback: (error: Error | null, acceptFile: boolean) => void
+            _req: Request,
+            _file: File,
+            _callback: (_error: Error | null, _acceptFile: boolean) => void
         ) => void;
     }
 
     interface StorageEngine {
         _handleFile(
-            req: Request,
-            file: File,
-            callback: (error: Error | null, file: File) => void
+            _req: Request,
+            _file: File,
+            _callback: (_error: Error | null, _file: File) => void
         ): void;
         _removeFile(
-            req: Request,
-            file: File,
-            callback: (error: Error | null) => void
+            _req: Request,
+            _file: File,
+            _callback: (_error: Error | null) => void
         ): void;
     }
 
@@ -59,18 +59,20 @@ declare module 'multer' {
     }
 
     interface Multer {
-        (options?: MulterOptions): (req: Request, res: any, next: any) => void;
-        any(fieldname?: string): (req: Request, res: any, next: any) => void;
-        array(fieldname: string, maxCount?: number): (req: Request, res: any, next: any) => void;
-        fields(fields: Array<{ name: string; maxCount: number }>): (req: Request, res: any, next: any) => void;
-        single(fieldname: string): (req: Request, res: any, next: any) => void;
-        none(): (req: Request, res: any, next: any) => void;
+        (options?: MulterOptions): (_req: Request, _res: any, _next: any) => void;
+        any(fieldname?: string): (_req: Request, _res: any, _next: any) => void;
+        array(_fieldname: string, maxCount?: number): (_req: Request, _res: any, _next: any)
+   = > void;
+        fields(_fields: Array<{ _name: string; _maxCount: number }>): (_req: Request, _res: any, _next: any)
+   = > void;
+        single(_fieldname: string): (_req: Request, _res: any, _next: any) => void;
+        none(): (_req: Request, _res: any, _next: any) => void;
     }
 
-    const multer: Multer;
+    const _multer: Multer;
     export = multer;
 }
 
 export interface FileFilterCallback {
-    (error: Error | null, acceptFile: boolean): void;
+    (_error: Error | null, _acceptFile: boolean): void;
 }

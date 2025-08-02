@@ -6,20 +6,20 @@ import { customers } from './customers';
 import { loyaltyPrograms } from '../schema'; // Import loyaltyPrograms from main schema
 
 export const loyaltyMembers = pgTable('loyalty_members', {
-  id: serial('id').primaryKey(),
-  programId: integer('program_id')
+  _id: serial('id').primaryKey(),
+  _programId: integer('program_id')
     .references(() => loyaltyPrograms.id)
     .notNull(), // Added programId
-  customerId: integer('customer_id')
+  _customerId: integer('customer_id')
     .references(() => customers.id)
     .notNull(),
-  loyaltyId: text('loyalty_id').notNull().unique(),
-  tierId: integer('tier_id'), // FK to loyaltyTiers, define in future
-  points: integer('points').notNull().default(0),
-  joinDate: timestamp('join_date').notNull().defaultNow(),
-  status: text('status').notNull().default('active'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  _loyaltyId: text('loyalty_id').notNull().unique(),
+  _tierId: integer('tier_id'), // FK to loyaltyTiers, define in future
+  _points: integer('points').notNull().default(0),
+  _joinDate: timestamp('join_date').notNull().defaultNow(),
+  _status: text('status').notNull().default('active'),
+  _createdAt: timestamp('created_at').notNull().defaultNow(),
+  _updatedAt: timestamp('updated_at').notNull().defaultNow()
 });
 
 // Zod schema for selecting a loyalty member
@@ -28,12 +28,12 @@ export const loyaltyMemberSelectSchema = createSelectSchema(loyaltyMembers) as u
 // Zod schema for inserting a loyalty member
 export const loyaltyMemberInsertSchema = (
   createInsertSchema(loyaltyMembers, {
-  loyaltyId: z.string().min(1, { message: 'Loyalty ID cannot be empty' }),
-  status: z.enum(['active', 'inactive', 'suspended', 'cancelled']),
+  _loyaltyId: z.string().min(1, { _message: 'Loyalty ID cannot be empty' }),
+  _status: z.enum(['active', 'inactive', 'suspended', 'cancelled'])
   }).omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
+    _id: true,
+    _createdAt: true,
+    _updatedAt: true
   })
 ) as unknown as z.Schema;
 

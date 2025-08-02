@@ -5,7 +5,7 @@
 import { BaseLogger, LogLevel, LogMeta, LoggableError, Logger } from './Logger';
 
 export interface SentryLoggerOptions {
-  dsn: string;
+  _dsn: string;
   environment?: string;
   release?: string;
   serverName?: string;
@@ -13,14 +13,14 @@ export interface SentryLoggerOptions {
   maxBreadcrumbs?: number;
   debug?: boolean;
   attachStacktrace?: boolean;
-  beforeSend?: (event: any) => any;
+  beforeSend?: (_event: any) => any;
 }
 
 /**
  * Initialize Sentry for error tracking and performance monitoring
  * This should be called once at application startup
  */
-export function initSentry(options: SentryLoggerOptions): void {
+export function initSentry(_options: SentryLoggerOptions): void {
   // Sentry disabled - no-op
   console.log('Sentry initialization skipped (disabled)');
 }
@@ -28,7 +28,7 @@ export function initSentry(options: SentryLoggerOptions): void {
 /**
  * Capture an exception with Sentry
  */
-export function captureException(error: Error, context?: Record<string, any>): void {
+export function captureException(_error: Error, context?: Record<string, any>): void {
   // Sentry disabled - no-op
   console.error('Exception captured (Sentry disabled):', error.message, context);
 }
@@ -36,7 +36,8 @@ export function captureException(error: Error, context?: Record<string, any>): v
 /**
  * Capture a message with Sentry
  */
-export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
+export function captureMessage(_message: string, _level: 'info' | 'warning' | 'error'
+   =  'info'): void {
   // Sentry disabled - no-op
   console.log(`Sentry message (${level}):`, message);
 }
@@ -44,7 +45,7 @@ export function captureMessage(message: string, level: 'info' | 'warning' | 'err
 /**
  * Add breadcrumb for debugging
  */
-export function addBreadcrumb(message: string, category?: string, data?: Record<string, any>): void {
+export function addBreadcrumb(_message: string, category?: string, data?: Record<string, any>): void {
   // Sentry disabled - no-op
 }
 
@@ -58,7 +59,7 @@ export function setUserContext(user: { id?: string | number; email?: string; use
 /**
  * Set extra context for Sentry
  */
-export function setExtraContext(key: string, value: any): void {
+export function setExtraContext(_key: string, _value: any): void {
   // Sentry disabled - no-op
 }
 
@@ -75,7 +76,7 @@ export async function flush(timeout = 2000): Promise<boolean> {
  * Sends errors to Sentry while also logging to console
  */
 export class SentryLogger extends BaseLogger {
-  private consoleLogger: Logger;
+  private _consoleLogger: Logger;
 
   constructor(level?: LogLevel, context?: LogMeta) {
     super(level, context);
@@ -86,7 +87,7 @@ export class SentryLogger extends BaseLogger {
     return new SentryLogger(this.level, this.context);
   }
 
-  public setUser(user: { id: string | number; email?: string; username?: string }): void {
+  public setUser(user: { _id: string | number; email?: string; username?: string }): void {
     // Sentry disabled - no-op
   }
 
@@ -94,19 +95,19 @@ export class SentryLogger extends BaseLogger {
     // Sentry disabled - no-op
   }
 
-  public setRequestContext(req: any): void {
+  public setRequestContext(_req: any): void {
     // Extract useful context from Express/HTTP request
-    const requestContext: Record<string, any> = {
-      url: req.url,
-      method: req.method,
-      query: req.query,
+    const _requestContext: Record<string, any> = {
+      _url: req.url,
+      _method: req.method,
+      _query: req.query
     };
 
     if (req.body && Object.keys(req.body).length > 0) {
       // Filter sensitive data
       const filteredBody = { ...req.body };
       const sensitiveFields = ['password', 'token', 'secret', 'credit_card', 'card'];
-      
+
       sensitiveFields.forEach(field => {
         if (field in filteredBody) {
           filteredBody[field] = '[FILTERED]';
@@ -119,8 +120,8 @@ export class SentryLogger extends BaseLogger {
     if (req.headers) {
       // Only include safe headers
       const safeHeaders = ['user-agent', 'accept', 'content-type', 'referer'];
-      const headers: Record<string, string> = {};
-      
+      const _headers: Record<string, string> = {};
+
       safeHeaders.forEach(header => {
         if (header in req.headers) {
           headers[header] = req.headers[header];
@@ -132,15 +133,15 @@ export class SentryLogger extends BaseLogger {
 
     // Sentry disabled - no-op
 
-    this.addContext({ request: requestContext });
+    this.addContext({ _request: requestContext });
   }
 
-  protected logMessage(level: LogLevel, message: string, meta?: LogMeta): void {
+  protected logMessage(_level: LogLevel, _message: string, meta?: LogMeta): void {
     // Log to console only (Sentry disabled)
     this.consoleLogger.info(message, { ...this.context, ...meta });
   }
 
-  protected logError(level: LogLevel, message: string, error: Error | LoggableError, meta?: LogMeta): void {
+  protected logError(_level: LogLevel, _message: string, _error: Error | LoggableError, meta?: LogMeta): void {
     // Log to console only (Sentry disabled)
     if (error instanceof Error) {
       this.consoleLogger.error(message, error, meta);
@@ -149,28 +150,27 @@ export class SentryLogger extends BaseLogger {
     }
   }
 
-  private captureMessage(level: LogLevel, message: string, meta?: LogMeta): void {
+  private captureMessage(_level: LogLevel, _message: string, meta?: LogMeta): void {
     // Sentry disabled - no-op
   }
 
-  private captureException(level: LogLevel, message: string, error: Error | LoggableError, meta?: LogMeta): void {
+  private captureException(_level: LogLevel, _message: string, _error: Error | LoggableError, meta?: LogMeta): void {
     // Sentry disabled - no-op
   }
 
-  private getSentryLevel(level: LogLevel): string {
+  private getSentryLevel(_level: LogLevel): string {
     switch (level) {
-      case LogLevel.DEBUG:
+      case LogLevel._DEBUG:
         return 'debug';
-      case LogLevel.INFO:
+      case LogLevel._INFO:
         return 'info';
-      case LogLevel.WARN:
+      case LogLevel._WARN:
         return 'warning';
-      case LogLevel.ERROR:
+      case LogLevel._ERROR:
         return 'error';
-      case LogLevel.FATAL:
+      case LogLevel._FATAL:
         return 'fatal';
-      default:
-        return 'info';
+      return 'info';
     }
   }
 }
@@ -179,9 +179,9 @@ export class SentryLogger extends BaseLogger {
 import { ConsoleLogger } from './Logger';
 
 // Factory function to create a Sentry logger
-export function createSentryLogger(options: SentryLoggerOptions): SentryLogger {
+export function createSentryLogger(_options: SentryLoggerOptions): SentryLogger {
   initSentry(options);
   return new SentryLogger(
-    process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG
+    process.env.NODE_ENV === 'production' ? LogLevel._INFO : LogLevel.DEBUG
   );
 }

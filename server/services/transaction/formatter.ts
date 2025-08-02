@@ -23,7 +23,7 @@ export class TransactionFormatter extends ResultFormatter<Transaction> {
    * @param dbResult The raw database result row
    * @returns A properly formatted Transaction object
    */
-  formatResult(dbResult: Record<string, unknown>): Transaction {
+  formatResult(_dbResult: Record<string, unknown>): Transaction {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction result');
     }
@@ -43,17 +43,17 @@ export class TransactionFormatter extends ResultFormatter<Transaction> {
     // Format the transaction with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      storeId: Number(withDates.storeId),
-      userId: Number(withDates.userId),
-      customerId: Number(withDates.customerId || null),
-      status: (withDates.status || 'pending') as 'pending' | 'completed' | 'cancelled' | null,
-      subtotal: String(withDates.subtotal || '0.00'),
-      tax: String(withDates.tax || '0.00'),
-      discount: String(withDates.discount || '0.00'),
-      total: String(withDates.total || '0.00'),
-      paymentMethod: (withDates.paymentMethod || 'cash') as 'cash' | 'card' | 'mobile',
-      items: withDates.items || null
+      _id: Number(withDates.id),
+      _storeId: Number(withDates.storeId),
+      _userId: Number(withDates.userId),
+      _customerId: Number(withDates.customerId || null),
+      _status: (withDates.status || 'pending') as 'pending' | 'completed' | 'cancelled' | null,
+      _subtotal: String(withDates.subtotal || '0.00'),
+      _tax: String(withDates.tax || '0.00'),
+      _discount: String(withDates.discount || '0.00'),
+      _total: String(withDates.total || '0.00'),
+      _paymentMethod: (withDates.paymentMethod || 'cash') as 'cash' | 'card' | 'mobile',
+      _items: withDates.items || null
     } as Transaction;
   }
 }
@@ -68,7 +68,7 @@ export class TransactionItemFormatter extends ResultFormatter<TransactionItem> {
    * @param dbResult The raw database result row
    * @returns A properly formatted TransactionItem object
    */
-  formatResult(dbResult: Record<string, unknown>): TransactionItem {
+  formatResult(_dbResult: Record<string, unknown>): TransactionItem {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction item result');
     }
@@ -88,11 +88,11 @@ export class TransactionItemFormatter extends ResultFormatter<TransactionItem> {
     // Format the transaction item with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      transactionId: Number(withDates.transactionId),
-      productId: Number(withDates.productId),
-      quantity: Number(withDates.quantity || 0),
-      unitPrice: String(withDates.unitPrice || '0.00')
+      _id: Number(withDates.id),
+      _transactionId: Number(withDates.transactionId),
+      _productId: Number(withDates.productId),
+      _quantity: Number(withDates.quantity || 0),
+      _unitPrice: String(withDates.unitPrice || '0.00')
     } as TransactionItem;
   }
 }
@@ -107,7 +107,7 @@ export class TransactionPaymentFormatter extends ResultFormatter<TransactionPaym
    * @param dbResult The raw database result row
    * @returns A properly formatted TransactionPayment object
    */
-  formatResult(dbResult: Record<string, unknown>): TransactionPayment {
+  formatResult(_dbResult: Record<string, unknown>): TransactionPayment {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined transaction payment result');
     }
@@ -127,10 +127,10 @@ export class TransactionPaymentFormatter extends ResultFormatter<TransactionPaym
     // Format the transaction payment with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      transactionId: Number(withDates.transactionId),
-      amount: String(withDates.amount || '0.00'),
-      method: (withDates.method || 'cash') as 'cash' | 'card' | 'mobile'
+      _id: Number(withDates.id),
+      _transactionId: Number(withDates.transactionId),
+      _amount: String(withDates.amount || '0.00'),
+      _method: (withDates.method || 'cash') as 'cash' | 'card' | 'mobile'
     } as TransactionPayment;
   }
 }

@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.SubscriptionServiceErrors = exports.PaymentProvider = exports.SubscriptionPlan = exports.SubscriptionStatus = void 0;
 let SubscriptionStatus;
 (function(SubscriptionStatus) {
@@ -28,13 +28,13 @@ let PaymentProvider;
   PaymentProvider['MANUAL'] = 'manual';
 })(PaymentProvider || (exports.PaymentProvider = PaymentProvider = {}));
 exports.SubscriptionServiceErrors = {
-  SUBSCRIPTION_NOT_FOUND: new Error('Subscription not found'),
-  USER_NOT_FOUND: new Error('User not found'),
-  INVALID_PLAN: new Error('Invalid subscription plan'),
-  PAYMENT_FAILED: new Error('Payment processing failed'),
-  WEBHOOK_VALIDATION_FAILED: new Error('Webhook validation failed'),
-  DUPLICATE_SUBSCRIPTION: new Error('User already has an active subscription'),
-  INVALID_STATUS_TRANSITION: new Error('Invalid subscription status transition'),
-  INVALID_RENEWAL: new Error('Subscription renewal failed'),
-  INVALID_CANCELLATION: new Error('Subscription cancellation failed')
+  _SUBSCRIPTION_NOT_FOUND: new Error('Subscription not found'),
+  _USER_NOT_FOUND: new Error('User not found'),
+  _INVALID_PLAN: new Error('Invalid subscription plan'),
+  _PAYMENT_FAILED: new Error('Payment processing failed'),
+  _WEBHOOK_VALIDATION_FAILED: new Error('Webhook validation failed'),
+  _DUPLICATE_SUBSCRIPTION: new Error('User already has an active subscription'),
+  _INVALID_STATUS_TRANSITION: new Error('Invalid subscription status transition'),
+  _INVALID_RENEWAL: new Error('Subscription renewal failed'),
+  _INVALID_CANCELLATION: new Error('Subscription cancellation failed')
 };

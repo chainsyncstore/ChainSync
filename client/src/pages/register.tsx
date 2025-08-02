@@ -1,112 +1,112 @@
-import React from 'react';
-import { Link, useLocation } from 'wouter';
-import { ArrowLeft } from 'lucide-react';
-import { RegisterForm } from '@/components/auth/register-form';
-import { useAuth } from '@/providers/auth-provider';
+import React from &apos;react&apos;;
+import { Link, useLocation } from &apos;wouter&apos;;
+import { ArrowLeft } from &apos;lucide-react&apos;;
+import { RegisterForm } from &apos;@/components/auth/register-form&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
 
 export default function RegisterPage() {
   const [, navigate] = useLocation();
   const { user, isLoading } = useAuth();
-  
+
   // Redirect to dashboard if user is already logged in
   React.useEffect(() => {
     if (!isLoading && user) {
-      navigate('/dashboard');
+      navigate(&apos;/dashboard&apos;);
     }
   }, [user, isLoading, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className=&quot;min-h-screen flex flex-col _md:flex-row&quot;>
       {/* Form Section */}
-      <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
-        <div className="mb-6">
-          <Link href="/" className="text-sm font-medium text-gray-500 hover:text-gray-800 flex items-center">
-            <ArrowLeft className="h-4 w-4 mr-1" />
+      <div className=&quot;w-full _md:w-1/2 p-8 flex flex-col justify-center&quot;>
+        <div className=&quot;mb-6&quot;>
+          <Link href=&quot;/&quot; className=&quot;text-sm font-medium text-gray-500 _hover:text-gray-800 flex items-center&quot;>
+            <ArrowLeft className=&quot;h-4 w-4 mr-1&quot; />
             Back to Home
           </Link>
         </div>
-        
+
         <RegisterForm />
       </div>
-      
+
       {/* Hero Section */}
-      <div className="w-full md:w-1/2 bg-primary-600 hidden md:flex flex-col justify-center p-8 bg-gradient-to-br from-primary to-primary-foreground">
-        <div className="max-w-md mx-auto text-white">
-          <h1 className="text-4xl font-bold mb-4">
+      <div className=&quot;w-full _md:w-1/2 bg-primary-600 hidden _md:flex flex-col justify-center p-8 bg-gradient-to-br from-primary to-primary-foreground&quot;>
+        <div className=&quot;max-w-md mx-auto text-white&quot;>
+          <h1 className=&quot;text-4xl font-bold mb-4&quot;>
             Join ChainSync Today
           </h1>
-          <p className="text-primary-50 mb-8">
-            ChainSync is the all-in-one retail management platform designed for supermarkets and multi-store chains, 
+          <p className=&quot;text-primary-50 mb-8&quot;>
+            ChainSync is the all-in-one retail management platform designed for supermarkets and multi-store chains,
             supporting both online and offline operations with real-time synchronization.
           </p>
-          
-          <div className="space-y-4">
-            <div className="flex items-start">
-              <div className="bg-white/20 p-2 rounded-full mr-4">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-5 w-5" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
+
+          <div className=&quot;space-y-4&quot;>
+            <div className=&quot;flex items-start&quot;>
+              <div className=&quot;bg-white/20 p-2 rounded-full mr-4&quot;>
+                <svg
+                  xmlns=&quot;http://www.w3.org/2000/svg&quot;
+                  className=&quot;h-5 w-5&quot;
+                  fill=&quot;none&quot;
+                  viewBox=&quot;0 0 24 24&quot;
+                  stroke=&quot;currentColor&quot;
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M5 13l4 4L19 7" 
+                  <path
+                    strokeLinecap=&quot;round&quot;
+                    strokeLinejoin=&quot;round&quot;
+                    strokeWidth={2}
+                    d=&quot;M5 13l4 4L19 7&quot;
                   />
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium">Inventory Management</h3>
-                <p className="text-primary-100 text-sm">Track and manage your inventory across multiple stores with ease.</p>
+                <h3 className=&quot;font-medium&quot;>Inventory Management</h3>
+                <p className=&quot;text-primary-100 text-sm&quot;>Track and manage your inventory across multiple stores with ease.</p>
               </div>
             </div>
-            
-            <div className="flex items-start">
-              <div className="bg-white/20 p-2 rounded-full mr-4">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-5 w-5" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
+
+            <div className=&quot;flex items-start&quot;>
+              <div className=&quot;bg-white/20 p-2 rounded-full mr-4&quot;>
+                <svg
+                  xmlns=&quot;http://www.w3.org/2000/svg&quot;
+                  className=&quot;h-5 w-5&quot;
+                  fill=&quot;none&quot;
+                  viewBox=&quot;0 0 24 24&quot;
+                  stroke=&quot;currentColor&quot;
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M5 13l4 4L19 7" 
+                  <path
+                    strokeLinecap=&quot;round&quot;
+                    strokeLinejoin=&quot;round&quot;
+                    strokeWidth={2}
+                    d=&quot;M5 13l4 4L19 7&quot;
                   />
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium">Point-of-Sale Operations</h3>
-                <p className="text-primary-100 text-sm">Efficient POS system that works both online and offline.</p>
+                <h3 className=&quot;font-medium&quot;>Point-of-Sale Operations</h3>
+                <p className=&quot;text-primary-100 text-sm&quot;>Efficient POS system that works both online and offline.</p>
               </div>
             </div>
-            
-            <div className="flex items-start">
-              <div className="bg-white/20 p-2 rounded-full mr-4">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-5 w-5" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
+
+            <div className=&quot;flex items-start&quot;>
+              <div className=&quot;bg-white/20 p-2 rounded-full mr-4&quot;>
+                <svg
+                  xmlns=&quot;http://www.w3.org/2000/svg&quot;
+                  className=&quot;h-5 w-5&quot;
+                  fill=&quot;none&quot;
+                  viewBox=&quot;0 0 24 24&quot;
+                  stroke=&quot;currentColor&quot;
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M5 13l4 4L19 7" 
+                  <path
+                    strokeLinecap=&quot;round&quot;
+                    strokeLinejoin=&quot;round&quot;
+                    strokeWidth={2}
+                    d=&quot;M5 13l4 4L19 7&quot;
                   />
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium">AI-Powered Insights</h3>
-                <p className="text-primary-100 text-sm">Make data-driven decisions with our intelligent analytics system.</p>
+                <h3 className=&quot;font-medium&quot;>AI-Powered Insights</h3>
+                <p className=&quot;text-primary-100 text-sm&quot;>Make data-driven decisions with our intelligent analytics system.</p>
               </div>
             </div>
           </div>

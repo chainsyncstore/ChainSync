@@ -5,11 +5,11 @@ declare module 'lru-cache' {
       maxAge?: number;
     });
 
-    set(key: K, value: V): boolean;
-    get(key: K): V | undefined;
-    delete(key: K): boolean;
+    set(_key: K, _value: V): boolean;
+    get(_key: K): V | undefined;
+    delete(_key: K): boolean;
     clear(): void;
     prune(): void;
-    size: number;
+    _size: number;
   }
 }

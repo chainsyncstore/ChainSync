@@ -9,7 +9,7 @@ interface ErrorContext {
   userId?: string;
   storeId?: string;
   operation?: string;
-  timestamp: Date;
+  _timestamp: Date;
   userAgent?: string;
   ip?: string;
   method?: string;
@@ -20,52 +20,52 @@ interface ErrorContext {
 
 // Error monitoring interface
 interface ErrorMonitor {
-  captureError(error: AppError, context: ErrorContext): void;
-  captureMessage(message: string, level: 'info' | 'warn' | 'error', context: ErrorContext): void;
+  captureError(_error: AppError, _context: ErrorContext): void;
+  captureMessage(_message: string, _level: 'info' | 'warn' | 'error', _context: ErrorContext): void;
 }
 
 // Default error monitor (can be replaced with Sentry, etc.)
 class DefaultErrorMonitor implements ErrorMonitor {
-  captureError(error: AppError, context: ErrorContext): void {
+  captureError(_error: AppError, _context: ErrorContext): void {
     // In production, this would send to monitoring service
-    console.error('Error captured:', {
-      error: error.message,
-      code: error.code,
-      category: error.category,
+    console.error('Error _captured:', {
+      _error: error.message,
+      _code: error.code,
+      _category: error.category,
       context
     });
   }
 
-  captureMessage(message: string, level: 'info' | 'warn' | 'error', context: ErrorContext): void {
-    console[level]('Message captured:', { message, level, context });
+  captureMessage(_message: string, _level: 'info' | 'warn' | 'error', _context: ErrorContext): void {
+    console[level]('Message _captured:', { message, level, context });
   }
 }
 
 // Global error monitor instance
-const errorMonitor: ErrorMonitor = new DefaultErrorMonitor();
+const _errorMonitor: ErrorMonitor = new DefaultErrorMonitor();
 
 /**
  * Enhanced error handler with comprehensive error management
  */
 export const errorHandler = (
-  error: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
+  _error: Error,
+  _req: Request,
+  _res: Response,
+  _next: NextFunction
 ) => {
   // Create error context
-  const context: ErrorContext = {
-    requestId: req.headers['x-request-id'] as string,
-    userId: (req as any).user?.id,
-    storeId: (req as any).storeId,
-    operation: `${req.method} ${req.path}`,
-    timestamp: new Date(),
-    userAgent: req.get('User-Agent'),
-    ip: req.ip || req.connection.remoteAddress,
-    method: req.method,
-    path: req.path,
-    query: req.query,
-    body: req.body
+  const _context: ErrorContext = {
+    _requestId: req.headers['x-request-id'] as string,
+    _userId: (req as any).user?.id,
+    _storeId: (req as any).storeId,
+    _operation: `${req.method} ${req.path}`,
+    _timestamp: new Date(),
+    _userAgent: req.get('User-Agent'),
+    _ip: req.ip || req.connection.remoteAddress,
+    _method: req.method,
+    _path: req.path,
+    _query: req.query,
+    _body: req.body
   } as any;
 
   // Log error with request context
@@ -113,18 +113,18 @@ export const errorHandler = (
 /**
  * Handle AppError instances
  */
-function handleAppError(error: AppError, req: Request, res: Response, context: ErrorContext) {
+function handleAppError(_error: AppError, _req: Request, _res: Response, _context: ErrorContext) {
   // Monitor error
   errorMonitor.captureError(error, context);
 
   const status = error.statusCode || 500;
-  const response: any = {
+  const _response: any = {
     error: {
-      code: error.code,
-      message: formatErrorForUser(error),
-      category: error.category,
-      details: error.details,
-      requestId: context.requestId
+      _code: error.code,
+      _message: formatErrorForUser(error),
+      _category: error.category,
+      _details: error.details,
+      _requestId: context.requestId
     }
   };
 
@@ -153,19 +153,19 @@ function handleAppError(error: AppError, req: Request, res: Response, context: E
 /**
  * Handle Zod validation errors
  */
-function handleZodError(error: any, req: Request, res: Response, context: ErrorContext) {
+function handleZodError(_error: any, _req: Request, _res: Response, _context: ErrorContext) {
   const appError = AppError.fromZodError(error);
   const status = appError.statusCode || 400;
 
   errorMonitor.captureError(appError, context);
 
   return res.status(status).json({
-    error: {
-      code: appError.code,
-      message: formatErrorForUser(appError),
-      category: ErrorCategory.VALIDATION,
-      validationErrors: appError.validationErrors,
-      requestId: context.requestId
+    _error: {
+      _code: appError.code,
+      _message: formatErrorForUser(appError),
+      _category: ErrorCategory.VALIDATION,
+      _validationErrors: appError.validationErrors,
+      _requestId: context.requestId
     }
   });
 }
@@ -173,18 +173,18 @@ function handleZodError(error: any, req: Request, res: Response, context: ErrorC
 /**
  * Handle database errors
  */
-function handleDatabaseError(error: Error, req: Request, res: Response, context: ErrorContext) {
+function handleDatabaseError(_error: Error, _req: Request, _res: Response, _context: ErrorContext) {
   const appError = AppError.fromDatabaseError(error);
   const status = appError.statusCode || 500;
 
   errorMonitor.captureError(appError, context);
 
   return res.status(status).json({
-    error: {
-      code: appError.code,
-      message: formatErrorForUser(appError),
-      category: ErrorCategory.DATABASE,
-      requestId: context.requestId
+    _error: {
+      _code: appError.code,
+      _message: formatErrorForUser(appError),
+      _category: ErrorCategory.DATABASE,
+      _requestId: context.requestId
     }
   });
 }
@@ -192,18 +192,18 @@ function handleDatabaseError(error: Error, req: Request, res: Response, context:
 /**
  * Handle authentication errors
  */
-function handleAuthError(error: Error, req: Request, res: Response, context: ErrorContext) {
+function handleAuthError(_error: Error, _req: Request, _res: Response, _context: ErrorContext) {
   const appError = AppError.fromAuthenticationError(error);
   const status = appError.statusCode || 401;
 
   errorMonitor.captureError(appError, context);
 
   return res.status(status).json({
-    error: {
-      code: appError.code,
-      message: formatErrorForUser(appError),
-      category: ErrorCategory.AUTHENTICATION,
-      requestId: context.requestId
+    _error: {
+      _code: appError.code,
+      _message: formatErrorForUser(appError),
+      _category: ErrorCategory.AUTHENTICATION,
+      _requestId: context.requestId
     }
   });
 }
@@ -211,12 +211,12 @@ function handleAuthError(error: Error, req: Request, res: Response, context: Err
 /**
  * Handle rate limiting errors
  */
-function handleRateLimitError(error: Error, req: Request, res: Response, context: ErrorContext) {
+function handleRateLimitError(_error: Error, _req: Request, _res: Response, _context: ErrorContext) {
   const appError = new AppError(
     'Too many requests. Please try again later.',
     ErrorCategory.SYSTEM,
     ErrorCode.TOO_MANY_REQUESTS,
-    { originalError: error.message },
+    { _originalError: error.message },
     429,
     true,
     60 // Retry after 60 seconds
@@ -225,13 +225,13 @@ function handleRateLimitError(error: Error, req: Request, res: Response, context
   errorMonitor.captureError(appError, context);
 
   return res.status(429).json({
-    error: {
-      code: appError.code,
-      message: formatErrorForUser(appError),
-      category: ErrorCategory.SYSTEM,
-      retryable: true,
-      retryAfter: 60,
-      requestId: context.requestId
+    _error: {
+      _code: appError.code,
+      _message: formatErrorForUser(appError),
+      _category: ErrorCategory.SYSTEM,
+      _retryable: true,
+      _retryAfter: 60,
+      _requestId: context.requestId
     }
   });
 }
@@ -239,23 +239,23 @@ function handleRateLimitError(error: Error, req: Request, res: Response, context
 /**
  * Handle file upload errors
  */
-function handleFileUploadError(error: Error, req: Request, res: Response, context: ErrorContext) {
+function handleFileUploadError(_error: Error, _req: Request, _res: Response, _context: ErrorContext) {
   const appError = new AppError(
     'File upload failed. Please check file size and type.',
     ErrorCategory.INVALID_FORMAT,
     ErrorCode.INVALID_FILE,
-    { originalError: error.message },
+    { _originalError: error.message },
     400
   );
 
   errorMonitor.captureError(appError, context);
 
   return res.status(400).json({
-    error: {
-      code: appError.code,
-      message: formatErrorForUser(appError),
-      category: ErrorCategory.INVALID_FORMAT,
-      requestId: context.requestId
+    _error: {
+      _code: appError.code,
+      _message: formatErrorForUser(appError),
+      _category: ErrorCategory.INVALID_FORMAT,
+      _requestId: context.requestId
     }
   });
 }
@@ -263,12 +263,12 @@ function handleFileUploadError(error: Error, req: Request, res: Response, contex
 /**
  * Handle network errors
  */
-function handleNetworkError(error: Error, req: Request, res: Response, context: ErrorContext) {
+function handleNetworkError(_error: Error, _req: Request, _res: Response, _context: ErrorContext) {
   const appError = new AppError(
     'Service temporarily unavailable. Please try again later.',
     ErrorCategory.SYSTEM,
     ErrorCode.SERVICE_UNAVAILABLE,
-    { originalError: error.message },
+    { _originalError: error.message },
     503,
     true,
     30 // Retry after 30 seconds
@@ -277,13 +277,13 @@ function handleNetworkError(error: Error, req: Request, res: Response, context: 
   errorMonitor.captureError(appError, context);
 
   return res.status(503).json({
-    error: {
-      code: appError.code,
-      message: formatErrorForUser(appError),
-      category: ErrorCategory.SYSTEM,
-      retryable: true,
-      retryAfter: 30,
-      requestId: context.requestId
+    _error: {
+      _code: appError.code,
+      _message: formatErrorForUser(appError),
+      _category: ErrorCategory.SYSTEM,
+      _retryable: true,
+      _retryAfter: 30,
+      _requestId: context.requestId
     }
   });
 }
@@ -291,23 +291,23 @@ function handleNetworkError(error: Error, req: Request, res: Response, context: 
 /**
  * Handle unknown errors
  */
-function handleUnknownError(error: Error, req: Request, res: Response, context: ErrorContext) {
+function handleUnknownError(_error: Error, _req: Request, _res: Response, _context: ErrorContext) {
   const appError = new AppError(
     'An unexpected error occurred. Please try again later.',
     ErrorCategory.SYSTEM,
     ErrorCode.INTERNAL_SERVER_ERROR,
-    { originalError: error.message },
+    { _originalError: error.message },
     500
   );
 
   errorMonitor.captureError(appError, context);
 
   return res.status(500).json({
-    error: {
-      code: appError.code,
-      message: formatErrorForUser(appError),
-      category: ErrorCategory.SYSTEM,
-      requestId: context.requestId
+    _error: {
+      _code: appError.code,
+      _message: formatErrorForUser(appError),
+      _category: ErrorCategory.SYSTEM,
+      _requestId: context.requestId
     }
   });
 }
@@ -315,8 +315,8 @@ function handleUnknownError(error: Error, req: Request, res: Response, context: 
 /**
  * Async error wrapper for route handlers
  */
-export const asyncErrorHandler = (fn: Function) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const asyncErrorHandler = (_fn: Function) => {
+  return (_req: Request, _res: Response, _next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
@@ -326,10 +326,10 @@ export const asyncErrorHandler = (fn: Function) => {
  */
 export const setupUnhandledErrorHandling = () => {
   process.on('unhandledRejection', (reason, promise) => {
-    const error = reason instanceof Error ? reason : new Error(String(reason));
-    const context: ErrorContext = {
-      timestamp: new Date(),
-      operation: 'unhandledRejection'
+    const error = reason instanceof Error ? _reason : new Error(String(reason));
+    const _context: ErrorContext = {
+      _timestamp: new Date(),
+      _operation: 'unhandledRejection'
     };
 
     logError(error, 'Unhandled Promise Rejection');
@@ -338,7 +338,7 @@ export const setupUnhandledErrorHandling = () => {
         'Unhandled promise rejection',
         ErrorCategory.SYSTEM,
         ErrorCode.INTERNAL_SERVER_ERROR,
-        { originalError: error.message },
+        { _originalError: error.message },
         500
       ),
       context
@@ -346,9 +346,9 @@ export const setupUnhandledErrorHandling = () => {
   });
 
   process.on('uncaughtException', (error) => {
-    const context: ErrorContext = {
-      timestamp: new Date(),
-      operation: 'uncaughtException'
+    const _context: ErrorContext = {
+      _timestamp: new Date(),
+      _operation: 'uncaughtException'
     };
 
     logError(error, 'Uncaught Exception');
@@ -357,7 +357,7 @@ export const setupUnhandledErrorHandling = () => {
         'Uncaught exception',
         ErrorCategory.SYSTEM,
         ErrorCode.INTERNAL_SERVER_ERROR,
-        { originalError: error.message },
+        { _originalError: error.message },
         500
       ),
       context
@@ -371,7 +371,7 @@ export const setupUnhandledErrorHandling = () => {
 /**
  * Request ID middleware
  */
-export const requestIdMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const requestIdMiddleware = (_req: Request, _res: Response, _next: NextFunction) => {
   const requestId = req.headers['x-request-id'] || generateRequestId();
   req.headers['x-request-id'] = requestId;
   res.setHeader('x-request-id', requestId);
@@ -392,10 +392,10 @@ export const setupErrorMonitoring = (monitor?: ErrorMonitor) => {
   if (monitor) {
     Object.assign(errorMonitor, monitor);
   }
-  
+
   // Setup unhandled error handling
   setupUnhandledErrorHandling();
-  
+
   // Log monitoring setup
   console.log('Error monitoring setup complete');
 };

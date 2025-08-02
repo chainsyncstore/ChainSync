@@ -27,7 +27,7 @@ class ErrorHandler extends EventEmitter {
   }
 
   calculateDelay(attempt) {
-    const delay = this.config.retry.initialDelay * 
+    const delay = this.config.retry.initialDelay *
       Math.pow(this.config.retry.backoffFactor, attempt - 1);
     return Math.min(delay, this.config.retry.maxDelay);
   }
@@ -35,69 +35,69 @@ class ErrorHandler extends EventEmitter {
   async withRetry(operation, context, options) {
     const retryConfig = { ...this.config.retry, ...options };
     let lastError = null;
-    
+
     for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error;
         this.handleError(error, { ...context, attempt });
-        
+
         if (attempt === retryConfig.maxAttempts) {
           throw error;
         }
-        
+
         const delay = this.calculateDelay(attempt);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-    
+
     let errorObj = null;
     if (lastError instanceof Error) {
       errorObj = lastError;
     } else if (typeof lastError === 'string') {
       errorObj = new Error(lastError);
     } else if (
-      lastError && 
-      typeof lastError === 'object' && 
-      lastError !== null && 
-      'message' in lastError && 
+      lastError &&
+      typeof lastError === 'object' &&
+      lastError !== null &&
+      'message' in lastError &&
       typeof lastError.message === 'string'
     ) {
       errorObj = new Error(String(lastError.message));
     }
-    
+
     if (!errorObj) {
       errorObj = new Error('Unknown error occurred');
     }
-    
+
     throw errorObj;
   }
 
   handleError(error, context) {
-    const errorObj = error instanceof Error ? 
-      error : new Error('Unknown error occurred');
-    
+    const errorObj = error instanceof Error ?
+      _error : new Error('Unknown error occurred');
+
     // If we have an object with a message, use that
-    if (error && typeof error === 'object' && 'message' in error && 
+    if (error && typeof error === 'object' && 'message' in error &&
         typeof error.message === 'string') {
       errorObj.message = error.message;
     }
-    
+
     // Ensure we have a proper Error object
-    const errorInstance = errorObj instanceof Error ? 
-      errorObj : new Error(String(errorObj?.message || 'Unknown error'));
-    
+    const errorInstance = errorObj instanceof Error ?
+      _errorObj : new Error(String(errorObj?.message || 'Unknown error'));
+
     const enhancedError = this.enrichError(errorInstance, context);
-    
+
     // Log the error
     this.logError(enhancedError, context);
-    
+
     // Handle retry logic
-    if (this.config.retry.maxAttempts > 0 && 
+    if (this.config.retry.maxAttempts > 0 &&
         ErrorHandler.isRetryable(enhancedError)) {
       const attempt = context.attempt || 1;
-      
+
       if (attempt < this.config.retry.maxAttempts) {
         const delay = this.calculateDelay(attempt);
         setTimeout(() => {
@@ -115,7 +115,7 @@ class ErrorHandler extends EventEmitter {
     if (error instanceof AppError) {
       return error;
     }
-    
+
     // Determine error code based on context
     let errorCode = 'PROCESSING_ERROR';
     if (error.message.includes('format')) {
@@ -124,11 +124,11 @@ class ErrorHandler extends EventEmitter {
       errorCode = 'FILE_TOO_LARGE';
     } else if (error.message.includes('permission')) {
       errorCode = 'PERMISSION_DENIED';
-    } else if (error.message.includes('network') || 
+    } else if (error.message.includes('network') ||
                error.message.includes('timeout')) {
       errorCode = 'NETWORK_ERROR';
     }
-    
+
     return new AppError(
       error.message,
       errorCode,
@@ -142,21 +142,21 @@ class ErrorHandler extends EventEmitter {
 
   logError(error, context) {
     const errorEntry = {
-      error: {
-        message: error.message,
-        stack: error.stack,
-        code: error.code || 'UNKNOWN',
-        category: error.category || 'UNKNOWN'
+      _error: {
+        _message: error.message,
+        _stack: error.stack,
+        _code: error.code || 'UNKNOWN',
+        _category: error.category || 'UNKNOWN'
       },
-      context: {
+      _context: {
         ...context,
-        timestamp: Date.now()
+        _timestamp: Date.now()
       }
     };
-    
+
     this.errorLog.push(errorEntry);
-    logger.error('Error handled:', errorEntry);
-    
+    logger.error('Error _handled:', errorEntry);
+
     // Keep only recent errors
     if (this.errorLog.length > this.config.maxErrorLogSize) {
       this.errorLog = this.errorLog.slice(-this.config.maxErrorLogSize);
@@ -176,7 +176,7 @@ class ErrorHandler extends EventEmitter {
     return this.errorLog;
   }
 
-  static createAppError(message, code, category, retryable = false, 
+  static createAppError(message, code, category, retryable = false,
                        retryDelay = 0, context) {
     return new AppError(message, code, category, context, 500, retryable, retryDelay);
   }
@@ -191,11 +191,11 @@ class ErrorHandler extends EventEmitter {
   static getRetryDelay(error) {
     const baseDelay = 1000; // 1 second
     const maxDelay = 30000; // 30 seconds
-    
+
     if (error.code === 'RATE_LIMITED') {
       return Math.min(baseDelay * 5, maxDelay);
     }
-    
+
     return Math.min(baseDelay, maxDelay);
   }
 }

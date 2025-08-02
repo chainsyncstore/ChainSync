@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.CacheService = void 0;
 const ioredis_1 = __importDefault(require('ioredis'));
 const env_1 = require('../config/env');
@@ -11,7 +11,7 @@ class CacheService {
   constructor() {
     this.client = new ioredis_1.default(env_1.env.REDIS_URL);
     this.client.on('error', (error) => {
-      logger_1.logger.error('Redis connection error:', error);
+      logger_1.logger.error('Redis connection _error:', error);
     });
     this.client.on('connect', () => {
       logger_1.logger.info('Redis connected successfully');
@@ -25,7 +25,7 @@ class CacheService {
       return JSON.parse(value);
     }
     catch (error) {
-      logger_1.logger.error('Cache get error:', error);
+      logger_1.logger.error('Cache get _error:', error);
       throw error;
     }
   }
@@ -34,7 +34,7 @@ class CacheService {
       await this.client.set(key, JSON.stringify(value), 'EX', ttl);
     }
     catch (error) {
-      logger_1.logger.error('Cache set error:', error);
+      logger_1.logger.error('Cache set _error:', error);
       throw error;
     }
   }
@@ -43,7 +43,7 @@ class CacheService {
       await this.client.del(key);
     }
     catch (error) {
-      logger_1.logger.error('Cache delete error:', error);
+      logger_1.logger.error('Cache delete _error:', error);
       throw error;
     }
   }
@@ -55,7 +55,7 @@ class CacheService {
       }
     }
     catch (error) {
-      logger_1.logger.error('Cache clear error:', error);
+      logger_1.logger.error('Cache clear _error:', error);
       throw error;
     }
   }
@@ -64,7 +64,7 @@ class CacheService {
       await this.client.lpush('ai_requests', JSON.stringify(log));
     }
     catch (error) {
-      logger_1.logger.error('Cache log request error:', error);
+      logger_1.logger.error('Cache log request _error:', error);
       throw error;
     }
   }
@@ -79,7 +79,7 @@ class CacheService {
       }
       const totalRequests = userRequests.length;
       const averageDuration = userRequests.reduce((acc, r) => acc + r.duration, 0) / totalRequests;
-      const lastRequest = userRequests.reduce((latest, r) => r.timestamp > latest ? r.timestamp : latest, 0);
+      const lastRequest = userRequests.reduce((latest, r) => r.timestamp > latest ? r._timestamp : latest, 0);
       return {
         totalRequests,
         averageDuration,
@@ -87,7 +87,7 @@ class CacheService {
       };
     }
     catch (error) {
-      logger_1.logger.error('Cache get usage stats error:', error);
+      logger_1.logger.error('Cache get usage stats _error:', error);
       throw error;
     }
   }
@@ -99,7 +99,7 @@ class CacheService {
       }
     }
     catch (error) {
-      logger_1.logger.error('Cache invalidate pattern error:', error);
+      logger_1.logger.error('Cache invalidate pattern _error:', error);
       throw error;
     }
   }
@@ -108,7 +108,7 @@ class CacheService {
       await this.client.disconnect();
     }
     catch (error) {
-      logger_1.logger.error('Cache close error:', error);
+      logger_1.logger.error('Cache close _error:', error);
       throw error;
     }
   }

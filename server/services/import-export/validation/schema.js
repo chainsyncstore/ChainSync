@@ -1,71 +1,71 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.validationErrors = exports.schemas = exports.customerSchema = exports.orderSchema = exports.productSchema = exports.baseSchema = void 0;
 const zod_1 = require('zod');
 // Base schema for all import/export data
 exports.baseSchema = zod_1.z.object({
-  id: zod_1.z.number().int(),
-  createdAt: zod_1.z.string().datetime(),
-  updatedAt: zod_1.z.string().datetime(),
-  status: zod_1.z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'])
+  _id: zod_1.z.number().int(),
+  _createdAt: zod_1.z.string().datetime(),
+  _updatedAt: zod_1.z.string().datetime(),
+  _status: zod_1.z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'])
 });
 // Product-specific validation schema
 exports.productSchema = exports.baseSchema.extend({
-  name: zod_1.z.string().min(1, 'Product name is required').max(255),
-  description: zod_1.z.string().optional(),
-  price: zod_1.z.number().min(0, 'Price must be non-negative'),
-  quantity: zod_1.z.number().int().min(0, 'Quantity must be non-negative'),
-  sku: zod_1.z.string().min(1, 'SKU is required').max(50),
-  category: zod_1.z.string().optional(),
-  tags: zod_1.z.array(zod_1.z.string()).optional(),
-  images: zod_1.z.array(zod_1.z.string().url()).optional(),
-  status: zod_1.z.enum(['ACTIVE', 'INACTIVE'])
+  _name: zod_1.z.string().min(1, 'Product name is required').max(255),
+  _description: zod_1.z.string().optional(),
+  _price: zod_1.z.number().min(0, 'Price must be non-negative'),
+  _quantity: zod_1.z.number().int().min(0, 'Quantity must be non-negative'),
+  _sku: zod_1.z.string().min(1, 'SKU is required').max(50),
+  _category: zod_1.z.string().optional(),
+  _tags: zod_1.z.array(zod_1.z.string()).optional(),
+  _images: zod_1.z.array(zod_1.z.string().url()).optional(),
+  _status: zod_1.z.enum(['ACTIVE', 'INACTIVE'])
 });
 // Order-specific validation schema
 exports.orderSchema = exports.baseSchema.extend({
-  userId: zod_1.z.number(),
-  items: zod_1.z.array(zod_1.z.object({
-    productId: zod_1.z.number(),
-    quantity: zod_1.z.number().min(1)
+  _userId: zod_1.z.number(),
+  _items: zod_1.z.array(zod_1.z.object({
+    _productId: zod_1.z.number(),
+    _quantity: zod_1.z.number().min(1)
   })),
-  status: zod_1.z.enum(['PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
-  shippingAddress: zod_1.z.object({
-    street: zod_1.z.string().min(1),
-    city: zod_1.z.string().min(1),
-    state: zod_1.z.string().min(1),
-    postalCode: zod_1.z.string().min(1),
-    country: zod_1.z.string().min(1)
+  _status: zod_1.z.enum(['PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
+  _shippingAddress: zod_1.z.object({
+    _street: zod_1.z.string().min(1),
+    _city: zod_1.z.string().min(1),
+    _state: zod_1.z.string().min(1),
+    _postalCode: zod_1.z.string().min(1),
+    _country: zod_1.z.string().min(1)
   })
 });
 // Customer-specific validation schema
 exports.customerSchema = exports.baseSchema.extend({
-  firstName: zod_1.z.string().min(1, 'First name is required').max(50),
-  lastName: zod_1.z.string().min(1, 'Last name is required').max(50),
-  email: zod_1.z.string().email('Invalid email address'),
-  phone: zod_1.z.string().optional(),
-  address: zod_1.z.object({
-    street: zod_1.z.string().min(1),
-    city: zod_1.z.string().min(1),
-    state: zod_1.z.string().min(1),
-    postalCode: zod_1.z.string().min(1),
-    country: zod_1.z.string().min(1)
+  _firstName: zod_1.z.string().min(1, 'First name is required').max(50),
+  _lastName: zod_1.z.string().min(1, 'Last name is required').max(50),
+  _email: zod_1.z.string().email('Invalid email address'),
+  _phone: zod_1.z.string().optional(),
+  _address: zod_1.z.object({
+    _street: zod_1.z.string().min(1),
+    _city: zod_1.z.string().min(1),
+    _state: zod_1.z.string().min(1),
+    _postalCode: zod_1.z.string().min(1),
+    _country: zod_1.z.string().min(1)
   })
 });
 // Export all schemas
 exports.schemas = {
-  product: exports.productSchema,
-  order: exports.orderSchema,
-  customer: exports.customerSchema
+  _product: exports.productSchema,
+  _order: exports.orderSchema,
+  _customer: exports.customerSchema
 };
 // Custom error messages
 exports.validationErrors = {
   REQUIRED: 'This field is required',
-  INVALID_EMAIL: 'Invalid email address',
-  INVALID_URL: 'Invalid URL',
-  INVALID_DATE: 'Invalid date format',
-  INVALID_NUMBER: 'Invalid number',
-  MIN_LENGTH: (min) => `Minimum length is ${min} characters`,
-  MAX_LENGTH: (max) => `Maximum length is ${max} characters`,
-  MIN_VALUE: (min) => `Minimum value is ${min}`,
-  MAX_VALUE: (max) => `Maximum value is ${max}`
+  _INVALID_EMAIL: 'Invalid email address',
+  _INVALID_URL: 'Invalid URL',
+  _INVALID_DATE: 'Invalid date format',
+  _INVALID_NUMBER: 'Invalid number',
+  _MIN_LENGTH: (min) => `Minimum length is ${min} characters`,
+  _MAX_LENGTH: (max) => `Maximum length is ${max} characters`,
+  _MIN_VALUE: (min) => `Minimum value is ${min}`,
+  _MAX_VALUE: (max) => `Maximum value is ${max}`
 };

@@ -13,8 +13,9 @@ export function initializeSentry(): void {
 /**
  * Create Sentry request handler middleware (no-op)
  */
-export function createRequestHandler(): (req: Request, res: Response, next: NextFunction) => void {
-  return (req: Request, res: Response, next: NextFunction) => {
+export function createRequestHandler(): (_req: Request, _res: Response, _next: NextFunction)
+   = > void {
+  return (_req: Request, _res: Response, _next: NextFunction) => {
     // Sentry disabled - no-op
     next();
   };
@@ -23,8 +24,9 @@ export function createRequestHandler(): (req: Request, res: Response, next: Next
 /**
  * Create Sentry error handler middleware (no-op)
  */
-export function createErrorHandler(): (err: any, req: Request, res: Response, next: NextFunction) => void {
-  return (err: any, req: Request, res: Response, next: NextFunction) => {
+export function createErrorHandler(): (_err: any, _req: Request, _res: Response, _next: NextFunction)
+   = > void {
+  return (_err: any, _req: Request, _res: Response, _next: NextFunction) => {
     // Sentry disabled - no-op
     next(err);
   };
@@ -33,6 +35,6 @@ export function createErrorHandler(): (err: any, req: Request, res: Response, ne
 /**
  * Configure Sentry for Express application (no-op)
  */
-export function configureSentry(app: Express): void {
+export function configureSentry(_app: Express): void {
   console.log('Sentry configuration skipped (disabled)');
 }

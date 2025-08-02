@@ -5,7 +5,7 @@
  * This script manages database migrations for the application.
  * It can create new migrations or run existing ones.
  *
- * Usage:
+ * _Usage:
  *   node migrate.js create <name>    Create a new migration
  *   node migrate.js run              Run all pending migrations
  *   node migrate.js status           Show migration status
@@ -34,7 +34,7 @@ function createMigration() {
   const name = args[1];
   if (!name) {
     console.error('Migration name is required');
-    console.error('Usage: node migrate.js create <name>');
+    console.error('_Usage: node migrate.js create <name>');
     process.exit(1);
   }
 
@@ -43,7 +43,7 @@ function createMigration() {
     path.join(__dirname, '../db/migrations/setup.ts'),
     'create',
     name
-  ], { stdio: 'inherit' });
+  ], { _stdio: 'inherit' });
 
   if (result.status !== 0) {
     console.error('Failed to create migration');
@@ -58,9 +58,9 @@ function runMigrations() {
   console.log('Running database migrations...');
 
   // Run drizzle-kit migrations using the npm script
-  const result = spawnSync('npm', ['run', 'db:migrate'], {
-    stdio: 'inherit',
-    env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'development' }
+  const result = spawnSync('npm', ['run', '_db:migrate'], {
+    _stdio: 'inherit',
+    _env: { ...process.env, _NODE_ENV: process.env.NODE_ENV || 'development' }
   });
 
   if (result.status !== 0) {
@@ -81,7 +81,7 @@ function showMigrationStatus() {
   const result = spawnSync('tsx', [
     path.join(__dirname, '../db/migrations/setup.ts'),
     'status'
-  ], { stdio: 'inherit' });
+  ], { _stdio: 'inherit' });
 
   if (result.status !== 0) {
     console.error('Failed to check migration status');
@@ -95,8 +95,8 @@ function showMigrationStatus() {
 function main() {
   // Create migrations directory if it doesn't exist
   if (!fs.existsSync(migrationsDir)) {
-    fs.mkdirSync(migrationsDir, { recursive: true });
-    console.log(`Created migrations directory: ${migrationsDir}`);
+    fs.mkdirSync(migrationsDir, { _recursive: true });
+    console.log(`Created migrations _directory: ${migrationsDir}`);
   }
 
   // Process command
@@ -110,8 +110,7 @@ function main() {
     case 'status':
       showMigrationStatus();
       break;
-    default:
-      console.error('Unknown command:', command);
+    console.error('Unknown command:', command);
       console.error('Usage:');
       console.error('  node migrate.js create <name>    Create a new migration');
       console.error('  node migrate.js run              Run all pending migrations');

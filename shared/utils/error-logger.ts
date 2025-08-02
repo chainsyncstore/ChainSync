@@ -8,48 +8,48 @@ const myFormat = printf(({ level, message, label, timestamp, ...meta }) => {
 });
 
 export const logger = createLogger({
-  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-  format: combine(
+  _level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  _format: combine(
     label({ label: 'chain-sync' }),
     timestamp(),
     myFormat
   ),
-  transports: [
-    new transports.File({ filename: 'error.log', level: 'error' }),
-    new transports.File({ filename: 'combined.log' }),
-  ],
+  _transports: [
+    new transports.File({ filename: 'error.log', _level: 'error' }),
+    new transports.File({ _filename: 'combined.log' })
+  ]
 });
 
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new transports.Console({
-    format: combine(
+    _format: combine(
       label({ label: 'chain-sync' }),
       timestamp(),
       myFormat
-    ),
+    )
   }));
 }
 
-export const logError = (error: Error, context: string = 'unknown') => {
+export const logError = (_error: Error, _context: string = 'unknown') => {
   const appError = error as AppError;
-  
+
   logger.error('Error occurred', {
     context,
-    code: appError.code,
-    category: appError.category,
-    message: error.message,
-    stack: error.stack,
-    details: appError.details,
-    validationErrors: appError.validationErrors,
-    retryable: appError.retryable,
-    retryAfter: appError.retryAfter,
+    _code: appError.code,
+    _category: appError.category,
+    _message: error.message,
+    _stack: error.stack,
+    _details: appError.details,
+    _validationErrors: appError.validationErrors,
+    _retryable: appError.retryable,
+    _retryAfter: appError.retryAfter
   });
 };
 
-export const logWarning = (message: string, context: string = 'unknown') => {
+export const logWarning = (_message: string, _context: string = 'unknown') => {
   logger.warn(message, { context });
 };
 
-export const logInfo = (message: string, context: string = 'unknown') => {
+export const logInfo = (_message: string, _context: string = 'unknown') => {
   logger.info(message, { context });
 };

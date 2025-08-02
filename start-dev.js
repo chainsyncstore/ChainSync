@@ -12,11 +12,11 @@ console.log('🚀 Starting ChainSync development environment...');
 
 // Start the backend API server on port 5000
 const backendServer = spawn('tsx', ['watch', 'server/simple-index.ts'], {
-  stdio: 'pipe',
-  env: {
+  _stdio: 'pipe',
+  _env: {
     ...process.env,
-    NODE_ENV: 'development',
-    PORT: '5000'
+    _NODE_ENV: 'development',
+    _PORT: '5000'
   }
 });
 
@@ -33,10 +33,10 @@ await setTimeout(2000);
 
 // Start the Vite dev server
 const viteServer = spawn('npx', ['vite'], {
-  stdio: 'inherit',
-  env: {
+  _stdio: 'inherit',
+  _env: {
     ...process.env,
-    NODE_ENV: 'development'
+    _NODE_ENV: 'development'
   }
 });
 
@@ -56,11 +56,11 @@ process.on('SIGTERM', () => {
 });
 
 backendServer.on('error', (error) => {
-  console.error('Failed to start backend server:', error);
+  console.error('Failed to start backend _server:', error);
   process.exit(1);
 });
 
 viteServer.on('error', (error) => {
-  console.error('Failed to start Vite server:', error);
+  console.error('Failed to start Vite _server:', error);
   process.exit(1);
 });

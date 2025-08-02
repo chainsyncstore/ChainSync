@@ -8,45 +8,45 @@ import * as schema from '../../shared/schema.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const logger = getLogger().child({ component: 'integration-test-setup' });
+const logger = getLogger().child({ _component: 'integration-test-setup' });
 
 // Test database configuration
-const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://test:test@localhost:5432/chainsync_test';
+const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://_test:test@_localhost:5432/chainsync_test';
 
 export interface TestUser {
-  id: string;
-  email: string;
-  password: string;
-  role: string;
+  _id: string;
+  _email: string;
+  _password: string;
+  _role: string;
   storeId?: number;
   token?: string;
 }
 
 export interface TestData {
-  users: TestUser[];
-  stores: any[];
-  products: any[];
-  customers: any[];
-  transactions: any[];
+  _users: TestUser[];
+  _stores: any[];
+  _products: any[];
+  _customers: any[];
+  _transactions: any[];
 }
 
 export class IntegrationTestSetup {
-  private db: any;
-  private pool: Pool;
-  private testData: TestData = {
+  private _db: any;
+  private _pool: Pool;
+  private _testData: TestData = {
     users: [],
-    stores: [],
-    products: [],
-    customers: [],
-    transactions: []
+    _stores: [],
+    _products: [],
+    _customers: [],
+    _transactions: []
   };
 
   constructor() {
     this.pool = new Pool({
-      connectionString: TEST_DATABASE_URL,
-      max: 1 // Single connection for tests
+      _connectionString: TEST_DATABASE_URL,
+      _max: 1 // Single connection for tests
     });
-    
+
     this.db = drizzle(this.pool, { schema });
   }
 
@@ -56,16 +56,16 @@ export class IntegrationTestSetup {
   async initialize(): Promise<void> {
     try {
       logger.info('Initializing test database...');
-      
+
       // Run migrations
-      await migrate(this.db, { migrationsFolder: './db/migrations' });
-      
+      await migrate(this.db, { _migrationsFolder: './db/migrations' });
+
       // Seed test data
       await this.seedTestData();
-      
+
       logger.info('Test database initialized successfully');
     } catch (error) {
-      logger.error('Failed to initialize test database', error instanceof Error ? error : new Error(String(error)));
+      logger.error('Failed to initialize test database', error instanceof Error ? _error : new Error(String(error)));
       throw error;
     }
   }
@@ -76,16 +76,16 @@ export class IntegrationTestSetup {
   async cleanup(): Promise<void> {
     try {
       logger.info('Cleaning up test database...');
-      
+
       // Clean up all test data
       await this.cleanupTestData();
-      
+
       // Close database connection
       await this.pool.end();
-      
+
       logger.info('Test database cleaned up successfully');
     } catch (error) {
-      logger.error('Failed to cleanup test database', error instanceof Error ? error : new Error(String(error)));
+      logger.error('Failed to cleanup test database', error instanceof Error ? _error : new Error(String(error)));
       throw error;
     }
   }
@@ -98,7 +98,7 @@ export class IntegrationTestSetup {
       await this.cleanupTestData();
       await this.seedTestData();
     } catch (error) {
-      logger.error('Failed to reset test database', error instanceof Error ? error : new Error(String(error)));
+      logger.error('Failed to reset test database', error instanceof Error ? _error : new Error(String(error)));
       throw error;
     }
   }
@@ -120,41 +120,41 @@ export class IntegrationTestSetup {
   /**
    * Create a test user and return authentication token
    */
-  async createTestUser(userData: Partial<TestUser> = {}): Promise<TestUser> {
-    const defaultUser: TestUser = {
+  async createTestUser(_userData: Partial<TestUser> = {}): Promise<TestUser> {
+    const _defaultUser: TestUser = {
       id: '',
-      email: `test-${Date.now()}@example.com`,
-      password: 'TestPassword123!',
-      role: 'cashier',
+      _email: `test-${Date.now()}@example.com`,
+      _password: 'TestPassword123!',
+      _role: 'cashier',
       ...userData
     };
 
     const hashedPassword = await bcrypt.hash(defaultUser.password, 10);
 
     const [user] = await this.db.insert(schema.users).values({
-      email: defaultUser.email,
-      password: hashedPassword,
-      firstName: 'Test',
-      lastName: 'User',
-      role: defaultUser.role,
-      storeId: defaultUser.storeId,
-      isActive: true
+      _email: defaultUser.email,
+      _password: hashedPassword,
+      _firstName: 'Test',
+      _lastName: 'User',
+      _role: defaultUser.role,
+      _storeId: defaultUser.storeId,
+      _isActive: true
     }).returning();
 
     const token = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
-        role: user.role,
-        storeId: user.storeId 
+      {
+        _id: user.id,
+        _email: user.email,
+        _role: user.role,
+        _storeId: user.storeId
       },
       env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { _expiresIn: '1h' }
     );
 
-    const testUser: TestUser = {
+    const _testUser: TestUser = {
       ...defaultUser,
-      id: user.id,
+      _id: user.id,
       token
     };
 
@@ -165,15 +165,15 @@ export class IntegrationTestSetup {
   /**
    * Create test store
    */
-  async createTestStore(storeData: any = {}): Promise<any> {
+  async createTestStore(_storeData: any = {}): Promise<any> {
     const defaultStore = {
-      name: `Test Store ${Date.now()}`,
-      address: '123 Test Street, Test City',
-      phone: '+1234567890',
-      email: `store-${Date.now()}@example.com`,
-      isActive: true,
-      timezone: 'UTC',
-      currency: 'USD',
+      _name: `Test Store ${Date.now()}`,
+      _address: '123 Test Street, Test City',
+      _phone: '+1234567890',
+      _email: `store-${Date.now()}@example.com`,
+      _isActive: true,
+      _timezone: 'UTC',
+      _currency: 'USD',
       ...storeData
     };
 
@@ -185,19 +185,19 @@ export class IntegrationTestSetup {
   /**
    * Create test product
    */
-  async createTestProduct(productData: any = {}): Promise<any> {
+  async createTestProduct(_productData: any = {}): Promise<any> {
     const defaultProduct = {
-      name: `Test Product ${Date.now()}`,
-      description: 'Test product description',
-      sku: `SKU-${Date.now()}`,
-      category: 'Test Category',
-      unit: 'piece',
-      costPrice: 10.00,
-      sellingPrice: 15.00,
-      taxRate: 10,
-      reorderPoint: 5,
-      isActive: true,
-      storeId: this.testData.stores[0]?.id || 1,
+      _name: `Test Product ${Date.now()}`,
+      _description: 'Test product description',
+      _sku: `SKU-${Date.now()}`,
+      _category: 'Test Category',
+      _unit: 'piece',
+      _costPrice: 10.00,
+      _sellingPrice: 15.00,
+      _taxRate: 10,
+      _reorderPoint: 5,
+      _isActive: true,
+      _storeId: this.testData.stores[0]?.id || 1,
       ...productData
     };
 
@@ -209,16 +209,16 @@ export class IntegrationTestSetup {
   /**
    * Create test customer
    */
-  async createTestCustomer(customerData: any = {}): Promise<any> {
+  async createTestCustomer(_customerData: any = {}): Promise<any> {
     const defaultCustomer = {
-      firstName: 'Test',
-      lastName: 'Customer',
-      email: `customer-${Date.now()}@example.com`,
-      phone: '+1234567890',
-      address: '456 Customer Street, Customer City',
-      loyaltyPoints: 0,
-      isActive: true,
-      storeId: this.testData.stores[0]?.id || 1,
+      _firstName: 'Test',
+      _lastName: 'Customer',
+      _email: `customer-${Date.now()}@example.com`,
+      _phone: '+1234567890',
+      _address: '456 Customer Street, Customer City',
+      _loyaltyPoints: 0,
+      _isActive: true,
+      _storeId: this.testData.stores[0]?.id || 1,
       ...customerData
     };
 
@@ -230,15 +230,15 @@ export class IntegrationTestSetup {
   /**
    * Create test transaction
    */
-  async createTestTransaction(transactionData: any = {}): Promise<any> {
+  async createTestTransaction(_transactionData: any = {}): Promise<any> {
     const defaultTransaction = {
-      customerId: this.testData.customers[0]?.id || null,
-      paymentMethod: 'cash',
-      paymentStatus: 'completed',
-      totalAmount: 100.00,
-      taxAmount: 10.00,
-      discountAmount: 0,
-      storeId: this.testData.stores[0]?.id || 1,
+      _customerId: this.testData.customers[0]?.id || null,
+      _paymentMethod: 'cash',
+      _paymentStatus: 'completed',
+      _totalAmount: 100.00,
+      _taxAmount: 10.00,
+      _discountAmount: 0,
+      _storeId: this.testData.stores[0]?.id || 1,
       ...transactionData
     };
 
@@ -259,70 +259,70 @@ export class IntegrationTestSetup {
 
       // Create test users with different roles
       const adminUser = await this.createTestUser({
-        email: 'admin@test.com',
-        password: 'AdminPassword123!',
-        role: 'admin',
-        storeId: store.id
+        _email: 'admin@test.com',
+        _password: 'AdminPassword123!',
+        _role: 'admin',
+        _storeId: store.id
       });
 
       const managerUser = await this.createTestUser({
-        email: 'manager@test.com',
-        password: 'ManagerPassword123!',
-        role: 'manager',
-        storeId: store.id
+        _email: 'manager@test.com',
+        _password: 'ManagerPassword123!',
+        _role: 'manager',
+        _storeId: store.id
       });
 
       const cashierUser = await this.createTestUser({
-        email: 'cashier@test.com',
-        password: 'CashierPassword123!',
-        role: 'cashier',
-        storeId: store.id
+        _email: 'cashier@test.com',
+        _password: 'CashierPassword123!',
+        _role: 'cashier',
+        _storeId: store.id
       });
 
       // Create test products
       const product1 = await this.createTestProduct({
-        name: 'Test Product 1',
-        sku: 'SKU-001',
-        costPrice: 5.00,
-        sellingPrice: 10.00
+        _name: 'Test Product 1',
+        _sku: 'SKU-001',
+        _costPrice: 5.00,
+        _sellingPrice: 10.00
       });
 
       const product2 = await this.createTestProduct({
-        name: 'Test Product 2',
-        sku: 'SKU-002',
-        costPrice: 15.00,
-        sellingPrice: 25.00
+        _name: 'Test Product 2',
+        _sku: 'SKU-002',
+        _costPrice: 15.00,
+        _sellingPrice: 25.00
       });
 
       // Create test customers
       const customer1 = await this.createTestCustomer({
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@test.com'
+        _firstName: 'John',
+        _lastName: 'Doe',
+        _email: 'john.doe@test.com'
       });
 
       const customer2 = await this.createTestCustomer({
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane.smith@test.com'
+        _firstName: 'Jane',
+        _lastName: 'Smith',
+        _email: 'jane.smith@test.com'
       });
 
       // Create test transactions
       await this.createTestTransaction({
-        customerId: customer1.id,
-        totalAmount: 50.00,
-        taxAmount: 5.00
+        _customerId: customer1.id,
+        _totalAmount: 50.00,
+        _taxAmount: 5.00
       });
 
       await this.createTestTransaction({
-        customerId: customer2.id,
-        totalAmount: 75.00,
-        taxAmount: 7.50
+        _customerId: customer2.id,
+        _totalAmount: 75.00,
+        _taxAmount: 7.50
       });
 
       logger.info('Test data seeded successfully');
     } catch (error) {
-      logger.error('Failed to seed test data', error instanceof Error ? error : new Error(String(error)));
+      logger.error('Failed to seed test data', error instanceof Error ? _error : new Error(String(error)));
       throw error;
     }
   }
@@ -343,40 +343,40 @@ export class IntegrationTestSetup {
 
       // Reset test data arrays
       this.testData = {
-        users: [],
-        stores: [],
-        products: [],
-        customers: [],
-        transactions: []
+        _users: [],
+        _stores: [],
+        _products: [],
+        _customers: [],
+        _transactions: []
       };
 
       logger.info('Test data cleaned up successfully');
     } catch (error) {
-      logger.error('Failed to cleanup test data', error instanceof Error ? error : new Error(String(error)));
+      logger.error('Failed to cleanup test data', error instanceof Error ? _error : new Error(String(error)));
       throw error;
     }
   }
 }
 
 // Global test setup instance
-let testSetup: IntegrationTestSetup;
+let _testSetup: IntegrationTestSetup;
 
 /**
  * Setup function for integration tests
  */
 export const setupIntegrationTests = () => {
-  beforeAll(async () => {
+  beforeAll(async() => {
     testSetup = new IntegrationTestSetup();
     await testSetup.initialize();
   });
 
-  afterAll(async () => {
+  afterAll(async() => {
     if (testSetup) {
       await testSetup.cleanup();
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Reset database state before each test
     if (testSetup) {
       await testSetup.reset();
@@ -397,7 +397,7 @@ export const getTestSetup = (): IntegrationTestSetup => {
 /**
  * Helper function to create authenticated request headers
  */
-export const createAuthHeaders = (user: TestUser): Record<string, string> => {
+export const createAuthHeaders = (_user: TestUser): Record<string, string> => {
   return {
     'Authorization': `Bearer ${user.token}`,
     'Content-Type': 'application/json'
@@ -408,7 +408,7 @@ export const createAuthHeaders = (user: TestUser): Record<string, string> => {
  * Helper function to create test request
  */
 export const createTestRequest = (user?: TestUser) => {
-  const headers: Record<string, string> = {
+  const _headers: Record<string, string> = {
     'Content-Type': 'application/json'
   };
 
@@ -418,9 +418,9 @@ export const createTestRequest = (user?: TestUser) => {
 
   return {
     headers,
-    body: {},
-    params: {},
-    query: {}
+    _body: {},
+    _params: {},
+    _query: {}
   };
 };
 
@@ -428,11 +428,11 @@ export const createTestRequest = (user?: TestUser) => {
  * Helper function to create test response
  */
 export const createTestResponse = () => {
-  const res: any = {
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
-    send: jest.fn().mockReturnThis(),
-    set: jest.fn().mockReturnThis()
+  const _res: any = {
+    _status: jest.fn().mockReturnThis(),
+    _json: jest.fn().mockReturnThis(),
+    _send: jest.fn().mockReturnThis(),
+    _set: jest.fn().mockReturnThis()
   };
 
   return res;
@@ -448,7 +448,7 @@ export const createTestNext = () => {
 /**
  * Utility function to wait for async operations
  */
-export const wait = (ms: number): Promise<void> => {
+export const wait = (_ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
@@ -456,9 +456,9 @@ export const wait = (ms: number): Promise<void> => {
  * Utility function to generate random test data
  */
 export const generateTestData = {
-  email: () => `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}@example.com`,
-  phone: () => `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-  name: () => `Test ${Math.random().toString(36).substr(2, 9)}`,
-  sku: () => `SKU-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-  uuid: () => `00000000-0000-0000-0000-${Math.random().toString(36).substr(2, 12)}`
-}; 
+  _email: () => `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}@example.com`,
+  _phone: () => `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+  _name: () => `Test ${Math.random().toString(36).substr(2, 9)}`,
+  _sku: () => `SKU-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+  _uuid: () => `00000000-0000-0000-0000-${Math.random().toString(36).substr(2, 12)}`
+};

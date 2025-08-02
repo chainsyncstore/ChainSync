@@ -11,15 +11,15 @@ const PORT = process.env.PORT || 3000;
 // Basic middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ _extended: true }));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    _status: 'healthy',
+    _timestamp: new Date().toISOString(),
+    _uptime: process.uptime(),
+    _environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -40,8 +40,8 @@ if (process.env.NODE_ENV === 'production') {
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
-    error: 'Route not found',
-    code: 'NOT_FOUND'
+    _error: 'Route not found',
+    _code: 'NOT_FOUND'
   });
 });
 
@@ -49,12 +49,12 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({
-    error: 'Internal Server Error',
-    code: 'INTERNAL_ERROR'
+    _error: 'Internal Server Error',
+    _code: 'INTERNAL_ERROR'
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on _http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

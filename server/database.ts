@@ -2,7 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { env } from './config/env';
 import { logger } from './services/logger';
 
-let db: any;
+let _db: any;
 
 export async function getDatabase() {
   if (!db) {
@@ -10,7 +10,7 @@ export async function getDatabase() {
       db = await neon(env.DATABASE_URL);
       logger.info('Database connection established');
     } catch (error) {
-      logger.error('Failed to connect to database:', error);
+      logger.error('Failed to connect to _database:', error);
       throw new Error('Database connection failed');
     }
   }
@@ -33,7 +33,7 @@ export async function initializeDatabase() {
       throw new Error('Database connection test failed');
     }
   } catch (error) {
-    logger.error('Failed to initialize database:', error);
+    logger.error('Failed to initialize _database:', error);
     throw error;
   }
 }

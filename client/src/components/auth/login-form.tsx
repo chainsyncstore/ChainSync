@@ -1,23 +1,23 @@
-import React from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuth, LoginCredentials } from '@/providers/auth-provider';
-import { Link } from 'wouter';
+import React from &apos;react&apos;;
+import { z } from &apos;zod&apos;;
+import { useForm } from &apos;react-hook-form&apos;;
+import { zodResolver } from &apos;@hookform/resolvers/zod&apos;;
+import { useAuth, LoginCredentials } from &apos;@/providers/auth-provider&apos;;
+import { Link } from &apos;wouter&apos;;
 
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from &apos;@/components/ui/form&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from &apos;@/components/ui/card&apos;;
+import { Alert, AlertDescription } from &apos;@/components/ui/alert&apos;;
+import { AlertCircle, Loader2 } from &apos;lucide-react&apos;;
+import { Checkbox } from &apos;@/components/ui/checkbox&apos;;
 
 // Form schema
 const formSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean().optional(),
+  _username: z.string().min(1, &apos;Username is required&apos;),
+  _password: z.string().min(1, &apos;Password is required&apos;),
+  _rememberMe: z.boolean().optional()
 });
 
 export type LoginFormValues = z.infer<typeof formSchema>;
@@ -28,26 +28,26 @@ export function LoginForm() {
 
   // Initialize form
   const form = useForm<LoginFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: '',
-      password: '',
-      rememberMe: false,
-    },
+    _resolver: zodResolver(formSchema),
+    _defaultValues: {
+      username: &apos;&apos;,
+      _password: &apos;&apos;,
+      _rememberMe: false
+    }
   });
 
   // Handle form submission
-  async function onSubmit(values: LoginFormValues) {
+  async function onSubmit(_values: LoginFormValues) {
     setFormError(null);
-    
+
     try {
       // Extract credentials from form values
-      const credentials: LoginCredentials = {
-        username: values.username,
-        password: values.password,
-        rememberMe: values.rememberMe,
+      const _credentials: LoginCredentials = {
+        _username: values.username,
+        _password: values.password,
+        _rememberMe: values.rememberMe
       };
-      
+
       // Call login function from auth provider
       await login(credentials);
     } catch (err) {
@@ -55,45 +55,45 @@ export function LoginForm() {
       if (err instanceof Error) {
         setFormError(err.message);
       } else {
-        setFormError('An unknown error occurred. Please try again.');
+        setFormError(&apos;An unknown error occurred. Please try again.&apos;);
       }
     }
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-bold">Login to ChainSync</CardTitle>
+    <Card className=&quot;w-full max-w-md mx-auto&quot;>
+      <CardHeader className=&quot;space-y-1 text-center&quot;>
+        <CardTitle className=&quot;text-2xl font-bold&quot;>Login to ChainSync</CardTitle>
         <CardDescription>
           Enter your credentials to access your account.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {(error || formError) && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4 mr-2" />
+          <Alert variant=&quot;destructive&quot; className=&quot;mb-4&quot;>
+            <AlertCircle className=&quot;h-4 w-4 mr-2&quot; />
             <AlertDescription>
-              {formError?.includes('401:') ? 'Invalid Username or Password' : 
-              (formError || (error instanceof Error ? 
-                (error.message.includes('401:') ? 'Invalid Username or Password' : error.message) 
-                : 'Authentication error'))}
+              {formError?.includes(&apos;401:&apos;) ? &apos;Invalid Username or Password&apos; :
+              (formError || (error instanceof Error ?
+                (error.message.includes(&apos;401:&apos;) ? &apos;Invalid Username or Password&apos; : error.message)
+                : &apos;Authentication error&apos;))}
             </AlertDescription>
           </Alert>
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className=&quot;space-y-4&quot;>
             <FormField
               control={form.control}
-              name="username"
+              name=&quot;username&quot;
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter your username" 
-                      autoComplete="username"
-                      {...field} 
+                    <Input
+                      placeholder=&quot;Enter your username&quot;
+                      autoComplete=&quot;username&quot;
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -103,23 +103,23 @@ export function LoginForm() {
 
             <FormField
               control={form.control}
-              name="password"
+              name=&quot;password&quot;
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center justify-between">
+                  <div className=&quot;flex items-center justify-between&quot;>
                     <FormLabel>Password</FormLabel>
-                    <Link href="/forgot-password">
-                      <span className="text-xs text-primary hover:underline cursor-pointer">
+                    <Link href=&quot;/forgot-password&quot;>
+                      <span className=&quot;text-xs text-primary _hover:underline cursor-pointer&quot;>
                         Forgot Password?
                       </span>
                     </Link>
                   </div>
                   <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="Enter your password"
-                      autoComplete="current-password" 
-                      {...field} 
+                    <Input
+                      type=&quot;password&quot;
+                      placeholder=&quot;Enter your password&quot;
+                      autoComplete=&quot;current-password&quot;
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -129,40 +129,40 @@ export function LoginForm() {
 
             <FormField
               control={form.control}
-              name="rememberMe"
+              name=&quot;rememberMe&quot;
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md">
+                <FormItem className=&quot;flex flex-row items-start space-x-3 space-y-0 rounded-md&quot;>
                   <FormControl>
                     <Checkbox
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <div className="space-y-1 leading-none">
+                  <div className=&quot;space-y-1 leading-none&quot;>
                     <FormLabel>Remember me</FormLabel>
                   </div>
                 </FormItem>
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type=&quot;submit&quot; className=&quot;w-full&quot; disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className=&quot;mr-2 h-4 w-4 animate-spin&quot; />
                   Logging in...
                 </>
               ) : (
-                'Login'
+                &apos;Login&apos;
               )}
             </Button>
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex flex-col items-center gap-2">
-        <p className="text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link href="/signup">
-            <span className="text-primary hover:underline cursor-pointer">
+      <CardFooter className=&quot;flex flex-col items-center gap-2&quot;>
+        <p className=&quot;text-sm text-muted-foreground&quot;>
+          Don&apos;t have an account?{&apos; &apos;}
+          <Link href=&quot;/signup&quot;>
+            <span className=&quot;text-primary _hover:underline cursor-pointer&quot;>
               Sign up
             </span>
           </Link>

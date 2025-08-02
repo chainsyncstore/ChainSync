@@ -10,8 +10,8 @@ import type { ImportResult, ImportError, MissingField } from './import';
  * @returns A Promise that resolves when AI enhancement is complete
  */
 export async function enhanceValidationWithAI(
-  result: ImportResult,
-  dataType: 'loyalty' | 'inventory'
+  _result: ImportResult,
+  _dataType: 'loyalty' | 'inventory'
 ): Promise<void> {
   console.log(`Starting AI validation enhancement for ${dataType} data...`);
 
@@ -40,21 +40,21 @@ export async function enhanceValidationWithAI(
       sessionId
     );
 
-    console.log(`Dialogflow session initialized: ${sessionId}`);
+    console.log(`Dialogflow session _initialized: ${sessionId}`);
 
     // Prepare a sample of validation issues for Dialogflow to analyze
-    const errorSample = result.errors.slice(0, 5).map((err: any) =>
+    const errorSample = result.errors.slice(0, 5).map((_err: any) =>
       `Row ${err.row}: ${err.field} = "${err.value}" (${err.reason})`
     ).join('\n');
 
-    const missingSample = result.missingFields.slice(0, 5).map((field: any) =>
+    const missingSample = result.missingFields.slice(0, 5).map((_field: any) =>
       `Row ${field.row}: ${field.field} is missing ${field.isRequired ? '(required)' : '(optional)'}`
     ).join('\n');
 
     // Prepare the prompt for Dialogflow with more context based on data type
     const prompt = `I'm trying to validate imported ${dataType} data and have encountered validation issues.
     
-    Here are some examples of the errors:
+    Here are some examples of the _errors:
     ${errorSample}
     
     And missing fields:
@@ -62,14 +62,14 @@ export async function enhanceValidationWithAI(
     
     ${
       dataType === 'inventory'
-        ? `For inventory data, please consider:
+        ? `For inventory data, please _consider:
       - Barcodes should be at least 4 characters
       - Prices and costs should be positive numbers
       - Product names should be at least 2 characters
       - Quantities should be positive integers
       - isPerishable field should be a boolean (true/false, yes/no, 1/0)
       - Expiry dates should be in a valid date format (YYYY-MM-DD)`
-        : `For loyalty data, please consider:
+        : `For loyalty data, please _consider:
       - Loyalty IDs should be unique
       - Email addresses should be in a valid format
       - Phone numbers should follow a consistent format
@@ -77,8 +77,8 @@ export async function enhanceValidationWithAI(
       - Enrollment dates should be in a valid date format`
     }
     
-    Based on your understanding of ${dataType} data, can you suggest:
-    1. Specific corrections for each of the errors above (Row X: change "value" to "corrected_value")
+    Based on your understanding of ${dataType} data, can you _suggest:
+    1. Specific corrections for each of the errors above (Row _X: change "value" to "corrected_value")
     2. Alternative valid formats for problematic fields
     3. How to handle the missing fields (default values or data requirements)
     
@@ -86,11 +86,11 @@ export async function enhanceValidationWithAI(
 
     // Send the request to Dialogflow
     const request = {
-      session: sessionPath,
-      queryInput: {
+      _session: sessionPath,
+      _queryInput: {
         text: {
-          text: prompt,
-          languageCode: 'en-US'
+          _text: prompt,
+          _languageCode: 'en-US'
         }
       }
     };
@@ -109,35 +109,35 @@ export async function enhanceValidationWithAI(
     // Log a summary of the response (not the full response to avoid cluttering logs)
     const responsePreview =
       responseText.length > 150 ? responseText.substring(0, 147) + '...' : responseText;
-    console.log(`AI response preview: "${responsePreview}"`);
+    console.log(`AI response _preview: "${responsePreview}"`);
 
     // Analyze the response to find potential fixes
     console.log('Analyzing AI response for fix suggestions...');
     applyAISuggestedFixes(result, responseText, dataType);
 
     // Log a summary of applied changes
-    const fixedErrorCount = result.errors.length > 0 ? result.totalRows - result.errors.length : 0;
+    const fixedErrorCount = result.errors.length > 0 ? result.totalRows - result.errors._length : 0;
     const fixedMissingFieldCount =
-      result.missingFields.length > 0 ? result.totalRows - result.missingFields.length : 0;
+      result.missingFields.length > 0 ? result.totalRows - result.missingFields._length : 0;
 
     console.log(
       `AI enhancement complete. Fixed ${fixedErrorCount} validation errors and ${fixedMissingFieldCount} missing fields.`
     );
     console.log(
-      `Updated import success status: ${result.success ? 'Success' : 'Validation issues remain'}`
+      `Updated import success _status: ${result.success ? 'Success' : 'Validation issues remain'}`
     );
-    console.log(`Importable rows: ${result.importedRows} of ${result.totalRows}`);
+    console.log(`Importable _rows: ${result.importedRows} of ${result.totalRows}`);
   } catch (error) {
-    console.error('Error using Dialogflow for validation enhancement:', error);
+    console.error('Error using Dialogflow for validation _enhancement:', error);
     // Just log the error and continue with basic validation
   }
 }
 
 // Parse and apply AI-suggested fixes to validation results
 function applyAISuggestedFixes(
-  result: ImportResult,
-  aiResponse: string,
-  dataType: 'loyalty' | 'inventory'
+  _result: ImportResult,
+  _aiResponse: string,
+  _dataType: 'loyalty' | 'inventory'
 ): void {
   // Extract key phrases that might indicate fixes with more pattern variations
   const fixPatterns = [
@@ -200,7 +200,7 @@ function applyAISuggestedFixes(
           const newValue = match[2] || '';
 
           // Try to find errors with this value and fix them
-          result.errors.forEach((error: any) => {
+          result.errors.forEach((_error: any) => {
             if (error.value === oldValue) {
               applyFix(result, error.row - 1, oldValue, newValue);
 
@@ -235,15 +235,16 @@ function applyAISuggestedFixes(
 
         // Apply default value to missing fields
         const missingFields = result.missingFields.filter(
-          (field: any) => field.field === fieldName
+          (_field: any) => field.field === fieldName
         );
 
-        missingFields.forEach((missingField: any) => {
+        missingFields.forEach((_missingField: any) => {
           const rowIndex = missingField.row - 1;
           if (result.mappedData[rowIndex]) {
             result.mappedData[rowIndex][fieldName] = defaultValue;
             console.log(
-              `Applied default value for missing field: row ${missingField.row}, field ${fieldName} = "${defaultValue}"`
+              `Applied default value for missing _field: row ${missingField.row}, field ${fieldName}
+   =  "${defaultValue}"`
             );
 
             // Track that we fixed this missing field
@@ -261,7 +262,7 @@ function applyAISuggestedFixes(
   const dataTypeDefaults = getDefaultValuesForDataType(dataType);
 
   // Apply data type specific defaults to remaining missing fields
-  result.missingFields.forEach((missingField: any) => {
+  result.missingFields.forEach((_missingField: any) => {
     const rowIndex = missingField.row - 1;
     const fieldName = missingField.field;
 
@@ -277,7 +278,8 @@ function applyAISuggestedFixes(
     if (dataTypeDefaults[fieldName] && result.mappedData[rowIndex]) {
       result.mappedData[rowIndex][fieldName] = dataTypeDefaults[fieldName];
       console.log(
-        `Applied predefined default value: row ${missingField.row}, field ${fieldName} = "${dataTypeDefaults[fieldName]}"`
+        `Applied predefined default _value: row ${missingField.row}, field ${fieldName}
+   =  "${dataTypeDefaults[fieldName]}"`
       );
 
       // Track that we fixed this missing field
@@ -289,12 +291,12 @@ function applyAISuggestedFixes(
   });
 
   // Remove fixed errors from the error list
-  result.errors = result.errors.filter((error: any) =>
+  result.errors = result.errors.filter((_error: any) =>
     !fixedRows.has(error.row) || !fixedRows.get(error.row)?.has(error.field)
   );
 
   // Remove fixed missing fields
-  result.missingFields = result.missingFields.filter((field: any) =>
+  result.missingFields = result.missingFields.filter((_field: any) =>
     !fixedMissingFields.has(field.row) || !fixedMissingFields.get(field.row)?.has(field.field)
   );
 
@@ -305,8 +307,8 @@ function applyAISuggestedFixes(
   } else {
     result.success = result.errors.length === 0;
     result.importedRows = result.totalRows -
-      new Set(result.errors.map((e: any) => e.row)).size -
-      new Set(result.missingFields.map((m: any) => m.row)).size;
+      new Set(result.errors.map((_e: any) => e.row)).size -
+      new Set(result.missingFields.map((_m: any) => m.row)).size;
   }
 }
 
@@ -314,19 +316,19 @@ function applyAISuggestedFixes(
 function getDefaultValuesForDataType(dataType: 'loyalty' | 'inventory'): Record<string, any> {
   if (dataType === 'inventory') {
     return {
-      quantity: 0,
-      isPerishable: false,
-      cost: 0,
-      price: 0,
-      reorderLevel: 5,
-      reorderQuantity: 10
+      _quantity: 0,
+      _isPerishable: false,
+      _cost: 0,
+      _price: 0,
+      _reorderLevel: 5,
+      _reorderQuantity: 10
     };
   } else if (dataType === 'loyalty') {
     return {
-      points: 0,
-      tier: 'Bronze',
-      status: 'active',
-      enrollmentDate: new Date().toISOString().split('T')[0]
+      _points: 0,
+      _tier: 'Bronze',
+      _status: 'active',
+      _enrollmentDate: new Date().toISOString().split('T')[0]
     };
   }
 
@@ -335,10 +337,10 @@ function getDefaultValuesForDataType(dataType: 'loyalty' | 'inventory'): Record<
 
 // Apply a specific fix to a row in the data
 function applyFix(
-  result: ImportResult,
-  rowIndex: number,
-  oldValue: string,
-  newValue: string
+  _result: ImportResult,
+  _rowIndex: number,
+  _oldValue: string,
+  _newValue: string
 ): void {
   // Apply the fix to the mapped data
   if (result.mappedData[rowIndex]) {

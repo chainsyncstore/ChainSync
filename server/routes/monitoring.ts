@@ -6,43 +6,43 @@ import { getLogger } from '../../src/logging';
 import os from 'os';
 
 const router = express.Router();
-const logger = getLogger().child({ component: 'monitoring-api' });
+const logger = getLogger().child({ _component: 'monitoring-api' });
 
 // Store alerts in memory for demonstration
 // In production, these would be stored in a database
-const activeAlerts: any[] = [];
+const _activeAlerts: any[] = [];
 
 /**
  * @swagger
  * tags:
- *   name: Monitoring
- *   description: Monitoring and alerting endpoints
+ *   _name: Monitoring
+ *   _description: Monitoring and alerting endpoints
  */
 
 /**
  * @swagger
  * /api/v1/monitoring/health:
  *   get:
- *     summary: Get basic system health status
+ *     _summary: Get basic system health status
  *     tags: [Monitoring]
  *     security:
  *       - apiKey: []
  *     responses:
  *       200:
- *         description: System health information
+ *         _description: System health information
  *         content:
  *           application/json:
  *             schema:
- *               type: object
+ *               _type: object
  *               properties:
  *                 status:
- *                   type: string
+ *                   _type: string
  *                   enum: [healthy, degraded, unhealthy]
- *                 uptime:
- *                   type: number
+ *                 _uptime:
+ *                   _type: number
  *                 timestamp:
- *                   type: string
- *                   format: date-time
+ *                   _type: string
+ *                   _format: date-time
  */
 router.get('/health', (req, res) => {
   try {
@@ -60,52 +60,52 @@ router.get('/health', (req, res) => {
     });
   } catch (error) {
     logger.error('Error getting health status', error as Error);
-    res.status(500).json({ error: 'Failed to retrieve health status' });
+    res.status(500).json({ _error: 'Failed to retrieve health status' });
   }
 });
 
 /**
  * @swagger
  * /api/v1/monitoring/metrics:
- *   get:
- *     summary: Get detailed system metrics
+ *   _get:
+ *     _summary: Get detailed system metrics
  *     tags: [Monitoring]
  *     security:
  *       - apiKey: []
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: System metrics
+ *         _description: System metrics
  *         content:
  *           application/json:
  *             schema:
- *               type: array
+ *               _type: array
  *               items:
- *                 type: object
+ *                 _type: object
  *                 properties:
  *                   name:
- *                     type: string
+ *                     _type: string
  *                   value:
- *                     type: number
+ *                     _type: number
  *                   unit:
- *                     type: string
+ *                     _type: string
  *                   status:
- *                     type: string
+ *                     _type: string
  *                     enum: [normal, warning, critical]
- *                   threshold:
- *                     type: object
+ *                   _threshold:
+ *                     _type: object
  *                     properties:
  *                       warning:
- *                         type: number
+ *                         _type: number
  *                       critical:
- *                         type: number
+ *                         _type: number
  *                   timestamp:
- *                     type: string
- *                     format: date-time
+ *                     _type: string
+ *                     _format: date-time
  *       401:
- *         description: Unauthorized
+ *         _description: Unauthorized
  *       403:
- *         description: Forbidden
+ *         _description: Forbidden
  */
 router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async(req, res) => {
   try {
@@ -127,13 +127,13 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async(req, r
     }
 
     metrics.push({
-      name: 'CPU Usage',
-      value: parseFloat(cpuUsage.toFixed(2)),
-      unit: '%',
-      status: cpuStatus,
-      threshold: {
-        warning: cpuWarningThreshold,
-        critical: cpuCriticalThreshold
+      _name: 'CPU Usage',
+      _value: parseFloat(cpuUsage.toFixed(2)),
+      _unit: '%',
+      _status: cpuStatus,
+      _threshold: {
+        _warning: cpuWarningThreshold,
+        _critical: cpuCriticalThreshold
       },
       timestamp
     });
@@ -154,13 +154,13 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async(req, r
     }
 
     metrics.push({
-      name: 'Memory Usage',
-      value: parseFloat(memoryUsage.toFixed(2)),
-      unit: '%',
-      status: memoryStatus,
-      threshold: {
-        warning: memoryWarningThreshold,
-        critical: memoryCriticalThreshold
+      _name: 'Memory Usage',
+      _value: parseFloat(memoryUsage.toFixed(2)),
+      _unit: '%',
+      _status: memoryStatus,
+      _threshold: {
+        _warning: memoryWarningThreshold,
+        _critical: memoryCriticalThreshold
       },
       timestamp
     });
@@ -181,13 +181,13 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async(req, r
       }
 
       metrics.push({
-        name: 'DB Connections',
-        value: usedPercent,
-        unit: '%',
-        status: dbStatus,
-        threshold: {
-          warning: dbConnWarningThreshold,
-          critical: dbConnCriticalThreshold
+        _name: 'DB Connections',
+        _value: usedPercent,
+        _unit: '%',
+        _status: dbStatus,
+        _threshold: {
+          _warning: dbConnWarningThreshold,
+          _critical: dbConnCriticalThreshold
         },
         timestamp
       });
@@ -198,99 +198,100 @@ router.get('/metrics', authenticateUser, authorizeRoles(['admin']), async(req, r
     res.json(metrics);
   } catch (error) {
     logger.error('Error getting system metrics', error as Error);
-    res.status(500).json({ error: 'Failed to retrieve system metrics' });
+    res.status(500).json({ _error: 'Failed to retrieve system metrics' });
   }
 });
 
 /**
  * @swagger
  * /api/v1/monitoring/alerts:
- *   get:
- *     summary: Get active alerts
+ *   _get:
+ *     _summary: Get active alerts
  *     tags: [Monitoring]
  *     security:
  *       - apiKey: []
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Active system alerts
+ *         _description: Active system alerts
  *         content:
  *           application/json:
  *             schema:
- *               type: array
+ *               _type: array
  *               items:
- *                 type: object
+ *                 _type: object
  *                 properties:
  *                   id:
- *                     type: string
+ *                     _type: string
  *                   key:
- *                     type: string
+ *                     _type: string
  *                   message:
- *                     type: string
+ *                     _type: string
  *                   level:
- *                     type: string
+ *                     _type: string
  *                     enum: [info, warning, error, critical]
- *                   timestamp:
- *                     type: string
- *                     format: date-time
+ *                   _timestamp:
+ *                     _type: string
+ *                     _format: date-time
  *                   acknowledged:
- *                     type: boolean
+ *                     _type: boolean
  *       401:
- *         description: Unauthorized
+ *         _description: Unauthorized
  *       403:
- *         description: Forbidden
+ *         _description: Forbidden
  */
 router.get('/alerts', authenticateUser, authorizeRoles(['admin']), (req, res) => {
   try {
     res.json(activeAlerts);
   } catch (error) {
     logger.error('Error getting alerts', error as Error);
-    res.status(500).json({ error: 'Failed to retrieve alerts' });
+    res.status(500).json({ _error: 'Failed to retrieve alerts' });
   }
 });
 
 /**
  * @swagger
  * /api/v1/monitoring/alerts/{id}/acknowledge:
- *   post:
- *     summary: Acknowledge an alert
+ *   _post:
+ *     _summary: Acknowledge an alert
  *     tags: [Monitoring]
  *     security:
  *       - apiKey: []
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *       - _in: path
+ *         _name: id
+ *         _required: true
  *         schema:
- *           type: string
- *         description: Alert ID
+ *           _type: string
+ *         _description: Alert ID
  *     responses:
  *       200:
- *         description: Alert acknowledged
+ *         _description: Alert acknowledged
  *         content:
  *           application/json:
  *             schema:
- *               type: object
+ *               _type: object
  *               properties:
  *                 success:
- *                   type: boolean
+ *                   _type: boolean
  *                 id:
- *                   type: string
+ *                   _type: string
  *       404:
- *         description: Alert not found
+ *         _description: Alert not found
  *       401:
- *         description: Unauthorized
+ *         _description: Unauthorized
  *       403:
- *         description: Forbidden
+ *         _description: Forbidden
  */
-router.post('/alerts/:id/acknowledge', authenticateUser, authorizeRoles(['admin']), (req, res): void => {
+router.post('/alerts/:id/acknowledge', authenticateUser, authorizeRoles(['admin']), (req, res): void
+   = > {
   try {
     const alertId = req.params.id;
     const alertIndex = activeAlerts.findIndex(alert => alert.id === alertId);
 
     if (alertIndex === -1) {
-      res.status(404).json({ error: 'Alert not found' });
+      res.status(404).json({ _error: 'Alert not found' });
       return;
     }
 
@@ -301,85 +302,85 @@ router.post('/alerts/:id/acknowledge', authenticateUser, authorizeRoles(['admin'
     logger.info(`Alert ${alertId} acknowledged by user ${(req as any).user?.id || 'unknown'}`);
 
     res.json({
-      success: true,
-      id: alertId
+      _success: true,
+      _id: alertId
     });
   } catch (error) {
     logger.error('Error acknowledging alert', error as Error);
-    res.status(500).json({ error: 'Failed to acknowledge alert' });
+    res.status(500).json({ _error: 'Failed to acknowledge alert' });
   }
 });
 
 /**
  * @swagger
  * /api/v1/monitoring/simulate-alert:
- *   post:
- *     summary: Simulate an alert (for testing)
- *     tags: [Monitoring]
+ *   _post:
+ *     _summary: Simulate an alert (for testing)
+ *     _tags: [Monitoring]
  *     security:
  *       - apiKey: []
  *       - bearerAuth: []
  *     requestBody:
- *       required: true
+ *       _required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             _type: object
  *             properties:
  *               level:
- *                 type: string
+ *                 _type: string
  *                 enum: [info, warning, error, critical]
- *               message:
- *                 type: string
+ *               _message:
+ *                 _type: string
  *     responses:
  *       200:
- *         description: Alert created
+ *         _description: Alert created
  *         content:
  *           application/json:
  *             schema:
- *               type: object
+ *               _type: object
  *               properties:
  *                 success:
- *                   type: boolean
+ *                   _type: boolean
  *                 alert:
- *                   type: object
+ *                   _type: object
  *       401:
- *         description: Unauthorized
+ *         _description: Unauthorized
  *       403:
- *         description: Forbidden
+ *         _description: Forbidden
  */
 router.post('/simulate-alert', authenticateUser, authorizeRoles(['admin']), (req, res): void => {
   try {
     const { level, message } = req.body;
 
     if (!level || !message) {
-      res.status(400).json({ error: 'Level and message are required' });
+      res.status(400).json({ _error: 'Level and message are required' });
       return;
     }
 
     // Create a new alert
     const newAlert = {
-      id: `alert-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      key: `simulated-${level}-${Date.now()}`,
+      _id: `alert-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      _key: `simulated-${level}-${Date.now()}`,
       message,
       level,
-      timestamp: new Date().toISOString(),
-      acknowledged: false
+      _timestamp: new Date().toISOString(),
+      _acknowledged: false
     };
 
     // Add to active alerts
     activeAlerts.push(newAlert);
 
     // Log the alert
-    logger.info(`Simulated alert created: ${level} - ${message}`);
+    logger.info(`Simulated alert _created: ${level} - ${message}`);
 
     res.json({
-      success: true,
-      alert: newAlert
+      _success: true,
+      _alert: newAlert
     });
   } catch (error) {
     logger.error('Error creating simulated alert', error as Error);
-    res.status(500).json({ error: 'Failed to create simulated alert' });
+    res.status(500).json({ _error: 'Failed to create simulated alert' });
   }
 });
 

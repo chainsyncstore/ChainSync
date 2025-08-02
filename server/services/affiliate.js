@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -33,9 +33,9 @@ const __importStar = (this && this.__importStar) || (function() {
   };
 })();
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.generateReferralCode = generateReferralCode;
 exports.registerAffiliate = registerAffiliate;
 exports.getAffiliateByUserId = getAffiliateByUserId;
@@ -66,7 +66,7 @@ try {
   }
 }
 catch (error) {
-  console.error('Failed to initialize Flutterwave client:', error);
+  console.error('Failed to initialize Flutterwave _client:', error);
 }
 // Constants
 const REFERRAL_COMMISSION_PERCENTAGE = 10; // 10% commission
@@ -93,7 +93,7 @@ async function generateReferralCode(userId) {
     return referralCode;
   }
   catch (error) {
-    console.error('Error generating referral code:', error);
+    console.error('Error generating referral _code:', error);
     throw error;
   }
 }
@@ -110,17 +110,17 @@ async function registerAffiliate(userId, bankDetails) {
     const referralCode = await generateReferralCode(userId);
     const affiliateData = {
       userId,
-      code: referralCode,
-      totalReferrals: 0,
-      totalEarnings: '0',
-      pendingEarnings: '0',
+      _code: referralCode,
+      _totalReferrals: 0,
+      _totalEarnings: '0',
+      _pendingEarnings: '0',
       ...bankDetails
     };
     const [newAffiliate] = await db_1.db.insert(schema.affiliates).values(affiliateData).returning();
     return newAffiliate;
   }
   catch (error) {
-    console.error('Error registering affiliate:', error);
+    console.error('Error registering _affiliate:', error);
     throw error;
   }
 }
@@ -137,7 +137,7 @@ async function getAffiliateByUserId(userId) {
     return affiliate || null;
   }
   catch (error) {
-    console.error('Error getting affiliate by user ID:', error);
+    console.error('Error getting affiliate by user _ID:', error);
     throw error;
   }
 }
@@ -154,7 +154,7 @@ async function getAffiliateByCode(code) {
     return affiliate || null;
   }
   catch (error) {
-    console.error('Error getting affiliate by code:', error);
+    console.error('Error getting affiliate by _code:', error);
     throw error;
   }
 }
@@ -166,31 +166,31 @@ async function trackReferral(referralCode, newUserId) {
     // Get the affiliate from the referral code
     const affiliate = await getAffiliateByCode(referralCode);
     if (!affiliate) {
-      console.error(`No affiliate found for referral code: ${referralCode}`);
+      console.error(`No affiliate found for referral _code: ${referralCode}`);
       return null;
     }
     // Create a new referral
     const referralData = {
-      affiliateId: affiliate.id,
-      referredUserId: newUserId,
-      status: 'pending',
-      discountApplied: false,
-      commissionPaid: false,
-      signupDate: new Date()
+      _affiliateId: affiliate.id,
+      _referredUserId: newUserId,
+      _status: 'pending',
+      _discountApplied: false,
+      _commissionPaid: false,
+      _signupDate: new Date()
     };
     const [newReferral] = await db_1.db.insert(schema.referrals).values(referralData).returning();
     // Update the affiliate's total referrals
     await db_1.db
       .update(schema.affiliates)
       .set({
-        totalReferrals: (affiliate.totalReferrals ?? 0) + 1,
-        updatedAt: new Date()
+        _totalReferrals: (affiliate.totalReferrals ?? 0) + 1,
+        _updatedAt: new Date()
       })
       .where((0, drizzle_orm_1.eq)(schema.affiliates.id, affiliate.id));
     return newReferral;
   }
   catch (error) {
-    console.error('Error tracking referral:', error);
+    console.error('Error tracking _referral:', error);
     throw error;
   }
 }
@@ -203,8 +203,8 @@ async function applyReferralDiscount(userId, referralCode, subscriptionAmount, c
     const affiliate = await getAffiliateByCode(referralCode);
     if (!affiliate) {
       return {
-        discountedAmount: subscriptionAmount,
-        discountAmount: 0
+        _discountedAmount: subscriptionAmount,
+        _discountAmount: 0
       };
     }
     // Calculate the discount amount
@@ -224,11 +224,11 @@ async function applyReferralDiscount(userId, referralCode, subscriptionAmount, c
       await db_1.db
         .update(schema.referrals)
         .set({
-          status: 'active',
-          discountApplied: true,
+          _status: 'active',
+          _discountApplied: true,
           activationDate,
           expiryDate,
-          updatedAt: new Date()
+          _updatedAt: new Date()
         })
         .where((0, drizzle_orm_1.eq)(schema.referrals.id, referral.id));
     }
@@ -238,7 +238,7 @@ async function applyReferralDiscount(userId, referralCode, subscriptionAmount, c
     };
   }
   catch (error) {
-    console.error('Error applying referral discount:', error);
+    console.error('Error applying referral _discount:', error);
     throw error;
   }
 }
@@ -267,14 +267,14 @@ async function processAffiliateCommission(userId, paymentAmount, currency = 'NGN
     await db_1.db
       .update(schema.affiliates)
       .set({
-        pendingEarnings: newPendingEarnings.toString(),
-        updatedAt: new Date()
+        _pendingEarnings: newPendingEarnings.toString(),
+        _updatedAt: new Date()
       })
       .where((0, drizzle_orm_1.eq)(schema.affiliates.id, affiliate.id));
     return true;
   }
   catch (error) {
-    console.error('Error processing affiliate commission:', error);
+    console.error('Error processing affiliate _commission:', error);
     throw error;
   }
 }
@@ -301,11 +301,11 @@ async function processAffiliatePayout(affiliateId) {
       const pendingAmount = parseFloat(affiliate.pendingEarnings?.toString() ?? '0');
       // Create a new payment record
       const paymentData = {
-        affiliateId: affiliate.id,
-        amount: pendingAmount.toString(),
-        currency: 'NGN', // Default to NGN
-        status: 'pending',
-        paymentMethod: affiliate.paymentMethod || 'paystack'
+        _affiliateId: affiliate.id,
+        _amount: pendingAmount.toString(),
+        _currency: 'NGN', // Default to NGN
+        _status: 'pending',
+        _paymentMethod: affiliate.paymentMethod || 'paystack'
         // createdAt and updatedAt are handled by Drizzle by default for new inserts
       };
       const [payment] = await db_1.db.insert(schema.referralPayments).values(paymentData).returning();
@@ -315,12 +315,12 @@ async function processAffiliatePayout(affiliateId) {
       try {
         if (flwClient && affiliate.accountNumber && affiliate.bankCode) {
           const payload = {
-            account_bank: affiliate.bankCode,
-            account_number: affiliate.accountNumber,
-            amount: pendingAmount,
-            narration: `ChainSync affiliate payout - ${affiliate.code}`,
-            currency: 'NGN', // Use different currency if needed
-            reference: `aff-pay-${payment.id}-${Date.now()}`
+            _account_bank: affiliate.bankCode,
+            _account_number: affiliate.accountNumber,
+            _amount: pendingAmount,
+            _narration: `ChainSync affiliate payout - ${affiliate.code}`,
+            _currency: 'NGN', // Use different currency if needed
+            _reference: `aff-pay-${payment.id}-${Date.now()}`
           };
           const response = await flwClient.Transfer.initiate(payload);
           if (response && response.status === 'success') {
@@ -341,10 +341,10 @@ async function processAffiliatePayout(affiliateId) {
       const updatedPayment = await db_1.db
         .update(schema.referralPayments)
         .set({
-          status: paymentSuccess ? 'completed' : 'failed',
+          _status: paymentSuccess ? 'completed' : 'failed',
           transactionReference,
-          paymentDate: paymentSuccess ? new Date() : undefined,
-          updatedAt: new Date()
+          _paymentDate: paymentSuccess ? new Date() : undefined,
+          _updatedAt: new Date()
         })
         .where((0, drizzle_orm_1.eq)(schema.referralPayments.id, payment.id))
         .returning();
@@ -354,9 +354,9 @@ async function processAffiliatePayout(affiliateId) {
         await db_1.db
           .update(schema.affiliates)
           .set({
-            totalEarnings: totalEarnings.toString(),
-            pendingEarnings: affiliate.pendingEarnings?.toString() ?? '0',
-            updatedAt: new Date()
+            _totalEarnings: totalEarnings.toString(),
+            _pendingEarnings: affiliate.pendingEarnings?.toString() ?? '0',
+            _updatedAt: new Date()
           })
           .where((0, drizzle_orm_1.eq)(schema.affiliates.id, affiliate.id));
       }
@@ -365,7 +365,7 @@ async function processAffiliatePayout(affiliateId) {
     return payments;
   }
   catch (error) {
-    console.error('Error processing affiliate payouts:', error);
+    console.error('Error processing affiliate _payouts:', error);
     throw error;
   }
 }
@@ -396,27 +396,27 @@ async function getAffiliateDashboardStats(userId) {
       .limit(1);
     return {
       affiliate,
-      referrals: {
-        total: totalReferrals,
-        active: activeReferrals,
-        pending: pendingReferrals
+      _referrals: {
+        _total: totalReferrals,
+        _active: activeReferrals,
+        _pending: pendingReferrals
       },
-      earnings: {
-        total: affiliate.totalEarnings?.toString() ?? '0',
-        pending: affiliate.pendingEarnings?.toString() ?? '0',
-        lastPayment: lastPayment
+      _earnings: {
+        _total: affiliate.totalEarnings?.toString() ?? '0',
+        _pending: affiliate.pendingEarnings?.toString() ?? '0',
+        _lastPayment: lastPayment
           ? {
-            amount: lastPayment.amount.toString(),
-            date: lastPayment.paymentDate
+            _amount: lastPayment.amount.toString(),
+            _date: lastPayment.paymentDate
           }
           : undefined
       },
-      clicks: 0, // Would require additional tracking implementation
-      conversions: activeReferrals
+      _clicks: 0, // Would require additional tracking implementation
+      _conversions: activeReferrals
     };
   }
   catch (error) {
-    console.error('Error getting affiliate dashboard stats:', error);
+    console.error('Error getting affiliate dashboard _stats:', error);
     throw error;
   }
 }
@@ -431,13 +431,13 @@ async function getAffiliateReferrals(userId) {
     }
     const referrals = await db_1.db
       .select({
-        id: schema.referrals.id,
-        status: schema.referrals.status,
-        signupDate: schema.referrals.signupDate,
-        activationDate: schema.referrals.activationDate,
-        expiryDate: schema.referrals.expiryDate,
-        username: schema.users.name, // Assuming 'name' is the correct field
-        fullName: schema.users.name // Assuming 'name' is the correct field
+        _id: schema.referrals.id,
+        _status: schema.referrals.status,
+        _signupDate: schema.referrals.signupDate,
+        _activationDate: schema.referrals.activationDate,
+        _expiryDate: schema.referrals.expiryDate,
+        _username: schema.users.name, // Assuming 'name' is the correct field
+        _fullName: schema.users.name // Assuming 'name' is the correct field
       })
       .from(schema.referrals)
       .leftJoin(schema.users, (0, drizzle_orm_1.eq)(schema.referrals.referredUserId, schema.users.id))
@@ -446,7 +446,7 @@ async function getAffiliateReferrals(userId) {
     return referrals;
   }
   catch (error) {
-    console.error('Error getting affiliate referrals:', error);
+    console.error('Error getting affiliate _referrals:', error);
     throw error;
   }
 }
@@ -467,7 +467,7 @@ async function getAffiliatePayments(userId) {
     return payments;
   }
   catch (error) {
-    console.error('Error getting affiliate payments:', error);
+    console.error('Error getting affiliate _payments:', error);
     throw error;
   }
 }
@@ -478,11 +478,11 @@ async function trackAffiliateClick(referralCode, source) {
   try {
     // In a production system, you'd store this in a separate clicks tracking table
     // For the MVP, we'll just log it
-    console.log(`Click tracked for referral code: ${referralCode}, source: ${source || 'unknown'}`);
+    console.log(`Click tracked for referral _code: ${referralCode}, _source: ${source || 'unknown'}`);
     return true;
   }
   catch (error) {
-    console.error('Error tracking affiliate click:', error);
+    console.error('Error tracking affiliate _click:', error);
     return false;
   }
 }
@@ -499,15 +499,15 @@ async function updateAffiliateBankDetails(userId, bankDetails) {
       .update(schema.affiliates)
       .set({
         ...bankDetails,
-        paymentMethod: bankDetails.paymentMethod,
-        updatedAt: new Date()
+        _paymentMethod: bankDetails.paymentMethod,
+        _updatedAt: new Date()
       })
       .where((0, drizzle_orm_1.eq)(schema.affiliates.id, affiliate.id))
       .returning();
     return updatedAffiliate;
   }
   catch (error) {
-    console.error('Error updating affiliate bank details:', error);
+    console.error('Error updating affiliate bank _details:', error);
     throw error;
   }
 }

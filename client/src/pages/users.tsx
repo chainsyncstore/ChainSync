@@ -1,28 +1,28 @@
-import { useState } from 'react';
-import { AppShell } from '@/components/layout/app-shell';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/providers/auth-provider';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from &apos;react&apos;;
+import { AppShell } from &apos;@/components/layout/app-shell&apos;;
+import { useQuery, useMutation, useQueryClient } from &apos;@tanstack/react-query&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { z } from &apos;zod&apos;;
+import { useForm } from &apos;react-hook-form&apos;;
+import { zodResolver } from &apos;@hookform/resolvers/zod&apos;;
 
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  TableRow
+} from &apos;@/components/ui/table&apos;;
 import {
   Dialog,
   DialogContent,
@@ -30,8 +30,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+  DialogTrigger
+} from &apos;@/components/ui/dialog&apos;;
 import {
   Form,
   FormControl,
@@ -39,32 +39,32 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+  FormMessage
+} from &apos;@/components/ui/form&apos;;
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Search, RefreshCw, PlusIcon, Edit, Trash2 } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+  SelectValue
+} from &apos;@/components/ui/select&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Skeleton } from &apos;@/components/ui/skeleton&apos;;
+import { Badge } from &apos;@/components/ui/badge&apos;;
+import { Search, RefreshCw, PlusIcon, Edit, Trash2 } from &apos;lucide-react&apos;;
+import { formatDate } from &apos;@/lib/utils&apos;;
 
 // Form schema for user creation/editing
 const userFormSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  role: z.enum(["admin", "manager", "cashier"], {
-    required_error: "Please select a role",
+  _username: z.string().min(3, &apos;Username must be at least 3 characters&apos;),
+  _password: z.string().min(6, &apos;Password must be at least 6 characters&apos;),
+  _fullName: z.string().min(2, &apos;Full name must be at least 2 characters&apos;),
+  _email: z.string().email(&apos;Please enter a valid email address&apos;),
+  _role: z.enum([&apos;admin&apos;, &apos;manager&apos;, &apos;cashier&apos;], {
+    _required_error: &apos;Please select a role&apos;
   }),
-  storeId: z.string().optional(),
+  _storeId: z.string().optional()
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -73,179 +73,179 @@ export default function UsersPage() {
   const { toast } = useToast();
   useAuth(); // user variable was unused
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(&apos;&apos;);
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Form for user creation
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-      fullName: "",
-      email: "",
-      role: "cashier",
-      storeId: "",
-    },
+    _resolver: zodResolver(userFormSchema),
+    _defaultValues: {
+      username: &apos;&apos;,
+      _password: &apos;&apos;,
+      _fullName: &apos;&apos;,
+      _email: &apos;&apos;,
+      _role: &apos;cashier&apos;,
+      _storeId: &apos;&apos;
+    }
   });
-  
+
   // Fetch users
-  const { data: users, isLoading: isLoadingUsers, refetch } = useQuery({
-    queryKey: ['/api/users'],
+  const { _data: users, _isLoading: isLoadingUsers, refetch } = useQuery({
+    _queryKey: [&apos;/api/users&apos;]
   });
-  
+
   // Fetch stores for assigning users
-  const { data: stores } = useQuery({ // isLoadingStores was unused
-    queryKey: ['/api/stores'],
+  const { _data: stores } = useQuery({ // isLoadingStores was unused
+    queryKey: [&apos;/api/stores&apos;]
   });
-  
+
   // Create user mutation
   const createUserMutation = useMutation({
-    mutationFn: async (userData: UserFormValues) => {
+    _mutationFn: async(_userData: UserFormValues) => {
       // Convert storeId to number if provided
       const payload = {
         ...userData,
-        storeId: userData.storeId ? parseInt(userData.storeId) : undefined,
+        _storeId: userData.storeId ? parseInt(userData.storeId) : undefined
       };
-      
-      const response = await apiRequest('POST', '/api/users', payload);
+
+      const response = await apiRequest(&apos;POST&apos;, &apos;/api/users&apos;, payload);
       return response.json();
     },
-    onSuccess: () => {
+    _onSuccess: () => {
       toast({
-        title: "User created",
-        description: "The user has been created successfully.",
+        _title: &apos;User created&apos;,
+        _description: &apos;The user has been created successfully.&apos;
       });
       setIsOpen(false);
       form.reset();
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/users&apos;] });
     },
-    onError: (error) => {
+    _onError: (error) => {
       toast({
-        title: "Error creating user",
-        description: "There was an error creating the user. Please try again.",
-        variant: "destructive",
+        _title: &apos;Error creating user&apos;,
+        _description: &apos;There was an error creating the user. Please try again.&apos;,
+        _variant: &apos;destructive&apos;
       });
-      console.error('Error creating user:', error);
-    },
+      console.error(&apos;Error creating _user:&apos;, error);
+    }
   });
-  
+
   // Handle form submission
-  const onSubmit = (data: UserFormValues) => {
+  const onSubmit = (_data: UserFormValues) => {
     createUserMutation.mutate(data);
   };
-  
+
   // Define user and store type interfaces for better TypeScript support
   interface UserType {
-    id: number;
-    username: string;
-    fullName: string;
-    email: string;
-    role: string;
-    store?: { name: string };
+    _id: number;
+    _username: string;
+    _fullName: string;
+    _email: string;
+    _role: string;
+    store?: { _name: string };
     lastLogin?: string;
   }
-  
+
   interface StoreType {
-    id: number;
-    name: string;
+    _id: number;
+    _name: string;
   }
-  
+
   // Filter users based on search term
-  const filteredUsers = users ? (users as UserType[]).filter((user) => 
+  const filteredUsers = users ? (users as UserType[]).filter((user) =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
-  
+
   return (
     <AppShell>
-      <div className="mb-6 flex items-center justify-between">
+      <div className=&quot;mb-6 flex items-center justify-between&quot;>
         <div>
-          <h1 className="text-2xl font-bold text-neutral-800">User Management</h1>
-          <p className="text-neutral-500 mt-1">Manage user accounts and access permissions</p>
+          <h1 className=&quot;text-2xl font-bold text-neutral-800&quot;>User Management</h1>
+          <p className=&quot;text-neutral-500 mt-1&quot;>Manage user accounts and access permissions</p>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
+        <div className=&quot;flex space-x-2&quot;>
+          <Button variant=&quot;outline&quot; size=&quot;icon&quot; onClick={() => refetch()}>
+            <RefreshCw className=&quot;h-4 w-4&quot; />
           </Button>
-          
+
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button>
-                <PlusIcon className="w-4 h-4 mr-2" />
+                <PlusIcon className=&quot;w-4 h-4 mr-2&quot; />
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className=&quot;_sm:max-w-[425px] max-h-[90vh] overflow-y-auto&quot;>
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
                 <DialogDescription>
                   Add a new user to the system. Fill in all required fields.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className=&quot;space-y-4&quot;>
                   <FormField
                     control={form.control}
-                    name="username"
+                    name=&quot;username&quot;
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Username</FormLabel>
                         <FormControl>
-                          <Input placeholder="username" {...field} />
+                          <Input placeholder=&quot;username&quot; {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
-                    name="password"
+                    name=&quot;password&quot;
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="******" {...field} />
+                          <Input type=&quot;password&quot; placeholder=&quot;******&quot; {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
-                    name="fullName"
+                    name=&quot;fullName&quot;
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="John Doe" {...field} />
+                          <Input placeholder=&quot;John Doe&quot; {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
-                    name="email"
+                    name=&quot;email&quot;
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="user@example.com" {...field} />
+                          <Input placeholder=&quot;user@example.com&quot; {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
-                    name="role"
+                    name=&quot;role&quot;
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Role</FormLabel>
@@ -255,27 +255,27 @@ export default function UsersPage() {
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a role" />
+                              <SelectValue placeholder=&quot;Select a role&quot; />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="manager">Manager</SelectItem>
-                            <SelectItem value="cashier">Cashier</SelectItem>
+                            <SelectItem value=&quot;admin&quot;>Admin</SelectItem>
+                            <SelectItem value=&quot;manager&quot;>Manager</SelectItem>
+                            <SelectItem value=&quot;cashier&quot;>Cashier</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          This determines the user's permissions in the system.
+                          This determines the user&apos;s permissions in the system.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
-                  {form.watch('role') !== 'admin' && (
+
+                  {form.watch(&apos;role&apos;) !== &apos;admin&apos; && (
                     <FormField
                       control={form.control}
-                      name="storeId"
+                      name=&quot;storeId&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Assigned Store</FormLabel>
@@ -285,7 +285,7 @@ export default function UsersPage() {
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a store" />
+                                <SelectValue placeholder=&quot;Select a store&quot; />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -297,20 +297,20 @@ export default function UsersPage() {
                             </SelectContent>
                           </Select>
                           <FormDescription>
-                            {form.watch('role') === 'manager' 
-                              ? "Managers are responsible for a specific store." 
-                              : "Cashiers must be assigned to a specific store."}
+                            {form.watch(&apos;role&apos;) === &apos;manager&apos;
+                              ? &apos;Managers are responsible for a specific store.&apos;
+                              : &apos;Cashiers must be assigned to a specific store.&apos;}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
-                  
-                  <DialogFooter className="flex justify-between">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+
+                  <DialogFooter className=&quot;flex justify-between&quot;>
+                    <Button
+                      type=&quot;button&quot;
+                      variant=&quot;outline&quot;
                       onClick={() => {
                         setIsOpen(false);
                         form.reset();
@@ -318,11 +318,11 @@ export default function UsersPage() {
                     >
                       Cancel
                     </Button>
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type=&quot;submit&quot;
                       disabled={createUserMutation.isPending}
                     >
-                      {createUserMutation.isPending ? "Creating..." : "Create User"}
+                      {createUserMutation.isPending ? &apos;Creating...&apos; : &apos;Create User&apos;}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -331,17 +331,17 @@ export default function UsersPage() {
           </Dialog>
         </div>
       </div>
-      
+
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+        <CardHeader className=&quot;pb-3&quot;>
+          <div className=&quot;flex items-center justify-between&quot;>
             <CardTitle>User Accounts</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className=&quot;relative w-64&quot;>
+              <Search className=&quot;absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground&quot; />
               <Input
-                type="search"
-                placeholder="Search users..."
-                className="pl-8"
+                type=&quot;search&quot;
+                placeholder=&quot;Search users...&quot;
+                className=&quot;pl-8&quot;
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -350,13 +350,13 @@ export default function UsersPage() {
         </CardHeader>
         <CardContent>
           {isLoadingUsers ? (
-            <div className="space-y-2">
+            <div className=&quot;space-y-2&quot;>
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-[250px]" />
-                    <Skeleton className="h-4 w-[200px]" />
+                <div key={i} className=&quot;flex items-center space-x-4&quot;>
+                  <Skeleton className=&quot;h-12 w-12 rounded-full&quot; />
+                  <div className=&quot;space-y-2&quot;>
+                    <Skeleton className=&quot;h-4 w-[250px]&quot; />
+                    <Skeleton className=&quot;h-4 w-[200px]&quot; />
                   </div>
                 </div>
               ))}
@@ -371,39 +371,39 @@ export default function UsersPage() {
                   <TableHead>Role</TableHead>
                   <TableHead>Assigned Store</TableHead>
                   <TableHead>Last Login</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className=&quot;text-right&quot;>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
+                    <TableCell colSpan={7} className=&quot;text-center&quot;>
                       No users found matching your search.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user: UserType) => (
+                  filteredUsers.map((_user: UserType) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.fullName}</TableCell>
+                      <TableCell className=&quot;font-medium&quot;>{user.fullName}</TableCell>
                       <TableCell>{user.username}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <Badge variant={user.role === 'admin' ? 'default' : user.role === 'manager' ? 'secondary' : 'outline'}>
+                        <Badge variant={user.role === &apos;admin&apos; ? &apos;default&apos; : user.role === &apos;manager&apos; ? &apos;secondary&apos; : &apos;outline&apos;}>
                           {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {user.store?.name || (user.role === 'admin' ? "All Stores" : "Unassigned")}
+                        {user.store?.name || (user.role === &apos;admin&apos; ? &apos;All Stores&apos; : &apos;Unassigned&apos;)}
                       </TableCell>
                       <TableCell>
-                        {user.lastLogin ? formatDate(user.lastLogin) : "Never"}
+                        {user.lastLogin ? formatDate(user.lastLogin) : &apos;Never&apos;}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                          <Edit className="h-4 w-4" />
+                      <TableCell className=&quot;text-right&quot;>
+                        <Button variant=&quot;ghost&quot; size=&quot;icon&quot; className=&quot;text-muted-foreground _hover:text-foreground&quot;>
+                          <Edit className=&quot;h-4 w-4&quot; />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant=&quot;ghost&quot; size=&quot;icon&quot; className=&quot;text-muted-foreground _hover:text-destructive&quot;>
+                          <Trash2 className=&quot;h-4 w-4&quot; />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -413,15 +413,15 @@ export default function UsersPage() {
             </Table>
           )}
         </CardContent>
-        <CardFooter className="flex justify-between items-center border-t p-4">
-          <div className="text-sm text-muted-foreground">
+        <CardFooter className=&quot;flex justify-between items-center border-t p-4&quot;>
+          <div className=&quot;text-sm text-muted-foreground&quot;>
             Showing {filteredUsers.length || 0} of {(users as UserType[] | undefined)?.length || 0} users
           </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm" disabled>
+          <div className=&quot;flex space-x-2&quot;>
+            <Button variant=&quot;outline&quot; size=&quot;sm&quot; disabled>
               Previous
             </Button>
-            <Button variant="outline" size="sm" disabled>
+            <Button variant=&quot;outline&quot; size=&quot;sm&quot; disabled>
               Next
             </Button>
           </div>

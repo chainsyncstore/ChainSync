@@ -9,7 +9,7 @@ import * as dotenv from 'dotenv';
 import { getLogger } from '../src/logging';
 
 const execAsync = promisify(exec);
-const logger = getLogger().child({ component: 'blue-green-deployment' });
+const logger = getLogger().child({ _component: 'blue-green-deployment' });
 
 // Load environment variables
 dotenv.config();
@@ -17,61 +17,61 @@ dotenv.config();
 // Deployment configuration
 interface DeploymentConfig {
   // Base domain for the application
-  baseDomain: string;
+  _baseDomain: string;
   // Blue environment name
-  blueEnv: string;
+  _blueEnv: string;
   // Green environment name
-  greenEnv: string;
+  _greenEnv: string;
   // Load balancer service name
-  loadBalancer: string;
+  _loadBalancer: string;
   // Health check endpoint
-  healthCheckEndpoint: string;
+  _healthCheckEndpoint: string;
   // Timeout for health checks in milliseconds
-  healthCheckTimeout: number;
+  _healthCheckTimeout: number;
   // Number of health check attempts before failing
-  healthCheckRetries: number;
+  _healthCheckRetries: number;
   // Deployment verification timeout in milliseconds
-  verificationTimeout: number;
+  _verificationTimeout: number;
   // Time to wait before switching traffic in milliseconds
-  switchDelay: number;
+  _switchDelay: number;
   // Whether to automatically roll back failed deployments
-  autoRollback: boolean;
+  _autoRollback: boolean;
 }
 
 // Default configuration
-const defaultConfig: DeploymentConfig = {
-  baseDomain: process.env.DEPLOY_BASE_DOMAIN || 'chainsync.example.com',
-  blueEnv: 'blue',
-  greenEnv: 'green',
-  loadBalancer: process.env.DEPLOY_LOAD_BALANCER || 'nginx',
-  healthCheckEndpoint: '/api/health',
-  healthCheckTimeout: 30000, // 30 seconds
-  healthCheckRetries: 5,
-  verificationTimeout: 120000, // 2 minutes
-  switchDelay: 10000, // 10 seconds
-  autoRollback: true,
+const _defaultConfig: DeploymentConfig = {
+  _baseDomain: process.env.DEPLOY_BASE_DOMAIN || 'chainsync.example.com',
+  _blueEnv: 'blue',
+  _greenEnv: 'green',
+  _loadBalancer: process.env.DEPLOY_LOAD_BALANCER || 'nginx',
+  _healthCheckEndpoint: '/api/health',
+  _healthCheckTimeout: 30000, // 30 seconds
+  _healthCheckRetries: 5,
+  _verificationTimeout: 120000, // 2 minutes
+  _switchDelay: 10000, // 10 seconds
+  _autoRollback: true
 };
 
 /**
  * Blue-Green Deployment Manager
  */
 export class BlueGreenDeployment {
-  private config: DeploymentConfig;
-  private activeEnv: string = '';
-  private inactiveEnv: string = '';
-  private deploymentInProgress: boolean = false;
-  private deploymentId: string = '';
+  private _config: DeploymentConfig;
+  private _activeEnv: string = '';
+  private _inactiveEnv: string = '';
+  private _deploymentInProgress: boolean = false;
+  private _deploymentId: string = '';
 
   /**
    * Create a new Blue-Green Deployment Manager
    */
-  constructor(config: Partial<DeploymentConfig> = {}) {
+  constructor(_config: Partial<DeploymentConfig> = {}) {
     this.config = {
       ...defaultConfig,
-      ...config,
+      ...config
     };
 
-    logger.info('Blue-Green Deployment Manager initialized', { config: this.config });
+    logger.info('Blue-Green Deployment Manager initialized', { _config: this.config });
   }
 
   /**
@@ -87,7 +87,7 @@ export class BlueGreenDeployment {
         const config = JSON.parse(data);
         this.activeEnv = config.activeEnvironment;
         this.inactiveEnv =
-          this.activeEnv === this.config.blueEnv ? this.config.greenEnv : this.config.blueEnv;
+          this.activeEnv === this.config.blueEnv ? this.config._greenEnv : this.config.blueEnv;
 
         return this.activeEnv;
       } catch (error) {
@@ -97,7 +97,7 @@ export class BlueGreenDeployment {
 
         await fs.writeFile(
           configPath,
-          JSON.stringify({ activeEnvironment: this.activeEnv }),
+          JSON.stringify({ _activeEnvironment: this.activeEnv }),
           'utf8'
         );
 
@@ -106,7 +106,7 @@ export class BlueGreenDeployment {
     } catch (error) {
       logger.error('Failed to determine current active environment', { error });
       throw new Error(
-        `Failed to determine current active environment: ${(error as Error).message}`
+        `Failed to determine current active _environment: ${(error as Error).message}`
       );
     }
   }
@@ -127,9 +127,9 @@ export class BlueGreenDeployment {
       await this.getCurrentActiveEnvironment();
 
       logger.info('Starting new deployment', {
-        deploymentId: this.deploymentId,
-        activeEnv: this.activeEnv,
-        inactiveEnv: this.inactiveEnv,
+        _deploymentId: this.deploymentId,
+        _activeEnv: this.activeEnv,
+        _inactiveEnv: this.inactiveEnv
       });
 
       // Create deployment record
@@ -139,23 +139,23 @@ export class BlueGreenDeployment {
     } catch (error) {
       this.deploymentInProgress = false;
       logger.error('Failed to start deployment', { error });
-      throw new Error(`Failed to start deployment: ${(error as Error).message}`);
+      throw new Error(`Failed to start _deployment: ${(error as Error).message}`);
     }
   }
 
   /**
    * Deploy new version to inactive environment
    */
-  async deployToInactiveEnvironment(version: string): Promise<void> {
+  async deployToInactiveEnvironment(_version: string): Promise<void> {
     if (!this.deploymentInProgress) {
       throw new Error('No deployment in progress');
     }
 
     try {
       logger.info('Deploying new version to inactive environment', {
-        deploymentId: this.deploymentId,
-        inactiveEnv: this.inactiveEnv,
-        version,
+        _deploymentId: this.deploymentId,
+        _inactiveEnv: this.inactiveEnv,
+        version
       });
 
       // Update deployment record
@@ -170,9 +170,9 @@ export class BlueGreenDeployment {
       await this.updateDeploymentRecord('deployed');
 
       logger.info('Deployment to inactive environment completed', {
-        deploymentId: this.deploymentId,
-        inactiveEnv: this.inactiveEnv,
-        version,
+        _deploymentId: this.deploymentId,
+        _inactiveEnv: this.inactiveEnv,
+        version
       });
     } catch (error) {
       // Update deployment record
@@ -180,11 +180,11 @@ export class BlueGreenDeployment {
 
       logger.error('Failed to deploy to inactive environment', {
         error,
-        deploymentId: this.deploymentId,
-        inactiveEnv: this.inactiveEnv,
+        _deploymentId: this.deploymentId,
+        _inactiveEnv: this.inactiveEnv
       });
 
-      throw new Error(`Failed to deploy to inactive environment: ${(error as Error).message}`);
+      throw new Error(`Failed to deploy to inactive _environment: ${(error as Error).message}`);
     }
   }
 
@@ -198,8 +198,8 @@ export class BlueGreenDeployment {
 
     try {
       logger.info('Verifying deployment', {
-        deploymentId: this.deploymentId,
-        inactiveEnv: this.inactiveEnv,
+        _deploymentId: this.deploymentId,
+        _inactiveEnv: this.inactiveEnv
       });
 
       // Update deployment record
@@ -213,8 +213,8 @@ export class BlueGreenDeployment {
         await this.updateDeploymentRecord('verified');
 
         logger.info('Deployment verification successful', {
-          deploymentId: this.deploymentId,
-          inactiveEnv: this.inactiveEnv,
+          _deploymentId: this.deploymentId,
+          _inactiveEnv: this.inactiveEnv
         });
 
         return true;
@@ -223,8 +223,8 @@ export class BlueGreenDeployment {
         await this.updateDeploymentRecord('verification_failed');
 
         logger.error('Deployment verification failed', {
-          deploymentId: this.deploymentId,
-          inactiveEnv: this.inactiveEnv,
+          _deploymentId: this.deploymentId,
+          _inactiveEnv: this.inactiveEnv
         });
 
         // Auto-rollback if enabled
@@ -240,8 +240,8 @@ export class BlueGreenDeployment {
 
       logger.error('Failed to verify deployment', {
         error,
-        deploymentId: this.deploymentId,
-        inactiveEnv: this.inactiveEnv,
+        _deploymentId: this.deploymentId,
+        _inactiveEnv: this.inactiveEnv
       });
 
       // Auto-rollback if enabled
@@ -263,9 +263,9 @@ export class BlueGreenDeployment {
 
     try {
       logger.info('Switching traffic to new environment', {
-        deploymentId: this.deploymentId,
-        fromEnv: this.activeEnv,
-        toEnv: this.inactiveEnv,
+        _deploymentId: this.deploymentId,
+        _fromEnv: this.activeEnv,
+        _toEnv: this.inactiveEnv
       });
 
       // Update deployment record
@@ -284,14 +284,14 @@ export class BlueGreenDeployment {
       this.activeEnv = this.inactiveEnv;
       this.inactiveEnv = tempEnv;
 
-      await fs.writeFile(configPath, JSON.stringify({ activeEnvironment: this.activeEnv }), 'utf8');
+      await fs.writeFile(configPath, JSON.stringify({ _activeEnvironment: this.activeEnv }), 'utf8');
 
       // Update deployment record
       await this.updateDeploymentRecord('switched');
 
       logger.info('Traffic switched to new environment', {
-        deploymentId: this.deploymentId,
-        activeEnv: this.activeEnv,
+        _deploymentId: this.deploymentId,
+        _activeEnv: this.activeEnv
       });
     } catch (error) {
       // Update deployment record
@@ -299,10 +299,10 @@ export class BlueGreenDeployment {
 
       logger.error('Failed to switch traffic', {
         error,
-        deploymentId: this.deploymentId,
+        _deploymentId: this.deploymentId
       });
 
-      throw new Error(`Failed to switch traffic: ${(error as Error).message}`);
+      throw new Error(`Failed to switch _traffic: ${(error as Error).message}`);
     }
   }
 
@@ -316,7 +316,7 @@ export class BlueGreenDeployment {
 
     try {
       logger.info('Finalizing deployment', {
-        deploymentId: this.deploymentId,
+        _deploymentId: this.deploymentId
       });
 
       // Update deployment record
@@ -330,8 +330,8 @@ export class BlueGreenDeployment {
       await this.updateDeploymentRecord('completed');
 
       logger.info('Deployment finalized', {
-        deploymentId: this.deploymentId,
-        activeEnv: this.activeEnv,
+        _deploymentId: this.deploymentId,
+        _activeEnv: this.activeEnv
       });
 
       this.deploymentInProgress = false;
@@ -341,12 +341,12 @@ export class BlueGreenDeployment {
 
       logger.error('Failed to finalize deployment', {
         error,
-        deploymentId: this.deploymentId,
+        _deploymentId: this.deploymentId
       });
 
       this.deploymentInProgress = false;
 
-      throw new Error(`Failed to finalize deployment: ${(error as Error).message}`);
+      throw new Error(`Failed to finalize _deployment: ${(error as Error).message}`);
     }
   }
 
@@ -360,7 +360,7 @@ export class BlueGreenDeployment {
 
     try {
       logger.info('Rolling back deployment', {
-        deploymentId: this.deploymentId,
+        _deploymentId: this.deploymentId
       });
 
       // Update deployment record
@@ -374,7 +374,7 @@ export class BlueGreenDeployment {
       await this.updateDeploymentRecord('rolled_back');
 
       logger.info('Deployment rolled back', {
-        deploymentId: this.deploymentId,
+        _deploymentId: this.deploymentId
       });
 
       this.deploymentInProgress = false;
@@ -384,12 +384,12 @@ export class BlueGreenDeployment {
 
       logger.error('Failed to rollback deployment', {
         error,
-        deploymentId: this.deploymentId,
+        _deploymentId: this.deploymentId
       });
 
       this.deploymentInProgress = false;
 
-      throw new Error(`Failed to rollback deployment: ${(error as Error).message}`);
+      throw new Error(`Failed to rollback _deployment: ${(error as Error).message}`);
     }
   }
 
@@ -400,36 +400,36 @@ export class BlueGreenDeployment {
     const healthCheckUrl = `https://${this.inactiveEnv}.${this.config.baseDomain}${this.config.healthCheckEndpoint}`;
 
     logger.info('Running health checks', {
-      deploymentId: this.deploymentId,
-      url: healthCheckUrl,
+      _deploymentId: this.deploymentId,
+      _url: healthCheckUrl
     });
 
     for (let i = 0; i < this.config.healthCheckRetries; i++) {
       try {
         const response = await axios.get(healthCheckUrl, {
-          timeout: this.config.healthCheckTimeout,
+          _timeout: this.config.healthCheckTimeout
         });
 
         if (response.status === 200 && response.data.status === 'healthy') {
           logger.info('Health check passed', {
-            deploymentId: this.deploymentId,
-            attempt: i + 1,
+            _deploymentId: this.deploymentId,
+            _attempt: i + 1
           });
 
           return true;
         }
 
         logger.warn('Health check failed, retrying', {
-          deploymentId: this.deploymentId,
-          attempt: i + 1,
-          status: response.status,
-          data: response.data,
+          _deploymentId: this.deploymentId,
+          _attempt: i + 1,
+          _status: response.status,
+          _data: response.data
         });
       } catch (error) {
         logger.warn('Health check failed with error, retrying', {
-          deploymentId: this.deploymentId,
-          attempt: i + 1,
-          error: (error as Error).message,
+          _deploymentId: this.deploymentId,
+          _attempt: i + 1,
+          _error: (error as Error).message
         });
       }
 
@@ -438,8 +438,8 @@ export class BlueGreenDeployment {
     }
 
     logger.error('All health checks failed', {
-      deploymentId: this.deploymentId,
-      retries: this.config.healthCheckRetries,
+      _deploymentId: this.deploymentId,
+      _retries: this.config.healthCheckRetries
     });
 
     return false;
@@ -448,20 +448,20 @@ export class BlueGreenDeployment {
   /**
    * Simulate a deployment
    */
-  private async simulateDeployment(environment: string, version: string): Promise<void> {
+  private async simulateDeployment(_environment: string, _version: string): Promise<void> {
     logger.info('Simulating deployment', {
-      deploymentId: this.deploymentId,
+      _deploymentId: this.deploymentId,
       environment,
-      version,
+      version
     });
 
     // Simulate deployment steps
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     logger.info('Deployment simulation completed', {
-      deploymentId: this.deploymentId,
+      _deploymentId: this.deploymentId,
       environment,
-      version,
+      version
     });
   }
 
@@ -472,24 +472,24 @@ export class BlueGreenDeployment {
     // This would typically create a record in your database
     // For this example, we'll just log it
     logger.info('Deployment record created', {
-      deploymentId: this.deploymentId,
-      activeEnv: this.activeEnv,
-      inactiveEnv: this.inactiveEnv,
-      status: 'created',
-      timestamp: new Date().toISOString(),
+      _deploymentId: this.deploymentId,
+      _activeEnv: this.activeEnv,
+      _inactiveEnv: this.inactiveEnv,
+      _status: 'created',
+      _timestamp: new Date().toISOString()
     });
   }
 
   /**
    * Update deployment record
    */
-  private async updateDeploymentRecord(status: string): Promise<void> {
+  private async updateDeploymentRecord(_status: string): Promise<void> {
     // This would typically update a record in your database
     // For this example, we'll just log it
     logger.info('Deployment record updated', {
-      deploymentId: this.deploymentId,
+      _deploymentId: this.deploymentId,
       status,
-      timestamp: new Date().toISOString(),
+      _timestamp: new Date().toISOString()
     });
   }
 }
@@ -502,7 +502,7 @@ async function main() {
   const command = args[0];
 
   if (!command) {
-    console.error('Command required. Available commands: deploy, status, rollback');
+    console.error('Command required. Available _commands: deploy, status, rollback');
     process.exit(1);
   }
 
@@ -514,7 +514,7 @@ async function main() {
         const version = args[1] || `v${Date.now()}`;
 
         const deploymentId = await deployment.startDeployment();
-        console.log(`Deployment started: ${deploymentId}`);
+        console.log(`Deployment _started: ${deploymentId}`);
 
         await deployment.deployToInactiveEnvironment(version);
         console.log('Deployed to inactive environment');
@@ -535,7 +535,7 @@ async function main() {
 
       case 'status':
         const activeEnv = await deployment.getCurrentActiveEnvironment();
-        console.log(`Current active environment: ${activeEnv}`);
+        console.log(`Current active _environment: ${activeEnv}`);
         break;
 
       case 'rollback':
@@ -543,8 +543,7 @@ async function main() {
         console.log('Deployment rolled back');
         break;
 
-      default:
-        console.error(`Unknown command: ${command}`);
+      console.error(`Unknown command: ${command}`);
         process.exit(1);
     }
   } catch (error) {
@@ -556,7 +555,7 @@ async function main() {
 // Run if called directly
 if (require.main === module) {
   main().catch(error => {
-    console.error(`Fatal error: ${error.message}`);
+    console.error(`Fatal _error: ${error.message}`);
     process.exit(1);
   });
 }

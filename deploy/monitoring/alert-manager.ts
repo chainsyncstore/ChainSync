@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'alert-manager' });
+const logger = getLogger().child({ _component: 'alert-manager' });
 
 // Alert severity levels
 export enum AlertSeverity {
@@ -27,38 +27,38 @@ export enum AlertType {
 
 // Alert interface
 export interface Alert {
-  id: string;
-  type: AlertType;
-  severity: AlertSeverity;
-  title: string;
-  message: string;
-  timestamp: Date;
-  metadata: Record<string, any>;
-  resolved: boolean;
+  _id: string;
+  _type: AlertType;
+  _severity: AlertSeverity;
+  _title: string;
+  _message: string;
+  _timestamp: Date;
+  _metadata: Record<string, any>;
+  _resolved: boolean;
   resolvedAt?: Date;
-  acknowledged: boolean;
+  _acknowledged: boolean;
   acknowledgedAt?: Date;
   acknowledgedBy?: string;
 }
 
 // Alert rule interface
 export interface AlertRule {
-  id: string;
-  name: string;
-  type: AlertType;
-  severity: AlertSeverity;
-  condition: string;
-  threshold: number;
-  enabled: boolean;
-  cooldown: number; // seconds
+  _id: string;
+  _name: string;
+  _type: AlertType;
+  _severity: AlertSeverity;
+  _condition: string;
+  _threshold: number;
+  _enabled: boolean;
+  _cooldown: number; // seconds
   lastTriggered?: Date;
 }
 
 // Alert manager
 export class AlertManager extends EventEmitter {
-  private alerts: Map<string, Alert> = new Map();
-  private rules: Map<string, AlertRule> = new Map();
-  private cooldowns: Map<string, Date> = new Map();
+  private _alerts: Map<string, Alert> = new Map();
+  private _rules: Map<string, AlertRule> = new Map();
+  private _cooldowns: Map<string, Date> = new Map();
 
   constructor() {
     super();
@@ -69,47 +69,47 @@ export class AlertManager extends EventEmitter {
    * Initialize default alert rules
    */
   private initializeDefaultRules(): void {
-    const defaultRules: AlertRule[] = [
+    const _defaultRules: AlertRule[] = [
       {
         id: 'high_error_rate',
-        name: 'High Error Rate',
-        type: AlertType.HIGH_ERROR_RATE,
-        severity: AlertSeverity.HIGH,
-        condition: 'error_rate > threshold',
-        threshold: 5, // 5% error rate
-        enabled: true,
-        cooldown: 300, // 5 minutes
+        _name: 'High Error Rate',
+        _type: AlertType.HIGH_ERROR_RATE,
+        _severity: AlertSeverity.HIGH,
+        _condition: 'error_rate > threshold',
+        _threshold: 5, // 5% error rate
+        _enabled: true,
+        _cooldown: 300 // 5 minutes
       },
       {
-        id: 'high_latency',
-        name: 'High Latency',
-        type: AlertType.HIGH_LATENCY,
-        severity: AlertSeverity.MEDIUM,
-        condition: 'response_time > threshold',
-        threshold: 2000, // 2 seconds
-        enabled: true,
-        cooldown: 180, // 3 minutes
+        _id: 'high_latency',
+        _name: 'High Latency',
+        _type: AlertType.HIGH_LATENCY,
+        _severity: AlertSeverity.MEDIUM,
+        _condition: 'response_time > threshold',
+        _threshold: 2000, // 2 seconds
+        _enabled: true,
+        _cooldown: 180 // 3 minutes
       },
       {
-        id: 'disk_space_low',
-        name: 'Low Disk Space',
-        type: AlertType.DISK_SPACE_LOW,
-        severity: AlertSeverity.HIGH,
-        condition: 'disk_usage > threshold',
-        threshold: 85, // 85% usage
-        enabled: true,
-        cooldown: 600, // 10 minutes
+        _id: 'disk_space_low',
+        _name: 'Low Disk Space',
+        _type: AlertType.DISK_SPACE_LOW,
+        _severity: AlertSeverity.HIGH,
+        _condition: 'disk_usage > threshold',
+        _threshold: 85, // 85% usage
+        _enabled: true,
+        _cooldown: 600 // 10 minutes
       },
       {
-        id: 'memory_low',
-        name: 'Low Memory',
-        type: AlertType.MEMORY_LOW,
-        severity: AlertSeverity.HIGH,
-        condition: 'memory_usage > threshold',
-        threshold: 90, // 90% usage
-        enabled: true,
-        cooldown: 300, // 5 minutes
-      },
+        _id: 'memory_low',
+        _name: 'Low Memory',
+        _type: AlertType.MEMORY_LOW,
+        _severity: AlertSeverity.HIGH,
+        _condition: 'memory_usage > threshold',
+        _threshold: 90, // 90% usage
+        _enabled: true,
+        _cooldown: 300 // 5 minutes
+      }
     ];
 
     for (const rule of defaultRules) {
@@ -122,15 +122,15 @@ export class AlertManager extends EventEmitter {
   /**
    * Add alert rule
    */
-  addRule(rule: AlertRule): void {
+  addRule(_rule: AlertRule): void {
     this.rules.set(rule.id, rule);
-    logger.info('Alert rule added', { ruleId: rule.id, ruleName: rule.name });
+    logger.info('Alert rule added', { _ruleId: rule.id, _ruleName: rule.name });
   }
 
   /**
    * Remove alert rule
    */
-  removeRule(ruleId: string): boolean {
+  removeRule(_ruleId: string): boolean {
     const removed = this.rules.delete(ruleId);
     if (removed) {
       logger.info('Alert rule removed', { ruleId });
@@ -141,7 +141,7 @@ export class AlertManager extends EventEmitter {
   /**
    * Enable/disable alert rule
    */
-  setRuleEnabled(ruleId: string, enabled: boolean): boolean {
+  setRuleEnabled(_ruleId: string, _enabled: boolean): boolean {
     const rule = this.rules.get(ruleId);
     if (!rule) {
       return false;
@@ -155,7 +155,7 @@ export class AlertManager extends EventEmitter {
   /**
    * Evaluate alert rules
    */
-  evaluateRules(metrics: Record<string, number>): void {
+  evaluateRules(_metrics: Record<string, number>): void {
     for (const rule of this.rules.values()) {
       if (!rule.enabled) {
         continue;
@@ -181,10 +181,10 @@ export class AlertManager extends EventEmitter {
   /**
    * Evaluate alert condition
    */
-  private evaluateCondition(rule: AlertRule, metrics: Record<string, number>): boolean {
+  private evaluateCondition(_rule: AlertRule, _metrics: Record<string, number>): boolean {
     const key = rule.condition.split('>')[0]?.trim();
     if (!key) return false;
-    
+
     const value = metrics[key];
     if (value === undefined) {
       return false;
@@ -196,47 +196,47 @@ export class AlertManager extends EventEmitter {
   /**
    * Trigger alert
    */
-  private triggerAlert(rule: AlertRule, metrics: Record<string, number>): void {
-    const alert: Alert = {
-      id: this.generateAlertId(),
-      type: rule.type,
-      severity: rule.severity,
-      title: `${rule.name} Alert`,
-      message: `Condition "${rule.condition}" exceeded threshold ${rule.threshold}`,
-      timestamp: new Date(),
-      metadata: {
-        ruleId: rule.id,
-        ruleName: rule.name,
-        condition: rule.condition,
-        threshold: rule.threshold,
-        currentValue: metrics[rule.condition.split('>')[0]?.trim() || ''],
-        metrics,
+  private triggerAlert(_rule: AlertRule, _metrics: Record<string, number>): void {
+    const _alert: Alert = {
+      _id: this.generateAlertId(),
+      _type: rule.type,
+      _severity: rule.severity,
+      _title: `${rule.name} Alert`,
+      _message: `Condition "${rule.condition}" exceeded threshold ${rule.threshold}`,
+      _timestamp: new Date(),
+      _metadata: {
+        _ruleId: rule.id,
+        _ruleName: rule.name,
+        _condition: rule.condition,
+        _threshold: rule.threshold,
+        _currentValue: metrics[rule.condition.split('>')[0]?.trim() || ''],
+        metrics
       },
-      resolved: false,
-      acknowledged: false,
+      _resolved: false,
+      _acknowledged: false
     };
 
     this.alerts.set(alert.id, alert);
     rule.lastTriggered = new Date();
 
-    logger.warn('Alert triggered', { alertId: alert.id, ruleId: rule.id });
+    logger.warn('Alert triggered', { _alertId: alert.id, _ruleId: rule.id });
     this.emit('alert', alert);
   }
 
   /**
    * Create manual alert
    */
-  createAlert(alertData: Omit<Alert, 'id' | 'timestamp' | 'resolved' | 'acknowledged'>): string {
-    const alert: Alert = {
+  createAlert(_alertData: Omit<Alert, 'id' | 'timestamp' | 'resolved' | 'acknowledged'>): string {
+    const _alert: Alert = {
       ...alertData,
-      id: this.generateAlertId(),
-      timestamp: new Date(),
-      resolved: false,
-      acknowledged: false,
+      _id: this.generateAlertId(),
+      _timestamp: new Date(),
+      _resolved: false,
+      _acknowledged: false
     };
 
     this.alerts.set(alert.id, alert);
-    logger.info('Manual alert created', { alertId: alert.id });
+    logger.info('Manual alert created', { _alertId: alert.id });
     this.emit('alert', alert);
 
     return alert.id;
@@ -245,7 +245,7 @@ export class AlertManager extends EventEmitter {
   /**
    * Resolve alert
    */
-  resolveAlert(alertId: string, resolvedBy?: string): boolean {
+  resolveAlert(_alertId: string, resolvedBy?: string): boolean {
     const alert = this.alerts.get(alertId);
     if (!alert) {
       return false;
@@ -263,7 +263,7 @@ export class AlertManager extends EventEmitter {
   /**
    * Acknowledge alert
    */
-  acknowledgeAlert(alertId: string, acknowledgedBy: string): boolean {
+  acknowledgeAlert(_alertId: string, _acknowledgedBy: string): boolean {
     const alert = this.alerts.get(alertId);
     if (!alert) {
       return false;
@@ -296,14 +296,14 @@ export class AlertManager extends EventEmitter {
   /**
    * Get alerts by severity
    */
-  getAlertsBySeverity(severity: AlertSeverity): Alert[] {
+  getAlertsBySeverity(_severity: AlertSeverity): Alert[] {
     return this.getAlerts().filter(alert => alert.severity === severity);
   }
 
   /**
    * Get alerts by type
    */
-  getAlertsByType(type: AlertType): Alert[] {
+  getAlertsByType(_type: AlertType): Alert[] {
     return this.getAlerts().filter(alert => alert.type === type);
   }
 
@@ -317,7 +317,7 @@ export class AlertManager extends EventEmitter {
   /**
    * Get rule by ID
    */
-  getRule(ruleId: string): AlertRule | undefined {
+  getRule(_ruleId: string): AlertRule | undefined {
     return this.rules.get(ruleId);
   }
 
@@ -331,7 +331,7 @@ export class AlertManager extends EventEmitter {
   /**
    * Clear resolved alerts older than specified days
    */
-  clearOldAlerts(daysOld: number): number {
+  clearOldAlerts(_daysOld: number): number {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
@@ -344,9 +344,9 @@ export class AlertManager extends EventEmitter {
     }
 
     if (clearedCount > 0) {
-      logger.info('Old alerts cleared', { count: clearedCount, cutoffDate });
+      logger.info('Old alerts cleared', { _count: clearedCount, cutoffDate });
     }
 
     return clearedCount;
   }
-} 
+}

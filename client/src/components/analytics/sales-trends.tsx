@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { type SelectStore as Store } from '@shared/schema';
-import { 
+import { useState } from &apos;react&apos;;
+import { useQuery } from &apos;@tanstack/react-query&apos;;
+import { type SelectStore as Store } from &apos;@shared/schema&apos;;
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle 
-} from '@/components/ui/card';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { CalendarIcon, LineChart, BarChart } from 'lucide-react';
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from &apos;@/components/ui/select&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Calendar } from &apos;@/components/ui/calendar&apos;;
+import { Popover, PopoverContent, PopoverTrigger } from &apos;@/components/ui/popover&apos;;
+import { format } from &apos;date-fns&apos;;
+import { CalendarIcon, LineChart, BarChart } from &apos;lucide-react&apos;;
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -25,44 +25,44 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer
-} from 'recharts';
-import { Skeleton } from '@/components/ui/skeleton';
-import { apiRequest } from '@/lib/queryClient';
-import { formatCurrency } from '@/lib/utils';
-import { useCurrency } from '@/providers/currency-provider';
+} from &apos;recharts&apos;;
+import { Skeleton } from &apos;@/components/ui/skeleton&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { formatCurrency } from &apos;@/lib/utils&apos;;
+import { useCurrency } from &apos;@/providers/currency-provider&apos;;
 
 interface TrendData {
-  dateGroup: string;
-  totalSales: number;
-  transactionCount: number;
-  averageTransaction: number;
+  _dateGroup: string;
+  _totalSales: number;
+  _transactionCount: number;
+  _averageTransaction: number;
 }
 
 interface StoreBreakdown {
-  storeId: number;
-  storeName: string;
-  totalSales: number;
-  transactionCount: number;
-  averageTransaction: number;
+  _storeId: number;
+  _storeName: string;
+  _totalSales: number;
+  _transactionCount: number;
+  _averageTransaction: number;
 }
 
 interface PaymentMethodBreakdown {
-  paymentMethodId: number;
-  paymentMethodName: string;
-  total: number;
-  count: number;
+  _paymentMethodId: number;
+  _paymentMethodName: string;
+  _total: number;
+  _count: number;
 }
 
 interface SalesTrendsResponse {
-  trendData: TrendData[];
-  storeBreakdown: StoreBreakdown[];
+  _trendData: TrendData[];
+  _storeBreakdown: StoreBreakdown[];
   totals: {
-    totalSales: number;
-    transactionCount: number;
-    averageTransaction: number;
+    _totalSales: number;
+    _transactionCount: number;
+    _averageTransaction: number;
   };
-  paymentMethodBreakdown: PaymentMethodBreakdown[];
-  dateRangeDescription: string;
+  _paymentMethodBreakdown: PaymentMethodBreakdown[];
+  _dateRangeDescription: string;
 }
 
 export const SalesTrends = () => {
@@ -76,54 +76,54 @@ export const SalesTrends = () => {
     }
   );
   const [endDate, setEndDate] = useState<Date | undefined>();
-  const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day');
+  const [groupBy, setGroupBy] = useState<&apos;day&apos; | &apos;week&apos; | &apos;month&apos;>(&apos;day&apos;);
   const [storeId, setStoreId] = useState<string | undefined>();
-  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
+  const [chartType, setChartType] = useState<&apos;line&apos; | &apos;bar&apos;>(&apos;line&apos;);
 
   // Fetch stores for the store filter
-  const { data: stores } = useQuery<Store[]>({
-    queryKey: ['/api/stores'],
-    queryFn: () => apiRequest('GET', '/api/stores'),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    initialData: [],
+  const { _data: stores } = useQuery<Store[]>({
+    queryKey: [&apos;/api/stores&apos;],
+    _queryFn: () => apiRequest(&apos;GET&apos;, &apos;/api/stores&apos;),
+    _staleTime: 5 * 60 * 1000, // 5 minutes
+    _initialData: []
   });
 
   // Fetch sales trend data
   const {
-    data: salesTrends,
+    _data: salesTrends,
     isLoading,
     isError,
-    refetch,
+    refetch
   } = useQuery<SalesTrendsResponse>({
-    queryKey: ['/api/analytics/sales-trends', startDate, endDate, groupBy, storeId],
-    queryFn: async () => {
+    _queryKey: [&apos;/api/analytics/sales-trends&apos;, startDate, endDate, groupBy, storeId],
+    _queryFn: async() => {
       // Build URL with query parameters
-      const url = new URL('/api/analytics/sales-trends', window.location.origin);
-      
+      const url = new URL(&apos;/api/analytics/sales-trends&apos;, window.location.origin);
+
       if (startDate) {
-        url.searchParams.append('startDate', startDate.toISOString());
+        url.searchParams.append(&apos;startDate&apos;, startDate.toISOString());
       }
-      
+
       if (endDate) {
-        url.searchParams.append('endDate', endDate.toISOString());
+        url.searchParams.append(&apos;endDate&apos;, endDate.toISOString());
       }
-      
-      url.searchParams.append('groupBy', groupBy);
-      
+
+      url.searchParams.append(&apos;groupBy&apos;, groupBy);
+
       if (storeId) {
-        url.searchParams.append('store', storeId);
+        url.searchParams.append(&apos;store&apos;, storeId);
       }
-      
-      return await apiRequest('GET', url.toString());
+
+      return await apiRequest(&apos;GET&apos;, url.toString());
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    initialData: {
+    _staleTime: 5 * 60 * 1000, // 5 minutes
+    _initialData: {
       trendData: [],
-      storeBreakdown: [],
-      totals: { totalSales: 0, transactionCount: 0, averageTransaction: 0 },
-      paymentMethodBreakdown: [],
-      dateRangeDescription: 'Select date range to analyze sales trends',
-    },
+      _storeBreakdown: [],
+      _totals: { _totalSales: 0, _transactionCount: 0, _averageTransaction: 0 },
+      _paymentMethodBreakdown: [],
+      _dateRangeDescription: &apos;Select date range to analyze sales trends&apos;
+    }
   });
 
   const { currency } = useCurrency();
@@ -132,97 +132,97 @@ export const SalesTrends = () => {
   const renderChart = () => {
     if (!salesTrends.trendData.length) {
       return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <p className="text-muted-foreground">No data available for the selected period</p>
+        <div className=&quot;flex flex-col items-center justify-center h-64&quot;>
+          <p className=&quot;text-muted-foreground&quot;>No data available for the selected period</p>
         </div>
       );
     }
 
     // Format data for displaying in chart
-    const chartData = salesTrends.trendData.map((item: TrendData) => ({
+    const chartData = salesTrends.trendData.map((_item: TrendData) => ({
       ...item,
-      formattedDate: formatDateLabel(item.dateGroup, groupBy)
+      _formattedDate: formatDateLabel(item.dateGroup, groupBy)
     }));
 
-    if (chartType === 'line') {
+    if (chartType === &apos;line&apos;) {
       return (
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width=&quot;100%&quot; height={400}>
           <RechartsLineChart
             data={chartData}
             margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 80,
+              _top: 20,
+              _right: 30,
+              _left: 20,
+              _bottom: 80
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="formattedDate"
+            <CartesianGrid strokeDasharray=&quot;3 3&quot; />
+            <XAxis
+              dataKey=&quot;formattedDate&quot;
               angle={-45}
-              textAnchor="end"
+              textAnchor=&quot;end&quot;
               height={80}
             />
-            <YAxis 
+            <YAxis
               tickFormatter={(value) => formatCurrency(value)}
             />
             <Tooltip
-              formatter={(value: number) => formatCurrency(value)}
+              formatter={(_value: number) => formatCurrency(value)}
               labelFormatter={(label) => `Date: ${label}`}
             />
             <Legend />
             <Line
-              type="monotone"
-              dataKey="totalSales"
-              name="Total Sales"
-              stroke="#8884d8"
-              activeDot={{ r: 8 }}
+              type=&quot;monotone&quot;
+              dataKey=&quot;totalSales&quot;
+              name=&quot;Total Sales&quot;
+              stroke=&quot;#8884d8&quot;
+              activeDot={{ _r: 8 }}
             />
             <Line
-              type="monotone"
-              dataKey="averageTransaction"
-              name="Avg Transaction"
-              stroke="#82ca9d"
+              type=&quot;monotone&quot;
+              dataKey=&quot;averageTransaction&quot;
+              name=&quot;Avg Transaction&quot;
+              stroke=&quot;#82ca9d&quot;
             />
           </RechartsLineChart>
         </ResponsiveContainer>
       );
     } else {
       return (
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width=&quot;100%&quot; height={400}>
           <RechartsBarChart
             data={chartData}
             margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 80,
+              _top: 20,
+              _right: 30,
+              _left: 20,
+              _bottom: 80
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="formattedDate"
+            <CartesianGrid strokeDasharray=&quot;3 3&quot; />
+            <XAxis
+              dataKey=&quot;formattedDate&quot;
               angle={-45}
-              textAnchor="end"
+              textAnchor=&quot;end&quot;
               height={80}
             />
-            <YAxis 
+            <YAxis
               tickFormatter={(value) => formatCurrency(value)}
             />
             <Tooltip
-              formatter={(value: number) => formatCurrency(value)}
+              formatter={(_value: number) => formatCurrency(value)}
               labelFormatter={(label) => `Date: ${label}`}
             />
             <Legend />
             <Bar
-              dataKey="totalSales"
-              name="Total Sales"
-              fill="#8884d8"
+              dataKey=&quot;totalSales&quot;
+              name=&quot;Total Sales&quot;
+              fill=&quot;#8884d8&quot;
             />
             <Bar
-              dataKey="transactionCount"
-              name="Transaction Count"
-              fill="#82ca9d"
+              dataKey=&quot;transactionCount&quot;
+              name=&quot;Transaction Count&quot;
+              fill=&quot;#82ca9d&quot;
             />
           </RechartsBarChart>
         </ResponsiveContainer>
@@ -231,20 +231,20 @@ export const SalesTrends = () => {
   };
 
   // Helper function to format date labels based on groupBy
-  const formatDateLabel = (dateGroup: string, groupBy: 'day' | 'week' | 'month') => {
-    if (groupBy === 'day') {
-      // Format: YYYY-MM-DD to MMM DD
+  const formatDateLabel = (_dateGroup: string, _groupBy: &apos;day&apos; | &apos;week&apos; | &apos;month&apos;) => {
+    if (groupBy === &apos;day&apos;) {
+      // _Format: YYYY-MM-DD to MMM DD
       const date = new Date(dateGroup);
-      return format(date, 'MMM dd');
-    } else if (groupBy === 'week') {
-      // Format: YYYY-WW to Week WW, YYYY
-      const [year, week] = dateGroup.split('-');
+      return format(date, &apos;MMM dd&apos;);
+    } else if (groupBy === &apos;week&apos;) {
+      // _Format: YYYY-WW to Week WW, YYYY
+      const [year, week] = dateGroup.split(&apos;-&apos;);
       return `Week ${week}, ${year}`;
-    } else if (groupBy === 'month') {
-      // Format: YYYY-MM to MMM YYYY
-      const [year, month] = dateGroup.split('-');
+    } else if (groupBy === &apos;month&apos;) {
+      // _Format: YYYY-MM to MMM YYYY
+      const [year, month] = dateGroup.split(&apos;-&apos;);
       const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-      return format(date, 'MMM yyyy');
+      return format(date, &apos;MMM yyyy&apos;);
     }
     return dateGroup;
   };
@@ -256,29 +256,29 @@ export const SalesTrends = () => {
     }
 
     return (
-      <Card className="mt-4">
+      <Card className=&quot;mt-4&quot;>
         <CardHeader>
           <CardTitle>Store Breakdown</CardTitle>
           <CardDescription>Sales performance by store</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className=&quot;overflow-x-auto&quot;>
+            <table className=&quot;w-full&quot;>
               <thead>
                 <tr>
-                  <th className="text-left p-2">Store</th>
-                  <th className="text-right p-2">Total Sales</th>
-                  <th className="text-right p-2">Transactions</th>
-                  <th className="text-right p-2">Avg. Transaction</th>
+                  <th className=&quot;text-left p-2&quot;>Store</th>
+                  <th className=&quot;text-right p-2&quot;>Total Sales</th>
+                  <th className=&quot;text-right p-2&quot;>Transactions</th>
+                  <th className=&quot;text-right p-2&quot;>Avg. Transaction</th>
                 </tr>
               </thead>
               <tbody>
-                {salesTrends.storeBreakdown.map((store: StoreBreakdown) => (
-                  <tr key={store.storeId} className="border-t">
-                    <td className="p-2">{store.storeName}</td>
-                    <td className="text-right p-2">{formatCurrency(store.totalSales)}</td>
-                    <td className="text-right p-2">{store.transactionCount}</td>
-                    <td className="text-right p-2">{formatCurrency(store.averageTransaction)}</td>
+                {salesTrends.storeBreakdown.map((_store: StoreBreakdown) => (
+                  <tr key={store.storeId} className=&quot;border-t&quot;>
+                    <td className=&quot;p-2&quot;>{store.storeName}</td>
+                    <td className=&quot;text-right p-2&quot;>{formatCurrency(store.totalSales)}</td>
+                    <td className=&quot;text-right p-2&quot;>{store.transactionCount}</td>
+                    <td className=&quot;text-right p-2&quot;>{formatCurrency(store.averageTransaction)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -296,32 +296,32 @@ export const SalesTrends = () => {
     }
 
     return (
-      <Card className="mt-4">
+      <Card className=&quot;mt-4&quot;>
         <CardHeader>
           <CardTitle>Payment Method Breakdown</CardTitle>
           <CardDescription>Sales by payment method</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className=&quot;overflow-x-auto&quot;>
+            <table className=&quot;w-full&quot;>
               <thead>
                 <tr>
-                  <th className="text-left p-2">Payment Method</th>
-                  <th className="text-right p-2">Total</th>
-                  <th className="text-right p-2">Count</th>
-                  <th className="text-right p-2">% of Sales</th>
+                  <th className=&quot;text-left p-2&quot;>Payment Method</th>
+                  <th className=&quot;text-right p-2&quot;>Total</th>
+                  <th className=&quot;text-right p-2&quot;>Count</th>
+                  <th className=&quot;text-right p-2&quot;>% of Sales</th>
                 </tr>
               </thead>
               <tbody>
-                {salesTrends.paymentMethodBreakdown.map((method: PaymentMethodBreakdown) => (
-                  <tr key={method.paymentMethodId} className="border-t">
-                    <td className="p-2">{method.paymentMethodName}</td>
-                    <td className="text-right p-2">{formatCurrency(method.total)}</td>
-                    <td className="text-right p-2">{method.count}</td>
-                    <td className="text-right p-2">
+                {salesTrends.paymentMethodBreakdown.map((_method: PaymentMethodBreakdown) => (
+                  <tr key={method.paymentMethodId} className=&quot;border-t&quot;>
+                    <td className=&quot;p-2&quot;>{method.paymentMethodName}</td>
+                    <td className=&quot;text-right p-2&quot;>{formatCurrency(method.total)}</td>
+                    <td className=&quot;text-right p-2&quot;>{method.count}</td>
+                    <td className=&quot;text-right p-2&quot;>
                       {salesTrends.totals.totalSales > 0
                         ? `${((method.total / salesTrends.totals.totalSales) * 100).toFixed(1)}%`
-                        : '0%'}
+                        : &apos;0%&apos;}
                     </td>
                   </tr>
                 ))}
@@ -340,27 +340,27 @@ export const SalesTrends = () => {
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className=&quot;grid grid-cols-1 _md:grid-cols-3 gap-4 mb-6&quot;>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className=&quot;pb-2&quot;>
             <CardDescription>Total Sales</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className=&quot;text-2xl&quot;>
               {formatCurrency(salesTrends.totals.totalSales)}
             </CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className=&quot;pb-2&quot;>
             <CardDescription>Transaction Count</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className=&quot;text-2xl&quot;>
               {salesTrends.totals.transactionCount}
             </CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className=&quot;pb-2&quot;>
             <CardDescription>Average Transaction</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className=&quot;text-2xl&quot;>
               {formatCurrency(salesTrends.totals.averageTransaction)}
             </CardTitle>
           </CardHeader>
@@ -370,7 +370,7 @@ export const SalesTrends = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className=&quot;space-y-4&quot;>
       <Card>
         <CardHeader>
           <CardTitle>Sales Trends</CardTitle>
@@ -380,23 +380,23 @@ export const SalesTrends = () => {
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 mb-6">
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className=&quot;flex flex-col space-y-4 _md:flex-row _md:space-y-0 _md:space-x-4 mb-6&quot;>
+            <div className=&quot;flex-1 grid grid-cols-1 _md:grid-cols-3 gap-4&quot;>
               {/* Date Range Selector - Start Date */}
               <div>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      variant=&quot;outline&quot;
+                      className=&quot;w-full justify-start text-left font-normal&quot;
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, 'PPP') : 'Start date'}
+                      <CalendarIcon className=&quot;mr-2 h-4 w-4&quot; />
+                      {startDate ? format(startDate, &apos;PPP&apos;) : &apos;Start date&apos;}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className=&quot;w-auto p-0&quot;>
                     <Calendar
-                      mode="single"
+                      mode=&quot;single&quot;
                       selected={startDate}
                       onSelect={setStartDate}
                       initialFocus
@@ -410,21 +410,21 @@ export const SalesTrends = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      variant=&quot;outline&quot;
+                      className=&quot;w-full justify-start text-left font-normal&quot;
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, 'PPP') : 'End date'}
+                      <CalendarIcon className=&quot;mr-2 h-4 w-4&quot; />
+                      {endDate ? format(endDate, &apos;PPP&apos;) : &apos;End date&apos;}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className=&quot;w-auto p-0&quot;>
                     <Calendar
-                      mode="single"
+                      mode=&quot;single&quot;
                       selected={endDate}
                       onSelect={setEndDate}
                       initialFocus
-                      disabled={(date: Date) =>
-                        startDate ? date < startDate : false
+                      disabled={(_date: Date) =>
+                        startDate ? date < _startDate : false
                       }
                     />
                   </PopoverContent>
@@ -432,31 +432,31 @@ export const SalesTrends = () => {
               </div>
 
               {/* Group By Selector */}
-              <Select value={groupBy} onValueChange={(value: any) => setGroupBy(value)}>
+              <Select value={groupBy} onValueChange={(_value: any) => setGroupBy(value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Group by" />
+                  <SelectValue placeholder=&quot;Group by&quot; />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="day">Day</SelectItem>
-                    <SelectItem value="week">Week</SelectItem>
-                    <SelectItem value="month">Month</SelectItem>
+                    <SelectItem value=&quot;day&quot;>Day</SelectItem>
+                    <SelectItem value=&quot;week&quot;>Week</SelectItem>
+                    <SelectItem value=&quot;month&quot;>Month</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className=&quot;flex-1 grid grid-cols-1 _md:grid-cols-3 gap-4&quot;>
               {/* Store Selector */}
-              <Select 
-                value={storeId} 
+              <Select
+                value={storeId}
                 onValueChange={setStoreId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Stores" />
+                  <SelectValue placeholder=&quot;All Stores&quot; />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all_stores">All Stores</SelectItem>
+                  <SelectItem value=&quot;all_stores&quot;>All Stores</SelectItem>
                   {stores.map((store) => (
                     <SelectItem key={store.id} value={store.id.toString()}>
                       {store.name}
@@ -466,22 +466,22 @@ export const SalesTrends = () => {
               </Select>
 
               {/* Chart Type Selector */}
-              <div className="flex space-x-2">
+              <div className=&quot;flex space-x-2&quot;>
                 <Button
-                  variant={chartType === 'line' ? 'default' : 'outline'}
-                  size="icon"
-                  onClick={() => setChartType('line')}
-                  title="Line Chart"
+                  variant={chartType === &apos;line&apos; ? &apos;default&apos; : &apos;outline&apos;}
+                  size=&quot;icon&quot;
+                  onClick={() => setChartType(&apos;line&apos;)}
+                  title=&quot;Line Chart&quot;
                 >
-                  <LineChart className="h-4 w-4" />
+                  <LineChart className=&quot;h-4 w-4&quot; />
                 </Button>
                 <Button
-                  variant={chartType === 'bar' ? 'default' : 'outline'}
-                  size="icon"
-                  onClick={() => setChartType('bar')}
-                  title="Bar Chart"
+                  variant={chartType === &apos;bar&apos; ? &apos;default&apos; : &apos;outline&apos;}
+                  size=&quot;icon&quot;
+                  onClick={() => setChartType(&apos;bar&apos;)}
+                  title=&quot;Bar Chart&quot;
                 >
-                  <BarChart className="h-4 w-4" />
+                  <BarChart className=&quot;h-4 w-4&quot; />
                 </Button>
               </div>
 
@@ -492,10 +492,10 @@ export const SalesTrends = () => {
 
           {/* Totals */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Skeleton className="h-24" />
-              <Skeleton className="h-24" />
-              <Skeleton className="h-24" />
+            <div className=&quot;grid grid-cols-1 _md:grid-cols-3 gap-4 mb-6&quot;>
+              <Skeleton className=&quot;h-24&quot; />
+              <Skeleton className=&quot;h-24&quot; />
+              <Skeleton className=&quot;h-24&quot; />
             </div>
           ) : (
             renderTotals()
@@ -503,10 +503,10 @@ export const SalesTrends = () => {
 
           {/* Sales Chart */}
           {isLoading ? (
-            <Skeleton className="h-[400px] w-full" />
+            <Skeleton className=&quot;h-[400px] w-full&quot; />
           ) : isError ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <p className="text-red-500">Failed to load sales trends. Please try again.</p>
+            <div className=&quot;flex flex-col items-center justify-center h-64&quot;>
+              <p className=&quot;text-red-500&quot;>Failed to load sales trends. Please try again.</p>
             </div>
           ) : (
             renderChart()
@@ -516,14 +516,14 @@ export const SalesTrends = () => {
 
       {/* Store Breakdown */}
       {isLoading ? (
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className=&quot;h-64 w-full&quot; />
       ) : (
         !storeId && renderStoreBreakdown()
       )}
 
       {/* Payment Method Breakdown */}
       {isLoading ? (
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className=&quot;h-64 w-full&quot; />
       ) : (
         renderPaymentMethodBreakdown()
       )}

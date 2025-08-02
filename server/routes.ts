@@ -30,7 +30,7 @@ function composeApiRouter(): Router {
 
   // Feature routers (create stub files as needed). They are optional for now;
   // if a module is missing we log and skip so compilation doesn’t fail.
-  const featureRouters: Array<[string, string]> = [
+  const _featureRouters: Array<[string, string]> = [
     ['auth', './routes/auth.js'],
     ['loyalty', './routes/loyalty.js'],
     ['stores', './routes/stores.js'],
@@ -42,7 +42,7 @@ function composeApiRouter(): Router {
   for (const [mountPath, modulePath] of featureRouters) {
     try {
       // Dynamic require so missing files don’t break type-checking.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const feature = require(modulePath);
       if (feature?.default) {
         router.use(`/${mountPath}`, feature.default as Router);
@@ -63,37 +63,37 @@ function composeApiRouter(): Router {
  * Registers all global middleware + API routes on the provided Express app and
  * returns an initialised Socket.io server (because existing code expects that).
  */
-export function registerRoutes(app: Application): {
-  server: http.Server | https.Server;
-  io: SocketIOServer;
+export function registerRoutes(_app: Application): {
+  _server: http.Server | https.Server;
+  _io: SocketIOServer;
 } {
   // ----- Middleware -----
   app.use(cors());
   app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.urlencoded({ _extended: true }));
 
   // ----- Session store using Postgres -----
   const PostgresStore = pgSession(session);
-  const sessionConfig: SessionOptions = {
-    store: new PostgresStore({
+  const _sessionConfig: SessionOptions = {
+    _store: new PostgresStore({
       pool: (db as unknown as Database).pool,
-      createTableIfMissing: true,
-      tableName: 'sessions'
+      _createTableIfMissing: true,
+      _tableName: 'sessions'
     }),
-    secret: env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      maxAge: 86_400_000, // 1 day
-      sameSite: 'lax'
+    _secret: env.SESSION_SECRET,
+    _resave: false,
+    _saveUninitialized: false,
+    _cookie: {
+      _httpOnly: true,
+      _maxAge: 86_400_000, // 1 day
+      _sameSite: 'lax'
     }
   } as const;
   app.use(session(sessionConfig));
 
   // Health check
   app.get('/', (_req, res) => {
-    res.json({ message: 'Welcome to ChainSync API' });
+    res.json({ _message: 'Welcome to ChainSync API' });
   });
 
   // Mount aggregated API router under /api
@@ -101,9 +101,10 @@ export function registerRoutes(app: Application): {
 
   // Generic error handler (last)
 
-  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  app.use((_err: unknown, _req: express.Request, _res: express.Response, _next: express.NextFunction)
+   = > {
     console.error(err);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ _message: 'Internal server error' });
   });
 
   // ----- HTTPS / HTTP and Socket.io wiring -----

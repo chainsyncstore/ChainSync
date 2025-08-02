@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
  * @param length Length of string to generate
  * @returns Random string
  */
-export function generateRandomString(length: number): string {
+export function generateRandomString(_length: number): string {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   const charactersLength = characters.length;
@@ -22,7 +22,7 @@ export function generateRandomString(length: number): string {
  * @param password Plain text password
  * @returns Hashed password
  */
-export async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(_password: string): Promise<string> {
   const saltRounds = 10;
   return await bcrypt.hash(password, saltRounds);
 }
@@ -33,6 +33,6 @@ export async function hashPassword(password: string): Promise<string> {
  * @param hash Hashed password
  * @returns Boolean indicating if passwords match
  */
-export async function comparePassword(password: string, hash: string): Promise<boolean> {
+export async function comparePassword(_password: string, _hash: string): Promise<boolean> {
   return await bcrypt.compare(password, hash);
 }

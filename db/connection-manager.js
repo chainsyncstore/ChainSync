@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,14 +32,14 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.db = exports.dbManager = void 0;
 exports.executeQuery = executeQuery;
 const pg_1 = require('pg');
 const schema = __importStar(require('@shared/schema'));
 const node_postgres_1 = require('drizzle-orm/node-postgres');
 const logging_1 = require('../shared/logging');
-const logger = (0, logging_1.getLogger)('db-connection-manager').child({ component: 'db-connection-manager' });
+const logger = (0, logging_1.getLogger)('db-connection-manager').child({ _component: 'db-connection-manager' });
 // Connection pool configuration
 const DEFAULT_POOL_SIZE = 10;
 const CONNECTION_IDLE_TIMEOUT_MS = 30000; // 30 seconds
@@ -53,12 +53,12 @@ class DbConnectionManager {
   constructor() {
     this.isInitialized = false;
     this.connectionMetrics = {
-      totalConnections: 0,
-      activeConnections: 0,
-      idleConnections: 0,
-      waitingClients: 0,
-      queryCount: 0,
-      queryTimes: []
+      _totalConnections: 0,
+      _activeConnections: 0,
+      _idleConnections: 0,
+      _waitingClients: 0,
+      _queryCount: 0,
+      _queryTimes: []
     };
     this.slowQueryThreshold = 1000; // 1 second
     this.initializePool();
@@ -79,19 +79,19 @@ class DbConnectionManager {
       : DEFAULT_POOL_SIZE;
     // Create connection pool with optimized settings
     this.pool = new pg_1.Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: poolSize,
-      idleTimeoutMillis: CONNECTION_IDLE_TIMEOUT_MS,
-      connectionTimeoutMillis: CONNECTION_TIMEOUT_MS
-      // statement_timeout: STATEMENT_TIMEOUT_MS, // Removed potentially unsupported property
+      _connectionString: process.env.DATABASE_URL,
+      _max: poolSize,
+      _idleTimeoutMillis: CONNECTION_IDLE_TIMEOUT_MS,
+      _connectionTimeoutMillis: CONNECTION_TIMEOUT_MS
+      // _statement_timeout: STATEMENT_TIMEOUT_MS, // Removed potentially unsupported property
     });
     // Set up event listeners for connection management
     this.pool.on('connect', client => {
       this.connectionMetrics.totalConnections++;
       this.connectionMetrics.activeConnections++;
       logger.debug('Database connection established', {
-        totalConnections: this.connectionMetrics.totalConnections,
-        activeConnections: this.connectionMetrics.activeConnections
+        _totalConnections: this.connectionMetrics.totalConnections,
+        _activeConnections: this.connectionMetrics.activeConnections
       });
     });
     this.pool.on('acquire', () => {
@@ -104,14 +104,14 @@ class DbConnectionManager {
       this.connectionMetrics.activeConnections--;
     });
     this.pool.on('error', err => {
-      logger.error('Database pool error', { error: err });
+      logger.error('Database pool error', { _error: err });
     });
     // Initialize Drizzle with the connection pool
     this.drizzleDb = (0, node_postgres_1.drizzle)(this.pool, { schema }); // Pass pool directly
     this.isInitialized = true;
     logger.info('Database connection pool initialized', {
       poolSize,
-      idleTimeoutMs: CONNECTION_IDLE_TIMEOUT_MS
+      _idleTimeoutMs: CONNECTION_IDLE_TIMEOUT_MS
     });
   }
   /**
@@ -143,7 +143,7 @@ class DbConnectionManager {
       if (duration > this.slowQueryThreshold) {
         logger.warn('Slow query detected', {
           queryName,
-          durationMs: duration
+          _durationMs: duration
         });
       }
       return result;
@@ -164,15 +164,15 @@ class DbConnectionManager {
     const waitingClients = this.pool.waitingCount;
     const avgQueryTime = this.connectionMetrics.queryTimes.length > 0
       ? this.connectionMetrics.queryTimes.reduce((sum, time) => sum + time, 0) /
-                this.connectionMetrics.queryTimes.length
+                this.connectionMetrics.queryTimes._length
       : 0;
     return {
-      totalConnections: this.connectionMetrics.totalConnections,
-      activeConnections: this.connectionMetrics.activeConnections,
-      idleConnections: this.connectionMetrics.idleConnections,
+      _totalConnections: this.connectionMetrics.totalConnections,
+      _activeConnections: this.connectionMetrics.activeConnections,
+      _idleConnections: this.connectionMetrics.idleConnections,
       waitingClients,
-      queryCount: this.connectionMetrics.queryCount,
-      avgQueryTimeMs: Math.round(avgQueryTime * 100) / 100 // Round to 2 decimal places
+      _queryCount: this.connectionMetrics.queryCount,
+      _avgQueryTimeMs: Math.round(avgQueryTime * 100) / 100 // Round to 2 decimal places
     };
   }
   /**

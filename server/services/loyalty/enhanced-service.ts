@@ -31,16 +31,16 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
   }
 
   // Helper to get a store by ID
-  private async getStoreById(storeId: number) {
-    return db.query.stores.findFirst({ where: eq(schema.stores.id, storeId) });
+  private async getStoreById(_storeId: number) {
+    return db.query.stores.findFirst({ _where: eq(schema.stores.id, storeId) });
   }
 
   // Helper to get a user by ID
-  private async getUserById(userId: number) {
-    return db.query.users.findFirst({ where: eq(schema.users.id, userId) });
+  private async getUserById(_userId: number) {
+    return db.query.users.findFirst({ _where: eq(schema.users.id, userId) });
   }
 
-  async createProgram(params: CreateProgramParams): Promise<LoyaltyProgram> {
+  async createProgram(_params: CreateProgramParams): Promise<LoyaltyProgram> {
     try {
       const store = await this.getStoreById(params.storeId);
       if (!store) {
@@ -48,7 +48,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
       }
 
       const existing = await db.query.loyaltyPrograms.findFirst({
-        where: and(
+        _where: and(
           eq(schema.loyaltyPrograms.storeId, params.storeId),
           eq(schema.loyaltyPrograms.name, params.name)
         )
@@ -71,7 +71,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     }
   }
 
-  async updateProgram(programId: number, params: UpdateProgramParams): Promise<LoyaltyProgram> {
+  async updateProgram(_programId: number, _params: UpdateProgramParams): Promise<LoyaltyProgram> {
     try {
       const validatedData = loyaltyValidation.programUpdate.parse(params);
       const [updatedProgram] = await db
@@ -86,10 +86,10 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     }
   }
 
-  async enrollCustomer(params: LoyaltyMemberInsert): Promise<LoyaltyMember> {
+  async enrollCustomer(_params: LoyaltyMemberInsert): Promise<LoyaltyMember> {
     try {
       const existingMember = await db.query.loyaltyMembers.findFirst({
-        where: and(
+        _where: and(
           eq(schema.loyaltyMembers.programId, params.programId),
           eq(schema.loyaltyMembers.customerId, params.customerId)
         )
@@ -101,7 +101,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
 
       const validatedData = loyaltyValidation.member.insert.parse({
         ...params,
-        membershipId: this.generateMembershipId(params.customerId, params.programId)
+        _membershipId: this.generateMembershipId(params.customerId, params.programId)
       });
 
       const [newMember] = await db.insert(schema.loyaltyMembers).values(validatedData).returning();
@@ -113,25 +113,25 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     }
   }
 
-  async addPoints(params: AddPointsParams): Promise<LoyaltyTransaction> {
+  async addPoints(_params: AddPointsParams): Promise<LoyaltyTransaction> {
     return (db as NodePgDatabase<typeof schema>).transaction(async tx => {
       const member = await tx.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.id, params.memberId)
+        _where: eq(schema.loyaltyMembers.id, params.memberId)
       });
       if (!member) throw new LoyaltyMemberNotFoundError(params.memberId);
 
       const currentPoints = parseInt(member.currentPoints ?? '0', 10);
       const newPoints = currentPoints + params.points;
 
-      // Note: Points are managed through transactions, not direct updates
+      // _Note: Points are managed through transactions, not direct updates
 
       const transactionData = {
-        memberId: params.memberId,
-        programId: member.programId as number,
-        pointsEarned: params.points,
-        pointsBalance: newPoints,
-        transactionType: 'earn' as const,
-        source: params.source
+        _memberId: params.memberId,
+        _programId: member.programId as number,
+        _pointsEarned: params.points,
+        _pointsBalance: newPoints,
+        _transactionType: 'earn' as const,
+        _source: params.source
       };
 
       const [newTransaction] = await tx
@@ -147,15 +147,15 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     });
   }
 
-  async redeemPoints(params: RedeemPointsParams): Promise<LoyaltyTransaction> {
+  async redeemPoints(_params: RedeemPointsParams): Promise<LoyaltyTransaction> {
     return (db as NodePgDatabase<typeof schema>).transaction(async tx => {
       const member = await tx.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.id, params.memberId)
+        _where: eq(schema.loyaltyMembers.id, params.memberId)
       });
       if (!member) throw new LoyaltyMemberNotFoundError(params.memberId);
 
       const reward = await tx.query.loyaltyRewards.findFirst({
-        where: eq(schema.loyaltyRewards.id, params.rewardId)
+        _where: eq(schema.loyaltyRewards.id, params.rewardId)
       });
       if (!reward) throw new RewardNotFoundError(params.rewardId);
 
@@ -166,15 +166,15 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
 
       const newPoints = currentPoints - reward.pointsRequired;
 
-      // Note: Points are managed through transactions, not direct updates
+      // _Note: Points are managed through transactions, not direct updates
 
       const transactionData = {
-        memberId: params.memberId,
-        programId: member.programId as number,
-        pointsRedeemed: reward.pointsRequired,
-        pointsBalance: newPoints,
-        transactionType: 'redeem' as const,
-        source: 'reward_redemption'
+        _memberId: params.memberId,
+        _programId: member.programId as number,
+        _pointsRedeemed: reward.pointsRequired,
+        _pointsBalance: newPoints,
+        _transactionType: 'redeem' as const,
+        _source: 'reward_redemption'
       };
 
       const [newTransaction] = await tx
@@ -190,10 +190,10 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     });
   }
 
-  async getLoyaltyProgramById(programId: number): Promise<LoyaltyProgram | null> {
+  async getLoyaltyProgramById(_programId: number): Promise<LoyaltyProgram | null> {
     try {
       const query = db.query.loyaltyPrograms.findFirst({
-        where: eq(schema.loyaltyPrograms.id, programId)
+        _where: eq(schema.loyaltyPrograms.id, programId)
       });
       return await query;
     } catch (error) {
@@ -201,14 +201,14 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     }
   }
 
-  async getLoyaltyProgramByStore(storeId: number): Promise<LoyaltyProgram | null> {
+  async getLoyaltyProgramByStore(_storeId: number): Promise<LoyaltyProgram | null> {
     try {
       const query = db.query.loyaltyPrograms.findFirst({
-        where: and(
+        _where: and(
           eq(schema.loyaltyPrograms.storeId, storeId),
           eq(schema.loyaltyPrograms.active, true)
         ),
-        orderBy: { createdAt: 'desc' }
+        _orderBy: { createdAt: 'desc' }
       });
       return await query;
     } catch (error) {
@@ -216,10 +216,10 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     }
   }
 
-  async getLoyaltyMemberById(memberId: number): Promise<LoyaltyMember | null> {
+  async getLoyaltyMemberById(_memberId: number): Promise<LoyaltyMember | null> {
     try {
       const query = db.query.loyaltyMembers.findFirst({
-        where: eq(schema.loyaltyMembers.id, memberId)
+        _where: eq(schema.loyaltyMembers.id, memberId)
       });
       return await query;
     } catch (error) {
@@ -227,10 +227,10 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     }
   }
 
-  async getLoyaltyMemberByUser(programId: number, userId: number): Promise<LoyaltyMember | null> {
+  async getLoyaltyMemberByUser(_programId: number, _userId: number): Promise<LoyaltyMember | null> {
     try {
       const query = db.query.loyaltyMembers.findFirst({
-        where: and(
+        _where: and(
           eq(schema.loyaltyMembers.programId, programId),
           eq(schema.loyaltyMembers.customerId, userId)
         )
@@ -241,11 +241,11 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
     }
   }
 
-  async getLoyaltyTransactionsByMember(memberId: number): Promise<LoyaltyTransaction[]> {
+  async getLoyaltyTransactionsByMember(_memberId: number): Promise<LoyaltyTransaction[]> {
     try {
       return await db.query.loyaltyTransactions.findMany({
-        where: eq(schema.loyaltyTransactions.memberId, memberId),
-        orderBy: { createdAt: 'desc' }
+        _where: eq(schema.loyaltyTransactions.memberId, memberId),
+        _orderBy: { createdAt: 'desc' }
       });
     } catch (error) {
       return this.handleError(error, 'getting loyalty transactions by member');
@@ -259,7 +259,7 @@ export class EnhancedLoyaltyService extends EnhancedBaseService {
    * @param programId Program ID
    * @returns Unique membership ID
    */
-  private generateMembershipId(userId: number, programId: number): string {
+  private generateMembershipId(_userId: number, _programId: number): string {
     const prefix = 'LM';
     const timestamp = Date.now().toString().slice(-6);
     return `${prefix}${programId}${userId}${timestamp}`;

@@ -1,7 +1,7 @@
 // src/components/ErrorPage.tsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import * as Sentry from '@sentry/react';
+import React from &apos;react&apos;;
+import { useNavigate } from &apos;react-router-dom&apos;;
+import * as Sentry from &apos;@sentry/react&apos;;
 
 interface ErrorPageProps {
   statusCode?: number;
@@ -18,12 +18,12 @@ interface ErrorPageProps {
 /**
  * Generic error page component used for both route errors and error boundary fallbacks
  */
-const ErrorPage: React.FC<ErrorPageProps> = ({
+const _ErrorPage: React.FC<ErrorPageProps> = ({
   statusCode = 500,
-  title = 'Something went wrong',
-  message = 'We encountered an unexpected error and our team has been notified.',
+  title = &apos;Something went wrong&apos;,
+  message = &apos;We encountered an unexpected error and our team has been notified.&apos;,
   error,
-  showDetails = process.env.NODE_ENV !== 'production',
+  showDetails = process.env.NODE_ENV !== &apos;production&apos;,
   showReportButton = true,
   showHomeButton = true,
   showRetryButton = true,
@@ -36,23 +36,23 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
     if (!error) return;
 
     Sentry.showReportDialog({
-      eventId: Sentry.captureException(error),
-      title: 'Report Feedback',
-      subtitle: 'Your feedback helps us improve',
-      subtitle2: 'Please tell us what happened',
-      labelName: 'Name',
-      labelEmail: 'Email',
-      labelComments: 'What happened?',
-      labelClose: 'Close',
-      labelSubmit: 'Submit',
-      successMessage: 'Thank you for your feedback!',
-      errorFormEntry: 'Some fields were invalid. Please correct and try again.'
+      _eventId: Sentry.captureException(error),
+      _title: &apos;Report Feedback&apos;,
+      _subtitle: &apos;Your feedback helps us improve&apos;,
+      _subtitle2: &apos;Please tell us what happened&apos;,
+      _labelName: &apos;Name&apos;,
+      _labelEmail: &apos;Email&apos;,
+      _labelComments: &apos;What happened?&apos;,
+      _labelClose: &apos;Close&apos;,
+      _labelSubmit: &apos;Submit&apos;,
+      _successMessage: &apos;Thank you for your feedback!&apos;,
+      _errorFormEntry: &apos;Some fields were invalid. Please correct and try again.&apos;
     });
   };
 
   // Navigate to home page
   const goToHome = () => {
-    navigate('/');
+    navigate(&apos;/&apos;);
   };
 
   // Retry the operation
@@ -65,44 +65,44 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
   };
 
   return (
-    <div className="error-page">
-      <div className="error-container">
-        <div className="error-status">{statusCode}</div>
-        <h1 className="error-title">{title}</h1>
-        <p className="error-message">{message}</p>
+    <div className=&quot;error-page&quot;>
+      <div className=&quot;error-container&quot;>
+        <div className=&quot;error-status&quot;>{statusCode}</div>
+        <h1 className=&quot;error-title&quot;>{title}</h1>
+        <p className=&quot;error-message&quot;>{message}</p>
 
         {showDetails && error && (
-          <details className="error-details">
+          <details className=&quot;error-details&quot;>
             <summary>Technical Details</summary>
-            <div className="error-stack">
-              <p className="error-name">{error.name}: {error.message}</p>
+            <div className=&quot;error-stack&quot;>
+              <p className=&quot;error-name&quot;>{error.name}: {error.message}</p>
               <pre>{error.stack}</pre>
             </div>
           </details>
         )}
 
-        <div className="error-actions">
+        <div className=&quot;error-actions&quot;>
           {showRetryButton && (
             <button
-              className="error-retry-button"
+              className=&quot;error-retry-button&quot;
               onClick={handleRetry}
             >
               Try Again
             </button>
           )}
-          
+
           {showHomeButton && (
             <button
-              className="error-home-button"
+              className=&quot;error-home-button&quot;
               onClick={goToHome}
             >
               Go to Home
             </button>
           )}
-          
+
           {showReportButton && error && (
             <button
-              className="error-report-button"
+              className=&quot;error-report-button&quot;
               onClick={handleReportError}
             >
               Report Issue

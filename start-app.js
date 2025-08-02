@@ -5,17 +5,17 @@ console.log('🚀 Starting ChainSync Application...');
 
 // Start the integrated server
 const serverProcess = spawn('npx', ['tsx', 'server/integrated-index.ts'], {
-  cwd: process.cwd(),
-  stdio: 'inherit',
-  env: {
+  _cwd: process.cwd(),
+  _stdio: 'inherit',
+  _env: {
     ...process.env,
-    PORT: '5000',
-    NODE_ENV: 'development'
+    _PORT: '5000',
+    _NODE_ENV: 'development'
   }
 });
 
 serverProcess.on('error', (err) => {
-  console.error('Failed to start server:', err);
+  console.error('Failed to start _server:', err);
   process.exit(1);
 });
 

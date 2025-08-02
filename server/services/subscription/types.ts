@@ -30,9 +30,9 @@ export enum PaymentProvider {
 }
 
 export interface CreateSubscriptionParams {
-  userId: number;
-  plan: SubscriptionPlan | string;
-  amount: string;
+  _userId: number;
+  _plan: SubscriptionPlan | string;
+  _amount: string;
   currency?: string;
   provider?: PaymentProvider;
   providerReference?: string;
@@ -53,9 +53,9 @@ export interface UpdateSubscriptionParams {
 }
 
 export interface ProcessWebhookParams {
-  provider: PaymentProvider;
-  event: string;
-  data: Record<string, unknown>;
+  _provider: PaymentProvider;
+  _event: string;
+  _data: Record<string, unknown>;
   reference?: string;
 }
 
@@ -71,51 +71,51 @@ export interface SubscriptionSearchParams {
 }
 
 export interface SubscriptionServiceErrors {
-  SUBSCRIPTION_NOT_FOUND: Error;
-  USER_NOT_FOUND: Error;
-  INVALID_PLAN: Error;
-  PAYMENT_FAILED: Error;
-  WEBHOOK_VALIDATION_FAILED: Error;
-  DUPLICATE_SUBSCRIPTION: Error;
-  INVALID_STATUS_TRANSITION: Error;
-  INVALID_RENEWAL: Error;
-  INVALID_CANCELLATION: Error;
+  _SUBSCRIPTION_NOT_FOUND: Error;
+  _USER_NOT_FOUND: Error;
+  _INVALID_PLAN: Error;
+  _PAYMENT_FAILED: Error;
+  _WEBHOOK_VALIDATION_FAILED: Error;
+  _DUPLICATE_SUBSCRIPTION: Error;
+  _INVALID_STATUS_TRANSITION: Error;
+  _INVALID_RENEWAL: Error;
+  _INVALID_CANCELLATION: Error;
 }
 
-export const SubscriptionServiceErrors: SubscriptionServiceErrors = {
-  SUBSCRIPTION_NOT_FOUND: new Error('Subscription not found'),
-  USER_NOT_FOUND: new Error('User not found'),
-  INVALID_PLAN: new Error('Invalid subscription plan'),
-  PAYMENT_FAILED: new Error('Payment processing failed'),
-  WEBHOOK_VALIDATION_FAILED: new Error('Webhook validation failed'),
-  DUPLICATE_SUBSCRIPTION: new Error('User already has an active subscription'),
-  INVALID_STATUS_TRANSITION: new Error('Invalid subscription status transition'),
-  INVALID_RENEWAL: new Error('Subscription renewal failed'),
-  INVALID_CANCELLATION: new Error('Subscription cancellation failed')
+export const _SubscriptionServiceErrors: SubscriptionServiceErrors = {
+  _SUBSCRIPTION_NOT_FOUND: new Error('Subscription not found'),
+  _USER_NOT_FOUND: new Error('User not found'),
+  _INVALID_PLAN: new Error('Invalid subscription plan'),
+  _PAYMENT_FAILED: new Error('Payment processing failed'),
+  _WEBHOOK_VALIDATION_FAILED: new Error('Webhook validation failed'),
+  _DUPLICATE_SUBSCRIPTION: new Error('User already has an active subscription'),
+  _INVALID_STATUS_TRANSITION: new Error('Invalid subscription status transition'),
+  _INVALID_RENEWAL: new Error('Subscription renewal failed'),
+  _INVALID_CANCELLATION: new Error('Subscription cancellation failed')
 };
 
 export interface ISubscriptionService {
-  createSubscription(params: CreateSubscriptionParams): Promise<SelectSubscription>;
-  updateSubscription(subscriptionId: number, params: UpdateSubscriptionParams): Promise<SelectSubscription>;
-  getSubscriptionById(subscriptionId: number): Promise<SelectSubscription | null>;
-  getSubscriptionByUser(userId: number): Promise<SelectSubscription | null>;
-  getActiveSubscription(userId: number): Promise<SelectSubscription | null>;
-  searchSubscriptions(params: SubscriptionSearchParams): Promise<{
-    subscriptions: SelectSubscription[];
-    total: number;
-    page: number;
-    limit: number;
+  createSubscription(_params: CreateSubscriptionParams): Promise<SelectSubscription>;
+  updateSubscription(_subscriptionId: number, _params: UpdateSubscriptionParams): Promise<SelectSubscription>;
+  getSubscriptionById(_subscriptionId: number): Promise<SelectSubscription | null>;
+  getSubscriptionByUser(_userId: number): Promise<SelectSubscription | null>;
+  getActiveSubscription(_userId: number): Promise<SelectSubscription | null>;
+  searchSubscriptions(_params: SubscriptionSearchParams): Promise<{
+    _subscriptions: SelectSubscription[];
+    _total: number;
+    _page: number;
+    _limit: number;
   }>;
-  cancelSubscription(subscriptionId: number, reason?: string): Promise<SelectSubscription>;
-  renewSubscription(subscriptionId: number): Promise<SelectSubscription>;
-  processWebhook(params: ProcessWebhookParams): Promise<boolean>;
-  validateSubscriptionAccess(userId: number, requiredPlan?: SubscriptionPlan | string): Promise<boolean>;
+  cancelSubscription(_subscriptionId: number, reason?: string): Promise<SelectSubscription>;
+  renewSubscription(_subscriptionId: number): Promise<SelectSubscription>;
+  processWebhook(_params: ProcessWebhookParams): Promise<boolean>;
+  validateSubscriptionAccess(_userId: number, requiredPlan?: SubscriptionPlan | string): Promise<boolean>;
   getSubscriptionMetrics(): Promise<{
-    totalSubscriptions: number;
-    activeSubscriptions: number;
-    revenueThisMonth: string;
-    revenueLastMonth: string;
-    subscriptionsByPlan: Record<string, number>;
-    churnRate: string;
+    _totalSubscriptions: number;
+    _activeSubscriptions: number;
+    _revenueThisMonth: string;
+    _revenueLastMonth: string;
+    _subscriptionsByPlan: Record<string, number>;
+    _churnRate: string;
   }>;
 }

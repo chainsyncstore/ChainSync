@@ -7,7 +7,7 @@ import {
   decimal,
   uniqueIndex,
   pgEnum,
-  jsonb,
+  jsonb
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
@@ -29,29 +29,29 @@ export const inventoryTransactionTypeEnum = pgEnum('inventory_transaction_type',
   'transfer',
   'adjustment',
   'count',
-  'receive',
+  'receive'
 ]);
 
 export const inventoryTransactions = pgTable('inventory_transactions', {
-  id: serial('id').primaryKey(),
-  inventoryId: integer('inventory_id')
+  _id: serial('id').primaryKey(),
+  _inventoryId: integer('inventory_id')
     .references(() => inventory.id)
     .notNull(),
-  itemId: integer('item_id').references(() => inventoryBatches.id), // Assuming itemId refers to a batch/item
-  batchId: integer('batch_id').references(() => inventoryBatches.id), // Explicit batchId if different from itemId
-  transactionType: inventoryTransactionTypeEnum('transaction_type').notNull(),
-  quantity: integer('quantity').notNull(), // Can be positive (receive/return) or negative (sale/damage)
-  beforeQuantity: integer('before_quantity').notNull(),
-  afterQuantity: integer('after_quantity').notNull(),
-  unitCost: decimal('unit_cost', { precision: 10, scale: 2 }), // Cost at the time of transaction
-  totalCost: decimal('total_cost', { precision: 10, scale: 2 }), // quantity * unitCost
-  referenceId: text('reference_id'), // e.g., order_id, adjustment_id
-  notes: text('notes'),
-  performedBy: integer('performed_by').references(() => users.id), // User who performed the action
-  transactionDate: timestamp('transaction_date').notNull().defaultNow(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  metadata: jsonb('metadata'),
+  _itemId: integer('item_id').references(() => inventoryBatches.id), // Assuming itemId refers to a batch/item
+  _batchId: integer('batch_id').references(() => inventoryBatches.id), // Explicit batchId if different from itemId
+  _transactionType: inventoryTransactionTypeEnum('transaction_type').notNull(),
+  _quantity: integer('quantity').notNull(), // Can be positive (receive/return) or negative (sale/damage)
+  _beforeQuantity: integer('before_quantity').notNull(),
+  _afterQuantity: integer('after_quantity').notNull(),
+  _unitCost: decimal('unit_cost', { _precision: 10, _scale: 2 }), // Cost at the time of transaction
+  _totalCost: decimal('total_cost', { _precision: 10, _scale: 2 }), // quantity * unitCost
+  _referenceId: text('reference_id'), // e.g., order_id, adjustment_id
+  _notes: text('notes'),
+  _performedBy: integer('performed_by').references(() => users.id), // User who performed the action
+  _transactionDate: timestamp('transaction_date').notNull().defaultNow(),
+  _createdAt: timestamp('created_at').notNull().defaultNow(),
+  _updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  _metadata: jsonb('metadata')
 });
 
 // Zod schemas
@@ -64,7 +64,7 @@ export type InventoryTransactionInsert = typeof inventoryTransactions.$inferInse
 // Relations (optional, if needed)
 // import { relations } from "drizzle-orm";
 // export const inventoryTransactionsRelations = relations(inventoryTransactions, ({ one }) => ({
-//   inventory: one(inventory, { fields: [inventoryTransactions.inventoryId], references: [inventory.id] }),
-//   item: one(inventoryBatches, { fields: [inventoryTransactions.itemId], references: [inventoryBatches.id] }),
-//   user: one(users, { fields: [inventoryTransactions.performedBy], references: [users.id] }),
+//   _inventory: one(inventory, { _fields: [inventoryTransactions.inventoryId], _references: [inventory.id] }),
+//   _item: one(inventoryBatches, { _fields: [inventoryTransactions.itemId], _references: [inventoryBatches.id] }),
+//   _user: one(users, { _fields: [inventoryTransactions.performedBy], _references: [users.id] }),
 // }));

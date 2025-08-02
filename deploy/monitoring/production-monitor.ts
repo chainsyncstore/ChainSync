@@ -3,7 +3,7 @@ import axios from 'axios';
 import { EventEmitter } from 'events';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'production-monitor' });
+const logger = getLogger().child({ _component: 'production-monitor' });
 
 // Alert severity levels
 export enum AlertSeverity {
@@ -29,71 +29,71 @@ export enum AlertType {
 
 // Alert interface
 export interface Alert {
-  id: string;
-  type: AlertType;
-  severity: AlertSeverity;
-  title: string;
-  message: string;
-  timestamp: Date;
-  metadata: Record<string, any>;
-  resolved: boolean;
+  _id: string;
+  _type: AlertType;
+  _severity: AlertSeverity;
+  _title: string;
+  _message: string;
+  _timestamp: Date;
+  _metadata: Record<string, any>;
+  _resolved: boolean;
   resolvedAt?: Date;
-  acknowledged: boolean;
+  _acknowledged: boolean;
   acknowledgedAt?: Date;
   acknowledgedBy?: string;
 }
 
 // Health check result
 export interface HealthCheckResult {
-  service: string;
+  _service: string;
   status: 'healthy' | 'unhealthy' | 'degraded';
-  responseTime: number;
-  lastCheck: Date;
+  _responseTime: number;
+  _lastCheck: Date;
   error?: string;
   metadata?: Record<string, any>;
 }
 
 // Monitoring configuration
 export interface MonitoringConfig {
-  healthCheckInterval: number;
+  _healthCheckInterval: number;
   alertThresholds: {
-    errorRate: number;
-    responseTime: number;
-    cpuUsage: number;
-    memoryUsage: number;
-    diskUsage: number;
+    _errorRate: number;
+    _responseTime: number;
+    _cpuUsage: number;
+    _memoryUsage: number;
+    _diskUsage: number;
   };
   notificationChannels: {
-    email: boolean;
-    slack: boolean;
-    pagerDuty: boolean;
+    _email: boolean;
+    _slack: boolean;
+    _pagerDuty: boolean;
   };
   escalationPolicy: {
-    lowTimeout: number;
-    mediumTimeout: number;
-    highTimeout: number;
-    criticalTimeout: number;
+    _lowTimeout: number;
+    _mediumTimeout: number;
+    _highTimeout: number;
+    _criticalTimeout: number;
   };
 }
 
 // Production monitoring system
 export class ProductionMonitor extends EventEmitter {
-  private config: MonitoringConfig;
-  private alerts: Map<string, Alert> = new Map();
-  private healthChecks: Map<string, HealthCheckResult> = new Map();
+  private _config: MonitoringConfig;
+  private _alerts: Map<string, Alert> = new Map();
+  private _healthChecks: Map<string, HealthCheckResult> = new Map();
   private metrics!: {
-    httpRequestDuration: promClient.Histogram;
-    httpRequestsTotal: promClient.Counter;
-    httpErrorsTotal: promClient.Counter;
-    systemCpuUsage: promClient.Gauge;
-    systemMemoryUsage: promClient.Gauge;
-    systemDiskUsage: promClient.Gauge;
-    databaseConnections: promClient.Gauge;
-    redisConnections: promClient.Gauge;
-    activeAlerts: promClient.Gauge;
+    _httpRequestDuration: promClient.Histogram;
+    _httpRequestsTotal: promClient.Counter;
+    _httpErrorsTotal: promClient.Counter;
+    _systemCpuUsage: promClient.Gauge;
+    _systemMemoryUsage: promClient.Gauge;
+    _systemDiskUsage: promClient.Gauge;
+    _databaseConnections: promClient.Gauge;
+    _redisConnections: promClient.Gauge;
+    _activeAlerts: promClient.Gauge;
   };
 
-  constructor(config: MonitoringConfig) {
+  constructor(_config: MonitoringConfig) {
     super();
     this.config = config;
     this.initializeMetrics();
@@ -105,47 +105,47 @@ export class ProductionMonitor extends EventEmitter {
    */
   private initializeMetrics(): void {
     this.metrics = {
-      httpRequestDuration: new promClient.Histogram({
+      _httpRequestDuration: new promClient.Histogram({
         name: 'chainsync_http_request_duration_seconds',
-        help: 'Duration of HTTP requests in seconds',
-        labelNames: ['method', 'route', 'status_code'],
-        buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10],
+        _help: 'Duration of HTTP requests in seconds',
+        _labelNames: ['method', 'route', 'status_code'],
+        _buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10]
       }),
-      httpRequestsTotal: new promClient.Counter({
+      _httpRequestsTotal: new promClient.Counter({
         name: 'chainsync_http_requests_total',
-        help: 'Total number of HTTP requests',
-        labelNames: ['method', 'route', 'status_code'],
+        _help: 'Total number of HTTP requests',
+        _labelNames: ['method', 'route', 'status_code']
       }),
-      httpErrorsTotal: new promClient.Counter({
+      _httpErrorsTotal: new promClient.Counter({
         name: 'chainsync_http_errors_total',
-        help: 'Total number of HTTP errors',
-        labelNames: ['method', 'route', 'status_code', 'error_type'],
+        _help: 'Total number of HTTP errors',
+        _labelNames: ['method', 'route', 'status_code', 'error_type']
       }),
-      systemCpuUsage: new promClient.Gauge({
+      _systemCpuUsage: new promClient.Gauge({
         name: 'chainsync_system_cpu_usage_percent',
-        help: 'System CPU usage percentage',
+        _help: 'System CPU usage percentage'
       }),
-      systemMemoryUsage: new promClient.Gauge({
+      _systemMemoryUsage: new promClient.Gauge({
         name: 'chainsync_system_memory_usage_percent',
-        help: 'System memory usage percentage',
+        _help: 'System memory usage percentage'
       }),
-      systemDiskUsage: new promClient.Gauge({
+      _systemDiskUsage: new promClient.Gauge({
         name: 'chainsync_system_disk_usage_percent',
-        help: 'System disk usage percentage',
+        _help: 'System disk usage percentage'
       }),
-      databaseConnections: new promClient.Gauge({
+      _databaseConnections: new promClient.Gauge({
         name: 'chainsync_database_connections',
-        help: 'Number of active database connections',
+        _help: 'Number of active database connections'
       }),
-      redisConnections: new promClient.Gauge({
+      _redisConnections: new promClient.Gauge({
         name: 'chainsync_redis_connections',
-        help: 'Number of active Redis connections',
+        _help: 'Number of active Redis connections'
       }),
-      activeAlerts: new promClient.Gauge({
+      _activeAlerts: new promClient.Gauge({
         name: 'chainsync_active_alerts',
-        help: 'Number of active alerts',
-        labelNames: ['severity'],
-      }),
+        _help: 'Number of active alerts',
+        _labelNames: ['severity']
+      })
     };
   }
 
@@ -176,24 +176,24 @@ export class ProductionMonitor extends EventEmitter {
    */
   private async performHealthChecks(): Promise<void> {
     const services = [
-      { name: 'api', url: '/api/health' },
-      { name: 'database', url: '/api/health/database' },
-      { name: 'redis', url: '/api/health/redis' },
-      { name: 'external-api', url: '/api/health/external' },
+      { _name: 'api', _url: '/api/health' },
+      { _name: 'database', _url: '/api/health/database' },
+      { _name: 'redis', _url: '/api/health/redis' },
+      { _name: 'external-api', _url: '/api/health/external' }
     ];
 
     for (const service of services) {
       try {
         const startTime = Date.now();
-        const response = await axios.get(service.url, { timeout: 5000 });
+        const response = await axios.get(service.url, { _timeout: 5000 });
         const responseTime = Date.now() - startTime;
 
-        const result: HealthCheckResult = {
-          service: service.name,
-          status: response.status === 200 ? 'healthy' : 'unhealthy',
+        const _result: HealthCheckResult = {
+          _service: service.name,
+          _status: response.status === 200 ? 'healthy' : 'unhealthy',
           responseTime,
-          lastCheck: new Date(),
-          metadata: response.data,
+          _lastCheck: new Date(),
+          _metadata: response.data
         };
 
         this.healthChecks.set(service.name, result);
@@ -201,32 +201,32 @@ export class ProductionMonitor extends EventEmitter {
         // Check for performance issues
         if (responseTime > this.config.alertThresholds.responseTime) {
           this.createAlert({
-            type: AlertType.HIGH_LATENCY,
-            severity: AlertSeverity.MEDIUM,
-            title: `High latency detected for ${service.name}`,
-            message: `Response time ${responseTime}ms exceeds threshold ${this.config.alertThresholds.responseTime}ms`,
-            metadata: { service: service.name, responseTime, threshold: this.config.alertThresholds.responseTime },
+            _type: AlertType.HIGH_LATENCY,
+            _severity: AlertSeverity.MEDIUM,
+            _title: `High latency detected for ${service.name}`,
+            _message: `Response time ${responseTime}ms exceeds threshold ${this.config.alertThresholds.responseTime}ms`,
+            _metadata: { _service: service.name, responseTime, _threshold: this.config.alertThresholds.responseTime }
           });
         }
 
       } catch (error) {
-        const result: HealthCheckResult = {
-          service: service.name,
-          status: 'unhealthy',
-          responseTime: 0,
-          lastCheck: new Date(),
-          error: error instanceof Error ? error.message : 'Unknown error',
+        const _result: HealthCheckResult = {
+          _service: service.name,
+          _status: 'unhealthy',
+          _responseTime: 0,
+          _lastCheck: new Date(),
+          _error: error instanceof Error ? error.message : 'Unknown error'
         };
 
         this.healthChecks.set(service.name, result);
 
         // Create alert for service down
         this.createAlert({
-          type: AlertType.SYSTEM_DOWN,
-          severity: AlertSeverity.HIGH,
-          title: `${service.name} service is down`,
-          message: `Health check failed for ${service.name}: ${result.error}`,
-          metadata: { service: service.name, error: result.error },
+          _type: AlertType.SYSTEM_DOWN,
+          _severity: AlertSeverity.HIGH,
+          _title: `${service.name} service is down`,
+          _message: `Health check failed for ${service.name}: ${result.error}`,
+          _metadata: { _service: service.name, _error: result.error }
         });
       }
     }
@@ -243,11 +243,11 @@ export class ProductionMonitor extends EventEmitter {
 
       if (cpuUsage > this.config.alertThresholds.cpuUsage) {
         this.createAlert({
-          type: AlertType.HIGH_LATENCY,
-          severity: AlertSeverity.MEDIUM,
-          title: 'High CPU usage detected',
-          message: `CPU usage ${cpuUsage}% exceeds threshold ${this.config.alertThresholds.cpuUsage}%`,
-          metadata: { cpuUsage, threshold: this.config.alertThresholds.cpuUsage },
+          _type: AlertType.HIGH_LATENCY,
+          _severity: AlertSeverity.MEDIUM,
+          _title: 'High CPU usage detected',
+          _message: `CPU usage ${cpuUsage}% exceeds threshold ${this.config.alertThresholds.cpuUsage}%`,
+          _metadata: { cpuUsage, _threshold: this.config.alertThresholds.cpuUsage }
         });
       }
 
@@ -257,11 +257,11 @@ export class ProductionMonitor extends EventEmitter {
 
       if (memoryUsage > this.config.alertThresholds.memoryUsage) {
         this.createAlert({
-          type: AlertType.MEMORY_LOW,
-          severity: AlertSeverity.HIGH,
-          title: 'High memory usage detected',
-          message: `Memory usage ${memoryUsage}% exceeds threshold ${this.config.alertThresholds.memoryUsage}%`,
-          metadata: { memoryUsage, threshold: this.config.alertThresholds.memoryUsage },
+          _type: AlertType.MEMORY_LOW,
+          _severity: AlertSeverity.HIGH,
+          _title: 'High memory usage detected',
+          _message: `Memory usage ${memoryUsage}% exceeds threshold ${this.config.alertThresholds.memoryUsage}%`,
+          _metadata: { memoryUsage, _threshold: this.config.alertThresholds.memoryUsage }
         });
       }
 
@@ -271,11 +271,11 @@ export class ProductionMonitor extends EventEmitter {
 
       if (diskUsage > this.config.alertThresholds.diskUsage) {
         this.createAlert({
-          type: AlertType.DISK_SPACE_LOW,
-          severity: AlertSeverity.HIGH,
-          title: 'Low disk space detected',
-          message: `Disk usage ${diskUsage}% exceeds threshold ${this.config.alertThresholds.diskUsage}%`,
-          metadata: { diskUsage, threshold: this.config.alertThresholds.diskUsage },
+          _type: AlertType.DISK_SPACE_LOW,
+          _severity: AlertSeverity.HIGH,
+          _title: 'Low disk space detected',
+          _message: `Disk usage ${diskUsage}% exceeds threshold ${this.config.alertThresholds.diskUsage}%`,
+          _metadata: { diskUsage, _threshold: this.config.alertThresholds.diskUsage }
         });
       }
 
@@ -287,17 +287,17 @@ export class ProductionMonitor extends EventEmitter {
   /**
    * Create an alert
    */
-  createAlert(alertData: Omit<Alert, 'id' | 'timestamp' | 'resolved' | 'acknowledged'>): void {
-    const alert: Alert = {
+  createAlert(_alertData: Omit<Alert, 'id' | 'timestamp' | 'resolved' | 'acknowledged'>): void {
+    const _alert: Alert = {
       ...alertData,
-      id: this.generateAlertId(),
-      timestamp: new Date(),
-      resolved: false,
-      acknowledged: false,
+      _id: this.generateAlertId(),
+      _timestamp: new Date(),
+      _resolved: false,
+      _acknowledged: false
     };
 
     this.alerts.set(alert.id, alert);
-    this.metrics.activeAlerts.inc({ severity: alert.severity });
+    this.metrics.activeAlerts.inc({ _severity: alert.severity });
 
     logger.warn('Alert created', { alert });
     this.emit('alert', alert);
@@ -309,7 +309,7 @@ export class ProductionMonitor extends EventEmitter {
   /**
    * Resolve an alert
    */
-  resolveAlert(alertId: string, resolvedBy?: string): boolean {
+  resolveAlert(_alertId: string, resolvedBy?: string): boolean {
     const alert = this.alerts.get(alertId);
     if (!alert) {
       return false;
@@ -317,7 +317,7 @@ export class ProductionMonitor extends EventEmitter {
 
     alert.resolved = true;
     alert.resolvedAt = new Date();
-    this.metrics.activeAlerts.dec({ severity: alert.severity });
+    this.metrics.activeAlerts.dec({ _severity: alert.severity });
 
     logger.info('Alert resolved', { alertId, resolvedBy });
     this.emit('alertResolved', alert);
@@ -328,7 +328,7 @@ export class ProductionMonitor extends EventEmitter {
   /**
    * Acknowledge an alert
    */
-  acknowledgeAlert(alertId: string, acknowledgedBy: string): boolean {
+  acknowledgeAlert(_alertId: string, _acknowledgedBy: string): boolean {
     const alert = this.alerts.get(alertId);
     if (!alert) {
       return false;
@@ -367,8 +367,8 @@ export class ProductionMonitor extends EventEmitter {
   /**
    * Escalate an alert
    */
-  private escalateAlert(alert: Alert): void {
-    logger.warn('Alert escalated', { alertId: alert.id, severity: alert.severity });
+  private escalateAlert(_alert: Alert): void {
+    logger.warn('Alert escalated', { _alertId: alert.id, _severity: alert.severity });
     this.emit('alertEscalated', alert);
 
     // Send escalation notifications
@@ -378,25 +378,24 @@ export class ProductionMonitor extends EventEmitter {
   /**
    * Get escalation timeout for severity
    */
-  private getEscalationTimeout(severity: AlertSeverity): number {
+  private getEscalationTimeout(_severity: AlertSeverity): number {
     switch (severity) {
-      case AlertSeverity.LOW:
+      case AlertSeverity._LOW:
         return this.config.escalationPolicy.lowTimeout;
-      case AlertSeverity.MEDIUM:
+      case AlertSeverity._MEDIUM:
         return this.config.escalationPolicy.mediumTimeout;
-      case AlertSeverity.HIGH:
+      case AlertSeverity._HIGH:
         return this.config.escalationPolicy.highTimeout;
-      case AlertSeverity.CRITICAL:
+      case AlertSeverity._CRITICAL:
         return this.config.escalationPolicy.criticalTimeout;
-      default:
-        return 300000; // 5 minutes default
+      return 300000; // 5 minutes default
     }
   }
 
   /**
    * Send notifications
    */
-  private async sendNotifications(alert: Alert): Promise<void> {
+  private async sendNotifications(_alert: Alert): Promise<void> {
     try {
       if (this.config.notificationChannels.email) {
         await this.sendEmailNotification(alert);
@@ -410,40 +409,40 @@ export class ProductionMonitor extends EventEmitter {
         await this.sendPagerDutyNotification(alert);
       }
     } catch (error) {
-      logger.error('Failed to send notifications', { error, alertId: alert.id });
+      logger.error('Failed to send notifications', { error, _alertId: alert.id });
     }
   }
 
   /**
    * Send escalation notifications
    */
-  private async sendEscalationNotifications(alert: Alert): Promise<void> {
+  private async sendEscalationNotifications(_alert: Alert): Promise<void> {
     // Implementation for escalation notifications
-    logger.info('Sending escalation notifications', { alertId: alert.id });
+    logger.info('Sending escalation notifications', { _alertId: alert.id });
   }
 
   /**
    * Send email notification
    */
-  private async sendEmailNotification(alert: Alert): Promise<void> {
+  private async sendEmailNotification(_alert: Alert): Promise<void> {
     // Implementation for email notifications
-    logger.info('Sending email notification', { alertId: alert.id });
+    logger.info('Sending email notification', { _alertId: alert.id });
   }
 
   /**
    * Send Slack notification
    */
-  private async sendSlackNotification(alert: Alert): Promise<void> {
+  private async sendSlackNotification(_alert: Alert): Promise<void> {
     // Implementation for Slack notifications
-    logger.info('Sending Slack notification', { alertId: alert.id });
+    logger.info('Sending Slack notification', { _alertId: alert.id });
   }
 
   /**
    * Send PagerDuty notification
    */
-  private async sendPagerDutyNotification(alert: Alert): Promise<void> {
+  private async sendPagerDutyNotification(_alert: Alert): Promise<void> {
     // Implementation for PagerDuty notifications
-    logger.info('Sending PagerDuty notification', { alertId: alert.id });
+    logger.info('Sending PagerDuty notification', { _alertId: alert.id });
   }
 
   /**
@@ -507,4 +506,4 @@ export class ProductionMonitor extends EventEmitter {
   async getMetrics(): Promise<string> {
     return await promClient.register.metrics();
   }
-} 
+}

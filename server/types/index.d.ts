@@ -5,10 +5,10 @@ import { Server } from 'socket.io';
 
 // Environment Variables
 interface EnvConfig {
-  sessionSecret: string;
-  sessionCookieName: string;
-  databaseUrl: string;
-  port: string;
+  _sessionSecret: string;
+  _sessionCookieName: string;
+  _databaseUrl: string;
+  _port: string;
   environment: 'development' | 'production' | 'test';
   // Add other environment variables as needed
 }
@@ -21,13 +21,13 @@ declare global {
 
 // Database Types
 interface Database {
-  pool: Pool;
+  _pool: Pool;
 }
 
 // User Types
 interface User {
-  id: string;
-  email: string;
+  _id: string;
+  _email: string;
   role: 'admin' | 'manager' | 'cashier';
   storeId?: number;
 }
@@ -36,65 +36,66 @@ interface User {
 
 // Customer Types
 interface Customer {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  storeId: number;
-  createdAt: Date;
-  updatedAt: Date;
+  _id: number;
+  _fullName: string;
+  _email: string;
+  _phone: string;
+  _storeId: number;
+  _createdAt: Date;
+  _updatedAt: Date;
 }
 
 // Loyalty Types
 interface LoyaltyMember {
-  id: number;
-  customerId: number;
-  loyaltyId: string;
-  currentPoints: number;
-  totalPointsEarned: number;
-  totalPointsRedeemed: number;
-  enrollmentDate: Date;
-  lastActivity: Date;
-  tier: LoyaltyTier;
+  _id: number;
+  _customerId: number;
+  _loyaltyId: string;
+  _currentPoints: number;
+  _totalPointsEarned: number;
+  _totalPointsRedeemed: number;
+  _enrollmentDate: Date;
+  _lastActivity: Date;
+  _tier: LoyaltyTier;
 }
 
 interface LoyaltyTier {
-  id: number;
-  name: string;
-  minPoints: number;
-  benefits: string[];
+  _id: number;
+  _name: string;
+  _minPoints: number;
+  _benefits: string[];
 }
 
 // File Upload Types
 interface FileUploadConfig {
-  maxFileSize: number;
-  maxTotalUploadSize: number;
-  allowedMimeTypes: string[];
-  maxFiles: number;
-  destination: string;
-  filename: (req: Request, file: any, cb: (error: Error | null, filename: string) => void) => void;
-  allowedFileExtensions: string[];
-  cleanupInterval: number;
-  cacheTTL: number;
-  maxUploadAttempts: number;
-  uploadRateLimit: number;
+  _maxFileSize: number;
+  _maxTotalUploadSize: number;
+  _allowedMimeTypes: string[];
+  _maxFiles: number;
+  _destination: string;
+  filename: (_req: Request, _file: any, _cb: (_error: Error | null, _filename: string)
+   = > void) => void;
+  _allowedFileExtensions: string[];
+  _cleanupInterval: number;
+  _cacheTTL: number;
+  _maxUploadAttempts: number;
+  _uploadRateLimit: number;
 }
 
 // Middleware Types
 interface AuthMiddleware {
-  login: RequestHandler;
-  register: RequestHandler;
-  refreshToken: RequestHandler;
-  protect: RequestHandler;
+  _login: RequestHandler;
+  _register: RequestHandler;
+  _refreshToken: RequestHandler;
+  _protect: RequestHandler;
 }
 
 interface RateLimitMiddleware {
-  protect: RequestHandler;
+  _protect: RequestHandler;
 }
 
 // Socket Types
 interface SocketHandler {
-  initialize: (io: Server) => void;
+  initialize: (_io: Server) => void;
 }
 
 // Export all types

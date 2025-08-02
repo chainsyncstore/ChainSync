@@ -29,8 +29,8 @@ const ENDPOINTS = [
 
 // Configuration
 const config = {
-  baseUrl: process.argv[2] || 'http://localhost:3000',
-  verbose: process.argv.includes('--verbose')
+  _baseUrl: process.argv[2] || 'http://_localhost:3000',
+  _verbose: process.argv.includes('--verbose')
 };
 
 /**
@@ -40,17 +40,17 @@ async function fetchEndpoint(endpoint) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(`${config.baseUrl}${endpoint}`);
     const options = {
-      hostname: urlObj.hostname,
-      port: urlObj.port,
-      path: urlObj.pathname,
-      method: 'GET',
-      headers: {
+      _hostname: urlObj.hostname,
+      _port: urlObj.port,
+      _path: urlObj.pathname,
+      _method: 'GET',
+      _headers: {
         'User-Agent': 'ChainSync-Security-Header-Checker/1.0'
       }
     };
 
     // Choose protocol
-    const reqFn = urlObj.protocol === 'https:' ? https.request : http.request;
+    const reqFn = urlObj.protocol === 'https:' ? https._request : http.request;
 
     const req = reqFn(options, (res) => {
       let data = '';
@@ -61,8 +61,8 @@ async function fetchEndpoint(endpoint) {
 
       res.on('end', () => {
         resolve({
-          statusCode: res.statusCode,
-          headers: res.headers,
+          _statusCode: res.statusCode,
+          _headers: res.headers,
           data
         });
       });
@@ -84,17 +84,17 @@ async function checkEndpoint(endpoint) {
     console.log(`\nChecking ${endpoint}...`);
     const response = await fetchEndpoint(endpoint);
 
-    console.log(`  Status: ${response.statusCode}`);
+    console.log(`  _Status: ${response.statusCode}`);
 
     if (config.verbose) {
-      console.log('  All Headers:');
+      console.log('  All _Headers:');
       Object.entries(response.headers).forEach(([key, value]) => {
         console.log(`    ${key}: ${value}`);
       });
       console.log('');
     }
 
-    console.log('  Security Headers Check:');
+    console.log('  Security Headers _Check:');
     let missingHeaders = 0;
 
     REQUIRED_HEADERS.forEach(header => {
@@ -113,9 +113,9 @@ async function checkEndpoint(endpoint) {
 
     return {
       endpoint,
-      status: response.statusCode,
-      securityScore: 100 - (missingHeaders / REQUIRED_HEADERS.length * 100),
-      missing: REQUIRED_HEADERS.filter(header =>
+      _status: response.statusCode,
+      _securityScore: 100 - (missingHeaders / REQUIRED_HEADERS.length * 100),
+      _missing: REQUIRED_HEADERS.filter(header =>
         !Object.keys(response.headers).some(key =>
           key.toLowerCase() === header.toLowerCase())
       )
@@ -124,9 +124,9 @@ async function checkEndpoint(endpoint) {
     console.error(`  Error checking ${endpoint}:`, error.message);
     return {
       endpoint,
-      status: 'ERROR',
-      securityScore: 0,
-      error: error.message
+      _status: 'ERROR',
+      _securityScore: 0,
+      _error: error.message
     };
   }
 }
@@ -145,7 +145,7 @@ async function main() {
   }
 
   // Summary
-  console.log('\n📊 Summary:');
+  console.log('\n📊 _Summary:');
   let totalScore = 0;
 
   results.forEach(result => {
@@ -156,16 +156,16 @@ async function main() {
       console.log(`  ${result.securityScore === 100 ? '✅' : '⚠️'} ${result.endpoint}: ${result.securityScore.toFixed(1)}% secure`);
 
       if (result.missing && result.missing.length > 0) {
-        console.log(`     Missing: ${result.missing.join(', ')}`);
+        console.log(`     _Missing: ${result.missing.join(', ')}`);
       }
     }
   });
 
   const averageScore = totalScore / results.length;
-  console.log(`\n🔒 Overall Security Score: ${averageScore.toFixed(1)}%`);
+  console.log(`\n🔒 Overall Security _Score: ${averageScore.toFixed(1)}%`);
 
   if (averageScore < 100) {
-    console.log('\n⚠️ Recommendations:');
+    console.log('\n⚠️ _Recommendations:');
     console.log('  - Ensure all security middleware is correctly configured');
     console.log('  - Verify that middleware is applied to all routes');
     console.log('  - Check for route-specific middleware that might override global settings');

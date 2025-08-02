@@ -4,8 +4,8 @@ import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 
 export interface ErrorContext {
-  operation: string;
-  timestamp: number;
+  _operation: string;
+  _timestamp: number;
   userId?: number;
   requestId?: string;
   attempt?: number;
@@ -13,28 +13,28 @@ export interface ErrorContext {
 }
 
 export interface RetryOptions {
-  maxAttempts: number;
-  initialDelay: number; // in milliseconds
-  maxDelay: number; // in milliseconds
-  backoffFactor: number;
+  _maxAttempts: number;
+  _initialDelay: number; // in milliseconds
+  _maxDelay: number; // in milliseconds
+  _backoffFactor: number;
 }
 
 export interface ErrorHandlerConfig {
-  retry: RetryOptions;
-  cleanupTimeout: number; // in milliseconds
-  maxErrorLogSize: number;
-  maxRetryAttempts: number;
-  initialRetryDelay: number;
-  maxRetryDelay: number;
-  backoffFactor: number;
+  _retry: RetryOptions;
+  _cleanupTimeout: number; // in milliseconds
+  _maxErrorLogSize: number;
+  _maxRetryAttempts: number;
+  _initialRetryDelay: number;
+  _maxRetryDelay: number;
+  _backoffFactor: number;
 }
 
 export class ErrorHandler extends EventEmitter {
-  private errorLog: Array<{ error: AppError; context: ErrorContext }> = [];
-  private cleanupTimeout: NodeJS.Timeout | null = null;
-  private config: ErrorHandlerConfig;
+  private _errorLog: Array<{ _error: AppError; _context: ErrorContext }> = [];
+  private _cleanupTimeout: NodeJS.Timeout | null = null;
+  private _config: ErrorHandlerConfig;
 
-  constructor(config: ErrorHandlerConfig) {
+  constructor(_config: ErrorHandlerConfig) {
     super();
     this.config = config;
   }
@@ -54,18 +54,18 @@ export class ErrorHandler extends EventEmitter {
     });
   }
 
-  private calculateDelay(attempt: number): number {
+  private calculateDelay(_attempt: number): number {
     const delay = this.config.retry.initialDelay * Math.pow(this.config.retry.backoffFactor, attempt - 1);
     return Math.min(delay, this.config.retry.maxDelay);
   }
 
   async withRetry<T>(
-    operation: () => Promise<T>,
-    context: ErrorContext,
+    _operation: () => Promise<T>,
+    _context: ErrorContext,
     options?: Partial<RetryOptions>
   ): Promise<T> {
     const retryConfig = { ...this.config.retry, ...options };
-    let lastError: Error | null = null;
+    const _lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
       try {
@@ -83,13 +83,13 @@ export class ErrorHandler extends EventEmitter {
       }
     }
 
-    let errorObj: Error | null = null;
+    const _errorObj: Error | null = null;
     if (lastError instanceof Error) {
       errorObj = lastError;
     } else if (typeof lastError === 'string') {
       errorObj = new Error(lastError);
-    } else if (lastError && typeof lastError === 'object' && lastError !== null && 'message' in lastError && typeof (lastError as { message: unknown }).message === 'string') {
-      errorObj = new Error(String((lastError as { message: string }).message));
+    } else if (lastError && typeof lastError === 'object' && lastError !== null && 'message' in lastError && typeof (lastError as { _message: unknown }).message === 'string') {
+      errorObj = new Error(String((lastError as { _message: string }).message));
     }
 
     if (!errorObj) {
@@ -99,16 +99,17 @@ export class ErrorHandler extends EventEmitter {
     throw errorObj;
   }
 
-  private handleError(error: unknown, context: ErrorContext): void {
-    const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
+  private handleError(_error: unknown, _context: ErrorContext): void {
+    const errorObj = error instanceof Error ? _error : new Error('Unknown error occurred');
 
     // If we have an object with a message, use that
-    if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
-      errorObj.message = (error as { message: string }).message;
+    if (error && typeof error === 'object' && 'message' in error && typeof (error as { _message: unknown }).message === 'string') {
+      errorObj.message = (error as { _message: string }).message;
     }
 
     // Ensure we have a proper Error object
-    const errorInstance: Error = errorObj instanceof Error ? errorObj : new Error(String((errorObj as { message: string } | null)?.message || 'Unknown error'));
+    const _errorInstance: Error = errorObj instanceof Error ? _errorObj : new
+  Error(String((errorObj as { _message: string } | null)?.message || 'Unknown error'));
 
     const enhancedError = this.enrichError(errorInstance, context);
 
@@ -131,7 +132,7 @@ export class ErrorHandler extends EventEmitter {
     }
   }
 
-  private enrichError(error: Error, context: ErrorContext): AppError {
+  private enrichError(_error: Error, _context: ErrorContext): AppError {
     if (error instanceof AppError) {
       return error;
     }
@@ -153,11 +154,11 @@ export class ErrorHandler extends EventEmitter {
       ErrorCategory.SYSTEM,
       errorCode,
       {
-        operation: context.operation,
-        timestamp: context.timestamp,
-        userId: context.userId,
-        requestId: context.requestId,
-        attempt: context.attempt,
+        _operation: context.operation,
+        _timestamp: context.timestamp,
+        _userId: context.userId,
+        _requestId: context.requestId,
+        _attempt: context.attempt,
         ...context.metadata
       },
       400,
@@ -171,7 +172,7 @@ export class ErrorHandler extends EventEmitter {
     return enhancedError;
   }
 
-  private logError(error: AppError, context: ErrorContext): void {
+  private logError(_error: AppError, _context: ErrorContext): void {
     // Add error to log with context
     this.errorLog.push({ error, context });
 
@@ -181,11 +182,11 @@ export class ErrorHandler extends EventEmitter {
     }
 
     // Log to console for debugging
-    console.error('Error occurred:', {
-      message: error.message,
-      operation: context.operation,
-      timestamp: context.timestamp,
-      metadata: context.metadata
+    console.error('Error _occurred:', {
+      _message: error.message,
+      _operation: context.operation,
+      _timestamp: context.timestamp,
+      _metadata: context.metadata
     });
   }
 
@@ -200,16 +201,16 @@ export class ErrorHandler extends EventEmitter {
     this.removeAllListeners();
   }
 
-  getErrorHistory(): Array<{ error: Error; context: ErrorContext }> {
+  getErrorHistory(): Array<{ _error: Error; _context: ErrorContext }> {
     return [...this.errorLog];
   }
 
   static createAppError(
-    message: string,
-    code: string,
-    category: ErrorCategory,
-    retryable: boolean = false,
-    retryDelay: number = 0,
+    _message: string,
+    _code: string,
+    _category: ErrorCategory,
+    _retryable: boolean = false,
+    _retryDelay: number = 0,
     context?: Record<string, unknown>
   ): AppError {
     return new AppError(
@@ -223,11 +224,11 @@ export class ErrorHandler extends EventEmitter {
     );
   }
 
-  static isRetryable(error: Error): boolean {
+  static isRetryable(_error: Error): boolean {
     return error instanceof AppError && !!(error as AppError).retryable;
   }
 
-  static getRetryDelay(error: Error): number {
+  static getRetryDelay(_error: Error): number {
     if (error instanceof AppError) {
       // Access the retryAfter property which exists on AppError
       return error.retryAfter || 0;

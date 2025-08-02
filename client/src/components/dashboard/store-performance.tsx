@@ -1,6 +1,6 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { SalesChart } from './sales-chart';
+import React from &apos;react&apos;;
+import { useQuery } from &apos;@tanstack/react-query&apos;;
+import { SalesChart } from &apos;./sales-chart&apos;;
 
 export function StorePerformance() {
   return <SalesChart />;

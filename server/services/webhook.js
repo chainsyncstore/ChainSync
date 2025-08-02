@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.handlePaystackWebhook = handlePaystackWebhook;
 exports.handleFlutterwaveWebhook = handleFlutterwaveWebhook;
 const crypto = __importStar(require('crypto'));
@@ -53,7 +53,7 @@ async function handlePaystackWebhook(signature, payload) {
   // Validate signature
   if (!PAYSTACK_SECRET_KEY) {
     console.error('Paystack secret key not found in environment');
-    return { success: false, message: 'Payment processor not properly configured' };
+    return { _success: false, _message: 'Payment processor not properly configured' };
   }
   const expectedSignature = crypto
     .createHmac('sha512', PAYSTACK_SECRET_KEY)
@@ -61,7 +61,7 @@ async function handlePaystackWebhook(signature, payload) {
     .digest('hex');
   if (signature !== expectedSignature) {
     console.error('Invalid Paystack webhook signature');
-    return { success: false, message: 'Invalid signature' };
+    return { _success: false, _message: 'Invalid signature' };
   }
   // Parse the payload
   let event;
@@ -70,20 +70,20 @@ async function handlePaystackWebhook(signature, payload) {
   }
   catch (error) {
     console.error('Failed to parse Paystack webhook payload', error);
-    return { success: false, message: 'Invalid payload format' };
+    return { _success: false, _message: 'Invalid payload format' };
   }
   // We're only interested in charge.success events
   if (event.event !== 'charge.success') {
     return {
-      success: true,
-      message: `Ignored event type: ${event.event}`
+      _success: true,
+      _message: `Ignored event type: ${event.event}`
     };
   }
   const { reference, amount } = event.data;
   if (!reference) {
     return {
-      success: false,
-      message: 'No reference provided in webhook payload'
+      _success: false,
+      _message: 'No reference provided in webhook payload'
     };
   }
   try {
@@ -93,42 +93,42 @@ async function handlePaystackWebhook(signature, payload) {
       .where((0, drizzle_orm_1.eq)(schema_1.transactions.id, Number(reference)));
     const order = results[0];
     if (!order) {
-      console.error(`No order found with reference: ${reference}`);
+      console.error(`No order found with _reference: ${reference}`);
       return {
-        success: false,
-        message: 'Order not found',
+        _success: false,
+        _message: 'Order not found',
         reference
       };
     }
     // If order is already paid, avoid duplicate processing
     if (order.status === 'completed') {
       return {
-        success: true,
-        message: 'Order already marked as paid',
-        orderId: order.id,
+        _success: true,
+        _message: 'Order already marked as paid',
+        _orderId: order.id,
         reference
       };
     }
     // Update the order status
     await db_1.db.update(schema_1.transactions)
       .set({
-        status: 'completed'
+        _status: 'completed'
       })
       .where((0, drizzle_orm_1.eq)(schema_1.transactions.id, order.id));
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
     return {
-      success: true,
-      message: 'Order payment confirmed',
-      orderId: order.id,
+      _success: true,
+      _message: 'Order payment confirmed',
+      _orderId: order.id,
       reference,
-      amount: amount / 100 // Paystack amount is in kobo (smallest currency unit)
+      _amount: amount / 100 // Paystack amount is in kobo (smallest currency unit)
     };
   }
   catch (error) {
-    console.error('Error processing Paystack webhook:', error);
+    console.error('Error processing Paystack _webhook:', error);
     return {
-      success: false,
-      message: 'Error processing webhook'
+      _success: false,
+      _message: 'Error processing webhook'
     };
   }
 }
@@ -142,11 +142,11 @@ async function handleFlutterwaveWebhook(signature, payload) {
   // Validate signature using verif-hash
   if (!FLUTTERWAVE_WEBHOOK_HASH) {
     console.error('Flutterwave webhook hash not found in environment');
-    return { success: false, message: 'Payment processor not properly configured' };
+    return { _success: false, _message: 'Payment processor not properly configured' };
   }
   if (signature !== FLUTTERWAVE_WEBHOOK_HASH) {
     console.error('Invalid Flutterwave webhook hash');
-    return { success: false, message: 'Invalid signature' };
+    return { _success: false, _message: 'Invalid signature' };
   }
   // Parse the payload
   let event;
@@ -155,21 +155,21 @@ async function handleFlutterwaveWebhook(signature, payload) {
   }
   catch (error) {
     console.error('Failed to parse Flutterwave webhook payload', error);
-    return { success: false, message: 'Invalid payload format' };
+    return { _success: false, _message: 'Invalid payload format' };
   }
   // We're only interested in successful charge events
   if (event.event !== 'charge.completed' || event.data.status !== 'successful') {
     return {
-      success: true,
-      message: `Ignored event: ${event.event} with status: ${event.data?.status}`
+      _success: true,
+      _message: `Ignored event: ${event.event} with status: ${event.data?.status}`
     };
   }
   const { tx_ref, amount, currency } = event.data;
   const reference = tx_ref; // Flutterwave uses tx_ref as reference
   if (!reference) {
     return {
-      success: false,
-      message: 'No reference provided in webhook payload'
+      _success: false,
+      _message: 'No reference provided in webhook payload'
     };
   }
   try {
@@ -179,41 +179,41 @@ async function handleFlutterwaveWebhook(signature, payload) {
       .where((0, drizzle_orm_1.eq)(schema_1.transactions.id, Number(reference)));
     const order = results[0];
     if (!order) {
-      console.error(`No order found with reference: ${reference}`);
+      console.error(`No order found with _reference: ${reference}`);
       return {
-        success: false,
-        message: 'Order not found',
+        _success: false,
+        _message: 'Order not found',
         reference
       };
     }
     // If order is already paid, avoid duplicate processing
     if (order.status === 'completed') {
       return {
-        success: true,
-        message: 'Order already marked as paid',
-        orderId: order.id,
+        _success: true,
+        _message: 'Order already marked as paid',
+        _orderId: order.id,
         reference
       };
     }
     // Update the order status
     await db_1.db.update(schema_1.transactions)
       .set({
-        status: 'completed'
+        _status: 'completed'
       })
       .where((0, drizzle_orm_1.eq)(schema_1.transactions.id, order.id));
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
     return {
-      success: true,
-      message: 'Order payment confirmed',
-      orderId: order.id,
+      _success: true,
+      _message: 'Order payment confirmed',
+      _orderId: order.id,
       reference,
       amount
     };
   }
   catch (error) {
-    console.error('Error processing Flutterwave webhook:', error);
+    console.error('Error processing Flutterwave _webhook:', error);
     return {
-      success: false,
+      _success: false,
       message: 'Error processing webhook'
     };
   }

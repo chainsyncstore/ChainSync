@@ -1,14 +1,14 @@
-import React from 'react';
+import React from &apos;react&apos;;
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import TransactionReceipt from './transaction-receipt';
+  DialogTitle
+} from &apos;@/components/ui/dialog&apos;;
+import TransactionReceipt from &apos;./transaction-receipt&apos;;
 
 interface ReceiptProps {
-  transaction: any;
+  _transaction: any;
   onClose: () => void;
 }
 

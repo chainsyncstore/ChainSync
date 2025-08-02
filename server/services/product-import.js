@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.validateProductImportCSV = validateProductImportCSV;
 exports.importProducts = importProducts;
 const csv_parse_1 = require('csv-parse');
@@ -44,22 +44,22 @@ async function validateProductImportCSV(csvContent, storeId) {
   return new Promise((resolve, reject) => {
     const validProducts = [];
     const summary = {
-      totalRows: 0,
-      processedRows: 0,
-      skippedRows: 0,
-      newCategories: [],
-      errors: []
+      _totalRows: 0,
+      _processedRows: 0,
+      _skippedRows: 0,
+      _newCategories: [],
+      _errors: []
     };
     // Store category mapping (name -> id) to avoid duplicate lookups
     const categoryCache = {};
     // Parse CSV
     (0, csv_parse_1.parse)(csvContent, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true
+      _columns: true,
+      _skip_empty_lines: true,
+      _trim: true
     }, async(err, records) => {
       if (err) {
-        return reject(new Error(`Failed to parse CSV: ${err.message}`));
+        return reject(new Error(`Failed to parse _CSV: ${err.message}`));
       }
       summary.totalRows = records.length;
       try {
@@ -75,40 +75,40 @@ async function validateProductImportCSV(csvContent, storeId) {
           // Validate required fields
           if (!row['Product Name'] || !row['Product Name'].trim()) {
             summary.errors.push({
-              row: rowIndex,
-              field: 'Product Name',
-              value: row['Product Name'] || '',
-              message: 'Product name is required'
+              _row: rowIndex,
+              _field: 'Product Name',
+              _value: row['Product Name'] || '',
+              _message: 'Product name is required'
             });
             summary.skippedRows++;
             continue;
           }
           if (!row['SKU'] || !row['SKU'].trim()) {
             summary.errors.push({
-              row: rowIndex,
-              field: 'SKU',
-              value: row['SKU'] || '',
-              message: 'SKU is required'
+              _row: rowIndex,
+              _field: 'SKU',
+              _value: row['SKU'] || '',
+              _message: 'SKU is required'
             });
             summary.skippedRows++;
             continue;
           }
           if (!row['Price'] || isNaN(parseFloat(row['Price']))) {
             summary.errors.push({
-              row: rowIndex,
-              field: 'Price',
-              value: row['Price'] || '',
-              message: 'Price must be a valid number'
+              _row: rowIndex,
+              _field: 'Price',
+              _value: row['Price'] || '',
+              _message: 'Price must be a valid number'
             });
             summary.skippedRows++;
             continue;
           }
           if (!row['Stock'] || isNaN(parseInt(row['Stock']))) {
             summary.errors.push({
-              row: rowIndex,
-              field: 'Stock',
-              value: row['Stock'] || '',
-              message: 'Stock must be a valid number'
+              _row: rowIndex,
+              _field: 'Stock',
+              _value: row['Stock'] || '',
+              _message: 'Stock must be a valid number'
             });
             summary.skippedRows++;
             continue;
@@ -124,7 +124,7 @@ async function validateProductImportCSV(csvContent, storeId) {
             // Create new category
             try {
               const insertedCategory = await db_1.db.insert(schema_1.categories)
-                .values({ name: categoryName })
+                .values({ _name: categoryName })
                 .returning();
               if (insertedCategory && insertedCategory[0]) {
                 categoryId = insertedCategory[0].id;
@@ -139,7 +139,7 @@ async function validateProductImportCSV(csvContent, storeId) {
                 else {
                   // Create Uncategorized category
                   const uncategorized = await db_1.db.insert(schema_1.categories)
-                    .values({ name: 'Uncategorized' })
+                    .values({ _name: 'Uncategorized' })
                     .returning();
                   categoryId = uncategorized[0].id;
                   categoryCache['uncategorized'] = categoryId;
@@ -150,10 +150,10 @@ async function validateProductImportCSV(csvContent, storeId) {
             catch (error) {
               console.error(`Error creating category '${categoryName}':`, error);
               summary.errors.push({
-                row: rowIndex,
-                field: 'Category',
-                value: categoryName,
-                message: `Failed to create category: ${error.message}`
+                _row: rowIndex,
+                _field: 'Category',
+                _value: categoryName,
+                _message: `Failed to create category: ${error.message}`
               });
               summary.skippedRows++;
               continue;
@@ -170,10 +170,10 @@ async function validateProductImportCSV(csvContent, storeId) {
             }
             catch (error) {
               summary.errors.push({
-                row: rowIndex,
-                field: 'Expiry Date',
-                value: row['Expiry Date'],
-                message: 'Invalid date format. Use YYYY-MM-DD format.'
+                _row: rowIndex,
+                _field: 'Expiry Date',
+                _value: row['Expiry Date'],
+                _message: 'Invalid date format. Use YYYY-MM-DD format.'
               });
               // Don't skip the row, just leave expiryDate as null
             }
@@ -181,26 +181,26 @@ async function validateProductImportCSV(csvContent, storeId) {
           // Validate cost price if provided
           if (row['Cost Price'] && isNaN(parseFloat(row['Cost Price']))) {
             summary.errors.push({
-              row: rowIndex,
-              field: 'Cost Price',
-              value: row['Cost Price'],
-              message: 'Cost price must be a valid number'
+              _row: rowIndex,
+              _field: 'Cost Price',
+              _value: row['Cost Price'],
+              _message: 'Cost price must be a valid number'
             });
             // Don't skip, just don't include cost price
           }
           // Create validated product object
           const validProduct = {
-            name: row['Product Name'].trim(),
-            sku: row['SKU'].trim(),
+            _name: row['Product Name'].trim(),
+            _sku: row['SKU'].trim(),
             categoryId,
-            price: parseFloat(row['Price']).toFixed(2),
-            stock: parseInt(row['Stock']),
+            _price: parseFloat(row['Price']).toFixed(2),
+            _stock: parseInt(row['Stock']),
             expiryDate,
-            description: row['Description'] ? row['Description'].trim() : undefined,
-            barcode: row['Barcode'] ? row['Barcode'].trim() : undefined,
-            imageUrl: row['Image URL'] ? row['Image URL'].trim() : undefined,
-            supplier: row['Supplier'] ? row['Supplier'].trim() : undefined,
-            costPrice: row['Cost Price'] && !isNaN(parseFloat(row['Cost Price'])) ?
+            _description: row['Description'] ? row['Description'].trim() : undefined,
+            _barcode: row['Barcode'] ? row['Barcode'].trim() : undefined,
+            _imageUrl: row['Image URL'] ? row['Image URL'].trim() : undefined,
+            _supplier: row['Supplier'] ? row['Supplier'].trim() : undefined,
+            _costPrice: row['Cost Price'] && !isNaN(parseFloat(row['Cost Price'])) ?
               parseFloat(row['Cost Price']).toFixed(2) : undefined
           };
           validProducts.push(validProduct);
@@ -227,33 +227,33 @@ async function importProducts(validProducts, storeId) {
         try {
           // Check if product with SKU already exists
           const existingProduct = await db_1.db.query.products.findFirst({
-            where: (0, drizzle_orm_1.eq)(schema.products.sku, product.sku)
+            _where: (0, drizzle_orm_1.eq)(schema.products.sku, product.sku)
           });
           if (existingProduct) {
             // Update existing product
             await db_1.db.update(schema.products)
               .set({
-                name: product.name,
-                categoryId: product.categoryId,
-                price: product.price,
-                description: product.description || existingProduct.description,
-                imageUrl: product.imageUrl || existingProduct.imageUrl,
-                barcode: product.barcode || existingProduct.barcode,
-                updatedAt: new Date()
+                _name: product.name,
+                _categoryId: product.categoryId,
+                _price: product.price,
+                _description: product.description || existingProduct.description,
+                _imageUrl: product.imageUrl || existingProduct.imageUrl,
+                _barcode: product.barcode || existingProduct.barcode,
+                _updatedAt: new Date()
                 // Don't update SKU as we're using it as the identifier
               })
               .where((0, drizzle_orm_1.eq)(schema.products.id, existingProduct.id));
             // Update or create inventory for this store and product
             const inventory = await db_1.db.query.inventory.findFirst({
-              where: (inventory) => (0, drizzle_orm_1.eq)(inventory.productId, existingProduct.id) &&
+              _where: (inventory) => (0, drizzle_orm_1.eq)(inventory.productId, existingProduct.id) &&
                                 (0, drizzle_orm_1.eq)(inventory.storeId, storeId)
             });
             if (inventory) {
               // Update existing inventory
               await db_1.db.update(schema.inventory)
                 .set({
-                  quantity: product.stock,
-                  updatedAt: new Date()
+                  _quantity: product.stock,
+                  _updatedAt: new Date()
                 })
                 .where((0, drizzle_orm_1.eq)(schema.inventory.id, inventory.id));
             }
@@ -261,9 +261,9 @@ async function importProducts(validProducts, storeId) {
               // Create new inventory entry
               await db_1.db.insert(schema.inventory)
                 .values({
-                  productId: existingProduct.id,
+                  _productId: existingProduct.id,
                   storeId,
-                  quantity: product.stock
+                  _quantity: product.stock
                 });
             }
           }
@@ -271,23 +271,23 @@ async function importProducts(validProducts, storeId) {
             // Insert new product
             const [insertedProduct] = await db_1.db.insert(schema.products)
               .values({
-                name: product.name,
-                sku: product.sku,
+                _name: product.name,
+                _sku: product.sku,
                 storeId,
-                categoryId: product.categoryId,
-                price: product.price,
-                description: product.description,
-                barcode: product.barcode,
-                imageUrl: product.imageUrl
+                _categoryId: product.categoryId,
+                _price: product.price,
+                _description: product.description,
+                _barcode: product.barcode,
+                _imageUrl: product.imageUrl
               })
               .returning();
             if (insertedProduct) {
               // Create inventory for this store and product
               await db_1.db.insert(schema.inventory)
                 .values({
-                  productId: insertedProduct.id,
+                  _productId: insertedProduct.id,
                   storeId,
-                  quantity: product.stock
+                  _quantity: product.stock
                 });
             }
           }
@@ -296,28 +296,28 @@ async function importProducts(validProducts, storeId) {
           console.error(`Error importing product '${product.name}':`, error);
           failedProducts.push({
             product,
-            error: error.message
+            _error: error.message
           });
           continue;
         }
       }
     }
     return {
-      success: true,
-      importedCount: validProducts.length - failedProducts.length,
+      _success: true,
+      _importedCount: validProducts.length - failedProducts.length,
       failedProducts
     };
   }
   catch (error) {
-    console.error('Error bulk importing products:', error);
+    console.error('Error bulk importing _products:', error);
     return {
-      success: false,
-      importedCount: validProducts.length - failedProducts.length,
-      failedProducts: [
+      _success: false,
+      _importedCount: validProducts.length - failedProducts.length,
+      _failedProducts: [
         ...failedProducts,
         ...validProducts.map(product => ({
           product,
-          error: 'Bulk import failed'
+          _error: 'Bulk import failed'
         }))
       ]
     };

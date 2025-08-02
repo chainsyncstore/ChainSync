@@ -1,15 +1,15 @@
-import { pgTable, text, boolean, integer, decimal, index } from "drizzle-orm/pg-core";
-import { z } from "zod";
-import { createInsertSchema } from "drizzle-zod";
-import { baseTable } from "./base";
-import { relations } from "drizzle-orm";
+import { pgTable, text, boolean, integer, decimal, index } from 'drizzle-orm/pg-core';
+import { z } from 'zod';
+import { createInsertSchema } from 'drizzle-zod';
+import { baseTable } from './base';
+import { relations } from 'drizzle-orm';
 
 // Product status enum
 export const ProductStatus = {
-  ACTIVE: "active",
-  INACTIVE: "inactive",
-  OUT_OF_STOCK: "out_of_stock",
-  DISCONTINUED: "discontinued"
+  _ACTIVE: 'active',
+  _INACTIVE: 'inactive',
+  _OUT_OF_STOCK: 'out_of_stock',
+  _DISCONTINUED: 'discontinued'
 } as const;
 
 export type ProductStatus = typeof ProductStatus[keyof typeof ProductStatus];
@@ -22,13 +22,13 @@ export const productStatusSchema = z.enum([
 ]);
 
 // Category table
-export const categories: any = pgTable("categories", {
+export const _categories: any = pgTable('categories', {
   ...baseTable,
-  name: text("name").notNull(),
-  description: text("description"),
-  parentCategoryId: integer("parent_category_id").references((): any => categories.id),
+  _name: text('name').notNull(),
+  _description: text('description'),
+  _parentCategoryId: integer('parent_category_id').references((): any => categories.id)
 }, (table) => ({
-  nameIndex: index("idx_categories_name").on(table.name)
+  _nameIndex: index('idx_categories_name').on(table.name)
 }));
 
 export type Category = typeof categories.$inferSelect;
@@ -36,44 +36,44 @@ export type NewCategory = typeof categories.$inferInsert;
 
 export const categoryInsertSchema = createInsertSchema(categories)
   .extend({
-    name: z.string().min(1, "Name is required"),
-    description: z.string().optional().nullable(), // Nullable in DB, optional for insert
-    parentCategoryId: z.number().int().positive().optional().nullable(), // Nullable FK, optional for insert
+    _name: z.string().min(1, 'Name is required'),
+    _description: z.string().optional().nullable(), // Nullable in DB, optional for insert
+    _parentCategoryId: z.number().int().positive().optional().nullable() // Nullable FK, optional for insert
   });
 
 // Relations for categories
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
-  parentCategory: one(categories, {
-    fields: [categories.parentCategoryId],
-    references: [categories.id],
+  _parentCategory: one(categories, {
+    _fields: [categories.parentCategoryId],
+    _references: [categories.id]
   }),
-  subCategories: many(categories, {
-    relationName: "categoryHierarchy"
+  _subCategories: many(categories, {
+    _relationName: 'categoryHierarchy'
   }),
-  products: many(products),
+  _products: many(products)
 }));
 
 // Product table
-export const products = pgTable("products", {
+export const products = pgTable('products', {
   ...baseTable,
-  name: text("name").notNull(),
-  sku: text("sku").notNull().unique(),
-  description: text("description"),
-  barcode: text("barcode"),
-  categoryId: integer("category_id").references(() => categories.id).notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  cost: decimal("cost", { precision: 10, scale: 2 }).default("0"),
-  isPerishable: boolean("is_perishable").notNull().default(false),
-  imageUrl: text("image_url"),
-  bonusPoints: decimal("bonus_points", { precision: 10, scale: 2 }).default("0"),
-  status: text("status", { enum: ["active", "inactive", "out_of_stock", "discontinued"] })
+  _name: text('name').notNull(),
+  _sku: text('sku').notNull().unique(),
+  _description: text('description'),
+  _barcode: text('barcode'),
+  _categoryId: integer('category_id').references(() => categories.id).notNull(),
+  _price: decimal('price', { _precision: 10, _scale: 2 }).notNull(),
+  _cost: decimal('cost', { _precision: 10, _scale: 2 }).default('0'),
+  _isPerishable: boolean('is_perishable').notNull().default(false),
+  _imageUrl: text('image_url'),
+  _bonusPoints: decimal('bonus_points', { _precision: 10, _scale: 2 }).default('0'),
+  _status: text('status', { _enum: ['active', 'inactive', 'out_of_stock', 'discontinued'] })
     .notNull()
-    .default(ProductStatus.ACTIVE),
+    .default(ProductStatus.ACTIVE)
 }, (table) => ({
-  skuIndex: index("idx_products_sku").on(table.sku),
-  barcodeIndex: index("idx_products_barcode").on(table.barcode),
-  statusIndex: index("idx_products_status").on(table.status),
-  categoryIndex: index("idx_products_category").on(table.categoryId),
+  _skuIndex: index('idx_products_sku').on(table.sku),
+  _barcodeIndex: index('idx_products_barcode').on(table.barcode),
+  _statusIndex: index('idx_products_status').on(table.status),
+  _categoryIndex: index('idx_products_category').on(table.categoryId)
 }));
 
 export type Product = typeof products.$inferSelect;
@@ -82,32 +82,32 @@ export type NewProduct = typeof products.$inferInsert;
 // Validation schemas
 export const productInsertSchema = createInsertSchema(products)
   .extend({
-    name: z.string().min(1, "Name is required"),
-    sku: z.string().min(1, "SKU is required"),
-    description: z.string().optional().nullable(), // Nullable in DB
-    barcode: z.string().optional().nullable(), // Nullable in DB
-    categoryId: z.number().int().positive(), // NOT NULL FK in DB
-    price: z.coerce.number().min(0, "Price must be non-negative"), // Drizzle-zod infers decimal as string
-    cost: z.coerce.number().min(0, "Cost must be non-negative").optional(), // DB default, optional for insert
-    isPerishable: z.boolean().optional(), // DB default, optional for insert
-    imageUrl: z.string().url().optional().nullable(), // Nullable in DB
-    bonusPoints: z.coerce.number().min(0, "Bonus points must be non-negative").optional(), // DB default
-    status: productStatusSchema.optional(), // DB default
+    _name: z.string().min(1, 'Name is required'),
+    _sku: z.string().min(1, 'SKU is required'),
+    _description: z.string().optional().nullable(), // Nullable in DB
+    _barcode: z.string().optional().nullable(), // Nullable in DB
+    _categoryId: z.number().int().positive(), // NOT NULL FK in DB
+    _price: z.coerce.number().min(0, 'Price must be non-negative'), // Drizzle-zod infers decimal as string
+    _cost: z.coerce.number().min(0, 'Cost must be non-negative').optional(), // DB default, optional for insert
+    _isPerishable: z.boolean().optional(), // DB default, optional for insert
+    _imageUrl: z.string().url().optional().nullable(), // Nullable in DB
+    _bonusPoints: z.coerce.number().min(0, 'Bonus points must be non-negative').optional(), // DB default
+    _status: productStatusSchema.optional() // DB default
   });
 
 export const productUpdateSchema = productInsertSchema.partial().extend({
   // Retain SKU and categoryId as optional for updates, but validated if present
-  sku: productInsertSchema.shape.sku.optional(),
-  categoryId: productInsertSchema.shape.categoryId.optional(),
+  _sku: productInsertSchema.shape.sku.optional(),
+  _categoryId: productInsertSchema.shape.categoryId.optional()
 });
 
 // Relations
 export const productsRelations = relations(products, ({ one }) => ({
-  category: one(categories, {
-    fields: [products.categoryId],
-    references: [categories.id],
-  }),
+  _category: one(categories, {
+    _fields: [products.categoryId],
+    _references: [categories.id]
+  })
   // Uncomment and fix these when the related tables are available
-  // inventory: many(inventory),
-  // transactionItems: many(transactionItems),
+  // _inventory: many(inventory),
+  // _transactionItems: many(transactionItems),
 }));

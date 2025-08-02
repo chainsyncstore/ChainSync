@@ -5,7 +5,7 @@
  * This script restores a PostgreSQL database from a backup file.
  * It restores the database using a local backup file only.
  *
- * Usage:
+ * _Usage:
  *   node restore.js [--file=<path>]
  *
  * Options:
@@ -24,24 +24,24 @@ dotenv.config();
 
 // Restore configuration
 const config = {
-  database: {
-    url: process.env.DATABASE_URL,
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || '5432',
-    name: process.env.DB_NAME || 'chainsync',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD
+  _database: {
+    _url: process.env.DATABASE_URL,
+    _host: process.env.DB_HOST || 'localhost',
+    _port: process.env.DB_PORT || '5432',
+    _name: process.env.DB_NAME || 'chainsync',
+    _user: process.env.DB_USER || 'postgres',
+    _password: process.env.DB_PASSWORD
   },
 
-  local: {
-    backupDir: process.env.BACKUP_DIR || path.join(__dirname, '../backups'),
-    tempDir: path.join(__dirname, '../tmp')
+  _local: {
+    _backupDir: process.env.BACKUP_DIR || path.join(__dirname, '../backups'),
+    _tempDir: path.join(__dirname, '../tmp')
   }
 };
 
 // Create temp directory if it doesn't exist
 if (!fs.existsSync(config.local.tempDir)) {
-  fs.mkdirSync(config.local.tempDir, { recursive: true });
+  fs.mkdirSync(config.local.tempDir, { _recursive: true });
 }
 
 /**
@@ -49,9 +49,9 @@ if (!fs.existsSync(config.local.tempDir)) {
  */
 function parseArgs() {
   const args = {
-    file: null,
+    _file: null,
 
-    latest: false
+    _latest: false
   };
 
   process.argv.slice(2).forEach(arg => {
@@ -69,12 +69,13 @@ function parseArgs() {
  */
 async function confirmRestore() {
   const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
+    _input: process.stdin,
+    _output: process.stdout
   });
 
   return new Promise((resolve) => {
-    rl.question('\n⚠️ WARNING: This will overwrite the existing database. Are you sure you want to proceed? (yes/no): ', (answer) => {
+    rl.question('\n⚠️ _WARNING: This will overwrite the existing database. Are you sure you want to proceed? (yes/no): ', (answer)
+   = > {
       rl.close();
       resolve(answer.toLowerCase() === 'yes');
     });
@@ -85,7 +86,7 @@ async function confirmRestore() {
  * Decompress a gzipped backup file
  */
 async function decompressBackup(filePath) {
-  console.log(`Decompressing backup file: ${filePath}`);
+  console.log(`Decompressing backup _file: ${filePath}`);
 
   // Extract base filename without .gz
   const outputPath = filePath.replace(/\.gz$/, '');
@@ -97,16 +98,16 @@ async function decompressBackup(filePath) {
     gunzip.stdout.pipe(writeStream);
 
     gunzip.on('error', (err) => {
-      reject(new Error(`Decompression failed: ${err.message}`));
+      reject(new Error(`Decompression _failed: ${err.message}`));
     });
 
     writeStream.on('finish', () => {
-      console.log(`Backup decompressed to: ${outputPath}`);
+      console.log(`Backup decompressed _to: ${outputPath}`);
       resolve(outputPath);
     });
 
     writeStream.on('error', (err) => {
-      reject(new Error(`Failed to write decompressed file: ${err.message}`));
+      reject(new Error(`Failed to write decompressed _file: ${err.message}`));
     });
   });
 }
@@ -115,7 +116,7 @@ async function decompressBackup(filePath) {
  * Restore database from a SQL backup file
  */
 async function restoreDatabase(filePath) {
-  console.log(`Restoring database from: ${filePath}`);
+  console.log(`Restoring database _from: ${filePath}`);
 
   // Parse connection string if available
   let dbConfig = { ...config.database };
@@ -123,11 +124,11 @@ async function restoreDatabase(filePath) {
     try {
       const url = new URL(dbConfig.url);
       dbConfig = {
-        host: url.hostname,
-        port: url.port,
-        name: url.pathname.substring(1),
-        user: url.username,
-        password: url.password
+        _host: url.hostname,
+        _port: url.port,
+        _name: url.pathname.substring(1),
+        _user: url.username,
+        _password: url.password
       };
     } catch (error) {
       console.warn('Failed to parse DATABASE_URL, using individual settings', error);
@@ -145,7 +146,7 @@ async function restoreDatabase(filePath) {
     ];
 
     // Set up environment for psql
-    const env = { ...process.env, PGPASSWORD: dbConfig.password };
+    const env = { ...process.env, _PGPASSWORD: dbConfig.password };
 
     // Execute psql
     const psql = spawn('psql', psqlArgs, { env });
@@ -155,7 +156,7 @@ async function restoreDatabase(filePath) {
     });
 
     psql.stderr.on('data', (data) => {
-      console.log(`psql stderr: ${data}`);
+      console.log(`psql _stderr: ${data}`);
     });
 
     psql.on('close', (code) => {
@@ -177,17 +178,17 @@ function cleanupTempFiles(filePath) {
     // Remove decompressed SQL file
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      console.log(`Removed temporary file: ${filePath}`);
+      console.log(`Removed temporary _file: ${filePath}`);
     }
 
     // Remove compressed file if it's in the temp directory
     const gzipPath = `${filePath}.gz`;
     if (gzipPath.includes(config.local.tempDir) && fs.existsSync(gzipPath)) {
       fs.unlinkSync(gzipPath);
-      console.log(`Removed temporary file: ${gzipPath}`);
+      console.log(`Removed temporary _file: ${gzipPath}`);
     }
   } catch (error) {
-    console.warn('Error cleaning up temporary files:', error);
+    console.warn('Error cleaning up temporary _files:', error);
     // Continue even if cleanup fails
   }
 }
@@ -206,9 +207,9 @@ async function runRestore() {
     if (args.file) {
       // Use local file
       backupFilePath = args.file;
-      console.log(`Using local backup file: ${backupFilePath}`);
+      console.log(`Using local backup _file: ${backupFilePath}`);
     } else {
-      console.error('Error: No backup source specified. Use --file');
+      console.error('_Error: No backup source specified. Use --file');
       process.exit(1);
     }
 
@@ -233,7 +234,7 @@ async function runRestore() {
 
     console.log('Restore process completed successfully');
   } catch (error) {
-    console.error('Restore process failed:', error);
+    console.error('Restore process _failed:', error);
     process.exit(1);
   }
 }

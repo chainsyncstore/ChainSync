@@ -2,13 +2,13 @@ import * as fs from 'fs/promises';
 import * as crypto from 'crypto';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'secrets-manager' });
+const logger = getLogger().child({ _component: 'secrets-manager' });
 
 // Secrets management
 export class SecretsManager {
-  private secrets: Map<string, string> = new Map();
-  private encryptedSecrets: Map<string, string> = new Map();
-  private encryptionKey: string;
+  private _secrets: Map<string, string> = new Map();
+  private _encryptedSecrets: Map<string, string> = new Map();
+  private _encryptionKey: string;
 
   constructor(encryptionKey?: string) {
     this.encryptionKey = encryptionKey || process.env.ENCRYPTION_KEY || '';
@@ -31,7 +31,7 @@ export class SecretsManager {
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
       'EMAIL_USER',
-      'EMAIL_PASS',
+      'EMAIL_PASS'
     ];
 
     for (const key of secretKeys) {
@@ -46,7 +46,7 @@ export class SecretsManager {
   /**
    * Load secrets from file
    */
-  async loadFromFile(filePath: string): Promise<void> {
+  async loadFromFile(_filePath: string): Promise<void> {
     try {
       const data = await fs.readFile(filePath, 'utf8');
       const secrets = JSON.parse(data);
@@ -64,10 +64,10 @@ export class SecretsManager {
   /**
    * Save secrets to encrypted file
    */
-  async saveToEncryptedFile(filePath: string): Promise<void> {
+  async saveToEncryptedFile(_filePath: string): Promise<void> {
     try {
-      const secretsObj: Record<string, string> = {};
-      
+      const _secretsObj: Record<string, string> = {};
+
       for (const [key, value] of this.secrets.entries()) {
         if (this.encryptionKey) {
           secretsObj[key] = this.encrypt(value);
@@ -87,7 +87,7 @@ export class SecretsManager {
   /**
    * Load secrets from encrypted file
    */
-  async loadFromEncryptedFile(filePath: string): Promise<void> {
+  async loadFromEncryptedFile(_filePath: string): Promise<void> {
     try {
       const data = await fs.readFile(filePath, 'utf8');
       const encryptedSecrets = JSON.parse(data);
@@ -99,7 +99,7 @@ export class SecretsManager {
             this.secrets.set(key, decryptedValue);
             logger.debug('Secret decrypted and loaded', { key });
           } catch (decryptError) {
-            logger.warn('Failed to decrypt secret', { key, error: decryptError });
+            logger.warn('Failed to decrypt secret', { key, _error: decryptError });
             // Store as encrypted for later decryption
             this.encryptedSecrets.set(key, encryptedValue as string);
           }
@@ -117,14 +117,14 @@ export class SecretsManager {
   /**
    * Get secret value
    */
-  get(key: string): string | undefined {
+  get(_key: string): string | undefined {
     return this.secrets.get(key);
   }
 
   /**
    * Set secret value
    */
-  set(key: string, value: string): void {
+  set(_key: string, _value: string): void {
     this.secrets.set(key, value);
     logger.debug('Secret set', { key });
   }
@@ -132,8 +132,8 @@ export class SecretsManager {
   /**
    * Validate required secrets
    */
-  validateRequired(requiredSecrets: string[]): { valid: boolean; missing: string[] } {
-    const missing: string[] = [];
+  validateRequired(_requiredSecrets: string[]): { _valid: boolean; _missing: string[] } {
+    const _missing: string[] = [];
 
     for (const secret of requiredSecrets) {
       if (!this.secrets.has(secret)) {
@@ -142,7 +142,7 @@ export class SecretsManager {
     }
 
     const valid = missing.length === 0;
-    
+
     if (!valid) {
       logger.error('Required secrets validation failed', { missing });
     } else {
@@ -155,9 +155,9 @@ export class SecretsManager {
   /**
    * Export secrets for environment (sanitized for logging)
    */
-  exportForEnvironment(environment: string): Record<string, string> {
-    const envSecrets: Record<string, string> = {};
-    
+  exportForEnvironment(_environment: string): Record<string, string> {
+    const _envSecrets: Record<string, string> = {};
+
     for (const [key, value] of this.secrets.entries()) {
       if (this.shouldIncludeInEnvironment(key, environment)) {
         envSecrets[key] = value;
@@ -170,7 +170,7 @@ export class SecretsManager {
   /**
    * Check if secret should be included in environment
    */
-  private shouldIncludeInEnvironment(key: string, environment: string): boolean {
+  private shouldIncludeInEnvironment(_key: string, _environment: string): boolean {
     // Always include core secrets
     const coreSecrets = ['JWT_SECRET', 'ENCRYPTION_KEY', 'SESSION_SECRET'];
     if (coreSecrets.includes(key)) {
@@ -185,15 +185,14 @@ export class SecretsManager {
         return !key.includes('STRIPE_LIVE'); // Exclude live payment keys
       case 'development':
         return !key.includes('STRIPE_') && !key.includes('SENTRY_'); // Exclude external service keys
-      default:
-        return false;
+      return false;
     }
   }
 
   /**
    * Encrypt a value
    */
-  private encrypt(text: string): string {
+  private encrypt(_text: string): string {
     if (!this.encryptionKey) {
       return text;
     }
@@ -203,14 +202,14 @@ export class SecretsManager {
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     return iv.toString('hex') + ':' + encrypted;
   }
 
   /**
    * Decrypt a value
    */
-  private decrypt(encryptedText: string): string {
+  private decrypt(_encryptedText: string): string {
     if (!this.encryptionKey) {
       return encryptedText;
     }
@@ -218,19 +217,19 @@ export class SecretsManager {
     const textParts = encryptedText.split(':');
     const iv = Buffer.from(textParts.shift()!, 'hex');
     const encryptedData = textParts.join(':');
-    
+
     const key = crypto.scryptSync(this.encryptionKey, 'salt', 32);
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
     let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
   }
 
   /**
    * Rotate encryption key
    */
-  async rotateEncryptionKey(newKey: string): Promise<void> {
+  async rotateEncryptionKey(_newKey: string): Promise<void> {
     if (!this.encryptionKey) {
       logger.warn('No current encryption key to rotate from');
       this.encryptionKey = newKey;
@@ -242,7 +241,7 @@ export class SecretsManager {
 
     // Re-encrypt all secrets with new key
     const reencryptedSecrets = new Map<string, string>();
-    
+
     for (const [key, value] of this.secrets.entries()) {
       reencryptedSecrets.set(key, this.encrypt(value));
     }
@@ -264,7 +263,7 @@ export class SecretsManager {
   /**
    * Generate secure random secret
    */
-  generateSecret(length: number = 32): string {
+  generateSecret(_length: number = 32): string {
     return crypto.randomBytes(length).toString('hex');
   }
 
@@ -278,14 +277,14 @@ export class SecretsManager {
   /**
    * Check if secret exists
    */
-  has(key: string): boolean {
+  has(_key: string): boolean {
     return this.secrets.has(key);
   }
 
   /**
    * Remove secret
    */
-  remove(key: string): boolean {
+  remove(_key: string): boolean {
     const removed = this.secrets.delete(key);
     if (removed) {
       logger.debug('Secret removed', { key });
@@ -301,4 +300,4 @@ export class SecretsManager {
     this.encryptedSecrets.clear();
     logger.info('All secrets cleared');
   }
-} 
+}

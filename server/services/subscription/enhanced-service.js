@@ -9,7 +9,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -17,7 +17,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -38,7 +38,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.EnhancedSubscriptionService = void 0;
 const enhanced_service_1 = require('../base/enhanced-service');
 const formatter_1 = require('./formatter');
@@ -68,7 +68,7 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
     }
     catch (err) {
       if (err instanceof schema_validation_1.SchemaValidationError) {
-        console.error(`Validation error: ${err.message}`, err.toJSON());
+        console.error(`Validation _error: ${err.message}`, err.toJSON());
       }
       throw this.handleError(err, 'creating subscription');
     }
@@ -83,10 +83,10 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
       }
       const updateData = {
         ...params,
-        metadata: params.metadata
+        _metadata: params.metadata
           ? JSON.stringify(params.metadata)
           : existing.metadata,
-        updatedAt: new Date()
+        _updatedAt: new Date()
       };
       const validated = schema_validation_1.subscriptionValidation.update.parse(updateData);
       const prepared = (0, schema_helpers_1.prepareSubscriptionData)(validated);
@@ -107,7 +107,7 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
   async getSubscriptionById(id) {
     try {
       const subscription = await db_1.db.query.subscriptions.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.subscriptions.id, id)
+        _where: (0, drizzle_orm_1.eq)(schema.subscriptions.id, id)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     }
@@ -118,8 +118,8 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
   async getSubscriptionByUser(userId) {
     try {
       const subscription = await db_1.db.query.subscriptions.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.subscriptions.userId, userId),
-        orderBy: (0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)
+        _where: (0, drizzle_orm_1.eq)(schema.subscriptions.userId, userId),
+        _orderBy: (0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     }
@@ -130,8 +130,8 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
   async getActiveSubscription(userId) {
     try {
       const subscription = await db_1.db.query.subscriptions.findFirst({
-        where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.subscriptions.userId, userId), (0, drizzle_orm_1.eq)(schema.subscriptions.status, 'active')),
-        orderBy: (0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)
+        _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.subscriptions.userId, userId), (0, drizzle_orm_1.eq)(schema.subscriptions.status, 'active')),
+        _orderBy: (0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     }
@@ -160,19 +160,19 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
       const whereClause = filters.length ? (0, drizzle_orm_1.and)(...filters) : undefined;
       const countResult = await db_1.db
         .select({
-          count: (0, drizzle_orm_1.sql) `count(*)`.mapWith(Number)
+          _count: (0, drizzle_orm_1.sql) `count(*)`.mapWith(Number)
         })
         .from(schema.subscriptions)
         .where(whereClause);
       const records = await db_1.db.query.subscriptions.findMany({
-        where: whereClause,
+        _where: whereClause,
         limit,
         offset,
-        orderBy: (0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)
+        _orderBy: (0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)
       });
       return {
-        subscriptions: records.map((r) => this.formatter.formatResult(r)),
-        total: countResult[0]?.count ?? 0,
+        _subscriptions: records.map((r) => this.formatter.formatResult(r)),
+        _total: countResult[0]?.count ?? 0,
         page,
         limit
       };
@@ -191,9 +191,9 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
         throw types_1.SubscriptionServiceErrors.SUBSCRIPTION_NOT_FOUND;
       this.validateStatusTransition(sub.status, types_1.SubscriptionStatus.CANCELLED);
       const updated = await this.updateSubscription(subscriptionId, {
-        status: types_1.SubscriptionStatus.CANCELLED
+        _status: types_1.SubscriptionStatus.CANCELLED
       });
-      // TODO: persist `reason` to an audit table if required.
+      // _TODO: persist `reason` to an audit table if required.
       return updated;
     }
     catch (err) {
@@ -208,8 +208,8 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
       const newEnd = new Date(sub.endDate);
       newEnd.setMonth(newEnd.getMonth() + 1);
       return await this.updateSubscription(id, {
-        endDate: newEnd,
-        status: types_1.SubscriptionStatus.ACTIVE
+        _endDate: newEnd,
+        _status: types_1.SubscriptionStatus.ACTIVE
       });
     }
     catch (err) {
@@ -238,30 +238,30 @@ class EnhancedSubscriptionService extends enhanced_service_1.EnhancedBaseService
     // These could be optimized into a single SQL query; kept simple for clarity.
     const [totals] = await db_1.db
       .select({
-        total: (0, drizzle_orm_1.sql) `count(*)`.mapWith(Number)
+        _total: (0, drizzle_orm_1.sql) `count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions);
     const [active] = await db_1.db
       .select({
-        total: (0, drizzle_orm_1.sql) `count(*)`.mapWith(Number)
+        _total: (0, drizzle_orm_1.sql) `count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions)
       .where((0, drizzle_orm_1.eq)(schema.subscriptions.status, 'active'));
     const plans = await db_1.db
       .select({
-        plan: schema.subscriptions.planId,
-        total: (0, drizzle_orm_1.sql) `count(*)`.mapWith(Number)
+        _plan: schema.subscriptions.planId,
+        _total: (0, drizzle_orm_1.sql) `count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions)
       .groupBy(schema.subscriptions.planId);
     // Placeholder revenue & churn; implement as required.
     return {
-      totalSubscriptions: totals?.total ?? 0,
-      activeSubscriptions: active?.total ?? 0,
-      revenueThisMonth: '0.00',
-      revenueLastMonth: '0.00',
-      subscriptionsByPlan: Object.fromEntries(plans.map((p) => [p.plan, p.total])),
-      churnRate: '0.00%'
+      _totalSubscriptions: totals?.total ?? 0,
+      _activeSubscriptions: active?.total ?? 0,
+      _revenueThisMonth: '0.00',
+      _revenueLastMonth: '0.00',
+      _subscriptionsByPlan: Object.fromEntries(plans.map((p) => [p.plan, p.total])),
+      _churnRate: '0.00%'
     };
   }
   /* -------------------------------------------------------------------------- */

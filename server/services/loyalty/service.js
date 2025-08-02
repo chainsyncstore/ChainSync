@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -33,9 +33,9 @@ const __importStar = (this && this.__importStar) || (function() {
   };
 })();
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.LoyaltyService = void 0;
 /* server/services/loyalty/service.ts */
 const enhanced_service_1 = require('../base/enhanced-service');
@@ -60,7 +60,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
       let id = prefix + this.random();
       // Ensure uniqueness
       while (await database_1.default.query.loyaltyMembers.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.loyaltyId, id)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.loyaltyId, id)
       })) {
         id = prefix + this.random();
       }
@@ -78,7 +78,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
         throw new types_1.LoyaltyProgramNotFoundError(storeId);
       // One member per customer per program
       const exists = await database_1.default.query.loyaltyMembers.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.customerId, customerId)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.customerId, customerId)
       });
       if (exists)
         throw new types_1.MemberAlreadyEnrolledError(customerId, program.id);
@@ -88,10 +88,10 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
         .values({
           customerId,
           loyaltyId,
-          currentPoints: '0',
-          totalPointsEarned: '0',
-          totalPointsRedeemed: '0',
-          tierId: null
+          _currentPoints: '0',
+          _totalPointsEarned: '0',
+          _totalPointsRedeemed: '0',
+          _tierId: null
         })
         .returning();
       return member;
@@ -108,7 +108,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
         throw new types_1.LoyaltyProgramNotFoundError(storeId);
       const amount = typeof subtotal === 'string' ? parseFloat(subtotal) : subtotal;
       // pointsPerAmount = “X points per 1 currency unit”
-      const rate = 1; // Placeholder: Implement points calculation logic based on program rules
+      const rate = 1; // _Placeholder: Implement points calculation logic based on program rules
       return Math.floor(amount * rate);
     }
     catch (e) {
@@ -119,7 +119,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
   async addPoints(memberId, points, source, transactionId, userId) {
     try {
       const member = await database_1.default.query.loyaltyMembers.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
       });
       if (!member)
         throw new types_1.LoyaltyMemberNotFoundError(memberId);
@@ -128,20 +128,20 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
         .values({
           memberId,
           transactionId,
-          type: 'earn',
+          _type: 'earn',
           points,
-          createdBy: userId
+          _createdBy: userId
         })
         .returning();
       // Update running totals
       await database_1.default
         .update(schema.loyaltyMembers)
         .set({
-          currentPoints: (0, drizzle_orm_1.sql) `${schema.loyaltyMembers.currentPoints} + ${points}`,
-          points: (0, drizzle_orm_1.sql) `${schema.loyaltyMembers.points} + ${points}`
+          _currentPoints: (0, drizzle_orm_1.sql) `${schema.loyaltyMembers.currentPoints} + ${points}`,
+          _points: (0, drizzle_orm_1.sql) `${schema.loyaltyMembers.points} + ${points}`
         })
         .where((0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId));
-      return { success: true, transaction: txRow };
+      return { _success: true, _transaction: txRow };
     }
     catch (e) {
       this.handleError(e, 'addPoints');
@@ -151,7 +151,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
   async getAvailableRewards(memberId) {
     try {
       const member = await database_1.default.query.loyaltyMembers.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
       });
       if (!member)
         throw new types_1.LoyaltyMemberNotFoundError(memberId);
@@ -170,12 +170,12 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
     try {
       return await database_1.default.transaction(async(trx) => {
         const member = await trx.query.loyaltyMembers.findFirst({
-          where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
+          _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
         });
         if (!member)
           throw new types_1.LoyaltyMemberNotFoundError(memberId);
         const reward = await trx.query.loyaltyRewards.findFirst({
-          where: (0, drizzle_orm_1.eq)(schema.loyaltyRewards.id, rewardId)
+          _where: (0, drizzle_orm_1.eq)(schema.loyaltyRewards.id, rewardId)
         });
         if (!reward)
           throw new types_1.RewardNotFoundError(rewardId);
@@ -186,24 +186,24 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
         // Record redemption
         await trx.insert(schema.loyaltyTransactions).values({
           memberId,
-          createdBy: 0,
+          _createdBy: 0,
           rewardId,
-          type: 'redeem',
-          points: cost
+          _type: 'redeem',
+          _points: cost
         });
         // Deduct points
         await trx
           .update(schema.loyaltyMembers)
           .set({
-            currentPoints: String(balance - cost)
+            _currentPoints: String(balance - cost)
           })
           .where((0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId));
         const newTotal = currentTotal; // Placeholder for discount logic
         return {
-          success: true,
+          _success: true,
           newTotal,
-          pointsRedeemed: String(cost),
-          message: 'Reward applied'
+          _pointsRedeemed: String(cost),
+          _message: 'Reward applied'
         };
       });
     }
@@ -215,15 +215,15 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
   async getLoyaltyMember(identifier) {
     return typeof identifier === 'string'
       ? database_1.default.query.loyaltyMembers.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.loyaltyId, identifier)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.loyaltyId, identifier)
       })
-      : database_1.default.query.loyaltyMembers.findFirst({ where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, identifier) });
+      : database_1.default.query.loyaltyMembers.findFirst({ _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, identifier) });
   }
   async getLoyaltyMemberByCustomerId(customerId) {
-    return database_1.default.query.loyaltyMembers.findFirst({ where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.customerId, customerId) });
+    return database_1.default.query.loyaltyMembers.findFirst({ _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.customerId, customerId) });
   }
   async getLoyaltyProgram(storeId) {
-    return database_1.default.query.loyaltyPrograms.findFirst({ where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.storeId, storeId) });
+    return database_1.default.query.loyaltyPrograms.findFirst({ _where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.storeId, storeId) });
   }
   /* ------------------------------------------------------------------ *
      *  Place-holders for remaining interface methods                      *
@@ -246,7 +246,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
   async upsertLoyaltyProgram(storeId, programData) {
     try {
       const existing = await database_1.default.query.loyaltyPrograms.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.storeId, storeId)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.storeId, storeId)
       });
       if (existing) {
         const [updated] = await database_1.default
@@ -270,7 +270,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
     try {
       // ensure parent program exists
       const program = await database_1.default.query.loyaltyPrograms.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, tierData.programId)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, tierData.programId)
       });
       if (!program)
         throw new types_1.LoyaltyProgramNotFoundError(tierData.programId);
@@ -285,7 +285,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
     try {
       // verify program exists
       const program = await database_1.default.query.loyaltyPrograms.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, rewardData.programId)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyPrograms.id, rewardData.programId)
       });
       if (!program)
         throw new types_1.LoyaltyProgramNotFoundError(rewardData.programId);
@@ -302,7 +302,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
       cutoff.setMonth(cutoff.getMonth() - 12);
       // Sum points older than cutoff & still active
       const [{ expired = '0' }] = await database_1.default
-        .select({ expired: (0, drizzle_orm_1.sql) `COALESCE(sum(${schema.loyaltyTransactions.pointsEarned}),0)` })
+        .select({ _expired: (0, drizzle_orm_1.sql) `COALESCE(sum(${schema.loyaltyTransactions.pointsEarned}),0)` })
         .from(schema.loyaltyTransactions)
         .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.loyaltyTransactions.transactionType, 'earn'), (0, drizzle_orm_1.lt)(schema.loyaltyTransactions.createdAt, cutoff)));
       const totalExpired = Number(expired);
@@ -313,7 +313,7 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
         // flag existing as expired type
         await trx
           .update(schema.loyaltyTransactions)
-          .set({ transactionType: 'expire' })
+          .set({ _transactionType: 'expire' })
           .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.loyaltyTransactions.transactionType, 'earn'), (0, drizzle_orm_1.lt)(schema.loyaltyTransactions.createdAt, cutoff)));
         // deduct from member balances
         await trx.execute((0, drizzle_orm_1.sql) `
@@ -337,20 +337,20 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
   async checkAndUpdateMemberTier(memberId) {
     try {
       const member = await database_1.default.query.loyaltyMembers.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
+        _where: (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId)
       });
       if (!member)
         throw new types_1.LoyaltyMemberNotFoundError(memberId);
       if (!member.tierId) {
         // pick lowest tier initially
         const next = await database_1.default.query.loyaltyTiers.findFirst({
-          where: (0, drizzle_orm_1.eq)(schema.loyaltyTiers.active, true),
-          orderBy: (0, drizzle_orm_1.asc)(schema.loyaltyTiers.requiredPoints)
+          _where: (0, drizzle_orm_1.eq)(schema.loyaltyTiers.active, true),
+          _orderBy: (0, drizzle_orm_1.asc)(schema.loyaltyTiers.requiredPoints)
         });
         if (next) {
           await database_1.default
             .update(schema.loyaltyMembers)
-            .set({ tierId: next.id })
+            .set({ _tierId: next.id })
             .where((0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId));
           return true;
         }
@@ -360,13 +360,13 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
       // member already has a tier – check if they qualify for a higher one
       const points = Number(member.points);
       const best = await database_1.default.query.loyaltyTiers.findFirst({
-        where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.lte)(schema.loyaltyTiers.requiredPoints, points), (0, drizzle_orm_1.eq)(schema.loyaltyTiers.active, true)),
-        orderBy: (0, drizzle_orm_1.desc)(schema.loyaltyTiers.requiredPoints)
+        _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.lte)(schema.loyaltyTiers.requiredPoints, points), (0, drizzle_orm_1.eq)(schema.loyaltyTiers.active, true)),
+        _orderBy: (0, drizzle_orm_1.desc)(schema.loyaltyTiers.requiredPoints)
       });
       if (best && best.id !== member.tierId) {
         await database_1.default
           .update(schema.loyaltyMembers)
-          .set({ tierId: best.id })
+          .set({ _tierId: best.id })
           .where((0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, memberId));
         return true;
       }
@@ -379,19 +379,21 @@ class LoyaltyService extends enhanced_service_1.EnhancedBaseService {
   async getLoyaltyAnalytics(storeId) {
     try {
       const [{ members = '0' }] = await database_1.default
-        .select({ members: (0, drizzle_orm_1.sql) `count(*)` })
+        .select({ _members: (0, drizzle_orm_1.sql) `count(*)` })
         .from(schema.loyaltyMembers);
       const [{ earned = '0', redeemed = '0' }] = await database_1.default
         .select({
-          earned: (0, drizzle_orm_1.sql) `COALESCE(sum(points_earned) filter (where transaction_type='earn'),0)`,
-          redeemed: (0, drizzle_orm_1.sql) `COALESCE(sum(points_redeemed) filter (where transaction_type='redeem'),0)`
+          _earned: (0, drizzle_orm_1.sql) `COALESCE(sum(points_earned) filter (where
+  transaction_type = 'earn'),0)`,
+          _redeemed: (0, drizzle_orm_1.sql) `COALESCE(sum(points_redeemed) filter (where
+  transaction_type = 'redeem'),0)`
         })
         .from(schema.loyaltyTransactions)
         .leftJoin(schema.loyaltyMembers, (0, drizzle_orm_1.eq)(schema.loyaltyMembers.id, schema.loyaltyTransactions.memberId));
       return {
-        totalMembers: Number(members),
-        totalPointsEarned: Number(earned),
-        totalPointsRedeemed: Number(redeemed)
+        _totalMembers: Number(members),
+        _totalPointsEarned: Number(earned),
+        _totalPointsRedeemed: Number(redeemed)
       };
     }
     catch (e) {

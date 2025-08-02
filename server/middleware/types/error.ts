@@ -16,11 +16,11 @@ export enum ErrorCode {
 }
 
 export interface AppError {
-  category: ErrorCategory;
-  code: ErrorCode;
-  message: string;
+  _category: ErrorCategory;
+  _code: ErrorCode;
+  _message: string;
   data?: Record<string, any>;
-  status: number;
+  _status: number;
   retryable?: boolean;
   retryAfter?: number;
   validationErrors?: Record<string, string[]>;

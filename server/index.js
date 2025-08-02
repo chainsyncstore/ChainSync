@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 const express_1 = __importDefault(require('express'));
 const path_1 = __importDefault(require('path'));
 const app = (0, express_1.default)();
@@ -13,5 +13,5 @@ app.get('*', (_, res) => {
   res.sendFile(path_1.default.join(__dirname, '../../dist/client/index.html'));
 });
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on _http://localhost:${PORT}`);
 });

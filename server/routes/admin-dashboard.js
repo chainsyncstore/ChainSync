@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 // server/routes/admin-dashboard.ts
 const express_1 = __importDefault(require('express'));
 const path_1 = __importDefault(require('path'));
@@ -14,7 +14,7 @@ const logging_1 = require('../../src/logging');
 const queue_1 = require('../../src/queue');
 const perf_hooks_1 = require('perf_hooks');
 const router = express_1.default.Router();
-const logger = (0, logging_1.getLogger)().child({ component: 'admin-dashboard' });
+const logger = (0, logging_1.getLogger)().child({ _component: 'admin-dashboard' });
 const healthHistory = [];
 // Store up to 100 health check records
 const MAX_HISTORY = 100;
@@ -31,7 +31,7 @@ function addHealthRecord(record) {
 async function checkDatabase() {
   const dbPool = (0, pool_1.getPool)();
   if (!dbPool) {
-    return { status: 'DOWN', responseTime: 0, error: 'Database pool not initialized' };
+    return { _status: 'DOWN', _responseTime: 0, _error: 'Database pool not initialized' };
   }
   const startTime = perf_hooks_1.performance.now();
   try {
@@ -39,7 +39,7 @@ async function checkDatabase() {
     await dbPool.query('SELECT 1');
     const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
     return {
-      status: 'UP',
+      _status: 'UP',
       responseTime
     };
   }
@@ -47,9 +47,9 @@ async function checkDatabase() {
     const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
     logger.error('Database health check failed', error);
     return {
-      status: 'DOWN',
+      _status: 'DOWN',
       responseTime,
-      error: error instanceof Error ? error.message : String(error)
+      _error: error instanceof Error ? error._message : String(error)
     };
   }
 }
@@ -59,7 +59,7 @@ async function checkDatabase() {
 async function checkRedis() {
   const redisClient = (0, redis_1.getRedisClient)();
   if (!redisClient) {
-    return { status: 'DISABLED', responseTime: 0 };
+    return { _status: 'DISABLED', _responseTime: 0 };
   }
   const startTime = perf_hooks_1.performance.now();
   try {
@@ -67,7 +67,7 @@ async function checkRedis() {
     await redisClient.ping();
     const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
     return {
-      status: 'UP',
+      _status: 'UP',
       responseTime
     };
   }
@@ -75,9 +75,9 @@ async function checkRedis() {
     const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
     logger.error('Redis health check failed', error);
     return {
-      status: 'DOWN',
+      _status: 'DOWN',
       responseTime,
-      error: error instanceof Error ? error.message : String(error)
+      _error: error instanceof Error ? error._message : String(error)
     };
   }
 }
@@ -87,25 +87,25 @@ async function checkRedis() {
 const queue_2 = require('../../src/queue');
 async function checkQueueStatus() {
   try {
-    // Fixed: Added explicit empty object parameter to match expected function signature
+    // _Fixed: Added explicit empty object parameter to match expected function signature
     const queue = (0, queue_1.getQueue)(queue_2.QueueType.LOYALTY);
     if (!queue) {
-      return { status: 'DISABLED', messageCount: 0 };
+      return { _status: 'DISABLED', _messageCount: 0 };
     }
     // Get queue info (this will vary based on your queue implementation)
     const queueInfo = await queue.getJobCounts();
     const messageCount = queueInfo.waiting + queueInfo.active + queueInfo.delayed;
     return {
-      status: 'UP',
+      _status: 'UP',
       messageCount
     };
   }
   catch (error) {
     logger.error('Queue health check failed', error);
     return {
-      status: 'DOWN',
-      messageCount: 0,
-      error: error instanceof Error ? error.message : String(error)
+      _status: 'DOWN',
+      _messageCount: 0,
+      _error: error instanceof Error ? error._message : String(error)
     };
   }
 }
@@ -135,7 +135,7 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
           <div class="container mx-auto px-4 py-8">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">ChainSync Health Dashboard</h1>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 _md:grid-cols-3 gap-6 mb-8">
               <!-- Database Status -->
               <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4">Database</h2>
@@ -197,10 +197,10 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
                   const data = await response.json();
                   updateStatusDisplay(data);
                 } else {
-                  console.error('Failed to fetch health status:', response.statusText);
+                  console.error('Failed to fetch health _status:', response.statusText);
                 }
               } catch (error) {
-                console.error('Error fetching health status:', error);
+                console.error('Error fetching health _status:', error);
               }
             }
             
@@ -212,10 +212,10 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
                   const data = await response.json();
                   updateHistoryTable(data);
                 } else {
-                  console.error('Failed to fetch health history:', response.statusText);
+                  console.error('Failed to fetch health _history:', response.statusText);
                 }
               } catch (error) {
-                console.error('Error fetching health history:', error);
+                console.error('Error fetching health _history:', error);
               }
             }
             
@@ -227,20 +227,20 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
                   const data = await response.json();
                   updateMetricsChart(data);
                 } else {
-                  console.error('Failed to fetch metrics:', response.statusText);
+                  console.error('Failed to fetch _metrics:', response.statusText);
                 }
               } catch (error) {
-                console.error('Error fetching metrics:', error);
+                console.error('Error fetching _metrics:', error);
               }
             }
             
             // Update the status display with health check results
             function updateStatusDisplay(data) {
               const statusColors = {
-                UP: 'text-green-600',
-                DOWN: 'text-red-600',
-                DEGRADED: 'text-yellow-600',
-                DISABLED: 'text-gray-600'
+                _UP: 'text-green-600',
+                _DOWN: 'text-red-600',
+                _DEGRADED: 'text-yellow-600',
+                _DISABLED: 'text-gray-600'
               };
               
               // Database status
@@ -248,14 +248,14 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
               const dbResponseTimeEl = document.getElementById('dbResponseTime');
               dbStatusEl.textContent = data.components.database.status;
               dbStatusEl.className = 'text-2xl font-bold mb-2 ' + statusColors[data.components.database.status];
-              dbResponseTimeEl.textContent = \`Response time: \${data.components.database.responseTime}ms\`;
+              dbResponseTimeEl.textContent = \`Response _time: \${data.components.database.responseTime}ms\`;
               
               // Redis status
               const redisStatusEl = document.getElementById('redisStatus');
               const redisResponseTimeEl = document.getElementById('redisResponseTime');
               redisStatusEl.textContent = data.components.redis.status;
               redisStatusEl.className = 'text-2xl font-bold mb-2 ' + statusColors[data.components.redis.status];
-              redisResponseTimeEl.textContent = \`Response time: \${data.components.redis.responseTime}ms\`;
+              redisResponseTimeEl.textContent = \`Response _time: \${data.components.redis.responseTime}ms\`;
               
               // Queue status
               const queueStatusEl = document.getElementById('queueStatus');
@@ -282,9 +282,12 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
                 row.innerHTML = \`
                   <td class="py-3 px-4 border-b">\${formattedTime}</td>
                   <td class="py-3 px-4 border-b">\${record.status}</td>
-                  <td class="py-3 px-4 border-b">\${record.components.database.status} (\${record.components.database.responseTime}ms)</td>
-                  <td class="py-3 px-4 border-b">\${record.components.redis.status} (\${record.components.redis.responseTime}ms)</td>
-                  <td class="py-3 px-4 border-b">\${record.components.queue.status} (\${record.components.queue.messageCount})</td>
+                  <td class="py-3 px-4 border-b">\${record.components.database.status}
+  (\${record.components.database.responseTime}ms)</td>
+                  <td class="py-3 px-4 border-b">\${record.components.redis.status}
+  (\${record.components.redis.responseTime}ms)</td>
+                  <td class="py-3 px-4 border-b">\${record.components.queue.status}
+  (\${record.components.queue.messageCount})</td>
                 \`;
                 tableBody.appendChild(row);
               });
@@ -320,31 +323,31 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
               }
               
               metricsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
+                _type: 'bar',
+                _data: {
                   labels,
-                  datasets: [{
+                  _datasets: [{
                     label: 'Current Value',
-                    data: metrics,
-                    backgroundColor: [
+                    _data: metrics,
+                    _backgroundColor: [
                       'rgba(54, 162, 235, 0.5)',
                       'rgba(255, 99, 132, 0.5)',
                       'rgba(255, 206, 86, 0.5)',
                       'rgba(75, 192, 192, 0.5)'
                     ],
-                    borderColor: [
+                    _borderColor: [
                       'rgba(54, 162, 235, 1)',
                       'rgba(255, 99, 132, 1)',
                       'rgba(255, 206, 86, 1)',
                       'rgba(75, 192, 192, 1)'
                     ],
-                    borderWidth: 1
+                    _borderWidth: 1
                   }]
                 },
-                options: {
+                _options: {
                   scales: {
                     y: {
-                      beginAtZero: true
+                      _beginAtZero: true
                     }
                   }
                 }
@@ -373,7 +376,8 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
   }
 });
 // Current health status API
-router.get('/health', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), async(req, res) => {
+router.get('/health', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), async(req, res)
+   = > {
   try {
     const startTime = perf_hooks_1.performance.now();
     // Run health checks in parallel
@@ -392,12 +396,12 @@ router.get('/health', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admi
     }
     const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
     const healthResult = {
-      status: overallStatus,
-      timestamp: new Date().toISOString(),
-      components: {
-        database: dbStatus,
-        redis: redisStatus,
-        queue: queueStatus
+      _status: overallStatus,
+      _timestamp: new Date().toISOString(),
+      _components: {
+        _database: dbStatus,
+        _redis: redisStatus,
+        _queue: queueStatus
       },
       responseTime
     };
@@ -408,20 +412,21 @@ router.get('/health', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admi
   catch (error) {
     logger.error('Health check error', error);
     res.status(500).json({
-      status: 'ERROR',
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : String(error)
+      _status: 'ERROR',
+      _timestamp: new Date().toISOString(),
+      _error: error instanceof Error ? error._message : String(error)
     });
   }
 });
 // Health check history API
-router.get('/health/history', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), (req, res) => {
+router.get('/health/history', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), (req, res)
+   = > {
   try {
     res.json(healthHistory);
   }
   catch (error) {
     logger.error('Error fetching health history', error);
-    res.status(500).json({ error: 'Failed to retrieve health history' });
+    res.status(500).json({ _error: 'Failed to retrieve health history' });
   }
 });
 exports.default = router;

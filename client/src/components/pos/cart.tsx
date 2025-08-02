@@ -1,43 +1,43 @@
-import React from 'react';
+import React from &apos;react&apos;;
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
+  CardFooter
+} from &apos;@/components/ui/card&apos;;
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { formatCurrency } from '@/lib/utils';
-import { Trash2, CreditCard, AlertOctagon } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+  TableRow
+} from &apos;@/components/ui/table&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { formatCurrency } from &apos;@/lib/utils&apos;;
+import { Trash2, CreditCard, AlertOctagon } from &apos;lucide-react&apos;;
+import { Separator } from &apos;@/components/ui/separator&apos;;
 
 interface CartProps {
-  items: Array<{
-    productId: number;
-    name: string;
-    barcode: string;
-    quantity: number;
-    unitPrice: number;
-    subtotal: number;
+  _items: Array<{
+    _productId: number;
+    _name: string;
+    _barcode: string;
+    _quantity: number;
+    _unitPrice: number;
+    _subtotal: number;
   }>;
-  subtotal: number;
-  tax: number;
-  total: number;
-  onRemove: (index: number) => void;
-  onQuantityChange: (index: number, quantity: number) => void;
-  onProcessPayment: () => void;
-  onVoidTransaction: () => void;
-  setActiveInput: (inputId: string | null) => void;
-  isLoading: boolean;
+  _subtotal: number;
+  _tax: number;
+  _total: number;
+  onRemove: (_index: number) => void;
+  _onQuantityChange: (_index: number, _quantity: number) => void;
+  _onProcessPayment: () => void;
+  _onVoidTransaction: () => void;
+  _setActiveInput: (_inputId: string | null) => void;
+  _isLoading: boolean;
 }
 
 export function Cart({
@@ -50,48 +50,48 @@ export function Cart({
   onProcessPayment,
   onVoidTransaction,
   setActiveInput,
-  isLoading,
+  isLoading
 }: CartProps) {
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-medium">Current Transaction</CardTitle>
+      <CardHeader className=&quot;pb-3&quot;>
+        <CardTitle className=&quot;text-lg font-medium&quot;>Current Transaction</CardTitle>
       </CardHeader>
-      
-      <CardContent className="p-0">
-        <div className="border-y">
-          <div className="max-h-[300px] overflow-y-auto">
+
+      <CardContent className=&quot;p-0&quot;>
+        <div className=&quot;border-y&quot;>
+          <div className=&quot;max-h-[300px] overflow-y-auto&quot;>
             {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <svg className="w-12 h-12 mb-3 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              <div className=&quot;flex flex-col items-center justify-center py-8 text-muted-foreground&quot;>
+                <svg className=&quot;w-12 h-12 mb-3 text-muted-foreground/50&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; viewBox=&quot;0 0 24 24&quot;>
+                  <path strokeLinecap=&quot;round&quot; strokeLinejoin=&quot;round&quot; strokeWidth=&quot;1.5&quot; d=&quot;M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z&quot; />
                 </svg>
                 <p>No items in cart</p>
-                <p className="text-sm">Scan or search products to add them to the cart</p>
+                <p className=&quot;text-sm&quot;>Scan or search products to add them to the cart</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Item</TableHead>
-                    <TableHead className="text-right w-20">Qty</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="w-10"></TableHead>
+                    <TableHead className=&quot;text-right w-20&quot;>Qty</TableHead>
+                    <TableHead className=&quot;text-right&quot;>Price</TableHead>
+                    <TableHead className=&quot;text-right&quot;>Total</TableHead>
+                    <TableHead className=&quot;w-10&quot; />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map((item, index) => (
                     <TableRow key={`${item.productId}-${index}`}>
-                      <TableCell className="font-medium">
+                      <TableCell className=&quot;font-medium&quot;>
                         <div>
                           {item.name}
-                          <div className="text-xs text-muted-foreground">{item.barcode}</div>
+                          <div className=&quot;text-xs text-muted-foreground&quot;>{item.barcode}</div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className=&quot;text-right&quot;>
                         <Input
-                          type="number"
+                          type=&quot;number&quot;
                           value={item.quantity}
                           min={1}
                           onChange={(e) => {
@@ -102,23 +102,23 @@ export function Cart({
                           }}
                           onClick={() => setActiveInput(`quantity-${index}`)}
                           onFocus={() => setActiveInput(`quantity-${index}`)}
-                          className="w-16 text-right"
+                          className=&quot;w-16 text-right&quot;
                         />
                       </TableCell>
-                      <TableCell className="text-right font-mono">
+                      <TableCell className=&quot;text-right font-mono&quot;>
                         {formatCurrency(item.unitPrice)}
                       </TableCell>
-                      <TableCell className="text-right font-mono font-bold">
+                      <TableCell className=&quot;text-right font-mono font-bold&quot;>
                         {formatCurrency(item.subtotal)}
                       </TableCell>
                       <TableCell>
                         <Button
-                          variant="ghost"
-                          size="icon"
+                          variant=&quot;ghost&quot;
+                          size=&quot;icon&quot;
                           onClick={() => onRemove(index)}
-                          className="h-8 w-8 text-destructive"
+                          className=&quot;h-8 w-8 text-destructive&quot;
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className=&quot;h-4 w-4&quot; />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -128,44 +128,44 @@ export function Cart({
             )}
           </div>
         </div>
-        
-        <div className="p-4 space-y-2">
-          <div className="flex justify-between text-sm">
+
+        <div className=&quot;p-4 space-y-2&quot;>
+          <div className=&quot;flex justify-between text-sm&quot;>
             <span>Subtotal:</span>
-            <span className="font-mono">{formatCurrency(subtotal)}</span>
+            <span className=&quot;font-mono&quot;>{formatCurrency(subtotal)}</span>
           </div>
-          <div className="flex justify-between text-sm">
+          <div className=&quot;flex justify-between text-sm&quot;>
             <span>Tax (8.25%):</span>
-            <span className="font-mono">{formatCurrency(tax)}</span>
+            <span className=&quot;font-mono&quot;>{formatCurrency(tax)}</span>
           </div>
-          <Separator className="my-2" />
-          <div className="flex justify-between font-bold">
+          <Separator className=&quot;my-2&quot; />
+          <div className=&quot;flex justify-between font-bold&quot;>
             <span>Total:</span>
-            <span className="font-mono text-lg">{formatCurrency(total)}</span>
+            <span className=&quot;font-mono text-lg&quot;>{formatCurrency(total)}</span>
           </div>
         </div>
       </CardContent>
-      
-      <CardFooter className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:space-y-0 sm:space-x-2 p-4 pt-0">
+
+      <CardFooter className=&quot;flex flex-col space-y-2 _sm:flex-row _sm:justify-between _sm:space-y-0 _sm:space-x-2 p-4 pt-0&quot;>
         <Button
-          variant="destructive"
+          variant=&quot;destructive&quot;
           onClick={onVoidTransaction}
           disabled={items.length === 0 || isLoading}
-          className="w-full sm:w-auto"
+          className=&quot;w-full _sm:w-auto&quot;
         >
-          <AlertOctagon className="mr-2 h-4 w-4" />
+          <AlertOctagon className=&quot;mr-2 h-4 w-4&quot; />
           Void Transaction
         </Button>
-        
+
         <Button
           onClick={onProcessPayment}
           disabled={items.length === 0 || isLoading}
-          className="w-full sm:w-auto"
+          className=&quot;w-full _sm:w-auto&quot;
         >
           {isLoading ? (
-            <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+            <div className=&quot;h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2&quot; />
           ) : (
-            <CreditCard className="mr-2 h-4 w-4" />
+            <CreditCard className=&quot;mr-2 h-4 w-4&quot; />
           )}
           Process Payment
         </Button>

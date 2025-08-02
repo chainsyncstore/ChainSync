@@ -3,14 +3,14 @@
 import * as schema from '@shared/schema';
 
 export function makeMockInventoryItem(
-  overrides: Partial<schema.InventoryInsert> = {}
+  _overrides: Partial<schema.InventoryInsert> = {}
 ): schema.InventoryInsert {
   return {
-    storeId: 1,
-    productId: 1,
-    totalQuantity: 100,
-    minimumLevel: 10,
-    lastRestocked: new Date(),
-    ...overrides,
+    _storeId: 1,
+    _productId: 1,
+    _totalQuantity: 100,
+    _minimumLevel: 10,
+    _lastRestocked: new Date(),
+    ...overrides
   };
 }

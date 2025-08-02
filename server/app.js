@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -33,9 +33,9 @@ const __importStar = (this && this.__importStar) || (function() {
   };
 })();
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.dbPool = exports.app = void 0;
 // server/app.ts - Application entry point with integrated security, logging, and monitoring
 const express_1 = __importDefault(require('express'));
@@ -75,13 +75,13 @@ exports.app = app;
 // Configure logging before other middleware
 (0, setup_js_1.setupLogging)(app);
 // Get configured logger
-const logger = (0, index_js_1.getLogger)().child({ component: 'app' });
+const logger = (0, index_js_1.getLogger)().child({ _component: 'app' });
 // Database connection pool
 const dbPool = new pg_1.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
-  idleTimeoutMillis: 30000
+  _connectionString: process.env.DATABASE_URL,
+  _ssl: process.env.NODE_ENV === 'production' ? { _rejectUnauthorized: false } : false,
+  _max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
+  _idleTimeoutMillis: 30000
 });
 exports.dbPool = dbPool;
 // Monitor database connection
@@ -96,7 +96,7 @@ dbPool.on('error', (err) => {
 const redisClient = (0, redis_js_1.initRedis)();
 let sessionStore;
 if (redisClient) {
-  sessionStore = new connect_redis_1.RedisStore({ client: redisClient });
+  sessionStore = new connect_redis_1.RedisStore({ _client: redisClient });
   logger.info('Using Redis for session storage');
 }
 else {
@@ -106,27 +106,27 @@ else {
 app.use(security_js_1.securityHeaders);
 // CORS configuration
 app.use((0, cors_1.default)({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+  _origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://_localhost:3000',
+  _credentials: true,
+  _methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  _allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 }));
 // Apply rate limiting
 app.use(rate_limit_js_1.rateLimitMiddleware);
 // Body parsing middleware
 app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
+app.use(express_1.default.urlencoded({ _extended: true }));
 // Session handling
 app.use((0, express_session_1.default)({
-  store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'dev-secret-should-be-changed',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
+  _store: sessionStore,
+  _secret: process.env.SESSION_SECRET || 'dev-secret-should-be-changed',
+  _resave: false,
+  _saveUninitialized: false,
+  _cookie: {
+    _secure: process.env.NODE_ENV === 'production',
+    _httpOnly: true,
+    _maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    _sameSite: 'lax'
   }
 }));
 // Generate CSRF token for all routes that need it
@@ -170,13 +170,13 @@ if (process.env.NODE_ENV === 'production') {
 // 404 handler
 app.use((req, res, next) => {
   logger.warn('Route not found', {
-    path: req.path,
-    method: req.method,
-    ip: req.ip
+    _path: req.path,
+    _method: req.method,
+    _ip: req.ip
   });
   res.status(404).json({
-    error: 'Route not found',
-    code: 'NOT_FOUND'
+    _error: 'Route not found',
+    _code: 'NOT_FOUND'
   });
 });
 // Sentry error handler middleware is already configured via configureSentry
@@ -186,8 +186,8 @@ app.use((err, req, res, next) => {
   // Just send appropriate response to client
   const statusCode = err.status || err.statusCode || 500;
   const errorResponse = {
-    error: err.message || 'Internal Server Error',
-    code: err.code || 'UNKNOWN_ERROR'
+    _error: err.message || 'Internal Server Error',
+    _code: err.code || 'UNKNOWN_ERROR'
   };
     // Add stack trace in development
   if (process.env.NODE_ENV !== 'production' && err.stack) {

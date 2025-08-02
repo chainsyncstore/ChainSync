@@ -5,33 +5,33 @@ import { AppError, ErrorCategory } from '@shared/types/errors';
 type MulterFile = File;
 
 export interface IES {
-  validateData(data: any[], options?: ValidationOptions): Promise<ImportExportResult>;
-  importData(userId: number, data: any[], entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
-  exportData(userId: number, entityType: string, options?: ExportOptions): Promise<Buffer>;
-  validateFile(file: File): Promise<{ type: string; data: any[] }>;
-  processImport(data: any[], options: ImportExportOptions, importId: string): Promise<ImportExportResult>;
-  processBatch(data: any[], importId: string): Promise<ImportExportResult>;
+  validateData(_data: any[], options?: ValidationOptions): Promise<ImportExportResult>;
+  importData(_userId: number, _data: any[], _entityType: string, options?: ImportExportOptions): Promise<ImportExportResult>;
+  exportData(_userId: number, _entityType: string, options?: ExportOptions): Promise<Buffer>;
+  validateFile(_file: File): Promise<{ _type: string; _data: any[] }>;
+  processImport(_data: any[], _options: ImportExportOptions, _importId: string): Promise<ImportExportResult>;
+  processBatch(_data: any[], _importId: string): Promise<ImportExportResult>;
 }
 
 export interface ImportExportConfig {
-  batchSize: number;
+  _batchSize: number;
 }
 
 export type ImportExportServiceErrors = {
-  INVALID_FILE_FORMAT: AppError;
-  FILE_TOO_LARGE: AppError;
-  INVALID_DATA: AppError;
-  PROCESSING_ERROR: AppError;
-  STORAGE_ERROR: AppError;
-  PROGRESS_ERROR: AppError;
+  _INVALID_FILE_FORMAT: AppError;
+  _FILE_TOO_LARGE: AppError;
+  _INVALID_DATA: AppError;
+  _PROCESSING_ERROR: AppError;
+  _STORAGE_ERROR: AppError;
+  _PROGRESS_ERROR: AppError;
 };
 
 export interface ImportExportProgress {
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
-  message: string;
-  total: number;
-  processed: number;
-  errors: number;
+  _message: string;
+  _total: number;
+  _processed: number;
+  _errors: number;
 }
 
 export interface ValidationOptions {
@@ -40,14 +40,14 @@ export interface ValidationOptions {
 }
 
 export interface ImportExportResult {
-  success: boolean;
-  message: string;
+  _success: boolean;
+  _message: string;
   data?: any[];
   errors?: any[];
-  validCount: number;
-  invalidCount: number;
-  totalProcessed: number;
-  totalErrors: number;
+  _validCount: number;
+  _invalidCount: number;
+  _totalProcessed: number;
+  _totalErrors: number;
   importId?: string;
 }
 
@@ -60,7 +60,7 @@ export interface ImportExportOptions {
 }
 
 export interface ExportOptions {
-  format: string;
-  includeHeaders: boolean;
+  _format: string;
+  _includeHeaders: boolean;
   delimiter?: string;
 }

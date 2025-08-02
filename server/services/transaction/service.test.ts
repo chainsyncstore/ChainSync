@@ -25,124 +25,124 @@ jest.mock('../loyalty/service');
 
 // Mock DB and schema validation
 jest.mock('@db', () => ({
-  query: {
+  _query: {
     transactions: {
-      findFirst: jest.fn(),
-      findMany: jest.fn()
+      _findFirst: jest.fn(),
+      _findMany: jest.fn()
     },
-    products: {
-      findFirst: jest.fn(),
-      findMany: jest.fn()
+    _products: {
+      _findFirst: jest.fn(),
+      _findMany: jest.fn()
     },
-    stores: {
-      findFirst: jest.fn()
+    _stores: {
+      _findFirst: jest.fn()
     },
-    users: {
-      findFirst: jest.fn()
+    _users: {
+      _findFirst: jest.fn()
     },
-    customers: {
-      findFirst: jest.fn()
+    _customers: {
+      _findFirst: jest.fn()
     },
-    loyaltyMembers: {
-      findFirst: jest.fn()
+    _loyaltyMembers: {
+      _findFirst: jest.fn()
     },
-    returns: {
-      findFirst: jest.fn()
+    _returns: {
+      _findFirst: jest.fn()
     }
   },
-  insert: jest.fn().mockReturnThis(),
-  update: jest.fn().mockReturnThis(),
-  delete: jest.fn().mockReturnThis(),
-  select: jest.fn().mockReturnThis(),
-  from: jest.fn().mockReturnThis(),
-  where: jest.fn().mockReturnThis(),
-  groupBy: jest.fn().mockReturnThis(),
-  orderBy: jest.fn().mockReturnThis(),
-  limit: jest.fn().mockReturnThis(),
-  offset: jest.fn().mockReturnThis(),
-  leftJoin: jest.fn().mockReturnThis(),
-  returning: jest.fn(),
-  transaction: jest.fn().mockImplementation(async(fn) => await fn(db)),
-  set: jest.fn().mockReturnThis(),
-  values: jest.fn().mockReturnThis()
+  _insert: jest.fn().mockReturnThis(),
+  _update: jest.fn().mockReturnThis(),
+  _delete: jest.fn().mockReturnThis(),
+  _select: jest.fn().mockReturnThis(),
+  _from: jest.fn().mockReturnThis(),
+  _where: jest.fn().mockReturnThis(),
+  _groupBy: jest.fn().mockReturnThis(),
+  _orderBy: jest.fn().mockReturnThis(),
+  _limit: jest.fn().mockReturnThis(),
+  _offset: jest.fn().mockReturnThis(),
+  _leftJoin: jest.fn().mockReturnThis(),
+  _returning: jest.fn(),
+  _transaction: jest.fn().mockImplementation(async(fn) => await fn(db)),
+  _set: jest.fn().mockReturnThis(),
+  _values: jest.fn().mockReturnThis()
 }));
 
 jest.mock('@shared/schema-validation', () => ({
-  transactionValidation: {
-    insert: jest.fn(data => data),
-    update: jest.fn(data => data),
-    item: {
-      insert: jest.fn(data => data)
+  _transactionValidation: {
+    _insert: jest.fn(data => data),
+    _update: jest.fn(data => data),
+    _item: {
+      _insert: jest.fn(data => data)
     },
-    payment: {
-      insert: jest.fn(data => data)
+    _payment: {
+      _insert: jest.fn(data => data)
     },
-    refund: {
-      insert: jest.fn(data => data)
+    _refund: {
+      _insert: jest.fn(data => data)
     },
-    refundItem: {
-      insert: jest.fn(data => data)
+    _refundItem: {
+      _insert: jest.fn(data => data)
     }
   },
-  SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: Record<string, unknown>) {
+  _SchemaValidationError: class SchemaValidationError extends Error {
+    constructor(_message: string, options?: Record<string, unknown>) {
       super(message);
       this.name = 'SchemaValidationError';
     }
     toJSON() {
       return {
-        error: this.name,
-        message: this.message
+        _error: this.name,
+        _message: this.message
       };
     }
   }
 }));
 
 describe('TransactionService', () => {
-  let transactionService: TransactionService;
-  let mockInventoryService: jest.Mocked<InventoryService>;
-  let mockLoyaltyService: jest.Mocked<LoyaltyService>;
+  let _transactionService: TransactionService;
+  let _mockInventoryService: jest.Mocked<InventoryService>;
+  let _mockLoyaltyService: jest.Mocked<LoyaltyService>;
   type MockedDB = typeof db & {
     query: {
       transactions: {
-        findFirst: jest.Mock;
-        findMany: jest.Mock;
+        _findFirst: jest.Mock;
+        _findMany: jest.Mock;
       };
       products: {
-        findFirst: jest.Mock;
-        findMany: jest.Mock;
+        _findFirst: jest.Mock;
+        _findMany: jest.Mock;
       };
       stores: {
-        findFirst: jest.Mock;
+        _findFirst: jest.Mock;
       };
       users: {
-        findFirst: jest.Mock;
+        _findFirst: jest.Mock;
       };
       customers: {
-        findFirst: jest.Mock;
+        _findFirst: jest.Mock;
       };
       loyaltyMembers: {
-        findFirst: jest.Mock;
+        _findFirst: jest.Mock;
       };
       returns: {
-        findFirst: jest.Mock;
+        _findFirst: jest.Mock;
       };
     };
-    insert: jest.Mock;
-    update: jest.Mock;
-    delete: jest.Mock;
-    select: jest.Mock;
-    from: jest.Mock;
-    where: jest.Mock;
-    groupBy: jest.Mock;
-    orderBy: jest.Mock;
-    limit: jest.Mock;
-    offset: jest.Mock;
-    leftJoin: jest.Mock;
-    returning: jest.Mock;
-    transaction: jest.Mock;
-    set: jest.Mock;
-    values: jest.Mock;
+    _insert: jest.Mock;
+    _update: jest.Mock;
+    _delete: jest.Mock;
+    _select: jest.Mock;
+    _from: jest.Mock;
+    _where: jest.Mock;
+    _groupBy: jest.Mock;
+    _orderBy: jest.Mock;
+    _limit: jest.Mock;
+    _offset: jest.Mock;
+    _leftJoin: jest.Mock;
+    _returning: jest.Mock;
+    _transaction: jest.Mock;
+    _set: jest.Mock;
+    _values: jest.Mock;
   };
   const dbMock = db as MockedDB;
   beforeEach(() => {
@@ -150,12 +150,12 @@ describe('TransactionService', () => {
 
     // Set up mocked inventory service
     mockInventoryService = new InventoryService() as jest.Mocked<InventoryService>;
-    // Type-safe: adjustInventory expects (params: InventoryAdjustmentParams) => Promise<boolean>
+    // Type-_safe: adjustInventory expects (_params: InventoryAdjustmentParams) => Promise<boolean>
     jest.spyOn(mockInventoryService, 'adjustInventory').mockImplementation().mockResolvedValue(true);
 
     // Set up mocked loyalty service
     mockLoyaltyService = new LoyaltyService() as jest.Mocked<LoyaltyService>;
-    // Type-safe: awardPoints expects (params: any) => Promise<boolean>
+    // Type-_safe: awardPoints expects (_params: any) => Promise<boolean>
     jest.spyOn(mockLoyaltyService, 'awardPoints').mockImplementation().mockResolvedValue(true);
 
     // Apply mocks to TransactionService constructor
@@ -167,40 +167,40 @@ describe('TransactionService', () => {
 
   describe('createTransaction', () => {
     const validTransactionData = {
-      storeId: 1,
-      customerId: 1,
-      userId: 1,
-      type: TransactionType.SALE,
-      subtotal: '100.00',
-      tax: '10.00',
-      total: '110.00',
-      paymentMethod: PaymentMethod.CASH,
-      notes: 'Test transaction',
-      reference: 'TXN-123',
-      items: [
+      _storeId: 1,
+      _customerId: 1,
+      _userId: 1,
+      _type: TransactionType.SALE,
+      _subtotal: '100.00',
+      _tax: '10.00',
+      _total: '110.00',
+      _paymentMethod: PaymentMethod.CASH,
+      _notes: 'Test transaction',
+      _reference: 'TXN-123',
+      _items: [
         {
-          productId: 1,
-          quantity: 2,
-          unitPrice: '50.00'
+          _productId: 1,
+          _quantity: 2,
+          _unitPrice: '50.00'
         }
       ]
     };
 
     it('should create a transaction with validated data', async() => {
       // Mock dependencies
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
-      dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
-      dbMock.query.customers.findFirst.mockResolvedValue({ id: 1, name: 'Test Customer' });
+      dbMock.query.stores.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Store' });
+      dbMock.query.users.findFirst.mockResolvedValue({ _id: 1, _name: 'Test User' });
+      dbMock.query.customers.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Customer' });
 
       // Mock product with inventory
       dbMock.query.products.findMany.mockResolvedValue([{
-        id: 1,
-        name: 'Test Product',
-        inventory: [{ availableQuantity: 10 }]
+        _id: 1,
+        _name: 'Test Product',
+        _inventory: [{ _availableQuantity: 10 }]
       }]);
 
       // Mock transaction insert
-      dbMock.insert().values().returning.mockResolvedValueOnce([{ id: 1, ...validTransactionData }]);
+      dbMock.insert().values().returning.mockResolvedValueOnce([{ _id: 1, ...validTransactionData }]);
 
       const result = await transactionService.createTransaction(validTransactionData);
 
@@ -209,15 +209,15 @@ describe('TransactionService', () => {
 
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
-        id: 1,
-        storeId: validTransactionData.storeId,
-        type: validTransactionData.type
+        _id: 1,
+        _storeId: validTransactionData.storeId,
+        _type: validTransactionData.type
       }));
 
       // Check inventory was adjusted
       expect(mockInventoryService.adjustInventory).toHaveBeenCalledWith(expect.objectContaining({
-        productId: 1,
-        quantity: -2
+        _productId: 1,
+        _quantity: -2
       }));
     });
 
@@ -232,7 +232,7 @@ describe('TransactionService', () => {
 
     it('should throw error when user does not exist', async() => {
       // Mock store exists but user doesn't
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' } as schema.Store);
+      dbMock.query.stores.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Store' } as schema.Store);
       const usersFindFirstMock = dbMock.query.users.findFirst as jest.Mock<Promise<schema.User | null>, [any?]>;
       usersFindFirstMock.mockResolvedValue(null);
 
@@ -242,8 +242,8 @@ describe('TransactionService', () => {
 
     it('should throw error when customer does not exist', async() => {
       // Mock store and user exist but customer doesn't
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' } as schema.Store);
-      dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' } as schema.User);
+      dbMock.query.stores.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Store' } as schema.Store);
+      dbMock.query.users.findFirst.mockResolvedValue({ _id: 1, _name: 'Test User' } as schema.User);
       const customersFindFirstMock = dbMock.query.customers.findFirst as jest.Mock<Promise<schema.Customer | null>, [any?]>;
       customersFindFirstMock.mockResolvedValue(null);
 
@@ -253,9 +253,9 @@ describe('TransactionService', () => {
 
     it('should throw error when product not found', async() => {
       // Mock dependencies exist
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
-      dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
-      dbMock.query.customers.findFirst.mockResolvedValue({ id: 1, name: 'Test Customer' });
+      dbMock.query.stores.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Store' });
+      dbMock.query.users.findFirst.mockResolvedValue({ _id: 1, _name: 'Test User' });
+      dbMock.query.customers.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Customer' });
 
       // Mock product not found (empty array)
       dbMock.query.products.findMany.mockResolvedValue([]);
@@ -266,17 +266,17 @@ describe('TransactionService', () => {
 
     it('should throw error when insufficient stock', async() => {
       // Mock dependencies exist
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
-      dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
-      dbMock.query.customers.findFirst.mockResolvedValue({ id: 1, name: 'Test Customer' });
+      dbMock.query.stores.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Store' });
+      dbMock.query.users.findFirst.mockResolvedValue({ _id: 1, _name: 'Test User' });
+      dbMock.query.customers.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Customer' });
 
       // Mock product with insufficient inventory
-      const productsFindManyMock = dbMock.query.products.findMany as jest.Mock<Promise<Array<{ id: number; name: string; inventory: Array<{ availableQuantity: number }> }>>, [any?]>;
+      const productsFindManyMock = dbMock.query.products.findMany as jest.Mock<Promise<Array<{ _id: number; _name: string; _inventory: Array<{ _availableQuantity: number }> }>>, [any?]>;
 productsFindManyMock.mockResolvedValue([
         {
-          id: 1,
-          name: 'Test Product',
-          inventory: [{ availableQuantity: 1 }]
+          _id: 1,
+          _name: 'Test Product',
+          _inventory: [{ _availableQuantity: 1 }]
         }
       ]);
 
@@ -286,13 +286,13 @@ productsFindManyMock.mockResolvedValue([
 
     it('should handle validation errors properly', async() => {
       // Mock dependencies exist
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
-      dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
-      dbMock.query.customers.findFirst.mockResolvedValue({ id: 1, name: 'Test Customer' });
+      dbMock.query.stores.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Store' });
+      dbMock.query.users.findFirst.mockResolvedValue({ _id: 1, _name: 'Test User' });
+      dbMock.query.customers.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Customer' });
       dbMock.query.products.findMany.mockResolvedValue([{
-        id: 1,
-        name: 'Test Product',
-        inventory: [{ availableQuantity: 10 }]
+        _id: 1,
+        _name: 'Test Product',
+        _inventory: [{ _availableQuantity: 10 }]
       }]);
 
       // Make validation throw an error
@@ -315,23 +315,23 @@ productsFindManyMock.mockResolvedValue([
 
   describe('processRefund', () => {
     const validRefundParams = {
-      transactionId: 1,
-      reason: 'Customer dissatisfied',
-      userId: 1,
-      refundMethod: PaymentMethod.CASH,
-      fullRefund: true,
-      notes: 'Full refund processed'
+      _transactionId: 1,
+      _reason: 'Customer dissatisfied',
+      _userId: 1,
+      _refundMethod: PaymentMethod.CASH,
+      _fullRefund: true,
+      _notes: 'Full refund processed'
     };
 
     const mockTransaction = {
-      id: 1,
-      storeId: 1,
-      subtotal: '100.00',
-      tax: '10.00',
-      total: '110.00',
-      status: TransactionStatus.COMPLETED,
-      items: [
-        { id: 1, productId: 1, quantity: 2, unitPrice: '50.00' }
+      _id: 1,
+      _storeId: 1,
+      _subtotal: '100.00',
+      _tax: '10.00',
+      _total: '110.00',
+      _status: TransactionStatus.COMPLETED,
+      _items: [
+        { _id: 1, _productId: 1, _quantity: 2, _unitPrice: '50.00' }
       ]
     };
 
@@ -340,7 +340,7 @@ productsFindManyMock.mockResolvedValue([
       jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(mockTransaction as schema.Transaction);
 
       // Mock refund insert
-      dbMock.insert().values().returning.mockResolvedValueOnce([{ id: 1, refundId: 'REF-123' }]);
+      dbMock.insert().values().returning.mockResolvedValueOnce([{ _id: 1, _refundId: 'REF-123' }]);
 
       const result = await transactionService.processRefund(validRefundParams);
 
@@ -349,8 +349,8 @@ productsFindManyMock.mockResolvedValue([
 
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
-        id: 1,
-        refundId: 'REF-123'
+        _id: 1,
+        _refundId: 'REF-123'
       }));
 
       // Check inventory was adjusted if items were restocked
@@ -372,7 +372,7 @@ productsFindManyMock.mockResolvedValue([
       // Mock transaction already refunded
       jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue({
         ...mockTransaction,
-        status: TransactionStatus.REFUNDED
+        _status: TransactionStatus.REFUNDED
       } as schema.Transaction);
 
       await expect(transactionService.processRefund(validRefundParams))
@@ -384,14 +384,14 @@ productsFindManyMock.mockResolvedValue([
       jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(mockTransaction as schema.Transaction);
 
       // Mock refund insert
-      dbMock.insert().values().returning.mockResolvedValueOnce([{ id: 1, refundId: 'REF-123' }]);
+      dbMock.insert().values().returning.mockResolvedValueOnce([{ _id: 1, _refundId: 'REF-123' }]);
 
       // Partial refund params
       const partialRefundParams = {
         ...validRefundParams,
-        fullRefund: false,
-        items: [
-          { transactionItemId: 1, quantity: 1, unitPrice: '50.00', isRestocked: true }
+        _fullRefund: false,
+        _items: [
+          { _transactionItemId: 1, _quantity: 1, _unitPrice: '50.00', _isRestocked: true }
         ]
       };
 
@@ -399,14 +399,14 @@ productsFindManyMock.mockResolvedValue([
 
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
-        id: 1,
-        refundId: 'REF-123'
+        _id: 1,
+        _refundId: 'REF-123'
       }));
 
       // Check original transaction status was updated to partially refunded
       expect(db.update).toHaveBeenCalledWith(schema.transactions);
       expect(db.set).toHaveBeenCalledWith(expect.objectContaining({
-        status: TransactionStatus.PARTIALLY_REFUNDED
+        _status: TransactionStatus.PARTIALLY_REFUNDED
       }));
     });
   });
@@ -414,24 +414,24 @@ productsFindManyMock.mockResolvedValue([
   describe('getTransactionAnalytics', () => {
     it('should return analytics data for a store', async() => {
       // Mock store exists
-      dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
+      dbMock.query.stores.findFirst.mockResolvedValue({ _id: 1, _name: 'Test Store' });
 
       // Mock analytics queries
       (db.select().from().where as jest.Mock).mockReturnValueOnce({
         // Sales totals
-        totalSales: '1000.00',
-        totalRefunds: '100.00',
-        saleCount: 10,
-        refundCount: 2
+        _totalSales: '1000.00',
+        _totalRefunds: '100.00',
+        _saleCount: 10,
+        _refundCount: 2
       });
 
       // Mock payment method breakdown
       jest.spyOn(db, 'select').mockImplementation().mockReturnValue({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            groupBy: jest.fn().mockReturnValue([
-              { method: PaymentMethod.CASH, amount: '500.00', count: 5 },
-              { method: PaymentMethod.CREDIT_CARD, amount: '500.00', count: 5 }
+        _from: jest.fn().mockReturnValue({
+          _where: jest.fn().mockReturnValue({
+            _groupBy: jest.fn().mockReturnValue([
+              { _method: PaymentMethod.CASH, _amount: '500.00', _count: 5 },
+              { _method: PaymentMethod.CREDIT_CARD, _amount: '500.00', _count: 5 }
             ])
           })
         })
@@ -439,13 +439,13 @@ productsFindManyMock.mockResolvedValue([
 
       // Mock hour of day breakdown
       jest.spyOn(db, 'select').mockImplementation().mockReturnValue({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            groupBy: jest.fn().mockReturnValue({
-              orderBy: jest.fn().mockReturnValue([
-                { hour: 9, amount: '200.00', count: 2 },
-                { hour: 10, amount: '300.00', count: 3 },
-                { hour: 11, amount: '500.00', count: 5 }
+        _from: jest.fn().mockReturnValue({
+          _where: jest.fn().mockReturnValue({
+            _groupBy: jest.fn().mockReturnValue({
+              _orderBy: jest.fn().mockReturnValue([
+                { _hour: 9, _amount: '200.00', _count: 2 },
+                { _hour: 10, _amount: '300.00', _count: 3 },
+                { _hour: 11, _amount: '500.00', _count: 5 }
               ])
             })
           })
@@ -454,13 +454,13 @@ productsFindManyMock.mockResolvedValue([
 
       // Mock day of week breakdown
       jest.spyOn(db, 'select').mockImplementation().mockReturnValue({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            groupBy: jest.fn().mockReturnValue({
-              orderBy: jest.fn().mockReturnValue([
-                { day: 1, amount: '200.00', count: 2 },
-                { day: 2, amount: '300.00', count: 3 },
-                { day: 3, amount: '500.00', count: 5 }
+        _from: jest.fn().mockReturnValue({
+          _where: jest.fn().mockReturnValue({
+            _groupBy: jest.fn().mockReturnValue({
+              _orderBy: jest.fn().mockReturnValue([
+                { _day: 1, _amount: '200.00', _count: 2 },
+                { _day: 2, _amount: '300.00', _count: 3 },
+                { _day: 3, _amount: '500.00', _count: 5 }
               ])
             })
           })

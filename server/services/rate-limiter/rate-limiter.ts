@@ -3,20 +3,20 @@ import { performance } from 'perf_hooks';
 import { Redis } from 'ioredis';
 
 export interface RateLimitConfig {
-  window: number; // in seconds
-  maxRequests: number;
-  redisUrl: string;
+  _window: number; // in seconds
+  _maxRequests: number;
+  _redisUrl: string;
 }
 
 export class RateLimiter {
-  private redis: Redis | null = null;
-  private config: RateLimitConfig;
+  private _redis: Redis | null = null;
+  private _config: RateLimitConfig;
 
-  constructor(config: Partial<RateLimitConfig> = {}) {
+  constructor(_config: Partial<RateLimitConfig> = {}) {
     this.config = {
-      window: config.window ?? 60, // 1 minute
-      maxRequests: config.maxRequests ?? 60,
-      redisUrl: config.redisUrl ?? (process.env.REDIS_URL || '')
+      _window: config.window ?? 60, // 1 minute
+      _maxRequests: config.maxRequests ?? 60,
+      _redisUrl: config.redisUrl ?? (process.env.REDIS_URL || '')
     };
 
     if (this.config.redisUrl) {
@@ -24,11 +24,11 @@ export class RateLimiter {
     }
   }
 
-  private generateKey(userId: string): string {
+  private generateKey(_userId: string): string {
     return `rate-limit:${userId}`;
   }
 
-  async check(userId: string): Promise<boolean> {
+  async check(_userId: string): Promise<boolean> {
     try {
       const key = this.generateKey(userId);
 
@@ -57,7 +57,7 @@ export class RateLimiter {
     }
   }
 
-  async increment(userId: string): Promise<void> {
+  async increment(_userId: string): Promise<void> {
     try {
       const key = this.generateKey(userId);
 
@@ -76,7 +76,7 @@ export class RateLimiter {
     }
   }
 
-  async getRemaining(userId: string): Promise<number> {
+  async getRemaining(_userId: string): Promise<number> {
     try {
       const key = this.generateKey(userId);
 
@@ -96,7 +96,7 @@ export class RateLimiter {
     }
   }
 
-  async reset(userId: string): Promise<void> {
+  async reset(_userId: string): Promise<void> {
     try {
       const key = this.generateKey(userId);
 
@@ -121,7 +121,7 @@ export class RateLimiter {
         }
       }
     } catch (error) {
-      console.error('Failed to cleanup rate limits:', error);
+      console.error('Failed to cleanup rate _limits:', error);
     }
   }
 }

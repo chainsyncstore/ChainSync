@@ -3,11 +3,11 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default {
-  out: "./db/migrations",
-  schema: "./src/db/schema.ts", // Adjusted to point to src directory
-  dialect: "postgresql",
-  dbCredentials: {
-    url: process.env.DATABASE_URL,
+  _out: "./db/migrations",
+  _schema: "./src/db/schema.ts", // Adjusted to point to src directory
+  _dialect: "postgresql",
+  _dbCredentials: {
+    _url: process.env.DATABASE_URL,
   },
-  verbose: true,
+  _verbose: true,
 };

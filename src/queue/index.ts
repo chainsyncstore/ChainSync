@@ -5,7 +5,7 @@ import { getLogger } from '../logging';
 import { getRedisClient } from '../cache/redis';
 
 // Get logger for job queue operations
-const logger = getLogger().child({ component: 'job-queue' });
+const logger = getLogger().child({ _component: 'job-queue' });
 
 // Available job queues
 export enum QueueType {
@@ -25,26 +25,26 @@ export enum JobPriority {
 }
 
 // Queue registry to track active queues
-const queues: Record<string, Queue> = {};
-const workers: Record<string, Worker> = {};
+const _queues: Record<string, Queue> = {};
+const _workers: Record<string, Worker> = {};
 
 /**
  * Redis connection configuration
  */
 const getRedisConfig = (): ConnectionOptions => {
   const redisClient = getRedisClient();
-  
+
   // Use existing Redis client if available
   if (redisClient) {
     return redisClient as any;
   }
-  
+
   // Otherwise create a new connection from environment variables
   return {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD,
-    db: parseInt(process.env.REDIS_DB || '0', 10)
+    _host: process.env.REDIS_HOST || 'localhost',
+    _port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    _password: process.env.REDIS_PASSWORD,
+    _db: parseInt(process.env.REDIS_DB || '0', 10)
   } as any;
 };
 
@@ -53,34 +53,34 @@ const getRedisConfig = (): ConnectionOptions => {
  * @param queueName The name of the queue to initialize
  * @returns The initialized Queue instance
  */
-export function initQueue(queueName: QueueType): Queue {
+export function initQueue(_queueName: QueueType): Queue {
   if (queues[queueName]) {
     return queues[queueName];
   }
-  
+
   logger.info(`Initializing ${queueName} queue`);
-  
+
   const queue = new Queue(queueName, {
-    connection: getRedisConfig(),
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: {
+    _connection: getRedisConfig(),
+    _defaultJobOptions: {
+      _attempts: 3,
+      _backoff: {
         type: 'exponential',
-        delay: 5000
+        _delay: 5000
       },
-      removeOnComplete: {
-        age: 24 * 3600, // Keep completed jobs for 24 hours
-        count: 1000      // Keep last 1000 completed jobs
+      _removeOnComplete: {
+        _age: 24 * 3600, // Keep completed jobs for 24 hours
+        _count: 1000      // Keep last 1000 completed jobs
       },
-      removeOnFail: {
-        age: 7 * 24 * 3600 // Keep failed jobs for 7 days
+      _removeOnFail: {
+        _age: 7 * 24 * 3600 // Keep failed jobs for 7 days
       }
     }
   });
-  
+
   // Store in registry
   queues[queueName] = queue;
-  
+
   return queue;
 }
 
@@ -89,7 +89,7 @@ export function initQueue(queueName: QueueType): Queue {
  * @param queueName The name of the queue to get
  * @returns The Queue instance
  */
-export function getQueue(queueName: QueueType): Queue {
+export function getQueue(_queueName: QueueType): Queue {
   return queues[queueName] || initQueue(queueName);
 }
 
@@ -97,7 +97,7 @@ export function getQueue(queueName: QueueType): Queue {
  * Initialize a queue scheduler
  * Used for delayed and repeating jobs
  */
-export function initScheduler(queueName: QueueType): any {
+export function initScheduler(_queueName: QueueType): any {
   // QueueScheduler functionality removed due to compatibility issues
   logger.info(`Scheduler for ${queueName} not available in current Bull version`);
   return null;
@@ -107,57 +107,57 @@ export function initScheduler(queueName: QueueType): any {
  * Initialize a worker to process jobs from a queue
  */
 export function initWorker(
-  queueName: QueueType, 
-  processor: (job: Job) => Promise<any>,
-  concurrency: number = 1
+  _queueName: QueueType,
+  _processor: (_job: Job) => Promise<any>,
+  _concurrency: number = 1
 ): Worker {
   if (workers[queueName]) {
     return workers[queueName];
   }
-  
+
   logger.info(`Initializing ${queueName} worker with concurrency ${concurrency}`);
-  
-  const worker = new Worker(queueName, async (job: Job) => {
-    logger.debug(`Processing ${queueName} job`, { 
-      jobId: job.id,
-      name: job.name,
-      timestamp: new Date().toISOString()
+
+  const worker = new Worker(queueName, async(_job: Job) => {
+    logger.debug(`Processing ${queueName} job`, {
+      _jobId: job.id,
+      _name: job.name,
+      _timestamp: new Date().toISOString()
     });
-    
+
     try {
       return await processor(job);
     } catch (error) {
-      logger.error(`Error processing ${queueName} job`, error instanceof Error ? error : new Error(String(error)), {
-        jobId: job.id,
-        name: job.name,
-        data: job.data
+      logger.error(`Error processing ${queueName} job`, error instanceof Error ? _error : new Error(String(error)), {
+        _jobId: job.id,
+        _name: job.name,
+        _data: job.data
       });
       throw error;
     }
   }, {
-    connection: getRedisConfig(),
+    _connection: getRedisConfig(),
     concurrency
   });
-  
+
   // Handle worker events
   worker.on('completed', (job) => {
-    logger.debug(`${queueName} job completed`, { jobId: job.id, name: job.name });
+    logger.debug(`${queueName} job completed`, { _jobId: job.id, _name: job.name });
   });
-  
+
   worker.on('failed', (job, error) => {
-    logger.error(`${queueName} job failed`, error instanceof Error ? error : new Error(String(error)), { 
-      jobId: job?.id, 
-      name: job?.name,
-      attempts: job?.attemptsMade
+    logger.error(`${queueName} job failed`, error instanceof Error ? _error : new Error(String(error)), {
+      _jobId: job?.id,
+      _name: job?.name,
+      _attempts: job?.attemptsMade
     });
   });
-  
+
   worker.on('error', (error) => {
-    logger.error(`${queueName} worker error`, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`${queueName} worker error`, error instanceof Error ? _error : new Error(String(error)));
   });
-  
+
   workers[queueName] = worker;
-  
+
   return worker;
 }
 
@@ -165,10 +165,10 @@ export function initWorker(
  * Add a job to the queue
  */
 export async function addJob<T = any>(
-  queueName: QueueType,
-  jobName: string,
-  data: T,
-  options: {
+  _queueName: QueueType,
+  _jobName: string,
+  _data: T,
+  _options: {
     priority?: JobPriority;
     delay?: number;
     attempts?: number;
@@ -178,23 +178,23 @@ export async function addJob<T = any>(
 ): Promise<Job<T> | null> {
   try {
     const queue = getQueue(queueName);
-    
+
     const job = await queue.add(jobName, data, {
-      priority: options.priority || JobPriority.NORMAL,
-      ...(options.delay !== undefined && { delay: options.delay }),
-      ...(options.attempts !== undefined && { attempts: options.attempts }),
-      ...(options.jobId && { jobId: options.jobId }),
-      ...(options.removeOnComplete !== undefined && { removeOnComplete: options.removeOnComplete })
+      _priority: options.priority || JobPriority.NORMAL,
+      ...(options.delay !== undefined && { _delay: options.delay }),
+      ...(options.attempts !== undefined && { _attempts: options.attempts }),
+      ...(options.jobId && { _jobId: options.jobId }),
+      ...(options.removeOnComplete !== undefined && { _removeOnComplete: options.removeOnComplete })
     });
-    
-    logger.debug(`Added ${jobName} job to ${queueName} queue`, { 
-      jobId: job.id, 
-      priority: options.priority 
+
+    logger.debug(`Added ${jobName} job to ${queueName} queue`, {
+      _jobId: job.id,
+      _priority: options.priority
     });
-    
+
     return job;
   } catch (error) {
-    logger.error(`Error adding job to ${queueName} queue`, error instanceof Error ? error : new Error(String(error)), {
+    logger.error(`Error adding job to ${queueName} queue`, error instanceof Error ? _error : new Error(String(error)), {
       jobName,
       data
     });
@@ -206,11 +206,11 @@ export async function addJob<T = any>(
  * Add a recurring job to the queue
  */
 export async function addRecurringJob<T = any>(
-  queueName: QueueType,
-  jobName: string,
-  data: T,
-  pattern: string, // Cron pattern (e.g., "0 0 * * *" for daily at midnight)
-  options: {
+  _queueName: QueueType,
+  _jobName: string,
+  _data: T,
+  _pattern: string, // Cron pattern (e.g., "0 0 * * *" for daily at midnight)
+  _options: {
     priority?: JobPriority;
     attempts?: number;
     jobId?: string;
@@ -219,26 +219,26 @@ export async function addRecurringJob<T = any>(
   try {
     // Ensure scheduler is initialized
     initScheduler(queueName);
-    
+
     const queue = getQueue(queueName);
-    
+
     const job = await queue.add(jobName, data, {
-      priority: options.priority || JobPriority.NORMAL,
-      ...(options.attempts !== undefined && { attempts: options.attempts }),
-      jobId: options.jobId || `recurring:${jobName}`,
-      repeat: {
+      _priority: options.priority || JobPriority.NORMAL,
+      ...(options.attempts !== undefined && { _attempts: options.attempts }),
+      _jobId: options.jobId || `recurring:${jobName}`,
+      _repeat: {
         pattern
       }
     });
-    
-    logger.info(`Added recurring ${jobName} job to ${queueName} queue`, { 
-      jobId: job.id, 
-      pattern 
+
+    logger.info(`Added recurring ${jobName} job to ${queueName} queue`, {
+      _jobId: job.id,
+      pattern
     });
-    
+
     return job;
   } catch (error) {
-    logger.error(`Error adding recurring job to ${queueName} queue`, error instanceof Error ? error : new Error(String(error)), {
+    logger.error(`Error adding recurring job to ${queueName} queue`, error instanceof Error ? _error : new Error(String(error)), {
       jobName,
       pattern,
       data
@@ -251,10 +251,10 @@ export async function addRecurringJob<T = any>(
  * Get job status by ID
  */
 export async function getJobStatus(
-  queueName: QueueType,
-  jobId: string
+  _queueName: QueueType,
+  _jobId: string
 ): Promise<{
-  id: string;
+  _id: string;
   status: 'completed' | 'failed' | 'delayed' | 'active' | 'waiting' | 'unknown';
   data?: any;
   result?: any;
@@ -263,22 +263,22 @@ export async function getJobStatus(
   try {
     const queue = getQueue(queueName);
     const job = await queue.getJob(jobId);
-    
+
     if (!job) {
       return null;
     }
-    
+
     const state = await job.getState();
-    
+
     return {
-      id: job.id,
-      status: state as any,
-      data: job.data,
-      result: await job.getResult(),
-      error: job.failedReason
+      _id: job.id,
+      _status: state as any,
+      _data: job.data,
+      _result: await job.getResult(),
+      _error: job.failedReason
     };
   } catch (error) {
-    logger.error(`Error getting job status from ${queueName} queue`, error instanceof Error ? error : new Error(String(error)), {
+    logger.error(`Error getting job status from ${queueName} queue`, error instanceof Error ? _error : new Error(String(error)), {
       jobId
     });
     return null;
@@ -290,19 +290,19 @@ export async function getJobStatus(
  */
 export async function shutdownQueues(): Promise<void> {
   logger.info('Shutting down job queues');
-  
+
   // Close workers first to stop processing new jobs
   await Promise.all(
     Object.values(workers).map(worker => worker.close())
   );
-  
+
   // Close schedulers
   // Scheduler cleanup removed due to compatibility issues
-  
+
   // Close queues
   await Promise.all(
     Object.values(queues).map(queue => queue.close())
   );
-  
+
   logger.info('All job queues shut down successfully');
 }

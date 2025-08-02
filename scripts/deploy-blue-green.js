@@ -20,16 +20,16 @@ function log(message, level = 'info') {
 
 // Deployment configuration
 const config = {
-  baseDomain: process.env.DEPLOY_BASE_DOMAIN || 'chainsync.example.com',
-  blueEnv: 'blue',
-  greenEnv: 'green',
-  loadBalancer: process.env.DEPLOY_LOAD_BALANCER || 'nginx',
-  healthCheckEndpoint: '/api/health',
-  healthCheckTimeout: 30000,
-  healthCheckRetries: 5,
-  verificationTimeout: 120000,
-  switchDelay: 10000,
-  autoRollback: true
+  _baseDomain: process.env.DEPLOY_BASE_DOMAIN || 'chainsync.example.com',
+  _blueEnv: 'blue',
+  _greenEnv: 'green',
+  _loadBalancer: process.env.DEPLOY_LOAD_BALANCER || 'nginx',
+  _healthCheckEndpoint: '/api/health',
+  _healthCheckTimeout: 30000,
+  _healthCheckRetries: 5,
+  _verificationTimeout: 120000,
+  _switchDelay: 10000,
+  _autoRollback: true
 };
 
 class BlueGreenDeployment {
@@ -47,7 +47,7 @@ class BlueGreenDeployment {
         const data = await fs.readFile(configPath, 'utf8');
         const config = JSON.parse(data);
         this.activeEnv = config.activeEnvironment;
-        this.inactiveEnv = this.activeEnv === config.blueEnv ? config.greenEnv : config.blueEnv;
+        this.inactiveEnv = this.activeEnv === config.blueEnv ? config._greenEnv : config.blueEnv;
         return this.activeEnv;
       } catch (error) {
         // Default to blue if no config exists
@@ -56,14 +56,14 @@ class BlueGreenDeployment {
 
         await fs.writeFile(
           configPath,
-          JSON.stringify({ activeEnvironment: this.activeEnv }),
+          JSON.stringify({ _activeEnvironment: this.activeEnv }),
           'utf8'
         );
 
         return this.activeEnv;
       }
     } catch (error) {
-      log(`Error getting current active environment: ${error.message}`, 'error');
+      log(`Error getting current active _environment: ${error.message}`, 'error');
       throw error;
     }
   }
@@ -76,7 +76,7 @@ class BlueGreenDeployment {
     this.deploymentInProgress = true;
     this.deploymentId = `deploy-${Date.now()}`;
 
-    log(`Starting deployment: ${this.deploymentId}`);
+    log(`Starting _deployment: ${this.deploymentId}`);
     await this.createDeploymentRecord();
 
     return this.deploymentId;
@@ -109,7 +109,7 @@ class BlueGreenDeployment {
       log('Deployment verification successful');
       return true;
     } catch (error) {
-      log(`Deployment verification failed: ${error.message}`, 'error');
+      log(`Deployment verification _failed: ${error.message}`, 'error');
       return false;
     }
   }
@@ -132,13 +132,13 @@ class BlueGreenDeployment {
       const configPath = path.join(__dirname, '..', 'deploy', 'active-environment.json');
       await fs.writeFile(
         configPath,
-        JSON.stringify({ activeEnvironment: this.activeEnv }),
+        JSON.stringify({ _activeEnvironment: this.activeEnv }),
         'utf8'
       );
 
       log(`Traffic successfully switched to ${this.activeEnv}`);
     } catch (error) {
-      log(`Failed to switch traffic: ${error.message}`, 'error');
+      log(`Failed to switch _traffic: ${error.message}`, 'error');
       throw error;
     }
   }
@@ -152,7 +152,7 @@ class BlueGreenDeployment {
 
       log('Deployment finalized successfully');
     } catch (error) {
-      log(`Failed to finalize deployment: ${error.message}`, 'error');
+      log(`Failed to finalize _deployment: ${error.message}`, 'error');
       throw error;
     }
   }
@@ -172,7 +172,7 @@ class BlueGreenDeployment {
       const configPath = path.join(__dirname, '..', 'deploy', 'active-environment.json');
       await fs.writeFile(
         configPath,
-        JSON.stringify({ activeEnvironment: this.activeEnv }),
+        JSON.stringify({ _activeEnvironment: this.activeEnv }),
         'utf8'
       );
 
@@ -181,7 +181,7 @@ class BlueGreenDeployment {
 
       log('Deployment rolled back successfully');
     } catch (error) {
-      log(`Failed to rollback deployment: ${error.message}`, 'error');
+      log(`Failed to rollback _deployment: ${error.message}`, 'error');
       throw error;
     }
   }
@@ -211,7 +211,7 @@ class BlueGreenDeployment {
       log('All health checks failed', 'error');
       return false;
     } catch (error) {
-      log(`Health check error: ${error.message}`, 'error');
+      log(`Health check _error: ${error.message}`, 'error');
       return false;
     }
   }
@@ -227,19 +227,19 @@ class BlueGreenDeployment {
 
   async createDeploymentRecord() {
     log('Creating deployment record', {
-      deploymentId: this.deploymentId,
-      activeEnv: this.activeEnv,
-      inactiveEnv: this.inactiveEnv,
-      status: 'created',
-      timestamp: new Date().toISOString()
+      _deploymentId: this.deploymentId,
+      _activeEnv: this.activeEnv,
+      _inactiveEnv: this.inactiveEnv,
+      _status: 'created',
+      _timestamp: new Date().toISOString()
     });
   }
 
   async updateDeploymentRecord(status) {
     log('Updating deployment record', {
-      deploymentId: this.deploymentId,
+      _deploymentId: this.deploymentId,
       status,
-      timestamp: new Date().toISOString()
+      _timestamp: new Date().toISOString()
     });
   }
 }
@@ -250,7 +250,7 @@ async function main() {
   const command = args[0];
 
   if (!command) {
-    console.error('Command required. Available commands: deploy, status, rollback');
+    console.error('Command required. Available _commands: deploy, status, rollback');
     process.exit(1);
   }
 
@@ -262,7 +262,7 @@ async function main() {
         const version = args[1] || `v${Date.now()}`;
 
         const deploymentId = await deployment.startDeployment();
-        log(`Deployment started: ${deploymentId}`);
+        log(`Deployment _started: ${deploymentId}`);
 
         await deployment.deployToInactiveEnvironment(version);
         log('Deployed to inactive environment');
@@ -283,7 +283,7 @@ async function main() {
 
       case 'status':
         const activeEnv = await deployment.getCurrentActiveEnvironment();
-        log(`Current active environment: ${activeEnv}`);
+        log(`Current active _environment: ${activeEnv}`);
         break;
 
       case 'rollback':
@@ -291,8 +291,7 @@ async function main() {
         log('Deployment rolled back');
         break;
 
-      default:
-        console.error(`Unknown command: ${command}`);
+      console.error(`Unknown command: ${command}`);
         process.exit(1);
     }
   } catch (error) {
@@ -304,7 +303,7 @@ async function main() {
 // Run if called directly
 if (require.main === module) {
   main().catch(error => {
-    log(`Fatal error: ${error.message}`, 'error');
+    log(`Fatal _error: ${error.message}`, 'error');
     process.exit(1);
   });
 }

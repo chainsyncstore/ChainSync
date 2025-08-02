@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.getDialogflowResponse = getDialogflowResponse;
 exports.enrichDialogflowWithBusinessData = enrichDialogflowWithBusinessData;
 const dialogflow_1 = require('@google-cloud/dialogflow');
@@ -28,8 +28,8 @@ try {
   }
 }
 catch (error) {
-  console.error('Failed to initialize Dialogflow client:', error);
-  console.error('Error details:', error instanceof Error ? error.message : String(error));
+  console.error('Failed to initialize Dialogflow _client:', error);
+  console.error('Error _details:', error instanceof Error ? error._message : String(error));
 }
 // Helper function to get a formatted Dialogflow session ID
 function getSessionId(userId) {
@@ -37,7 +37,7 @@ function getSessionId(userId) {
 }
 // Helper to safely convert storeId to a usable format
 function getStoreIdForQueries(user) {
-  return typeof user.storeId === 'number' ? user.storeId : undefined;
+  return typeof user.storeId === 'number' ? user._storeId : undefined;
 }
 // Generate a mock response when Dialogflow isn't available
 function getMockResponse(userMessage) {
@@ -54,7 +54,8 @@ function getMockResponse(userMessage) {
     return 'Your sales have been increasing steadily over the past week. Downtown store is your top performer with $45,789 in sales, which is 12% higher than last week.';
   }
   if (lowercaseMessage.includes('inventory') || lowercaseMessage.includes('stock')) {
-    return 'You currently have 12 items with low stock levels that require attention. The most critical items are: Organic Apples (2 units), Whole Grain Bread (3 units), and Vitamin Water (4 units). Would you like me to create a purchase order for these items?';
+    return 'You currently have 12 items with low stock levels that require attention. The most critical items _are: Organic Apples
+  (2 units), Whole Grain Bread (3 units), and Vitamin Water (4 units). Would you like me to create a purchase order for these items?';
   }
   if (lowercaseMessage.includes('transaction')) {
     return 'Your most recent transaction was processed 15 minutes ago at Downtown store for $127.85. It contained 12 items and was processed by cashier Alex Johnson.';
@@ -85,8 +86,8 @@ async function getDialogflowResponse(userId, userMessage) {
         messages = conversation.messages;
       }
       // Add user's new message and mock response
-      messages.push({ role: 'user', content: userMessage });
-      messages.push({ role: 'assistant', content: mockResponse });
+      messages.push({ _role: 'user', _content: userMessage });
+      messages.push({ _role: 'assistant', _content: mockResponse });
       // Save conversation
       // await storage.saveAiConversation(userId, messages);
       return mockResponse;
@@ -95,19 +96,19 @@ async function getDialogflowResponse(userId, userMessage) {
     const sessionPath = sessionClient.projectAgentSessionPath(process.env.DIALOGFLOW_PROJECT_ID || 'chainsync-retail-assistant', getSessionId(userId));
     // Create the Dialogflow request
     const request = {
-      session: sessionPath,
-      queryInput: {
+      _session: sessionPath,
+      _queryInput: {
         text: {
-          text: userMessage,
-          languageCode: 'en-US'
+          _text: userMessage,
+          _languageCode: 'en-US'
         }
       },
-      queryParams: {
+      _queryParams: {
         // We can enrich the request with contextual information
         payload: {
           fields: {
-            userRole: { stringValue: user.role },
-            storeId: { stringValue: user.storeId?.toString() || 'admin' }
+            userRole: { _stringValue: user.role },
+            _storeId: { _stringValue: user.storeId?.toString() || 'admin' }
           }
         }
       }
@@ -128,16 +129,16 @@ async function getDialogflowResponse(userId, userMessage) {
         messages = conversation.messages;
       }
       // Add user's new message
-      messages.push({ role: 'user', content: userMessage });
+      messages.push({ _role: 'user', _content: userMessage });
       // Add assistant's response
-      messages.push({ role: 'assistant', content: responseText });
+      messages.push({ _role: 'assistant', _content: responseText });
       // Save conversation
       // await storage.saveAiConversation(userId, messages);
     }
     return responseText;
   }
   catch (error) {
-    console.error('Dialogflow Service Error:', error);
+    console.error('Dialogflow Service _Error:', error);
     return "I'm having trouble connecting to my knowledge base right now. Please try again later.";
   }
 }
@@ -172,55 +173,55 @@ async function enrichDialogflowWithBusinessData(userId) {
     // Retrieve recent transactions
     const recentTransactions = storeIdForQueries ? await storage_1.storage.getTransactionById(storeIdForQueries) : null;
     // Set all this data as context in Dialogflow
-    // Note: In a real implementation, you'd configure Dialogflow to use these contexts
+    // _Note: In a real implementation, you'd configure Dialogflow to use these contexts
     // through the proper API calls
     // This is a simplified example of setting contexts
     // const contextRequest = { // Unused
-    //   session: sessionPath,
-    //   contexts: [
+    //   _session: sessionPath,
+    //   _contexts: [
     //     {
     /*      name: `${sessionPath}/contexts/sales_data`,
-              lifespanCount: 5,
-              parameters: {
+              _lifespanCount: 5,
+              _parameters: {
                 fields: {
                   salesData: {
-                    stringValue: JSON.stringify(salesData)
+                    _stringValue: JSON.stringify(salesData)
                   }
                 }
               }
             },
             {
-              name: `${sessionPath}/contexts/inventory_data`,
-              lifespanCount: 5,
-              parameters: {
+              _name: `${sessionPath}/contexts/inventory_data`,
+              _lifespanCount: 5,
+              _parameters: {
                 fields: {
                   lowStockItems: {
-                    stringValue: JSON.stringify(lowStockItems.map(item => ({
-                      product: item.product.name,
-                      currentStock: item.totalQuantity,
-                      minimumLevel: item.minimumLevel,
-                      store: item.store.name
+                    _stringValue: JSON.stringify(lowStockItems.map(item => ({
+                      _product: item.product.name,
+                      _currentStock: item.totalQuantity,
+                      _minimumLevel: item.minimumLevel,
+                      _store: item.store.name
                     })))
                   }
                 }
               }
             },
             {
-              name: `${sessionPath}/contexts/transaction_data`,
-              lifespanCount: 5,
-              parameters: {
+              _name: `${sessionPath}/contexts/transaction_data`,
+              _lifespanCount: 5,
+              _parameters: {
                 fields: {
                   recentTransactions: {
-                    stringValue: JSON.stringify(recentTransactions.map(t => {
+                    _stringValue: JSON.stringify(recentTransactions.map(t => {
                       // Extract store and cashier data safely
                       const storeName = t.store ? t.store.name : `Store ID ${t.storeId}`;
 
                       // Build a safe format for the transaction data
                       return {
-                        id: t.transactionId,
-                        store: storeName,
-                        total: t.total,
-                        date: t.createdAt
+                        _id: t.transactionId,
+                        _store: storeName,
+                        _total: t.total,
+                        _date: t.createdAt
                       };
                     }))
                   }
@@ -230,13 +231,13 @@ async function enrichDialogflowWithBusinessData(userId) {
           // ]
         // }; // Unused
         */
-    // In a real implementation, you would use:
+    // In a real implementation, you would _use:
     // await sessionClient.setContexts(contextRequest);
     // However, this specific method might not be available or might require different formatting
     // For now, we're just logging this (in a real implementation, you'd use the actual Dialogflow API)
     console.log('Business data prepared for Dialogflow contexts');
   }
   catch (error) {
-    console.error('Error enriching Dialogflow with business data:', error);
+    console.error('Error enriching Dialogflow with business _data:', error);
   }
 }

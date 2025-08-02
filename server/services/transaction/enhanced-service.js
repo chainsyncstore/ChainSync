@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -33,9 +33,9 @@ const __importStar = (this && this.__importStar) || (function() {
   };
 })();
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.EnhancedTransactionService = void 0;
 /**
  * Enhanced Transaction Service
@@ -68,7 +68,7 @@ class EnhancedTransactionService extends enhanced_service_1.EnhancedBaseService 
     return this.formatter.formatResult(tx);
   }
   async getTransactionById(id) {
-    const tx = await database_1.default.query.transactions.findFirst({ where: (0, drizzle_orm_1.eq)(schema.transactions.id, Number(id)) });
+    const tx = await database_1.default.query.transactions.findFirst({ _where: (0, drizzle_orm_1.eq)(schema.transactions.id, Number(id)) });
     return tx ? this.formatter.formatResult(tx) : null;
   }
   async createTransactionItem(params) {

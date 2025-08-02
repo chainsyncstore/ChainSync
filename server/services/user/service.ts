@@ -12,12 +12,12 @@ import { AppError, ErrorCode, ErrorCategory } from '../../../shared/types/errors
 export class UserService extends BaseService implements IUserService {
   private static readonly SALT_ROUNDS = 10;
 
-  async createUser(params: CreateUserParams): Promise<schema.SelectUser> {
+  async createUser(_params: CreateUserParams): Promise<schema.SelectUser> {
     try {
       const validatedData = userValidation.insert.parse(params);
 
       const existingUser = await db.query.users.findFirst({
-        where: eq(schema.users.email, validatedData.email)
+        _where: eq(schema.users.email, validatedData.email)
       });
 
       if (existingUser) {
@@ -33,9 +33,9 @@ export class UserService extends BaseService implements IUserService {
       const [user] = await db
         .insert(schema.users)
         .values({
-          name: validatedData.fullName,
-          email: validatedData.email,
-          password: hashedPassword
+          _name: validatedData.fullName,
+          _email: validatedData.email,
+          _password: hashedPassword
         })
         .returning();
 
@@ -50,18 +50,18 @@ export class UserService extends BaseService implements IUserService {
       return user;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
+        console.error(`Validation _error: ${(error as any).message}`, (error as any).toJSON());
       }
       throw this.handleError(error as Error, 'Creating user');
     }
   }
 
-  async updateUser(userId: number, params: UpdateUserParams): Promise<schema.SelectUser> {
+  async updateUser(_userId: number, _params: UpdateUserParams): Promise<schema.SelectUser> {
     try {
       const validatedData = userValidation.update.parse(params);
 
       const existingUser = await db.query.users.findFirst({
-        where: eq(schema.users.id, userId)
+        _where: eq(schema.users.id, userId)
       });
 
       if (!existingUser) {
@@ -75,8 +75,8 @@ export class UserService extends BaseService implements IUserService {
       const [updatedUser] = await db
         .update(schema.users)
         .set({
-          name: validatedData.fullName,
-          email: validatedData.email
+          _name: validatedData.fullName,
+          _email: validatedData.email
         })
         .where(eq(schema.users.id, userId))
         .returning();
@@ -92,16 +92,16 @@ export class UserService extends BaseService implements IUserService {
       return updatedUser;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
+        console.error(`Validation _error: ${(error as any).message}`, (error as any).toJSON());
       }
       throw this.handleError(error as Error, 'Updating user');
     }
   }
 
-  async deleteUser(userId: number): Promise<boolean> {
+  async deleteUser(_userId: number): Promise<boolean> {
     try {
       const existingUser = await db.query.users.findFirst({
-        where: eq(schema.users.id, userId)
+        _where: eq(schema.users.id, userId)
       });
 
       if (!existingUser) {
@@ -115,7 +115,7 @@ export class UserService extends BaseService implements IUserService {
       await db
         .update(schema.users)
         .set({
-          name: existingUser.name
+          _name: existingUser.name
         })
         .where(eq(schema.users.id, userId));
 
@@ -125,10 +125,10 @@ export class UserService extends BaseService implements IUserService {
     }
   }
 
-  async getUserById(userId: number): Promise<schema.SelectUser | null> {
+  async getUserById(_userId: number): Promise<schema.SelectUser | null> {
     try {
       const user = await db.query.users.findFirst({
-        where: and(
+        _where: and(
           eq(schema.users.id, userId),
           eq(schema.users.isActive, true)
         )
@@ -140,10 +140,10 @@ export class UserService extends BaseService implements IUserService {
     }
   }
 
-  async getUserByUsername(username: string): Promise<schema.SelectUser | null> {
+  async getUserByUsername(_username: string): Promise<schema.SelectUser | null> {
     try {
       const user = await db.query.users.findFirst({
-        where: and(
+        _where: and(
           eq(schema.users.name, username),
           eq(schema.users.isActive, true)
         )
@@ -155,10 +155,10 @@ export class UserService extends BaseService implements IUserService {
     }
   }
 
-  async getUserByEmail(email: string): Promise<schema.SelectUser | null> {
+  async getUserByEmail(_email: string): Promise<schema.SelectUser | null> {
     try {
       const user = await db.query.users.findFirst({
-        where: and(
+        _where: and(
           eq(schema.users.email, email),
           eq(schema.users.isActive, true)
         )
@@ -170,10 +170,10 @@ export class UserService extends BaseService implements IUserService {
     }
   }
 
-  async validateCredentials(username: string, password: string): Promise<schema.SelectUser | null> {
+  async validateCredentials(_username: string, _password: string): Promise<schema.SelectUser | null> {
     try {
       const user = await db.query.users.findFirst({
-        where: and(
+        _where: and(
           eq(schema.users.name, username),
           eq(schema.users.isActive, true)
         )
@@ -195,10 +195,10 @@ export class UserService extends BaseService implements IUserService {
     }
   }
 
-  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<boolean> {
+  async changePassword(_userId: number, _currentPassword: string, _newPassword: string): Promise<boolean> {
     try {
       const user = await db.query.users.findFirst({
-        where: and(
+        _where: and(
           eq(schema.users.id, userId),
           eq(schema.users.isActive, true)
         )
@@ -222,30 +222,30 @@ export class UserService extends BaseService implements IUserService {
         );
       }
 
-      const validatedData = userValidation.passwordReset.parse({ password: newPassword, confirmPassword: newPassword });
+      const validatedData = userValidation.passwordReset.parse({ _password: newPassword, _confirmPassword: newPassword });
 
       const hashedPassword = await bcrypt.hash(validatedData.password, UserService.SALT_ROUNDS);
 
       await db
         .update(schema.users)
         .set({
-          password: hashedPassword
+          _password: hashedPassword
         })
         .where(eq(schema.users.id, userId));
 
       return true;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
+        console.error(`Validation _error: ${(error as any).message}`, (error as any).toJSON());
       }
       throw this.handleError(error as Error, 'Changing password');
     }
   }
 
-  async requestPasswordReset(email: string): Promise<string> {
+  async requestPasswordReset(_email: string): Promise<string> {
     try {
       const user = await db.query.users.findFirst({
-        where: and(
+        _where: and(
           eq(schema.users.email, email),
           eq(schema.users.isActive, true)
         )
@@ -261,7 +261,7 @@ export class UserService extends BaseService implements IUserService {
       await db
         .insert(schema.passwordResetTokens)
         .values({
-          userId: user.id,
+          _userId: user.id,
           token,
           expiresAt
         });
@@ -272,15 +272,15 @@ export class UserService extends BaseService implements IUserService {
     }
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+  async resetPassword(_token: string, _newPassword: string): Promise<boolean> {
     try {
       const resetToken = await db.query.passwordResetTokens.findFirst({
-        where: and(
+        _where: and(
           eq(schema.passwordResetTokens.token, token),
           gt(schema.passwordResetTokens.expiresAt, new Date())
         ),
-        with: {
-          user: true
+        _with: {
+          _user: true
         }
       });
 
@@ -292,14 +292,14 @@ export class UserService extends BaseService implements IUserService {
         );
       }
 
-      const validatedData = userValidation.passwordReset.parse({ password: newPassword, confirmPassword: newPassword });
+      const validatedData = userValidation.passwordReset.parse({ _password: newPassword, _confirmPassword: newPassword });
 
       const hashedPassword = await bcrypt.hash(validatedData.password, UserService.SALT_ROUNDS);
 
       await db
         .update(schema.users)
         .set({
-          password: hashedPassword
+          _password: hashedPassword
         })
         .where(eq(schema.users.id, resetToken.userId));
 
@@ -310,7 +310,7 @@ export class UserService extends BaseService implements IUserService {
       return true;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        console.error(`Validation error: ${(error as any).message}`, (error as any).toJSON());
+        console.error(`Validation _error: ${(error as any).message}`, (error as any).toJSON());
       }
       throw this.handleError(error as Error, 'Resetting password');
     }

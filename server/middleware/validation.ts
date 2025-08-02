@@ -3,13 +3,13 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { getLogger } from '../../src/logging/index.js';
 
-const logger = getLogger().child({ component: 'validation-middleware' });
+const logger = getLogger().child({ _component: 'validation-middleware' });
 
 /**
  * Generic validation middleware using Zod schemas
  */
-export const validateBody = (schema: z.ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+export const validateBody = (_schema: z.ZodSchema) => {
+  return (_req: Request, _res: Response, _next: NextFunction): void => {
     try {
       const validatedData = schema.parse(req.body);
       req.body = validatedData;
@@ -17,19 +17,19 @@ export const validateBody = (schema: z.ZodSchema) => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         logger.warn('Validation failed', {
-          path: req.path,
-          method: req.method,
-          errors: error.issues
+          _path: req.path,
+          _method: req.method,
+          _errors: error.issues
         });
 
         res.status(400).json({
-          success: false,
-          error: {
+          _success: false,
+          _error: {
             code: 'VALIDATION_ERROR',
-            message: 'Invalid request data',
-            details: error.issues.map(err => ({
-              field: err.path.join('.'),
-              message: err.message
+            _message: 'Invalid request data',
+            _details: error.issues.map(err => ({
+              _field: err.path.join('.'),
+              _message: err.message
             }))
           }
         });
@@ -38,10 +38,10 @@ export const validateBody = (schema: z.ZodSchema) => {
 
       logger.error('Validation middleware error', { error });
       res.status(500).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'VALIDATION_ERROR',
-          message: 'Internal validation error'
+          _message: 'Internal validation error'
         }
       });
       return;
@@ -52,8 +52,8 @@ export const validateBody = (schema: z.ZodSchema) => {
 /**
  * Validate query parameters
  */
-export const validateQuery = (schema: z.ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+export const validateQuery = (_schema: z.ZodSchema) => {
+  return (_req: Request, _res: Response, _next: NextFunction): void => {
     try {
       const validatedData = schema.parse(req.query);
       req.query = validatedData as any;
@@ -61,19 +61,19 @@ export const validateQuery = (schema: z.ZodSchema) => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         logger.warn('Query validation failed', {
-          path: req.path,
-          method: req.method,
-          errors: error.issues
+          _path: req.path,
+          _method: req.method,
+          _errors: error.issues
         });
 
         res.status(400).json({
-          success: false,
-          error: {
+          _success: false,
+          _error: {
             code: 'VALIDATION_ERROR',
-            message: 'Invalid query parameters',
-            details: error.issues.map(err => ({
-              field: err.path.join('.'),
-              message: err.message
+            _message: 'Invalid query parameters',
+            _details: error.issues.map(err => ({
+              _field: err.path.join('.'),
+              _message: err.message
             }))
           }
         });
@@ -88,8 +88,8 @@ export const validateQuery = (schema: z.ZodSchema) => {
 /**
  * Validate URL parameters
  */
-export const validateParams = (schema: z.ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+export const validateParams = (_schema: z.ZodSchema) => {
+  return (_req: Request, _res: Response, _next: NextFunction): void => {
     try {
       const validatedData = schema.parse(req.params);
       req.params = validatedData as any;
@@ -97,19 +97,19 @@ export const validateParams = (schema: z.ZodSchema) => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         logger.warn('Params validation failed', {
-          path: req.path,
-          method: req.method,
-          errors: error.issues
+          _path: req.path,
+          _method: req.method,
+          _errors: error.issues
         });
 
         res.status(400).json({
-          success: false,
-          error: {
+          _success: false,
+          _error: {
             code: 'VALIDATION_ERROR',
-            message: 'Invalid URL parameters',
-            details: error.issues.map(err => ({
-              field: err.path.join('.'),
-              message: err.message
+            _message: 'Invalid URL parameters',
+            _details: error.issues.map(err => ({
+              _field: err.path.join('.'),
+              _message: err.message
             }))
           }
         });
@@ -124,7 +124,7 @@ export const validateParams = (schema: z.ZodSchema) => {
 /**
  * Sanitize input to prevent XSS and injection attacks
  */
-export const sanitizeInput = (req: Request, res: Response, next: NextFunction): void => {
+export const sanitizeInput = (_req: Request, _res: Response, _next: NextFunction): void => {
   try {
     // Sanitize body
     if (req.body) {
@@ -145,10 +145,10 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction): 
   } catch (error) {
     logger.error('Sanitization error', { error });
     res.status(400).json({
-      success: false,
-      error: {
+      _success: false,
+      _error: {
         code: 'SANITIZATION_ERROR',
-        message: 'Invalid input detected'
+        _message: 'Invalid input detected'
       }
     });
     return;
@@ -158,7 +158,7 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction): 
 /**
  * Recursively sanitize object properties
  */
-function sanitizeObject(obj: any): any {
+function sanitizeObject(_obj: any): any {
   if (typeof obj !== 'object' || obj === null) {
     return sanitizeValue(obj);
   }
@@ -167,7 +167,7 @@ function sanitizeObject(obj: any): any {
     return obj.map(sanitizeObject);
   }
 
-  const sanitized: any = {};
+  const _sanitized: any = {};
   for (const [key, value] of Object.entries(obj)) {
     sanitized[key] = sanitizeObject(value);
   }
@@ -178,7 +178,7 @@ function sanitizeObject(obj: any): any {
 /**
  * Sanitize individual values
  */
-function sanitizeValue(value: any): any {
+function sanitizeValue(_value: any): any {
   if (typeof value !== 'string') {
     return value;
   }
@@ -186,7 +186,7 @@ function sanitizeValue(value: any): any {
   // Remove potentially dangerous characters and patterns
   return value
     .replace(/[<>]/g, '') // Remove angle brackets
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/javascript:/gi, '') // Remove _javascript: protocol
     .replace(/on\w+=/gi, '') // Remove event handlers
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
     .trim();
@@ -195,29 +195,29 @@ function sanitizeValue(value: any): any {
 /**
  * Rate limiting for specific endpoints
  */
-export const createRateLimiter = (windowMs: number, max: number, message?: string) => {
-  const requests = new Map<string, { count: number; resetTime: number }>();
+export const createRateLimiter = (_windowMs: number, _max: number, message?: string) => {
+  const requests = new Map<string, { _count: number; _resetTime: number }>();
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (_req: Request, _res: Response, _next: NextFunction): void => {
     const key = req.ip || 'unknown';
     const now = Date.now();
 
     const requestData = requests.get(key);
 
     if (!requestData || now > requestData.resetTime) {
-      requests.set(key, { count: 1, resetTime: now + windowMs });
+      requests.set(key, { _count: 1, _resetTime: now + windowMs });
       next();
     } else if (requestData.count < max) {
       requestData.count++;
       next();
     } else {
-      logger.warn('Rate limit exceeded', { ip: key, path: req.path });
+      logger.warn('Rate limit exceeded', { _ip: key, _path: req.path });
 
       res.status(429).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'RATE_LIMIT_EXCEEDED',
-          message: message || 'Too many requests, please try again later'
+          _message: message || 'Too many requests, please try again later'
         }
       });
       return;
@@ -228,8 +228,8 @@ export const createRateLimiter = (windowMs: number, max: number, message?: strin
 /**
  * Content type validation
  */
-export const validateContentType = (allowedTypes: string[] = ['application/json']) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+export const validateContentType = (_allowedTypes: string[] = ['application/json']) => {
+  return (_req: Request, _res: Response, _next: NextFunction): void => {
     if (req.method === 'GET' || req.method === 'DELETE') {
       next();
       return;
@@ -239,10 +239,10 @@ export const validateContentType = (allowedTypes: string[] = ['application/json'
 
     if (!contentType) {
       res.status(400).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'MISSING_CONTENT_TYPE',
-          message: 'Content-Type header is required'
+          _message: 'Content-Type header is required'
         }
       });
       return;
@@ -254,10 +254,10 @@ export const validateContentType = (allowedTypes: string[] = ['application/json'
 
     if (!isValidType) {
       res.status(415).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'UNSUPPORTED_CONTENT_TYPE',
-          message: `Content-Type must be one of: ${allowedTypes.join(', ')}`
+          _message: `Content-Type must be one of: ${allowedTypes.join(', ')}`
         }
       });
       return;
@@ -281,20 +281,20 @@ export const validateFileUpload = (options: {
     maxFiles = 5
   } = options;
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (_req: Request, _res: Response, _next: NextFunction): void => {
     if (!req.files || Object.keys(req.files).length === 0) {
       next();
       return;
     }
 
-    const files = Array.isArray(req.files) ? req.files : Object.values(req.files);
+    const files = Array.isArray(req.files) ? req._files : Object.values(req.files);
 
     if (files.length > maxFiles) {
       res.status(400).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'TOO_MANY_FILES',
-          message: `Maximum ${maxFiles} files allowed`
+          _message: `Maximum ${maxFiles} files allowed`
         }
       });
       return;
@@ -303,13 +303,13 @@ export const validateFileUpload = (options: {
     for (const file of files) {
       const fileObj = Array.isArray(file) ? file[0] : file;
       if (!fileObj) continue;
-      
+
       if (fileObj.size > maxSize) {
         res.status(400).json({
-          success: false,
-          error: {
+          _success: false,
+          _error: {
             code: 'FILE_TOO_LARGE',
-            message: `File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`
+            _message: `File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`
           }
         });
         return;
@@ -317,10 +317,10 @@ export const validateFileUpload = (options: {
 
       if (!allowedTypes.includes(fileObj.mimetype)) {
         res.status(400).json({
-          success: false,
-          error: {
+          _success: false,
+          _error: {
             code: 'INVALID_FILE_TYPE',
-            message: `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`
+            _message: `File type not allowed. Allowed types: ${allowedTypes.join(', ')}`
           }
         });
         return;

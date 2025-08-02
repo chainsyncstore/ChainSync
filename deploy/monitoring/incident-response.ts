@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'incident-response' });
+const logger = getLogger().child({ _component: 'incident-response' });
 
 // Incident severity levels
 export enum IncidentSeverity {
@@ -22,46 +22,46 @@ export enum IncidentStatus {
 
 // Incident interface
 export interface Incident {
-  id: string;
-  severity: IncidentSeverity;
-  status: IncidentStatus;
-  title: string;
-  description: string;
-  timestamp: Date;
+  _id: string;
+  _severity: IncidentSeverity;
+  _status: IncidentStatus;
+  _title: string;
+  _description: string;
+  _timestamp: Date;
   acknowledgedAt?: Date;
   acknowledgedBy?: string;
   resolvedAt?: Date;
   resolvedBy?: string;
   assignee?: string;
-  escalationLevel: number;
-  metadata: Record<string, any>;
+  _escalationLevel: number;
+  _metadata: Record<string, any>;
 }
 
 // Incident response configuration
 export interface IncidentResponseConfig {
-  autoEscalation: boolean;
-  maxEscalationLevel: number;
+  _autoEscalation: boolean;
+  _maxEscalationLevel: number;
   defaultAssignee?: string;
-  notificationChannels: string[];
+  _notificationChannels: string[];
 }
 
 // Default configuration
-const defaultConfig: IncidentResponseConfig = {
-  autoEscalation: true,
-  maxEscalationLevel: 4,
-  defaultAssignee: 'oncall-primary',
-  notificationChannels: ['slack', 'email'],
+const _defaultConfig: IncidentResponseConfig = {
+  _autoEscalation: true,
+  _maxEscalationLevel: 4,
+  _defaultAssignee: 'oncall-primary',
+  _notificationChannels: ['slack', 'email']
 };
 
 /**
  * Incident Response System
  */
 export class IncidentResponse extends EventEmitter {
-  private config: IncidentResponseConfig;
-  private incidents: Map<string, Incident> = new Map();
-  private escalationTimers: Map<string, NodeJS.Timeout> = new Map();
+  private _config: IncidentResponseConfig;
+  private _incidents: Map<string, Incident> = new Map();
+  private _escalationTimers: Map<string, NodeJS.Timeout> = new Map();
 
-  constructor(config: Partial<IncidentResponseConfig> = {}) {
+  constructor(_config: Partial<IncidentResponseConfig> = {}) {
     super();
     this.config = { ...defaultConfig, ...config };
     logger.info('Incident Response System initialized');
@@ -70,13 +70,13 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Create a new incident
    */
-  async createIncident(incidentData: Omit<Incident, 'id' | 'status' | 'timestamp' | 'escalationLevel'>): Promise<Incident> {
-    const incident: Incident = {
+  async createIncident(_incidentData: Omit<Incident, 'id' | 'status' | 'timestamp' | 'escalationLevel'>): Promise<Incident> {
+    const _incident: Incident = {
       ...incidentData,
-      id: this.generateIncidentId(),
-      status: IncidentStatus.OPEN,
-      timestamp: new Date(),
-      escalationLevel: 1,
+      _id: this.generateIncidentId(),
+      _status: IncidentStatus.OPEN,
+      _timestamp: new Date(),
+      _escalationLevel: 1
     };
 
     this.incidents.set(incident.id, incident);
@@ -90,7 +90,7 @@ export class IncidentResponse extends EventEmitter {
     // Emit event
     this.emit('incident-created', incident);
 
-    logger.info('Incident created', { incidentId: incident.id, severity: incident.severity });
+    logger.info('Incident created', { _incidentId: incident.id, _severity: incident.severity });
 
     return incident;
   }
@@ -98,7 +98,7 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Acknowledge an incident
    */
-  async acknowledgeIncident(incidentId: string, acknowledgedBy: string): Promise<Incident> {
+  async acknowledgeIncident(_incidentId: string, _acknowledgedBy: string): Promise<Incident> {
     const incident = this.incidents.get(incidentId);
     if (!incident) {
       throw new Error(`Incident ${incidentId} not found`);
@@ -126,7 +126,7 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Update incident status
    */
-  async updateIncidentStatus(incidentId: string, status: IncidentStatus, updatedBy: string): Promise<Incident> {
+  async updateIncidentStatus(_incidentId: string, _status: IncidentStatus, _updatedBy: string): Promise<Incident> {
     const incident = this.incidents.get(incidentId);
     if (!incident) {
       throw new Error(`Incident ${incidentId} not found`);
@@ -153,14 +153,14 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Escalate incident
    */
-  async escalateIncident(incidentId: string, escalatedBy: string): Promise<Incident> {
+  async escalateIncident(_incidentId: string, _escalatedBy: string): Promise<Incident> {
     const incident = this.incidents.get(incidentId);
     if (!incident) {
       throw new Error(`Incident ${incidentId} not found`);
     }
 
     if (incident.escalationLevel >= this.config.maxEscalationLevel) {
-      throw new Error(`Incident already at maximum escalation level`);
+      throw new Error('Incident already at maximum escalation level');
     }
 
     incident.escalationLevel++;
@@ -174,7 +174,7 @@ export class IncidentResponse extends EventEmitter {
     // Emit event
     this.emit('incident-escalated', incident);
 
-    logger.info('Incident escalated', { incidentId, escalationLevel: incident.escalationLevel });
+    logger.info('Incident escalated', { incidentId, _escalationLevel: incident.escalationLevel });
 
     return incident;
   }
@@ -182,14 +182,14 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Start escalation timer
    */
-  private startEscalationTimer(incidentId: string): void {
+  private startEscalationTimer(_incidentId: string): void {
     const timeout = 5 * 60 * 1000; // 5 minutes
 
     // Clear existing timer
     this.clearEscalationTimer(incidentId);
 
     // Set new timer
-    const timer = setTimeout(async () => {
+    const timer = setTimeout(async() => {
       await this.handleEscalationTimeout(incidentId);
     }, timeout);
 
@@ -199,7 +199,7 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Clear escalation timer
    */
-  private clearEscalationTimer(incidentId: string): void {
+  private clearEscalationTimer(_incidentId: string): void {
     const timer = this.escalationTimers.get(incidentId);
     if (timer) {
       clearTimeout(timer);
@@ -210,7 +210,7 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Handle escalation timeout
    */
-  private async handleEscalationTimeout(incidentId: string): Promise<void> {
+  private async handleEscalationTimeout(_incidentId: string): Promise<void> {
     const incident = this.incidents.get(incidentId);
     if (!incident) return;
 
@@ -226,12 +226,12 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Send notifications
    */
-  private async sendNotifications(incident: Incident, event: string): Promise<void> {
+  private async sendNotifications(_incident: Incident, _event: string): Promise<void> {
     for (const channel of this.config.notificationChannels) {
       try {
         await this.sendNotificationToChannel(channel, incident, event);
       } catch (error) {
-        logger.error('Failed to send notification', { channel, incidentId: incident.id, error });
+        logger.error('Failed to send notification', { channel, _incidentId: incident.id, error });
       }
     }
   }
@@ -239,45 +239,43 @@ export class IncidentResponse extends EventEmitter {
   /**
    * Send notification to specific channel
    */
-  private async sendNotificationToChannel(channel: string, incident: Incident, event: string): Promise<void> {
+  private async sendNotificationToChannel(_channel: string, _incident: Incident, _event: string): Promise<void> {
     const message = this.formatNotificationMessage(incident, event);
 
     switch (channel) {
       case 'email':
-        logger.info('Email notification sent', { incidentId: incident.id, message });
+        logger.info('Email notification sent', { _incidentId: incident.id, message });
         break;
       case 'slack':
-        logger.info('Slack notification sent', { incidentId: incident.id, message });
+        logger.info('Slack notification sent', { _incidentId: incident.id, message });
         break;
-      default:
-        logger.warn('Unknown notification channel', { channel });
+      logger.warn('Unknown notification channel', { channel });
     }
   }
 
   /**
    * Format notification message
    */
-  private formatNotificationMessage(incident: Incident, event: string): string {
+  private formatNotificationMessage(_incident: Incident, _event: string): string {
     const baseMessage = `[${incident.severity.toUpperCase()}] ${incident.title}`;
-    
+
     switch (event) {
       case 'created':
-        return `🚨 NEW INCIDENT: ${baseMessage}`;
+        return `🚨 NEW _INCIDENT: ${baseMessage}`;
       case 'acknowledged':
         return `✅ ACKNOWLEDGED: ${baseMessage}`;
       case 'escalated':
         return `⚠️ ESCALATED: ${baseMessage}`;
       case 'timeout':
         return `⏰ TIMEOUT: ${baseMessage}`;
-      default:
-        return baseMessage;
+      return baseMessage;
     }
   }
 
   /**
    * Get incident by ID
    */
-  getIncident(incidentId: string): Incident | undefined {
+  getIncident(_incidentId: string): Incident | undefined {
     return this.incidents.get(incidentId);
   }
 
@@ -309,16 +307,16 @@ export class IncidentResponse extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     logger.info('Shutting down Incident Response System');
-    
+
     // Clear all timers
     for (const [incidentId, timer] of this.escalationTimers) {
       clearTimeout(timer);
     }
     this.escalationTimers.clear();
-    
+
     this.removeAllListeners();
   }
 }
 
 // Export default instance
-export const incidentResponse = new IncidentResponse(); 
+export const incidentResponse = new IncidentResponse();

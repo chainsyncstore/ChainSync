@@ -1,70 +1,70 @@
 // Loyalty Types
 export interface LoyaltyMember {
-  id: number;
-  customerId: number;
-  loyaltyId: string;
-  currentPoints: string;
-  totalPointsEarned: string;
-  totalPointsRedeemed: string;
-  enrollmentDate: Date;
-  lastActivity: Date;
-  status: "active" | "inactive";
+  _id: number;
+  _customerId: number;
+  _loyaltyId: string;
+  _currentPoints: string;
+  _totalPointsEarned: string;
+  _totalPointsRedeemed: string;
+  _enrollmentDate: Date;
+  _lastActivity: Date;
+  status: 'active' | 'inactive';
   tierId?: number;
 }
 
 export interface LoyaltyTransaction {
-  id: number;
-  memberId: number;
+  _id: number;
+  _memberId: number;
   transactionId?: number;
-  type: "earn" | "redeem" | "expire" | "adjust";
-  points: string;
+  type: 'earn' | 'redeem' | 'expire' | 'adjust';
+  _points: string;
   rewardId?: number;
   note?: string;
-  createdBy: number;
-  createdAt: Date;
+  _createdBy: number;
+  _createdAt: Date;
 }
 
 export interface LoyaltyProgram {
-  id: number;
-  storeId: number;
-  name: string;
-  pointsPerAmount: string;
-  active: boolean;
-  expiryMonths: number;
-  createdAt: Date;
+  _id: number;
+  _storeId: number;
+  _name: string;
+  _pointsPerAmount: string;
+  _active: boolean;
+  _expiryMonths: number;
+  _createdAt: Date;
   updatedAt?: Date;
 }
 
 export interface LoyaltyTier {
-  id: number;
-  programId: number;
-  name: string;
-  requiredPoints: string;
-  pointMultiplier: string;
-  active: boolean;
-  createdAt: Date;
+  _id: number;
+  _programId: number;
+  _name: string;
+  _requiredPoints: string;
+  _pointMultiplier: string;
+  _active: boolean;
+  _createdAt: Date;
   updatedAt?: Date;
 }
 
 export interface LoyaltyReward {
-  id: number;
-  programId: number;
-  name: string;
-  pointsCost: string;
-  active: boolean;
-  createdAt: Date;
+  _id: number;
+  _programId: number;
+  _name: string;
+  _pointsCost: string;
+  _active: boolean;
+  _createdAt: Date;
   updatedAt?: Date;
 }
 
 // Helper function types
 export interface LoyaltyMemberData {
-  customerId: number;
-  loyaltyId: string;
-  currentPoints: string;
-  totalPointsEarned: string;
-  totalPointsRedeemed: string;
-  enrollmentDate: Date;
-  lastActivity: Date;
-  status: string;
+  _customerId: number;
+  _loyaltyId: string;
+  _currentPoints: string;
+  _totalPointsEarned: string;
+  _totalPointsRedeemed: string;
+  _enrollmentDate: Date;
+  _lastActivity: Date;
+  _status: string;
   tierId?: number;
 }

@@ -8,7 +8,7 @@ const passThrough = (_req, _res, next) => {
 };
 
 module.exports = {
-  rateLimitMiddleware: passThrough,
-  authRateLimiter: passThrough,
-  sensitiveOpRateLimiter: passThrough
+  _rateLimitMiddleware: passThrough,
+  _authRateLimiter: passThrough,
+  _sensitiveOpRateLimiter: passThrough
 };

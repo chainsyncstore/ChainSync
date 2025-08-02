@@ -1,42 +1,42 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from &apos;react&apos;;
+import { useLocation } from &apos;wouter&apos;;
+import { z } from &apos;zod&apos;;
+import { useForm } from &apos;react-hook-form&apos;;
+import { zodResolver } from &apos;@hookform/resolvers/zod&apos;;
+import { useMutation, useQuery } from &apos;@tanstack/react-query&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+  FormMessage
+} from &apos;@/components/ui/form&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import { Loader2, CheckCircle, AlertCircle } from &apos;lucide-react&apos;;
+import { Alert, AlertDescription, AlertTitle } from &apos;@/components/ui/alert&apos;;
 
 // Form schema for password reset
 const resetPasswordSchema = z
   .object({
-    password: z
+    _password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(100, "Password is too long"),
-    confirmPassword: z.string(),
+      .min(8, &apos;Password must be at least 8 characters&apos;)
+      .max(100, &apos;Password is too long&apos;),
+    _confirmPassword: z.string()
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
+    _message: &apos;Passwords do not match&apos;,
+    _path: [&apos;confirmPassword&apos;]
   });
 
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 interface ResetPasswordFormProps {
-  token: string;
+  _token: string;
 }
 
 export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
@@ -45,73 +45,73 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const [resetComplete, setResetComplete] = useState(false);
 
   // Query to validate the token
-  const { data: tokenValidationData, isLoading: isValidatingToken } = useQuery({
-    queryKey: ["/api/auth/validate-reset-token", token],
-    queryFn: async () => {
+  const { _data: tokenValidationData, _isLoading: isValidatingToken } = useQuery({
+    queryKey: [&apos;/api/auth/validate-reset-token&apos;, token],
+    _queryFn: async() => {
       return await apiRequest(
-        "GET",
+        &apos;GET&apos;,
         `/api/auth/validate-reset-token/${token}`
       );
     },
-    enabled: !!token,
+    _enabled: !!token
   });
 
   // Initialize form
   const form = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
+    _resolver: zodResolver(resetPasswordSchema),
+    _defaultValues: {
+      password: &apos;&apos;,
+      _confirmPassword: &apos;&apos;
+    }
   });
 
   // Define mutation for password reset
   const resetPasswordMutation = useMutation({
-    mutationFn: async (data: { token: string; password: string }) => {
-      return await apiRequest("POST", "/api/auth/reset-password", data);
+    _mutationFn: async(data: { _token: string; _password: string }) => {
+      return await apiRequest(&apos;POST&apos;, &apos;/api/auth/reset-password&apos;, data);
     },
-    onSuccess: () => {
+    _onSuccess: () => {
       setResetComplete(true);
       toast({
-        title: "Password reset successfully",
-        description: "You can now login with your new password.",
+        _title: &apos;Password reset successfully&apos;,
+        _description: &apos;You can now login with your new password.&apos;
       });
-      
+
       // Redirect to login page after 3 seconds
       setTimeout(() => {
-        setLocation("/login");
+        setLocation(&apos;/login&apos;);
       }, 3000);
     },
-    onError: (error: Error) => {
+    _onError: (_error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to reset password. Please try again.",
-        variant: "destructive",
+        _title: &apos;Error&apos;,
+        _description: error.message || &apos;Failed to reset password. Please try again.&apos;,
+        _variant: &apos;destructive&apos;
       });
-    },
+    }
   });
 
   // Form submission handler
-  const onSubmit = (data: ResetPasswordFormValues) => {
+  const onSubmit = (_data: ResetPasswordFormValues) => {
     resetPasswordMutation.mutate({
       token,
-      password: data.password,
+      _password: data.password
     });
   };
 
   // If token is invalid, show error message
   if (tokenValidationData && !tokenValidationData.valid) {
     return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
+      <Alert variant=&quot;destructive&quot; className=&quot;mb-6&quot;>
+        <AlertCircle className=&quot;h-4 w-4&quot; />
         <AlertTitle>Invalid or Expired Token</AlertTitle>
         <AlertDescription>
           The password reset link is invalid or has expired. Please request a new password reset link.
         </AlertDescription>
         <Button
-          variant="outline"
-          onClick={() => setLocation("/forgot-password")}
-          className="mt-4 w-full"
+          variant=&quot;outline&quot;
+          onClick={() => setLocation(&apos;/forgot-password&apos;)}
+          className=&quot;mt-4 w-full&quot;
         >
           Request New Reset Link
         </Button>
@@ -122,9 +122,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   // If still validating token, show loading
   if (isValidatingToken) {
     return (
-      <div className="flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Validating your reset link...</p>
+      <div className=&quot;flex flex-col items-center justify-center space-y-4&quot;>
+        <Loader2 className=&quot;h-8 w-8 animate-spin text-primary&quot; />
+        <p className=&quot;text-muted-foreground&quot;>Validating your reset link...</p>
       </div>
     );
   }
@@ -132,16 +132,16 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   // If password reset was successful, show success message
   if (resetComplete) {
     return (
-      <Alert className="mb-6 bg-green-50 border-green-200">
-        <CheckCircle className="h-4 w-4 text-green-500" />
+      <Alert className=&quot;mb-6 bg-green-50 border-green-200&quot;>
+        <CheckCircle className=&quot;h-4 w-4 text-green-500&quot; />
         <AlertTitle>Password Reset Successful</AlertTitle>
         <AlertDescription>
           Your password has been reset successfully. You will be redirected to the login page in a moment.
         </AlertDescription>
         <Button
-          variant="outline"
-          onClick={() => setLocation("/login")}
-          className="mt-4 w-full"
+          variant=&quot;outline&quot;
+          onClick={() => setLocation(&apos;/login&apos;)}
+          className=&quot;mt-4 w-full&quot;
         >
           Go to Login
         </Button>
@@ -151,25 +151,25 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Reset Your Password</h2>
-        <p className="text-muted-foreground mt-2">
+      <div className=&quot;mb-6&quot;>
+        <h2 className=&quot;text-2xl font-bold&quot;>Reset Your Password</h2>
+        <p className=&quot;text-muted-foreground mt-2&quot;>
           Enter your new password below.
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className=&quot;space-y-4&quot;>
           <FormField
             control={form.control}
-            name="password"
+            name=&quot;password&quot;
             render={({ field }) => (
               <FormItem>
                 <FormLabel>New Password</FormLabel>
                 <FormControl>
                   <Input
-                    type="password"
-                    placeholder="Enter your new password"
+                    type=&quot;password&quot;
+                    placeholder=&quot;Enter your new password&quot;
                     {...field}
                   />
                 </FormControl>
@@ -180,14 +180,14 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
           <FormField
             control={form.control}
-            name="confirmPassword"
+            name=&quot;confirmPassword&quot;
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
                   <Input
-                    type="password"
-                    placeholder="Confirm your new password"
+                    type=&quot;password&quot;
+                    placeholder=&quot;Confirm your new password&quot;
                     {...field}
                   />
                 </FormControl>
@@ -197,17 +197,17 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           />
 
           <Button
-            type="submit"
-            className="w-full mt-6"
+            type=&quot;submit&quot;
+            className=&quot;w-full mt-6&quot;
             disabled={resetPasswordMutation.isPending}
           >
             {resetPasswordMutation.isPending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className=&quot;mr-2 h-4 w-4 animate-spin&quot; />
                 Resetting Password...
               </>
             ) : (
-              "Reset Password"
+              &apos;Reset Password&apos;
             )}
           </Button>
         </form>

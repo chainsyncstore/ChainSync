@@ -5,54 +5,55 @@ import { csrf } from 'express-csrf';
 import { Request, Response, NextFunction, Application } from 'express';
 import { getLogger } from '../../logging/index.js';
 
-const logger = getLogger().child({ component: 'security-middleware' });
+const logger = getLogger().child({ _component: 'security-middleware' });
 
-export const setupSecurity = (app: Application) => {
+export const setupSecurity = (_app: Application) => {
   // Add security headers
   app.use(helmet({
-    contentSecurityPolicy: {
+    _contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https:"],
-        fontSrc: ["'self'", "https:"],
-        mediaSrc: ["'self'", "https:"],
-        frameSrc: ["'self'"]
+        _scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        _styleSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        _imgSrc: ["'self'", 'data:', 'https:'],
+        _connectSrc: ["'self'", 'https:'],
+        _fontSrc: ["'self'", 'https:'],
+        _mediaSrc: ["'self'", 'https:'],
+        _frameSrc: ["'self'"]
       }
     },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: false,
-    crossOriginOpenerPolicy: false
+    _crossOriginEmbedderPolicy: false,
+    _crossOriginResourcePolicy: false,
+    _crossOriginOpenerPolicy: false
   }));
 
   // Add CORS protection
   app.use(cors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    _origin: (_origin: string | undefined, _callback: (_err: Error | null, allow?: boolean)
+   = > void) => {
       if (!origin || process.env.ALLOWED_ORIGINS?.split(',').includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
       }
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true
+    _methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    _credentials: true
   }));
 
   // Add rate limiting
   app.use(rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: 'Too many requests from this IP, please try again later.',
-    handler: (req, res) => {
+    _windowMs: 15 * 60 * 1000, // 15 minutes
+    _max: 100,
+    _standardHeaders: true,
+    _legacyHeaders: false,
+    _message: 'Too many requests from this IP, please try again later.',
+    _handler: (req, res) => {
       res.status(429).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'RATE_LIMIT_EXCEEDED',
-          message: 'Too many requests from this IP, please try again later.'
+          _message: 'Too many requests from this IP, please try again later.'
         }
       });
     }
@@ -62,14 +63,14 @@ export const setupSecurity = (app: Application) => {
   app.use(csrf());
 
   // Add request validation middleware
-  app.use((req: Request, res: Response, next: NextFunction): void => {
+  app.use((_req: Request, _res: Response, _next: NextFunction): void => {
     if (req.method === 'POST' || req.method === 'PUT') {
       if (!req.body) {
         res.status(400).json({
-          success: false,
-          error: {
+          _success: false,
+          _error: {
             code: 'INVALID_REQUEST',
-            message: 'Request body is required'
+            _message: 'Request body is required'
           }
         });
         return;
@@ -79,21 +80,21 @@ export const setupSecurity = (app: Application) => {
   });
 
   // Add error handling for security middleware
-  app.use((err: Error, req: Request, res: Response, next: NextFunction): void => {
-    logger.error('Security middleware error:', {
-      error: err.message,
-      method: req.method,
-      path: req.path,
-      ip: req.ip
+  app.use((_err: Error, _req: Request, _res: Response, _next: NextFunction): void => {
+    logger.error('Security middleware _error:', {
+      _error: err.message,
+      _method: req.method,
+      _path: req.path,
+      _ip: req.ip
     });
 
     if (err.message === 'invalid csrf token') {
       res.status(403).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'INVALID_CSRF_TOKEN',
-          message: 'Invalid CSRF token',
-          details: 'The CSRF token provided in the request does not match the one stored in the session.'
+          _message: 'Invalid CSRF token',
+          _details: 'The CSRF token provided in the request does not match the one stored in the session.'
         }
       });
       return;
@@ -101,11 +102,11 @@ export const setupSecurity = (app: Application) => {
 
     if (err.message === 'Not allowed by CORS') {
       res.status(403).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'CORS_ERROR',
-          message: 'Request origin not allowed',
-          details: 'The request origin is not in the allowed origins list.'
+          _message: 'Request origin not allowed',
+          _details: 'The request origin is not in the allowed origins list.'
         }
       });
       return;
@@ -113,16 +114,16 @@ export const setupSecurity = (app: Application) => {
 
     if (err instanceof Error) {
       res.status(500).json({
-        success: false,
-        error: {
+        _success: false,
+        _error: {
           code: 'INTERNAL_ERROR',
-          message: 'An unexpected error occurred',
-          details: err.message
+          _message: 'An unexpected error occurred',
+          _details: err.message
         }
       });
       return;
     }
-    
+
     next(err);
   });
 };

@@ -1,27 +1,27 @@
 module.exports = {
-  testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
-  transform: {
+  _testEnvironment: 'jsdom',
+  _setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  _transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: {
+      _tsconfig: {
         jsx: 'react-jsx',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
+        _esModuleInterop: true,
+        _allowSyntheticDefaultImports: true
       }
     }],
     '^.+\\.(js|jsx)$': ['babel-jest', {
-      presets: [
-        ['@babel/preset-env', { targets: { node: 'current' } }],
-        ['@babel/preset-react', { runtime: 'automatic' }],
+      _presets: [
+        ['@babel/preset-env', { _targets: { node: 'current' } }],
+        ['@babel/preset-react', { _runtime: 'automatic' }],
         '@babel/preset-typescript'
       ]
     }]
   },
-  testMatch: [
+  _testMatch: [
     '<rootDir>/src/**/__tests__/**/*.(ts|tsx|js|jsx)',
     '<rootDir>/src/**/*.(test|spec).(ts|tsx|js|jsx)'
   ],
-  collectCoverageFrom: [
+  _collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
     '!src/**/*.d.ts',
     '!src/main.tsx',
@@ -30,38 +30,38 @@ module.exports = {
     '!src/**/*.test.{ts,tsx,js,jsx}',
     '!src/**/*.spec.{ts,tsx,js,jsx}'
   ],
-  coverageThreshold: {
+  _coverageThreshold: {
     global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70
+      _branches: 70,
+      _functions: 70,
+      _lines: 70,
+      _statements: 70
     }
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  testPathIgnorePatterns: [
+  _moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  _testPathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
     '/build/'
   ],
-  transformIgnorePatterns: [
+  _transformIgnorePatterns: [
     '/node_modules/(?!(@tanstack/react-query|lucide-react|@radix-ui)/)'
   ],
-  globals: {
+  _globals: {
     'ts-jest': {
       tsconfig: {
         jsx: 'react-jsx',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
+        _esModuleInterop: true,
+        _allowSyntheticDefaultImports: true
       }
     }
   },
   // React 19 specific configuration
-  testEnvironmentOptions: {
+  _testEnvironmentOptions: {
     customExportConditions: ['react-jsx']
   },
   // Mock CSS modules and assets
-  moduleNameMapping: {
+  _moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/components/(.*)$': '<rootDir>/src/components/$1',
     '^@/pages/(.*)$': '<rootDir>/src/pages/$1',

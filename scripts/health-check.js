@@ -5,12 +5,12 @@
  * This script performs a comprehensive health check of the ChainSync application.
  * It verifies that all required services are available and responsive.
  *
- * Usage:
+ * _Usage:
  *   node health-check.js [--url=<base-url>] [--timeout=<ms>] [--exit]
  *
  * Options:
- *   --url=<base-url>  Base URL of the application (default: http://localhost:3000)
- *   --timeout=<ms>    Request timeout in milliseconds (default: 5000)
+ *   --url=<base-url>  Base URL of the application (_default: http://_localhost:3000)
+ *   --timeout=<ms>    Request timeout in milliseconds (_default: 5000)
  *   --exit            Exit with non-zero code if health check fails
  *   --json            Output results in JSON format
  */
@@ -26,10 +26,10 @@ dotenv.config();
 
 // Default configuration
 const config = {
-  baseUrl: 'http://localhost:3000',
-  timeout: 5000,
-  exitOnFailure: false,
-  jsonOutput: false
+  _baseUrl: 'http://_localhost:3000',
+  _timeout: 5000,
+  _exitOnFailure: false,
+  _jsonOutput: false
 };
 
 // Parse command line arguments
@@ -53,24 +53,24 @@ if (config.baseUrl.endsWith('/')) {
 // Health check endpoints to verify
 const endpoints = [
   // API Health endpoints
-  { path: '/api/health', name: 'Basic Health Check', critical: true },
-  { path: '/api/health/details', name: 'Detailed Health Check', critical: true },
-  { path: '/api/metrics', name: 'Metrics Endpoint', critical: false },
-  { path: '/api/v1/status', name: 'API Status', critical: false },
+  { _path: '/api/health', _name: 'Basic Health Check', _critical: true },
+  { _path: '/api/health/details', _name: 'Detailed Health Check', _critical: true },
+  { _path: '/api/metrics', _name: 'Metrics Endpoint', _critical: false },
+  { _path: '/api/v1/status', _name: 'API Status', _critical: false },
 
   // Kubernetes-style health check endpoints
-  { path: '/healthz', name: 'Kubernetes Liveness Probe', critical: true },
-  { path: '/readyz', name: 'Kubernetes Readiness Probe', critical: true }
+  { _path: '/healthz', _name: 'Kubernetes Liveness Probe', _critical: true },
+  { _path: '/readyz', _name: 'Kubernetes Readiness Probe', _critical: true }
 ];
 
 // Results tracker
 const results = {
-  timestamp: new Date().toISOString(),
-  baseUrl: config.baseUrl,
-  timeout: config.timeout,
-  endpoints: [],
-  system: {},
-  overall: 'UNKNOWN'
+  _timestamp: new Date().toISOString(),
+  _baseUrl: config.baseUrl,
+  _timeout: config.timeout,
+  _endpoints: [],
+  _system: {},
+  _overall: 'UNKNOWN'
 };
 
 /**
@@ -83,18 +83,18 @@ function makeRequest(endpoint) {
     const parsedUrl = url.parse(endpointUrl);
 
     const options = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port,
-      path: parsedUrl.path,
-      method: 'GET',
-      timeout: config.timeout,
-      headers: {
+      _hostname: parsedUrl.hostname,
+      _port: parsedUrl.port,
+      _path: parsedUrl.path,
+      _method: 'GET',
+      _timeout: config.timeout,
+      _headers: {
         'User-Agent': 'ChainSync-Health-Check/1.0'
       }
     };
 
     // Determine if HTTP or HTTPS
-    const client = parsedUrl.protocol === 'https:' ? https : http;
+    const client = parsedUrl.protocol === 'https:' ? _https : http;
 
     const req = client.request(options, (res) => {
       const duration = Date.now() - startTime;
@@ -110,23 +110,23 @@ function makeRequest(endpoint) {
           const jsonData = data ? JSON.parse(data) : {};
 
           resolve({
-            endpoint: endpoint.path,
-            name: endpoint.name,
-            status: statusOk ? 'UP' : 'DOWN',
-            statusCode: res.statusCode,
-            responseTime: duration,
-            data: jsonData,
-            error: null
+            _endpoint: endpoint.path,
+            _name: endpoint.name,
+            _status: statusOk ? 'UP' : 'DOWN',
+            _statusCode: res.statusCode,
+            _responseTime: duration,
+            _data: jsonData,
+            _error: null
           });
         } catch (error) {
           resolve({
-            endpoint: endpoint.path,
-            name: endpoint.name,
-            status: 'ERROR',
-            statusCode: res.statusCode,
-            responseTime: duration,
-            data: null,
-            error: `Failed to parse response: ${error.message}`
+            _endpoint: endpoint.path,
+            _name: endpoint.name,
+            _status: 'ERROR',
+            _statusCode: res.statusCode,
+            _responseTime: duration,
+            _data: null,
+            _error: `Failed to parse response: ${error.message}`
           });
         }
       });
@@ -135,26 +135,26 @@ function makeRequest(endpoint) {
     req.on('error', (error) => {
       const duration = Date.now() - startTime;
       resolve({
-        endpoint: endpoint.path,
-        name: endpoint.name,
-        status: 'DOWN',
-        statusCode: 0,
-        responseTime: duration,
-        data: null,
-        error: error.message
+        _endpoint: endpoint.path,
+        _name: endpoint.name,
+        _status: 'DOWN',
+        _statusCode: 0,
+        _responseTime: duration,
+        _data: null,
+        _error: error.message
       });
     });
 
     req.on('timeout', () => {
       req.abort();
       resolve({
-        endpoint: endpoint.path,
-        name: endpoint.name,
-        status: 'TIMEOUT',
-        statusCode: 0,
-        responseTime: config.timeout,
-        data: null,
-        error: 'Request timed out'
+        _endpoint: endpoint.path,
+        _name: endpoint.name,
+        _status: 'TIMEOUT',
+        _statusCode: 0,
+        _responseTime: config.timeout,
+        _data: null,
+        _error: 'Request timed out'
       });
     });
 
@@ -191,15 +191,15 @@ async function checkSystemHealth() {
     results.system = {
       nodeVersion,
       diskSpace,
-      memoryUsage: {
+      _memoryUsage: {
         rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
-        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`
+        _heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+        _heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`
       }
     };
   } catch (error) {
     results.system = {
-      error: `Failed to check system health: ${error.message}`
+      _error: `Failed to check system health: ${error.message}`
     };
   }
 }
@@ -218,7 +218,7 @@ async function runHealthChecks() {
     const result = await makeRequest(endpoint);
     results.endpoints.push({
       ...result,
-      critical: endpoint.critical
+      _critical: endpoint.critical
     });
 
     // Print result to console if not in JSON mode
@@ -227,11 +227,11 @@ async function runHealthChecks() {
       const criticalText = endpoint.critical ? ' (CRITICAL)' : '';
 
       console.log(`${statusSymbol} ${result.name}${criticalText}: ${result.status}`);
-      console.log(`  URL: ${config.baseUrl}${endpoint.path}`);
-      console.log(`  Response: ${result.statusCode} (${result.responseTime}ms)`);
+      console.log(`  _URL: ${config.baseUrl}${endpoint.path}`);
+      console.log(`  _Response: ${result.statusCode} (${result.responseTime}ms)`);
 
       if (result.error) {
-        console.log(`  Error: ${result.error}`);
+        console.log(`  _Error: ${result.error}`);
       }
 
       console.log('');
@@ -257,7 +257,7 @@ async function runHealthChecks() {
     console.log(JSON.stringify(results, null, 2));
   } else {
     const overallSymbol = results.overall === 'UP' ? '✅' : results.overall === 'DOWN' ? '❌' : '⚠️';
-    console.log(`${overallSymbol} Overall Status: ${results.overall}`);
+    console.log(`${overallSymbol} Overall _Status: ${results.overall}`);
 
     // Summary
     const upCount = results.endpoints.filter(e => e.status === 'UP').length;

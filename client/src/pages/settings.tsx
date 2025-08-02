@@ -1,14 +1,14 @@
-import React from 'react';
-import { AppShell } from '@/components/layout/app-shell';
-import { useAuth } from '@/providers/auth-provider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React from &apos;react&apos;;
+import { AppShell } from &apos;@/components/layout/app-shell&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { Tabs, TabsContent, TabsList, TabsTrigger } from &apos;@/components/ui/tabs&apos;;
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
 import {
   Form,
   FormControl,
@@ -16,66 +16,66 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+  FormMessage
+} from &apos;@/components/ui/form&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Switch } from &apos;@/components/ui/switch&apos;;
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useToast } from '@/hooks/use-toast';
-import CategoryManagement from '@/components/inventory/category-management';
+  SelectValue
+} from &apos;@/components/ui/select&apos;;
+import { Separator } from &apos;@/components/ui/separator&apos;;
+import { z } from &apos;zod&apos;;
+import { useForm } from &apos;react-hook-form&apos;;
+import { zodResolver } from &apos;@hookform/resolvers/zod&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import CategoryManagement from &apos;@/components/inventory/category-management&apos;;
 
 // Profile settings form schema
 const profileFormSchema = z.object({
-  fullName: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
+  _fullName: z.string().min(2, {
+    _message: &apos;Name must be at least 2 characters.&apos;
   }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
+  _email: z.string().email({
+    _message: &apos;Please enter a valid email address.&apos;
   }),
-  currentPassword: z.string().optional(),
-  newPassword: z.string().min(6, {
-    message: "New password must be at least 6 characters.",
+  _currentPassword: z.string().optional(),
+  _newPassword: z.string().min(6, {
+    _message: &apos;New password must be at least 6 characters.&apos;
   }).optional(),
-  confirmPassword: z.string().optional(),
+  _confirmPassword: z.string().optional()
 }).refine((data) => {
   if (data.newPassword && !data.currentPassword) {
     return false;
   }
   return true;
 }, {
-  message: "Current password is required to set a new password.",
-  path: ["currentPassword"],
+  _message: &apos;Current password is required to set a new password.&apos;,
+  _path: [&apos;currentPassword&apos;]
 }).refine((data) => {
   if (data.newPassword && data.newPassword !== data.confirmPassword) {
     return false;
   }
   return true;
 }, {
-  message: "Passwords don't match.",
-  path: ["confirmPassword"],
+  _message: &quot;Passwords don&apos;t match.&quot;,
+  _path: [&apos;confirmPassword&apos;]
 });
 
 // System settings form schema
 const systemFormSchema = z.object({
-  taxRate: z.string(),
-  currency: z.string(),
-  receiptHeader: z.string(),
-  receiptFooter: z.string(),
-  lowStockThreshold: z.string(),
-  enableOfflineMode: z.boolean(),
-  autoBackupEnabled: z.boolean(),
-  backupFrequency: z.string(),
+  _taxRate: z.string(),
+  _currency: z.string(),
+  _receiptHeader: z.string(),
+  _receiptFooter: z.string(),
+  _lowStockThreshold: z.string(),
+  _enableOfflineMode: z.boolean(),
+  _autoBackupEnabled: z.boolean(),
+  _backupFrequency: z.string()
 });
 
 export default function SettingsPage() {
@@ -87,153 +87,153 @@ export default function SettingsPage() {
   const [salesMilestones, setSalesMilestones] = React.useState(true);
   const [inventoryAlerts, setInventoryAlerts] = React.useState(true);
   const [userActivity, setUserActivity] = React.useState(false);
-  
+
   // Profile form
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      fullName: user?.fullName || "",
-      email: user?.email || "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
+    _resolver: zodResolver(profileFormSchema),
+    _defaultValues: {
+      _fullName: user?.fullName || &apos;&apos;,
+      _email: user?.email || &apos;&apos;,
+      _currentPassword: &apos;&apos;,
+      _newPassword: &apos;&apos;,
+      _confirmPassword: &apos;&apos;
+    }
   });
-  
+
   // System settings form
   const systemForm = useForm<z.infer<typeof systemFormSchema>>({
-    resolver: zodResolver(systemFormSchema),
-    defaultValues: {
-      taxRate: "8.25",
-      currency: "USD",
-      receiptHeader: "ChainSync Market",
-      receiptFooter: "Thank you for shopping with us!",
-      lowStockThreshold: "10",
-      enableOfflineMode: true,
-      autoBackupEnabled: true,
-      backupFrequency: "daily",
-    },
+    _resolver: zodResolver(systemFormSchema),
+    _defaultValues: {
+      taxRate: &apos;8.25&apos;,
+      _currency: &apos;USD&apos;,
+      _receiptHeader: &apos;ChainSync Market&apos;,
+      _receiptFooter: &apos;Thank you for shopping with us!&apos;,
+      _lowStockThreshold: &apos;10&apos;,
+      _enableOfflineMode: true,
+      _autoBackupEnabled: true,
+      _backupFrequency: &apos;daily&apos;
+    }
   });
-  
+
   // Handle profile form submission with temporary real password functionality
-  const onProfileSubmit = async (data: z.infer<typeof profileFormSchema>) => {
+  const onProfileSubmit = async(_data: z.infer<typeof profileFormSchema>) => {
     try {
       // Store password in localStorage for testing purposes
       if (data.newPassword) {
-        // In a real app, we'd make an API call to update the password
-        localStorage.setItem('tempTestPassword', data.newPassword);
-        
+        // In a real app, we&apos;d make an API call to update the password
+        localStorage.setItem(&apos;tempTestPassword&apos;, data.newPassword);
+
         // Reset password fields after successful submission
-        profileForm.setValue('currentPassword', '');
-        profileForm.setValue('newPassword', '');
-        profileForm.setValue('confirmPassword', '');
+        profileForm.setValue(&apos;currentPassword&apos;, &apos;&apos;);
+        profileForm.setValue(&apos;newPassword&apos;, &apos;&apos;);
+        profileForm.setValue(&apos;confirmPassword&apos;, &apos;&apos;);
       }
-      
+
       // Update user profile info in localStorage for testing
-      localStorage.setItem('userProfile', JSON.stringify({
-        fullName: data.fullName,
-        email: data.email,
-        updatedAt: new Date().toISOString()
+      localStorage.setItem(&apos;userProfile&apos;, JSON.stringify({
+        _fullName: data.fullName,
+        _email: data.email,
+        _updatedAt: new Date().toISOString()
       }));
-      
+
       toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully. Password is now stored for testing.",
-        duration: 5000,
+        _title: &apos;Profile updated&apos;,
+        _description: &apos;Your profile has been updated successfully. Password is now stored for testing.&apos;,
+        _duration: 5000
       });
-      
-      console.log("Updated profile data:", data);
+
+      console.log(&apos;Updated profile _data:&apos;, data);
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error(&apos;Error updating _profile:&apos;, error);
       toast({
-        title: "Update failed",
-        description: "There was a problem updating your profile.",
-        variant: "destructive",
+        _title: &apos;Update failed&apos;,
+        _description: &apos;There was a problem updating your profile.&apos;,
+        _variant: &apos;destructive&apos;
       });
     }
   };
-  
+
   // Handle system settings form submission with enhanced functionality for testing
-  const onSystemSubmit = async (data: z.infer<typeof systemFormSchema>) => {
+  const onSystemSubmit = async(_data: z.infer<typeof systemFormSchema>) => {
     try {
-      // In a real app, we'd send these settings to an API
+      // In a real app, we&apos;d send these settings to an API
       // Store system settings in localStorage for testing purposes
-      localStorage.setItem('systemSettings', JSON.stringify({
+      localStorage.setItem(&apos;systemSettings&apos;, JSON.stringify({
         ...data,
-        updatedAt: new Date().toISOString()
+        _updatedAt: new Date().toISOString()
       }));
-      
+
       toast({
-        title: "Settings updated",
-        description: "System settings have been saved and are ready for testing.",
-        duration: 5000,
+        _title: &apos;Settings updated&apos;,
+        _description: &apos;System settings have been saved and are ready for testing.&apos;,
+        _duration: 5000
       });
-      
-      console.log("Updated system settings:", data);
+
+      console.log(&apos;Updated system _settings:&apos;, data);
     } catch (error) {
-      console.error("Error updating system settings:", error);
+      console.error(&apos;Error updating system _settings:&apos;, error);
       toast({
-        title: "Update failed",
-        description: "There was a problem updating system settings.",
-        variant: "destructive",
+        _title: &apos;Update failed&apos;,
+        _description: &apos;There was a problem updating system settings.&apos;,
+        _variant: &apos;destructive&apos;
       });
     }
   };
-  
+
   // Handle notification preferences saving
   const saveNotificationPreferences = () => {
     try {
       // Store notification preferences in localStorage for testing
       const notificationSettings = {
-        emailNotifications: {
+        _emailNotifications: {
           lowStockAlerts,
           salesSummary,
           securityAlerts
         },
-        inAppNotifications: {
+        _inAppNotifications: {
           salesMilestones,
           inventoryAlerts,
           userActivity
         },
-        updatedAt: new Date().toISOString()
+        _updatedAt: new Date().toISOString()
       };
-      
-      localStorage.setItem('notificationPreferences', JSON.stringify(notificationSettings));
-      
+
+      localStorage.setItem(&apos;notificationPreferences&apos;, JSON.stringify(notificationSettings));
+
       toast({
-        title: "Notification preferences updated",
-        description: "Your notification preferences have been saved and are ready for testing.",
-        duration: 5000,
+        _title: &apos;Notification preferences updated&apos;,
+        _description: &apos;Your notification preferences have been saved and are ready for testing.&apos;,
+        _duration: 5000
       });
-      
-      console.log("Updated notification preferences:", notificationSettings);
+
+      console.log(&apos;Updated notification _preferences:&apos;, notificationSettings);
     } catch (error) {
-      console.error("Error updating notification preferences:", error);
+      console.error(&apos;Error updating notification _preferences:&apos;, error);
       toast({
-        title: "Update failed",
-        description: "There was a problem updating your notification preferences.",
-        variant: "destructive",
+        _title: &apos;Update failed&apos;,
+        _description: &apos;There was a problem updating your notification preferences.&apos;,
+        _variant: &apos;destructive&apos;
       });
     }
   };
-  
+
   return (
     <AppShell>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-800">Settings</h1>
-        <p className="text-neutral-500 mt-1">Manage your account and system preferences</p>
+      <div className=&quot;mb-6&quot;>
+        <h1 className=&quot;text-2xl font-bold text-neutral-800&quot;>Settings</h1>
+        <p className=&quot;text-neutral-500 mt-1&quot;>Manage your account and system preferences</p>
       </div>
-      
-      <Tabs defaultValue="profile" className="space-y-4">
+
+      <Tabs defaultValue=&quot;profile&quot; className=&quot;space-y-4&quot;>
         <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="system">System</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value=&quot;profile&quot;>Profile</TabsTrigger>
+          <TabsTrigger value=&quot;system&quot;>System</TabsTrigger>
+          <TabsTrigger value=&quot;notifications&quot;>Notifications</TabsTrigger>
+          <TabsTrigger value=&quot;categories&quot;>Categories</TabsTrigger>
         </TabsList>
-        
+
         {/* Profile Settings */}
-        <TabsContent value="profile">
+        <TabsContent value=&quot;profile&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Profile</CardTitle>
@@ -241,16 +241,16 @@ export default function SettingsPage() {
                 Manage your personal information and change your password
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className=&quot;space-y-6&quot;>
               <Form {...profileForm}>
-                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className=&quot;space-y-6&quot;>
                   {/* Personal Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Personal Information</h3>
-                    
+                  <div className=&quot;space-y-4&quot;>
+                    <h3 className=&quot;text-lg font-medium&quot;>Personal Information</h3>
+
                     <FormField
                       control={profileForm.control}
-                      name="fullName"
+                      name=&quot;fullName&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Full Name</FormLabel>
@@ -261,10 +261,10 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={profileForm.control}
-                      name="email"
+                      name=&quot;email&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Email</FormLabel>
@@ -275,76 +275,76 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormItem>
                       <FormLabel>Role</FormLabel>
                       <FormControl>
-                        <Input value={user?.role || ""} disabled />
+                        <Input value={user?.role || &apos;&apos;} disabled />
                       </FormControl>
                       <FormDescription>
                         Your role cannot be changed. Contact an administrator if you need a role change.
                       </FormDescription>
                     </FormItem>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Change Password */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Change Password</h3>
-                    
+                  <div className=&quot;space-y-4&quot;>
+                    <h3 className=&quot;text-lg font-medium&quot;>Change Password</h3>
+
                     <FormField
                       control={profileForm.control}
-                      name="currentPassword"
+                      name=&quot;currentPassword&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Current Password</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input type=&quot;password&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={profileForm.control}
-                      name="newPassword"
+                      name=&quot;newPassword&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>New Password</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input type=&quot;password&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={profileForm.control}
-                      name="confirmPassword"
+                      name=&quot;confirmPassword&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Confirm New Password</FormLabel>
                           <FormControl>
-                            <Input type="password" {...field} />
+                            <Input type=&quot;password&quot; {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                  
-                  <Button type="submit">Update Profile</Button>
+
+                  <Button type=&quot;submit&quot;>Update Profile</Button>
                 </form>
               </Form>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* System Settings */}
-        <TabsContent value="system">
+        <TabsContent value=&quot;system&quot;>
           <Card>
             <CardHeader>
               <CardTitle>System Settings</CardTitle>
@@ -352,17 +352,17 @@ export default function SettingsPage() {
                 Configure system-wide settings for your store
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className=&quot;space-y-6&quot;>
               <Form {...systemForm}>
-                <form onSubmit={systemForm.handleSubmit(onSystemSubmit)} className="space-y-6">
+                <form onSubmit={systemForm.handleSubmit(onSystemSubmit)} className=&quot;space-y-6&quot;>
                   {/* Basic Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Basic Settings</h3>
-                    
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className=&quot;space-y-4&quot;>
+                    <h3 className=&quot;text-lg font-medium&quot;>Basic Settings</h3>
+
+                    <div className=&quot;grid grid-cols-2 gap-4&quot;>
                       <FormField
                         control={systemForm.control}
-                        name="taxRate"
+                        name=&quot;taxRate&quot;
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Default Tax Rate (%)</FormLabel>
@@ -376,10 +376,10 @@ export default function SettingsPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={systemForm.control}
-                        name="currency"
+                        name=&quot;currency&quot;
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Currency</FormLabel>
@@ -389,16 +389,16 @@ export default function SettingsPage() {
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select currency" />
+                                  <SelectValue placeholder=&quot;Select currency&quot; />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="USD">USD - US Dollar</SelectItem>
-                                <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
-                                <SelectItem value="EUR">EUR - Euro</SelectItem>
-                                <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                                <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
-                                <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                                <SelectItem value=&quot;USD&quot;>USD - US Dollar</SelectItem>
+                                <SelectItem value=&quot;NGN&quot;>NGN - Nigerian Naira</SelectItem>
+                                <SelectItem value=&quot;EUR&quot;>EUR - Euro</SelectItem>
+                                <SelectItem value=&quot;GBP&quot;>GBP - British Pound</SelectItem>
+                                <SelectItem value=&quot;CAD&quot;>CAD - Canadian Dollar</SelectItem>
+                                <SelectItem value=&quot;AUD&quot;>AUD - Australian Dollar</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormDescription>
@@ -409,10 +409,10 @@ export default function SettingsPage() {
                         )}
                       />
                     </div>
-                    
+
                     <FormField
                       control={systemForm.control}
-                      name="lowStockThreshold"
+                      name=&quot;lowStockThreshold&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Default Low Stock Threshold</FormLabel>
@@ -427,16 +427,16 @@ export default function SettingsPage() {
                       )}
                     />
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Receipt Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Receipt Settings</h3>
-                    
+                  <div className=&quot;space-y-4&quot;>
+                    <h3 className=&quot;text-lg font-medium&quot;>Receipt Settings</h3>
+
                     <FormField
                       control={systemForm.control}
-                      name="receiptHeader"
+                      name=&quot;receiptHeader&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Receipt Header</FormLabel>
@@ -450,10 +450,10 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={systemForm.control}
-                      name="receiptFooter"
+                      name=&quot;receiptFooter&quot;
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Receipt Footer</FormLabel>
@@ -468,20 +468,20 @@ export default function SettingsPage() {
                       )}
                     />
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {/* Advanced Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Advanced Settings</h3>
-                    
+                  <div className=&quot;space-y-4&quot;>
+                    <h3 className=&quot;text-lg font-medium&quot;>Advanced Settings</h3>
+
                     <FormField
                       control={systemForm.control}
-                      name="enableOfflineMode"
+                      name=&quot;enableOfflineMode&quot;
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">Enable Offline Mode</FormLabel>
+                        <FormItem className=&quot;flex flex-row items-center justify-between rounded-lg border p-4&quot;>
+                          <div className=&quot;space-y-0.5&quot;>
+                            <FormLabel className=&quot;text-base&quot;>Enable Offline Mode</FormLabel>
                             <FormDescription>
                               Allow the POS system to function without internet connection
                             </FormDescription>
@@ -495,14 +495,14 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={systemForm.control}
-                      name="autoBackupEnabled"
+                      name=&quot;autoBackupEnabled&quot;
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">Automatic Backups</FormLabel>
+                        <FormItem className=&quot;flex flex-row items-center justify-between rounded-lg border p-4&quot;>
+                          <div className=&quot;space-y-0.5&quot;>
+                            <FormLabel className=&quot;text-base&quot;>Automatic Backups</FormLabel>
                             <FormDescription>
                               Automatically create backups of your data
                             </FormDescription>
@@ -516,11 +516,11 @@ export default function SettingsPage() {
                         </FormItem>
                       )}
                     />
-                    
-                    {systemForm.watch("autoBackupEnabled") && (
+
+                    {systemForm.watch(&apos;autoBackupEnabled&apos;) && (
                       <FormField
                         control={systemForm.control}
-                        name="backupFrequency"
+                        name=&quot;backupFrequency&quot;
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Backup Frequency</FormLabel>
@@ -530,14 +530,14 @@ export default function SettingsPage() {
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select frequency" />
+                                  <SelectValue placeholder=&quot;Select frequency&quot; />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="hourly">Hourly</SelectItem>
-                                <SelectItem value="daily">Daily</SelectItem>
-                                <SelectItem value="weekly">Weekly</SelectItem>
-                                <SelectItem value="monthly">Monthly</SelectItem>
+                                <SelectItem value=&quot;hourly&quot;>Hourly</SelectItem>
+                                <SelectItem value=&quot;daily&quot;>Daily</SelectItem>
+                                <SelectItem value=&quot;weekly&quot;>Weekly</SelectItem>
+                                <SelectItem value=&quot;monthly&quot;>Monthly</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormDescription>
@@ -549,16 +549,16 @@ export default function SettingsPage() {
                       />
                     )}
                   </div>
-                  
-                  <Button type="submit">Save Settings</Button>
+
+                  <Button type=&quot;submit&quot;>Save Settings</Button>
                 </form>
               </Form>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Notifications Settings */}
-        <TabsContent value="notifications">
+        <TabsContent value=&quot;notifications&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
@@ -566,108 +566,108 @@ export default function SettingsPage() {
                 Configure how and when you receive notifications
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Email Notifications</h3>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <h4 className="text-base font-medium">Low Stock Alerts</h4>
-                      <p className="text-sm text-muted-foreground">
+            <CardContent className=&quot;space-y-4&quot;>
+              <div className=&quot;space-y-4&quot;>
+                <h3 className=&quot;text-lg font-medium&quot;>Email Notifications</h3>
+
+                <div className=&quot;space-y-2&quot;>
+                  <div className=&quot;flex items-center justify-between rounded-lg border p-4&quot;>
+                    <div className=&quot;space-y-0.5&quot;>
+                      <h4 className=&quot;text-base font-medium&quot;>Low Stock Alerts</h4>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>
                         Receive emails when inventory items reach their minimum stock level
                       </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={lowStockAlerts}
                       onCheckedChange={setLowStockAlerts}
                     />
                   </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <h4 className="text-base font-medium">Daily Sales Summary</h4>
-                      <p className="text-sm text-muted-foreground">
+
+                  <div className=&quot;flex items-center justify-between rounded-lg border p-4&quot;>
+                    <div className=&quot;space-y-0.5&quot;>
+                      <h4 className=&quot;text-base font-medium&quot;>Daily Sales Summary</h4>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>
                         Receive a daily summary of sales across all stores
                       </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={salesSummary}
                       onCheckedChange={setSalesSummary}
                     />
                   </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <h4 className="text-base font-medium">Security Alerts</h4>
-                      <p className="text-sm text-muted-foreground">
+
+                  <div className=&quot;flex items-center justify-between rounded-lg border p-4&quot;>
+                    <div className=&quot;space-y-0.5&quot;>
+                      <h4 className=&quot;text-base font-medium&quot;>Security Alerts</h4>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>
                         Receive notifications about security events like login attempts
                       </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={securityAlerts}
                       onCheckedChange={setSecurityAlerts}
                     />
                   </div>
                 </div>
               </div>
-              
+
               <Separator />
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">In-App Notifications</h3>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <h4 className="text-base font-medium">Sales Milestone Alerts</h4>
-                      <p className="text-sm text-muted-foreground">
+
+              <div className=&quot;space-y-4&quot;>
+                <h3 className=&quot;text-lg font-medium&quot;>In-App Notifications</h3>
+
+                <div className=&quot;space-y-2&quot;>
+                  <div className=&quot;flex items-center justify-between rounded-lg border p-4&quot;>
+                    <div className=&quot;space-y-0.5&quot;>
+                      <h4 className=&quot;text-base font-medium&quot;>Sales Milestone Alerts</h4>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>
                         Receive notifications when sales targets are reached
                       </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={salesMilestones}
                       onCheckedChange={setSalesMilestones}
                     />
                   </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <h4 className="text-base font-medium">Inventory Alerts</h4>
-                      <p className="text-sm text-muted-foreground">
+
+                  <div className=&quot;flex items-center justify-between rounded-lg border p-4&quot;>
+                    <div className=&quot;space-y-0.5&quot;>
+                      <h4 className=&quot;text-base font-medium&quot;>Inventory Alerts</h4>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>
                         Notifications for low stock, expiring items, and other inventory events
                       </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={inventoryAlerts}
                       onCheckedChange={setInventoryAlerts}
                     />
                   </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <h4 className="text-base font-medium">User Activity</h4>
-                      <p className="text-sm text-muted-foreground">
+
+                  <div className=&quot;flex items-center justify-between rounded-lg border p-4&quot;>
+                    <div className=&quot;space-y-0.5&quot;>
+                      <h4 className=&quot;text-base font-medium&quot;>User Activity</h4>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>
                         Notifications about user logins and important account activities
                       </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={userActivity}
                       onCheckedChange={setUserActivity}
                     />
                   </div>
                 </div>
               </div>
-              
-              <div className="pt-4">
+
+              <div className=&quot;pt-4&quot;>
                 <Button onClick={saveNotificationPreferences}>Save Preferences</Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Categories Management */}
-        <TabsContent value="categories">
+        <TabsContent value=&quot;categories&quot;>
           <CategoryManagement />
         </TabsContent>
 

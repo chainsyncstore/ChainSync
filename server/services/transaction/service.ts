@@ -39,9 +39,9 @@ import { LoyaltyService } from '../loyalty/service';
 import { Logger, LogLevel, createLogger } from '../../../src/logging/index.js';
 
 export class TransactionService extends BaseService implements ITransactionService {
-  private inventoryService: InventoryService;
-  private loyaltyService: LoyaltyService;
-  private logger: Logger;
+  private _inventoryService: InventoryService;
+  private _loyaltyService: LoyaltyService;
+  private _logger: Logger;
 
   constructor() {
     super();
@@ -50,38 +50,38 @@ export class TransactionService extends BaseService implements ITransactionServi
 
     // Create a logger with service context
     this.logger = createLogger({
-      service: 'TransactionService',
-      component: 'transaction'
+      _service: 'TransactionService',
+      _component: 'transaction'
     });
   }
-  createTransactionItem(params: CreateTransactionItemParams): Promise<TransactionItem> {
+  createTransactionItem(_params: CreateTransactionItemParams): Promise<TransactionItem> {
     throw new Error('Method not implemented.');
   }
-  updateTransactionItem(id: string, params: UpdateTransactionItemParams): Promise<TransactionItem> {
+  updateTransactionItem(_id: string, _params: UpdateTransactionItemParams): Promise<TransactionItem> {
     throw new Error('Method not implemented.');
   }
-  createTransactionPayment(params: CreateTransactionPaymentParams): Promise<TransactionPayment> {
+  createTransactionPayment(_params: CreateTransactionPaymentParams): Promise<TransactionPayment> {
     throw new Error('Method not implemented.');
   }
-  updateTransactionPayment(id: string, params: UpdateTransactionPaymentParams): Promise<TransactionPayment> {
+  updateTransactionPayment(_id: string, _params: UpdateTransactionPaymentParams): Promise<TransactionPayment> {
     throw new Error('Method not implemented.');
   }
 
   /**
    * Set a custom logger (useful for testing or external configuration)
    */
-  setLogger(logger: Logger): void {
+  setLogger(_logger: Logger): void {
     this.logger = logger;
   }
 
   /**
    * Create a new transaction with validated data
    */
-  async createTransaction(params: CreateTransactionParams): Promise<SelectTransaction> {
+  async createTransaction(_params: CreateTransactionParams): Promise<SelectTransaction> {
     try {
       // Verify store exists
       const store = await db.query.stores.findFirst({
-        where: eq(schema.stores.id, params.storeId)
+        _where: eq(schema.stores.id, params.storeId)
       });
 
       if (!store) {
@@ -90,7 +90,7 @@ export class TransactionService extends BaseService implements ITransactionServi
 
       // Verify user exists
       const user = await db.query.users.findFirst({
-        where: eq(schema.users.id, params.userId)
+        _where: eq(schema.users.id, params.userId)
       });
 
       if (!user) {
@@ -100,7 +100,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Verify customer exists if provided
       if (params.customerId) {
         const customer = await db.query.users.findFirst({
-          where: eq(schema.users.id, params.customerId)
+          _where: eq(schema.users.id, params.customerId)
         });
 
         if (!customer) {
@@ -111,9 +111,9 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Verify products exist and calculate totals
       const productIds = params.items.map(item => item.productId);
       const products = await db.query.products.findMany({
-        where: inArray(schema.products.id, productIds),
-        with: {
-          inventory: true
+        _where: inArray(schema.products.id, productIds),
+        _with: {
+          _inventory: true
         }
       });
 
@@ -123,7 +123,8 @@ export class TransactionService extends BaseService implements ITransactionServi
       }
 
       // Create product lookup map for faster access
-      const productMap = new Map<number, schema.SelectProduct & { inventory: schema.SelectInventory | null }>();
+      const productMap = new Map<number, schema.SelectProduct & { _inventory: schema.SelectInventory | null
+  }>();
       products.forEach(product => productMap.set(product.id, product));
 
       // Validate stock availability if this is a sale
@@ -160,15 +161,15 @@ export class TransactionService extends BaseService implements ITransactionServi
 
           // Prepare item data
           const itemData = {
-            transactionId: transaction.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount || '0.00',
-            subtotal: (parseFloat(item.unitPrice) * item.quantity).toFixed(2),
-            notes: item.notes || '',
-            createdAt: new Date(),
-            updatedAt: new Date()
+            _transactionId: transaction.id,
+            _productId: item.productId,
+            _quantity: item.quantity,
+            _unitPrice: item.unitPrice,
+            _discount: item.discount || '0.00',
+            _subtotal: (parseFloat(item.unitPrice) * item.quantity).toFixed(2),
+            _notes: item.notes || '',
+            _createdAt: new Date(),
+            _updatedAt: new Date()
           };
 
           const validatedItemData = transactionValidation.item.insert.parse(itemData);
@@ -178,12 +179,12 @@ export class TransactionService extends BaseService implements ITransactionServi
 
           if (params.type === TransactionType.SALE) {
             await this.inventoryService.adjustInventory({
-              productId: item.productId,
-              quantity: -item.quantity,
-              reason: `Sale - Transaction #${transaction.id}`,
-              transactionType: InventoryTransactionType.SALE,
-              userId: params.userId,
-              referenceId: transaction.id.toString()
+              _productId: item.productId,
+              _quantity: -item.quantity,
+              _reason: `Sale - Transaction #${transaction.id}`,
+              _transactionType: InventoryTransactionType.SALE,
+              _userId: params.userId,
+              _referenceId: transaction.id.toString()
             });
           }
         }
@@ -202,13 +203,13 @@ export class TransactionService extends BaseService implements ITransactionServi
 
           for (const payment of params.payments || []) {
             const paymentData = {
-              transactionId: transaction.id,
-              amount: payment.amount,
-              method: payment.method,
-              reference: payment.reference || '',
-              status: 'completed',
-              createdAt: new Date(),
-              updatedAt: new Date()
+              _transactionId: transaction.id,
+              _amount: payment.amount,
+              _method: payment.method,
+              _reference: payment.reference || '',
+              _status: 'completed',
+              _createdAt: new Date(),
+              _updatedAt: new Date()
             };
 
             const validatedPaymentData = transactionValidation.payment.insert.parse(paymentData);
@@ -221,33 +222,33 @@ export class TransactionService extends BaseService implements ITransactionServi
         // Process loyalty points if applicable
         if (params.loyaltyPoints && params.customerId) {
           this.logger.info('Processing loyalty points for transaction', {
-            transactionId: transaction.id,
-            customerId: params.customerId,
-            earnedPoints: params.loyaltyPoints.earned,
-            redeemedPoints: params.loyaltyPoints.redeemed,
-            total: params.total
+            _transactionId: transaction.id,
+            _customerId: params.customerId,
+            _earnedPoints: params.loyaltyPoints.earned,
+            _redeemedPoints: params.loyaltyPoints.redeemed,
+            _total: params.total
           });
 
           // Find loyalty member for this customer
           const loyaltyMember = await tx.query.loyaltyMembers.findFirst({
-            where: eq(schema.loyaltyMembers.customerId, params.customerId)
+            _where: eq(schema.loyaltyMembers.customerId, params.customerId)
           });
 
           if (loyaltyMember) {
             this.logger.debug('Found loyalty member', {
-              loyaltyMemberId: loyaltyMember.id,
-              customerId: params.customerId,
-              transactionId: transaction.id,
-              currentPoints: loyaltyMember.points
+              _loyaltyMemberId: loyaltyMember.id,
+              _customerId: params.customerId,
+              _transactionId: transaction.id,
+              _currentPoints: loyaltyMember.points
             });
 
             // Award points if earned
             if (params.loyaltyPoints.earned > 0) {
               try {
                 this.logger.info('Awarding loyalty points', {
-                  loyaltyMemberId: loyaltyMember.id,
-                  points: params.loyaltyPoints.earned,
-                  transactionId: transaction.id
+                  _loyaltyMemberId: loyaltyMember.id,
+                  _points: params.loyaltyPoints.earned,
+                  _transactionId: transaction.id
                 });
 
                 await this.loyaltyService.addPoints(
@@ -259,16 +260,16 @@ export class TransactionService extends BaseService implements ITransactionServi
                 );
 
                 this.logger.info('Loyalty points awarded successfully', {
-                  loyaltyMemberId: loyaltyMember.id,
-                  points: params.loyaltyPoints.earned,
-                  transactionId: transaction.id
+                  _loyaltyMemberId: loyaltyMember.id,
+                  _points: params.loyaltyPoints.earned,
+                  _transactionId: transaction.id
                 });
               } catch (error) {
                 // Log error but don't fail the transaction
                 this.logger.error('Failed to award loyalty points', error as Error, {
-                  loyaltyMemberId: loyaltyMember.id,
-                  points: params.loyaltyPoints.earned,
-                  transactionId: transaction.id
+                  _loyaltyMemberId: loyaltyMember.id,
+                  _points: params.loyaltyPoints.earned,
+                  _transactionId: transaction.id
                 });
               }
             }
@@ -276,26 +277,26 @@ export class TransactionService extends BaseService implements ITransactionServi
             // Redeem points if specified
             if (params.loyaltyPoints.redeemed > 0) {
               this.logger.info('Redeeming loyalty points', {
-                loyaltyMemberId: loyaltyMember.id,
-                points: params.loyaltyPoints.redeemed,
-                transactionId: transaction.id
+                _loyaltyMemberId: loyaltyMember.id,
+                _points: params.loyaltyPoints.redeemed,
+                _transactionId: transaction.id
               });
 
               // Implement loyalty point redemption logic
               // This would typically be a call to a loyalty service method
-              // Example: await this.loyaltyService.redeemPoints(...)
+              // _Example: await this.loyaltyService.redeemPoints(...)
             }
           } else {
             this.logger.warn('Customer not enrolled in loyalty program', {
-              customerId: params.customerId,
-              transactionId: transaction.id
+              _customerId: params.customerId,
+              _transactionId: transaction.id
             });
           }
         } else {
           this.logger.debug('No loyalty points to process for transaction', {
-            transactionId: transaction.id,
-            hasCustomer: !!params.customerId,
-            loyaltyEnabled: params.customerId ? true : false
+            _transactionId: transaction.id,
+            _hasCustomer: !!params.customerId,
+            _loyaltyEnabled: params.customerId ? _true : false
           });
         }
 
@@ -304,8 +305,8 @@ export class TransactionService extends BaseService implements ITransactionServi
     } catch (error) {
       if (error instanceof SchemaValidationError) {
         this.logger.error('Validation error creating transaction', error, {
-          validationErrors: error.toJSON(),
-          params: { customerId: params.customerId, storeId: params.storeId, total: params.total }
+          _validationErrors: error.toJSON(),
+          _params: { _customerId: params.customerId, _storeId: params.storeId, _total: params.total }
         });
       }
       return this.handleError(error as Error, 'Creating transaction');
@@ -315,11 +316,11 @@ export class TransactionService extends BaseService implements ITransactionServi
   /**
    * Update a transaction with validated data
    */
-  async updateTransaction(id: string, params: UpdateTransactionParams): Promise<SelectTransaction> {
+  async updateTransaction(_id: string, _params: UpdateTransactionParams): Promise<SelectTransaction> {
     try {
       const transactionId = parseInt(id, 10);
       const transaction = await db.query.transactions.findFirst({
-        where: eq(schema.transactions.id, transactionId)
+        _where: eq(schema.transactions.id, transactionId)
       });
 
       if (!transaction) {
@@ -328,7 +329,7 @@ export class TransactionService extends BaseService implements ITransactionServi
 
       // Verify user exists
       const user = await db.query.users.findFirst({
-        where: eq(schema.users.id, params.userId)
+        _where: eq(schema.users.id, params.userId)
       });
 
       if (!user) {
@@ -338,7 +339,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Verify customer exists if provided
       if (params.customerId) {
         const customer = await db.query.users.findFirst({
-          where: eq(schema.users.id, params.customerId)
+          _where: eq(schema.users.id, params.customerId)
         });
 
         if (!customer) {
@@ -353,9 +354,9 @@ export class TransactionService extends BaseService implements ITransactionServi
 
       // Prepare transaction data with camelCase field names
       const transactionData = {
-        ...(params.status ? { status: params.status } : {}),
-        notes: params.notes || '',
-        updatedAt: new Date()
+        ...(params.status ? { _status: params.status } : {}),
+        _notes: params.notes || '',
+        _updatedAt: new Date()
       };
 
       // Validate transaction data
@@ -380,7 +381,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       if (!updatedTransaction[0]) {
         throw new Error('Failed to update transaction - no record returned');
       }
-      
+
       return updatedTransaction[0];
     } catch (error) {
       return this.handleError(error as Error, 'Updating transaction');
@@ -390,11 +391,11 @@ export class TransactionService extends BaseService implements ITransactionServi
   /**
    * Process a refund for a transaction
    */
-  async processRefund(params: RefundParams): Promise<schema.SelectReturn> {
+  async processRefund(_params: RefundParams): Promise<schema.SelectReturn> {
     try {
       // Verify transaction exists
       const transaction = await db.query.transactions.findFirst({
-        where: eq(schema.transactions.id, params.transactionId)
+        _where: eq(schema.transactions.id, params.transactionId)
       });
 
       if (!transaction) {
@@ -403,7 +404,7 @@ export class TransactionService extends BaseService implements ITransactionServi
 
       // Verify user exists
       const user = await db.query.users.findFirst({
-        where: eq(schema.users.id, params.userId)
+        _where: eq(schema.users.id, params.userId)
       });
 
       if (!user) {
@@ -413,7 +414,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Verify customer exists if provided
       if (params.customerId) {
         const customer = await db.query.users.findFirst({
-          where: eq(schema.users.id, params.customerId)
+          _where: eq(schema.users.id, params.customerId)
         });
 
         if (!customer) {
@@ -430,8 +431,8 @@ export class TransactionService extends BaseService implements ITransactionServi
       const result = await db.transaction(async(tx) => {
         // Prepare refund data with camelCase field names
         const refundData = {
-          total: params.amount ?? '0',
-          refundId: `REF-${Date.now()}-${params.transactionId}`
+          _total: params.amount ?? '0',
+          _refundId: `REF-${Date.now()}-${params.transactionId}`
         };
 
         // Validate refund data
@@ -445,7 +446,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         // Insert refund items
         for (const item of (params.items ?? [])) {
           const originalItem = await tx.query.transactionItems.findFirst({
-            where: and(
+            _where: and(
               eq(schema.transactionItems.transactionId, params.transactionId),
               eq(schema.transactionItems.productId, item.productId)
             )
@@ -465,20 +466,20 @@ export class TransactionService extends BaseService implements ITransactionServi
           }
 
           const refundItemData = {
-            returnId: refund.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            reason: `Refund - Return #${refund.id}`,
+            _returnId: refund.id,
+            _productId: item.productId,
+            _quantity: item.quantity,
+            _reason: `Refund - Return #${refund.id}`,
 
-            userId: params.userId,
-            reference: refund.id
+            _userId: params.userId,
+            _reference: refund.id
           };
 
           // Update inventory
           await this.inventoryService.adjustInventory({
             ...refundItemData,
-            transactionType: InventoryTransactionType.RETURN,
-            referenceId: (refund as any).id || undefined
+            _transactionType: InventoryTransactionType.RETURN,
+            _referenceId: (refund as any).id || undefined
           });
         }
 
@@ -502,27 +503,27 @@ export class TransactionService extends BaseService implements ITransactionServi
   /**
    * Get transaction analytics for a store
    */
-  async getTransactionAnalytics(storeId: number, startDate?: Date, endDate?: Date): Promise<{
-    totalSales: string;
-    totalReturns: string;
-    netSales: string;
-    averageTransactionValue: string;
-    transactionCount: number;
-    returnCount: number;
-    salesByPaymentMethod: Array<{
-      method: PaymentMethod;
-      amount: string;
-      count: number;
+  async getTransactionAnalytics(_storeId: number, startDate?: Date, endDate?: Date): Promise<{
+    _totalSales: string;
+    _totalReturns: string;
+    _netSales: string;
+    _averageTransactionValue: string;
+    _transactionCount: number;
+    _returnCount: number;
+    _salesByPaymentMethod: Array<{
+      _method: PaymentMethod;
+      _amount: string;
+      _count: number;
     }>;
-    salesByHourOfDay: Array<{
-      hour: number;
-      amount: string;
-      count: number;
+    _salesByHourOfDay: Array<{
+      _hour: number;
+      _amount: string;
+      _count: number;
     }>;
-    salesByDayOfWeek: Array<{
-      day: number;
-      amount: string;
-      count: number;
+    _salesByDayOfWeek: Array<{
+      _day: number;
+      _amount: string;
+      _count: number;
     }>;
   }> {
     try {
@@ -538,7 +539,7 @@ export class TransactionService extends BaseService implements ITransactionServi
 
       // Verify store exists
       const store = await db.query.stores.findFirst({
-        where: eq(schema.stores.id, storeId)
+        _where: eq(schema.stores.id, storeId)
       });
 
       if (!store) {
@@ -554,10 +555,13 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Get sales totals
       const [salesResult] = await db
         .select({
-          totalSales: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.COMPLETED}' THEN ${schema.transactions.total} ELSE 0 END), 0)`,
-          totalReturns: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.REFUNDED}' THEN ${schema.transactions.total} ELSE 0 END), 0)`,
-          saleCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.COMPLETED}' THEN ${schema.transactions.id} END)`,
-          returnCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.REFUNDED}' THEN ${schema.transactions.id} END)`
+          _totalSales: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status}
+   =  '${TransactionStatus.COMPLETED}' THEN ${schema.transactions.total} ELSE 0 END), 0)`,
+          _totalReturns: sql<string>`COALESCE(SUM(CASE WHEN ${schema.transactions.status}
+   =  '${TransactionStatus.REFUNDED}' THEN ${schema.transactions.total} ELSE 0 END), 0)`,
+          _saleCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status} = '${TransactionStatus.COMPLETED}' THEN ${schema.transactions.id} END)`,
+          _returnCount: sql<number>`COUNT(CASE WHEN ${schema.transactions.status}
+   =  '${TransactionStatus.REFUNDED}' THEN ${schema.transactions.id} END)`
         })
         .from(schema.transactions)
         .where(dateFilter);
@@ -576,9 +580,9 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Get sales by payment method
       const salesByPaymentMethod = await db
         .select({
-          method: schema.transactions.paymentMethod,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
-          count: sql<number>`COUNT(*)`
+          _method: schema.transactions.paymentMethod,
+          _amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
+          _count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
         .where(and(
@@ -590,9 +594,9 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Get sales by hour of day
       const salesByHourOfDay = await db
         .select({
-          hour: sql<number>`EXTRACT(HOUR FROM ${schema.transactions.createdAt})`,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
-          count: sql<number>`COUNT(*)`
+          _hour: sql<number>`EXTRACT(HOUR FROM ${schema.transactions.createdAt})`,
+          _amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
+          _count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
         .where(and(
@@ -605,9 +609,9 @@ export class TransactionService extends BaseService implements ITransactionServi
       // Get sales by day of week
       const salesByDayOfWeek = await db
         .select({
-          day: sql<number>`EXTRACT(DOW FROM ${schema.transactions.createdAt})`,
-          amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
-          count: sql<number>`COUNT(*)`
+          _day: sql<number>`EXTRACT(DOW FROM ${schema.transactions.createdAt})`,
+          _amount: sql<string>`COALESCE(SUM(${schema.transactions.total}::numeric), 0)`,
+          _count: sql<number>`COUNT(*)`
         })
         .from(schema.transactions)
         .where(and(
@@ -622,9 +626,9 @@ export class TransactionService extends BaseService implements ITransactionServi
         totalReturns,
         netSales,
         averageTransactionValue,
-        transactionCount: saleCount + returnCount,
+        _transactionCount: saleCount + returnCount,
         returnCount,
-        salesByPaymentMethod: salesByPaymentMethod as unknown as Array<{ method: PaymentMethod; amount: string; count: number }>,
+        _salesByPaymentMethod: salesByPaymentMethod as unknown as Array<{ _method: PaymentMethod; _amount: string; _count: number }>,
         salesByHourOfDay,
         salesByDayOfWeek
       };
@@ -639,57 +643,57 @@ export class TransactionService extends BaseService implements ITransactionServi
   // ---------------------------------------------------------------------
   // Additional interface methods
   // ---------------------------------------------------------------------
-  async getTransactionById(id: string): Promise<SelectTransaction | null> {
+  async getTransactionById(_id: string): Promise<SelectTransaction | null> {
     const transactionId = parseInt(id, 10);
-    const transaction = await db.query.transactions.findFirst({ where: eq(schema.transactions.id, transactionId) });
+    const transaction = await db.query.transactions.findFirst({ _where: eq(schema.transactions.id, transactionId) });
     return transaction ?? null;
   }
 
-  async getTransactionsByStore(storeId: number, page = 1, limit = 20): Promise<{ transactions: SelectTransaction[]; total: number; page: number; limit: number }> {
+  async getTransactionsByStore(_storeId: number, page = 1, limit = 20): Promise<{ _transactions: SelectTransaction[]; _total: number; _page: number; _limit: number }> {
     const offset = (page - 1) * limit;
     const transactions = await db.query.transactions.findMany({
-      where: eq(schema.transactions.storeId, storeId),
+      _where: eq(schema.transactions.storeId, storeId),
       offset,
       limit,
-      orderBy: [desc(schema.transactions.createdAt)]
+      _orderBy: [desc(schema.transactions.createdAt)]
     });
-    const countResult = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(eq(schema.transactions.storeId, storeId));
+    const countResult = await db.select({ _count: sql<number>`count(*)` }).from(schema.transactions).where(eq(schema.transactions.storeId, storeId));
     const count = countResult[0]?.count || 0;
-    return { transactions, total: Number(count), page, limit };
+    return { transactions, _total: Number(count), page, limit };
   }
 
-  async getTransactionsByCustomer(customerId: number, page = 1, limit = 20): Promise<{ transactions: SelectTransaction[]; total: number; page: number; limit: number }> {
+  async getTransactionsByCustomer(_customerId: number, page = 1, limit = 20): Promise<{ _transactions: SelectTransaction[]; _total: number; _page: number; _limit: number }> {
     const offset = (page - 1) * limit;
     const transactions = await db.query.transactions.findMany({
-      where: eq(schema.transactions.customerId, customerId),
+      _where: eq(schema.transactions.customerId, customerId),
       offset,
       limit,
-      orderBy: [desc(schema.transactions.createdAt)]
+      _orderBy: [desc(schema.transactions.createdAt)]
     });
-    const countResult = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(eq(schema.transactions.customerId, customerId));
+    const countResult = await db.select({ _count: sql<number>`count(*)` }).from(schema.transactions).where(eq(schema.transactions.customerId, customerId));
     const count = countResult[0]?.count || 0;
-    return { transactions, total: Number(count), page, limit };
+    return { transactions, _total: Number(count), page, limit };
   }
 
-  async searchTransactions(params: TransactionSearchParams): Promise<{ transactions: SelectTransaction[]; total: number; page: number; limit: number }> {
+  async searchTransactions(_params: TransactionSearchParams): Promise<{ _transactions: SelectTransaction[]; _total: number; _page: number; _limit: number }> {
     const { storeId, keyword, page = 1, limit = 20 } = params;
     const offset = (page - 1) * limit;
 
-    const wheres: (ReturnType<typeof eq> | ReturnType<typeof or>)[] = [eq(schema.transactions.storeId, storeId)];
+    const _wheres: (ReturnType<typeof eq> | ReturnType<typeof or>)[] = [eq(schema.transactions.storeId, storeId)];
     if (keyword) {
       const kw = `%${keyword}%`;
       wheres.push(or(like(sql`cast(${schema.transactions.id} as text)`, kw)));
     }
 
-    const countResult = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(and(...wheres));
+    const countResult = await db.select({ _count: sql<number>`count(*)` }).from(schema.transactions).where(and(...wheres));
     const count = countResult[0]?.count || 0;
-    const transactions = await db.query.transactions.findMany({ where: and(...wheres), offset, limit, orderBy: [desc(schema.transactions.createdAt)] });
-    return { transactions, total: Number(count), page, limit };
+    const transactions = await db.query.transactions.findMany({ _where: and(...wheres), offset, limit, _orderBy: [desc(schema.transactions.createdAt)] });
+    return { transactions, _total: Number(count), page, limit };
   }
 
-  private validateStatusTransition(currentStatus: string, newStatus: string): void {
+  private validateStatusTransition(_currentStatus: string, _newStatus: string): void {
     // Define allowed status transitions
-    const allowedTransitions: Record<string, string[]> = {
+    const _allowedTransitions: Record<string, string[]> = {
       [TransactionStatus.PENDING]: [
         TransactionStatus.COMPLETED,
         TransactionStatus.CANCELLED,

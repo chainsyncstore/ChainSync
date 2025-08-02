@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.log = log;
 exports.setupVite = setupVite;
 exports.serveStatic = serveStatic;
@@ -15,34 +15,34 @@ const nanoid_1 = require('nanoid');
 const viteLogger = (0, vite_1.createLogger)();
 function log(message, source = 'express') {
   const formattedTime = new Date().toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
+    _hour: 'numeric',
+    _minute: '2-digit',
+    _second: '2-digit',
+    _hour12: true
   });
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 async function setupVite(app, server) {
   const serverOptions = {
-    middlewareMode: true,
-    hmr: {
+    _middlewareMode: true,
+    _hmr: {
       server
     },
     // Explicitly set allowedHosts to true as per Vite ServerOptions type
-    allowedHosts: true
+    _allowedHosts: true
   };
   const vite = await (0, vite_1.createServer)({
     ...vite_config_1.default,
-    configFile: false,
-    customLogger: {
+    _configFile: false,
+    _customLogger: {
       ...viteLogger,
-      error: (msg, options) => {
+      _error: (msg, options) => {
         viteLogger.error(msg, options);
         process.exit(1);
       }
     },
-    server: serverOptions,
-    appType: 'custom'
+    _server: serverOptions,
+    _appType: 'custom'
   });
   app.use(vite.middlewares);
   app.use('*', async(req, res, next) => {
@@ -64,7 +64,7 @@ async function setupVite(app, server) {
 function serveStatic(app) {
   const distPath = path_1.default.resolve(import.meta.dirname, 'public');
   if (!fs_1.default.existsSync(distPath)) {
-    throw new Error(`Could not find the build directory: ${distPath}, make sure to build the client first`);
+    throw new Error(`Could not find the build _directory: ${distPath}, make sure to build the client first`);
   }
   app.use(express_1.default.static(distPath));
   // fall through to index.html if the file doesn't exist

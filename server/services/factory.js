@@ -5,7 +5,7 @@
  * This factory manages service instantiation with proper dependency injection
  * and ensures consistent configuration across all services.
  */
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ServiceFactory = void 0;
 exports.getService = getService;
 exports.getServiceWithConfig = getServiceWithConfig;
@@ -36,10 +36,10 @@ class ServiceFactory {
     const serviceName = serviceClass.name;
     if (!this.serviceInstances.has(serviceName)) {
       this.serviceInstances.set(serviceName, new serviceClass({
-        logger: this.config.logger,
-        db: this.config.db,
-        cache: this.config.cache,
-        redis: this.config.redis
+        _logger: this.config.logger,
+        _db: this.config.db,
+        _cache: this.config.cache,
+        _redis: this.config.redis
       }));
     }
     return this.serviceInstances.get(serviceName);
@@ -51,10 +51,10 @@ class ServiceFactory {
     const serviceName = `${serviceClass.name}:${JSON.stringify(additionalConfig)}`;
     if (!this.serviceInstances.has(serviceName)) {
       this.serviceInstances.set(serviceName, new serviceClass({
-        logger: this.config.logger,
-        db: this.config.db,
-        cache: this.config.cache,
-        redis: this.config.redis,
+        _logger: this.config.logger,
+        _db: this.config.db,
+        _cache: this.config.cache,
+        _redis: this.config.redis,
         ...additionalConfig
       }));
     }
@@ -66,10 +66,10 @@ class ServiceFactory {
      */
   createService(serviceClass, additionalConfig = {}) {
     return new serviceClass({
-      logger: this.config.logger,
-      db: this.config.db,
-      cache: this.config.cache,
-      redis: this.config.redis,
+      _logger: this.config.logger,
+      _db: this.config.db,
+      _cache: this.config.cache,
+      _redis: this.config.redis,
       ...additionalConfig
     });
   }

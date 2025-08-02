@@ -1,22 +1,22 @@
-import React, { useState, useRef } from 'react';
-import { useAuth } from '@/providers/auth-provider';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useRef } from &apos;react&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { useMutation, useQuery } from &apos;@tanstack/react-query&apos;;
+import { apiRequest, queryClient } from &apos;@/lib/queryClient&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
 import {
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
 import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+  TabsTrigger
+} from &apos;@/components/ui/tabs&apos;;
 import {
   Table,
   TableBody,
@@ -24,8 +24,8 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  TableRow
+} from &apos;@/components/ui/table&apos;;
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,55 +34,55 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  AlertDialogTitle
+} from &apos;@/components/ui/alert-dialog&apos;;
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { 
-  Upload, 
-  FileUp, 
-  Download, 
-  FileX, 
-  CheckCircle, 
-  AlertTriangle, 
+  SelectValue
+} from &apos;@/components/ui/select&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Label } from &apos;@/components/ui/label&apos;;
+import { Checkbox } from &apos;@/components/ui/checkbox&apos;;
+import { Progress } from &apos;@/components/ui/progress&apos;;
+import { Badge } from &apos;@/components/ui/badge&apos;;
+import { Alert, AlertDescription, AlertTitle } from &apos;@/components/ui/alert&apos;;
+import {
+  Upload,
+  FileUp,
+  Download,
+  FileX,
+  CheckCircle,
+  AlertTriangle,
   X,
   AlertCircle,
   Store
-} from 'lucide-react';
+} from &apos;lucide-react&apos;;
 
 interface ValidationError {
-  row: number;
-  field: string;
-  value: string;
-  message: string;
+  _row: number;
+  _field: string;
+  _value: string;
+  _message: string;
 }
 
 interface ImportSummary {
-  totalRows: number;
-  processedRows: number;
-  skippedRows: number;
-  newCategories: string[];
-  errors: ValidationError[];
+  _totalRows: number;
+  _processedRows: number;
+  _skippedRows: number;
+  _newCategories: string[];
+  _errors: ValidationError[];
 }
 
 interface ProductData {
-  name: string;
-  sku: string;
-  categoryId: number;
-  price: string;
-  stock: number;
+  _name: string;
+  _sku: string;
+  _categoryId: number;
+  _price: string;
+  _stock: number;
   expiryDate?: Date | null;
   description?: string;
   barcode?: string;
@@ -92,311 +92,312 @@ interface ProductData {
 }
 
 interface ImportResult {
-  success: boolean;
-  importedCount: number;
-  failedProducts: Array<{product: ProductData; error: string}>;
+  _success: boolean;
+  _importedCount: number;
+  _failedProducts: Array<{_product: ProductData; _error: string}>;
 }
 
 export default function ProductImport() {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [file, setFile] = useState<File | null>(null);
   const [isFileValid, setIsFileValid] = useState<boolean | null>(null);
   const [validationSummary, setValidationSummary] = useState<ImportSummary | null>(null);
   const [validProducts, setValidProducts] = useState<ProductData[]>([]);
-  const [currentTab, setCurrentTab] = useState('upload');
-  const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+  const [currentTab, setCurrentTab] = useState(&apos;upload&apos;);
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(&apos;&apos;);
   const [importConfirmOpen, setImportConfirmOpen] = useState(false);
   const [createCategoriesAutomatically, setCreateCategoriesAutomatically] = useState(true);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  
+
   // Fetch stores the user can access
   const storesQuery = useQuery({
-    queryKey: ['/api/stores'],
+    _queryKey: [&apos;/api/stores&apos;]
   });
-  
+
   // Upload and validate file
   const validateMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      return await apiRequest('POST', '/api/products/import/validate', formData);
+    _mutationFn: async(_formData: FormData) => {
+      return await apiRequest(&apos;POST&apos;, &apos;/api/products/import/validate&apos;, formData);
     },
-    onSuccess: (data) => {
+    _onSuccess: (data) => {
       if (data.summary) {
         setValidationSummary(data.summary);
         setValidProducts(data.validProducts || []);
         setIsFileValid(true);
-        setCurrentTab('validate');
-        
+        setCurrentTab(&apos;validate&apos;);
+
         if (data.summary.errors.length > 0) {
           toast({
-            title: 'Validation completed with issues',
-            description: `Found ${data.summary.errors.length} issue(s) in the imported data.`,
-            variant: 'default',
+            _title: &apos;Validation completed with issues&apos;,
+            _description: `Found ${data.summary.errors.length} issue(s) in the imported data.`,
+            _variant: &apos;default&apos;
           });
         } else {
           toast({
-            title: 'Validation successful',
-            description: `All ${data.summary.processedRows} rows are valid and ready to import.`,
-            variant: 'default',
+            _title: &apos;Validation successful&apos;,
+            _description: `All ${data.summary.processedRows} rows are valid and ready to import.`,
+            _variant: &apos;default&apos;
           });
         }
       } else {
         setIsFileValid(false);
         toast({
-          title: 'Validation failed',
-          description: data.message || 'Unable to validate the file.',
-          variant: 'destructive',
+          _title: &apos;Validation failed&apos;,
+          _description: data.message || &apos;Unable to validate the file.&apos;,
+          _variant: &apos;destructive&apos;
         });
       }
     },
-    onError: (error: any) => {
+    _onError: (_error: any) => {
       setIsFileValid(false);
       toast({
-        title: 'Validation error',
-        description: error.message || 'An error occurred during validation.',
-        variant: 'destructive',
+        _title: &apos;Validation error&apos;,
+        _description: error.message || &apos;An error occurred during validation.&apos;,
+        _variant: &apos;destructive&apos;
       });
-    },
+    }
   });
-  
+
   // Import validated products
   const importMutation = useMutation({
-    mutationFn: async (data: { products: ProductData[]; storeId: number; createCategories: boolean }) => {
-      return await apiRequest('POST', '/api/products/import/process', data);
+    _mutationFn: async(data: { _products: ProductData[]; _storeId: number; _createCategories: boolean })
+   = > {
+      return await apiRequest(&apos;POST&apos;, &apos;/api/products/import/process&apos;, data);
     },
-    onSuccess: (data) => {
+    _onSuccess: (data) => {
       setImportResult(data);
-      setCurrentTab('results');
-      
+      setCurrentTab(&apos;results&apos;);
+
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/products&apos;] });
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/categories&apos;] });
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/inventory&apos;] });
+
       if (data.success) {
         toast({
-          title: 'Import completed',
-          description: `Successfully imported ${data.importedCount} product(s).`,
-          variant: 'default',
+          _title: &apos;Import completed&apos;,
+          _description: `Successfully imported ${data.importedCount} product(s).`,
+          _variant: &apos;default&apos;
         });
       } else {
         toast({
-          title: 'Import completed with issues',
-          description: `Successfully imported ${data.importedCount} product(s), but ${data.failedProducts.length} failed.`,
-          variant: 'destructive',
+          _title: &apos;Import completed with issues&apos;,
+          _description: `Successfully imported ${data.importedCount} product(s), but ${data.failedProducts.length} failed.`,
+          _variant: &apos;destructive&apos;
         });
       }
     },
-    onError: (error: any) => {
+    _onError: (_error: any) => {
       toast({
-        title: 'Import failed',
-        description: error.message || 'An error occurred during the import process.',
-        variant: 'destructive',
+        _title: &apos;Import failed&apos;,
+        _description: error.message || &apos;An error occurred during the import process.&apos;,
+        _variant: &apos;destructive&apos;
       });
-    },
+    }
   });
-  
+
   // Download error report
   const downloadErrorReportMutation = useMutation({
-    mutationFn: async (errors: ValidationError[]) => {
-      const response = await apiRequest('POST', '/api/products/import/error-report', { errors });
+    _mutationFn: async(_errors: ValidationError[]) => {
+      const response = await apiRequest(&apos;POST&apos;, &apos;/api/products/import/error-report&apos;, { errors });
       return response.blob();
     },
-    onSuccess: (blob) => {
+    _onSuccess: (blob) => {
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement(&apos;a&apos;);
       a.href = url;
-      a.download = `import-errors-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `import-errors-${new Date().toISOString().split(&apos;T&apos;)[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-      
+
       toast({
-        title: 'Error report downloaded',
-        description: 'The error report has been downloaded.',
-        variant: 'default',
+        _title: &apos;Error report downloaded&apos;,
+        _description: &apos;The error report has been downloaded.&apos;,
+        _variant: &apos;default&apos;
       });
     },
-    onError: (error: any) => {
+    _onError: (_error: any) => {
       toast({
-        title: 'Download failed',
-        description: error.message || 'An error occurred while generating the error report.',
-        variant: 'destructive',
+        _title: &apos;Download failed&apos;,
+        _description: error.message || &apos;An error occurred while generating the error report.&apos;,
+        _variant: &apos;destructive&apos;
       });
-    },
+    }
   });
-  
+
   // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (_e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
-      
-      // Basic validation - check if it's a CSV file
-      if (selectedFile.type !== 'text/csv' && !selectedFile.name.endsWith('.csv')) {
+
+      // Basic validation - check if it&apos;s a CSV file
+      if (selectedFile.type !== &apos;text/csv&apos; && !selectedFile.name.endsWith(&apos;.csv&apos;)) {
         toast({
-          title: 'Invalid file format',
-          description: 'Please upload a CSV file.',
-          variant: 'destructive',
+          _title: &apos;Invalid file format&apos;,
+          _description: &apos;Please upload a CSV file.&apos;,
+          _variant: &apos;destructive&apos;
         });
         setFile(null);
         setIsFileValid(false);
         return;
       }
-      
+
       setFile(selectedFile);
       setIsFileValid(null); // Reset validation status
       setValidationSummary(null);
       setValidProducts([]);
     }
   };
-  
+
   // Handle drag and drop
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (_e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
-  
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+
+  const handleDrop = (_e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
-      
-      // Basic validation - check if it's a CSV file
-      if (droppedFile.type !== 'text/csv' && !droppedFile.name.endsWith('.csv')) {
+
+      // Basic validation - check if it&apos;s a CSV file
+      if (droppedFile.type !== &apos;text/csv&apos; && !droppedFile.name.endsWith(&apos;.csv&apos;)) {
         toast({
-          title: 'Invalid file format',
-          description: 'Please upload a CSV file.',
-          variant: 'destructive',
+          _title: &apos;Invalid file format&apos;,
+          _description: &apos;Please upload a CSV file.&apos;,
+          _variant: &apos;destructive&apos;
         });
         return;
       }
-      
+
       setFile(droppedFile);
       setIsFileValid(null); // Reset validation status
       setValidationSummary(null);
       setValidProducts([]);
     }
   };
-  
+
   // Handle file upload and validation
   const handleValidateFile = () => {
     if (!file) {
       toast({
-        title: 'No file selected',
-        description: 'Please select a CSV file to upload.',
-        variant: 'destructive',
+        _title: &apos;No file selected&apos;,
+        _description: &apos;Please select a CSV file to upload.&apos;,
+        _variant: &apos;destructive&apos;
       });
       return;
     }
-    
+
     const formData = new FormData();
-    formData.append('file', file);
-    
+    formData.append(&apos;file&apos;, file);
+
     validateMutation.mutate(formData);
   };
-  
+
   // Handle import confirmation
   const handleImportConfirm = () => {
     if (!selectedStoreId) {
       toast({
-        title: 'Store selection required',
-        description: 'Please select a store to import the products into.',
-        variant: 'destructive',
+        _title: &apos;Store selection required&apos;,
+        _description: &apos;Please select a store to import the products into.&apos;,
+        _variant: &apos;destructive&apos;
       });
       return;
     }
-    
+
     setImportConfirmOpen(true);
   };
-  
+
   // Handle product import
   const handleImport = () => {
     setImportConfirmOpen(false);
-    
+
     if (validProducts.length === 0) {
       toast({
-        title: 'No valid products',
-        description: 'There are no valid products to import.',
-        variant: 'destructive',
+        _title: &apos;No valid products&apos;,
+        _description: &apos;There are no valid products to import.&apos;,
+        _variant: &apos;destructive&apos;
       });
       return;
     }
-    
+
     if (!selectedStoreId) {
       toast({
-        title: 'Store selection required',
-        description: 'Please select a store to import the products into.',
-        variant: 'destructive',
+        _title: &apos;Store selection required&apos;,
+        _description: &apos;Please select a store to import the products into.&apos;,
+        _variant: &apos;destructive&apos;
       });
       return;
     }
-    
+
     importMutation.mutate({
-      products: validProducts,
-      storeId: parseInt(selectedStoreId),
-      createCategories: createCategoriesAutomatically
+      _products: validProducts,
+      _storeId: parseInt(selectedStoreId),
+      _createCategories: createCategoriesAutomatically
     });
   };
-  
+
   // Handle error report download
   const handleDownloadErrorReport = () => {
     if (validationSummary && validationSummary.errors.length > 0) {
       downloadErrorReportMutation.mutate(validationSummary.errors);
     }
   };
-  
+
   // Handle file reset
   const handleReset = () => {
     setFile(null);
     setIsFileValid(null);
     setValidationSummary(null);
     setValidProducts([]);
-    setCurrentTab('upload');
-    setSelectedStoreId('');
+    setCurrentTab(&apos;upload&apos;);
+    setSelectedStoreId(&apos;&apos;);
     setImportResult(null);
-    
+
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = &apos;&apos;;
     }
   };
-  
+
   // Calculate validation success rate as percentage
   const getValidationSuccessRate = () => {
     if (!validationSummary) return 0;
-    
+
     const { totalRows, skippedRows } = validationSummary;
     if (totalRows === 0) return 0;
-    
+
     return Math.round(((totalRows - skippedRows) / totalRows) * 100);
   };
-  
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className=&quot;space-y-6&quot;>
+      <div className=&quot;flex flex-col _md:flex-row justify-between items-start _md:items-center gap-4&quot;>
         <div>
-          <h1 className="text-2xl font-bold">Product Import</h1>
-          <p className="text-muted-foreground">
+          <h1 className=&quot;text-2xl font-bold&quot;>Product Import</h1>
+          <p className=&quot;text-muted-foreground&quot;>
             Import products from CSV files with validation
           </p>
         </div>
-        
-        <div className="flex items-center gap-2">
+
+        <div className=&quot;flex items-center gap-2&quot;>
           <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select Store" />
+            <SelectTrigger className=&quot;w-[200px]&quot;>
+              <SelectValue placeholder=&quot;Select Store&quot; />
             </SelectTrigger>
             <SelectContent>
               {storesQuery.isLoading ? (
-                <div className="flex justify-center p-2">
-                  <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+                <div className=&quot;flex justify-center p-2&quot;>
+                  <div className=&quot;animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full&quot; />
                 </div>
               ) : (
-                Array.isArray(storesQuery.data) && storesQuery.data.map((store: any) => (
+                Array.isArray(storesQuery.data) && storesQuery.data.map((_store: any) => (
                   <SelectItem key={store.id} value={store.id.toString()}>
                     {store.name}
                   </SelectItem>
@@ -406,27 +407,27 @@ export default function ProductImport() {
           </Select>
         </div>
       </div>
-      
-      <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upload" disabled={validateMutation.isPending}>
+
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className=&quot;w-full&quot;>
+        <TabsList className=&quot;grid w-full grid-cols-3&quot;>
+          <TabsTrigger value=&quot;upload&quot; disabled={validateMutation.isPending}>
             1. Upload File
           </TabsTrigger>
-          <TabsTrigger 
-            value="validate" 
+          <TabsTrigger
+            value=&quot;validate&quot;
             disabled={!isFileValid || validateMutation.isPending}
           >
             2. Validate Data
           </TabsTrigger>
-          <TabsTrigger 
-            value="results" 
+          <TabsTrigger
+            value=&quot;results&quot;
             disabled={!importResult || importMutation.isPending}
           >
             3. Results
           </TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="upload">
+
+        <TabsContent value=&quot;upload&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Upload CSV File</CardTitle>
@@ -435,131 +436,132 @@ export default function ProductImport() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div 
+              <div
                 className={`
                   border-2 border-dashed rounded-lg p-8 text-center
-                  ${file ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
+                  ${file ? &apos;border-primary bg-primary/5&apos; : &apos;border-muted-foreground/25&apos;}
                 `}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
               >
-                <div className="flex flex-col items-center justify-center space-y-4">
-                  <div className="rounded-full bg-primary/10 p-4">
-                    <Upload className="h-8 w-8 text-primary" />
+                <div className=&quot;flex flex-col items-center justify-center space-y-4&quot;>
+                  <div className=&quot;rounded-full bg-primary/10 p-4&quot;>
+                    <Upload className=&quot;h-8 w-8 text-primary&quot; />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="font-medium">Drag & drop your CSV file here</h3>
-                    <p className="text-sm text-muted-foreground">
+
+                  <div className=&quot;space-y-2&quot;>
+                    <h3 className=&quot;font-medium&quot;>Drag & drop your CSV file here</h3>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>
                       or click the button below to browse
                     </p>
                   </div>
-                  
+
                   {file ? (
-                    <div className="flex items-center justify-center gap-2 bg-muted px-3 py-2 rounded-md">
-                      <FileUp className="h-4 w-4 text-primary" />
-                      <span className="text-sm">{file.name}</span>
+                    <div className=&quot;flex items-center justify-center gap-2 bg-muted px-3 py-2 rounded-md&quot;>
+                      <FileUp className=&quot;h-4 w-4 text-primary&quot; />
+                      <span className=&quot;text-sm&quot;>{file.name}</span>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 rounded-full"
+                        variant=&quot;ghost&quot;
+                        size=&quot;icon&quot;
+                        className=&quot;h-6 w-6 rounded-full&quot;
                         onClick={() => setFile(null)}
                       >
-                        <X className="h-3 w-3" />
+                        <X className=&quot;h-3 w-3&quot; />
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className=&quot;flex gap-2&quot;>
                       <Button
-                        variant="outline"
+                        variant=&quot;outline&quot;
                         onClick={() => fileInputRef.current?.click()}
                       >
                         Select CSV File
                       </Button>
                       <Button
-                        variant="outline"
-                        onClick={() => window.open('/assets/templates/product-import-template.csv')}
+                        variant=&quot;outline&quot;
+                        onClick={() => window.open(&apos;/assets/templates/product-import-template.csv&apos;)}
                       >
                         Download Template
                       </Button>
                     </div>
                   )}
-                  
+
                   <input
                     ref={fileInputRef}
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
+                    type=&quot;file&quot;
+                    accept=&quot;.csv&quot;
+                    className=&quot;hidden&quot;
                     onChange={handleFileChange}
                   />
                 </div>
               </div>
-              
-              <div className="mt-6 space-y-4">
-                <h3 className="font-medium">Required Fields</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Product Name</p>
-                    <p className="text-sm text-muted-foreground">Name of the product</p>
+
+              <div className=&quot;mt-6 space-y-4&quot;>
+                <h3 className=&quot;font-medium&quot;>Required Fields</h3>
+                <div className=&quot;grid grid-cols-1 _md:grid-cols-3 gap-4&quot;>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Product Name</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Name of the product</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">SKU</p>
-                    <p className="text-sm text-muted-foreground">Unique product identifier</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>SKU</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Unique product identifier</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Category</p>
-                    <p className="text-sm text-muted-foreground">Product category name</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Category</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Product category name</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Price</p>
-                    <p className="text-sm text-muted-foreground">Selling price</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Price</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Selling price</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Stock</p>
-                    <p className="text-sm text-muted-foreground">Initial stock quantity</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Stock</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Initial stock quantity</p>
                   </div>
                 </div>
-                
-                <h3 className="font-medium mt-4">Optional Fields</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Expiry Date</p>
-                    <p className="text-sm text-muted-foreground">Product expiration date (YYYY-MM-DD)</p>
+
+                <h3 className=&quot;font-medium mt-4&quot;>Optional Fields</h3>
+                <div className=&quot;grid grid-cols-1 _md:grid-cols-3 gap-4&quot;>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Expiry Date</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Product expiration date
+  (YYYY-MM-DD)</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Description</p>
-                    <p className="text-sm text-muted-foreground">Product description</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Description</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Product description</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Barcode</p>
-                    <p className="text-sm text-muted-foreground">Product barcode</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Barcode</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Product barcode</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Image URL</p>
-                    <p className="text-sm text-muted-foreground">URL to product image</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Image URL</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>URL to product image</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Supplier</p>
-                    <p className="text-sm text-muted-foreground">Product supplier name</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Supplier</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Product supplier name</p>
                   </div>
-                  <div className="border rounded-md p-3">
-                    <p className="font-medium">Cost Price</p>
-                    <p className="text-sm text-muted-foreground">Product cost price</p>
+                  <div className=&quot;border rounded-md p-3&quot;>
+                    <p className=&quot;font-medium&quot;>Cost Price</p>
+                    <p className=&quot;text-sm text-muted-foreground&quot;>Product cost price</p>
                   </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={handleReset} disabled={validateMutation.isPending}>
+            <CardFooter className=&quot;flex justify-between&quot;>
+              <Button variant=&quot;outline&quot; onClick={handleReset} disabled={validateMutation.isPending}>
                 Reset
               </Button>
-              <Button 
-                onClick={handleValidateFile} 
+              <Button
+                onClick={handleValidateFile}
                 disabled={!file || validateMutation.isPending}
               >
                 {validateMutation.isPending ? (
                   <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                    <div className=&quot;mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent&quot; />
                     Validating...
                   </>
                 ) : (
@@ -569,8 +571,8 @@ export default function ProductImport() {
             </CardFooter>
           </Card>
         </TabsContent>
-        
-        <TabsContent value="validate">
+
+        <TabsContent value=&quot;validate&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Validation Results</CardTitle>
@@ -578,85 +580,85 @@ export default function ProductImport() {
                 Review validation results before importing products.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className=&quot;space-y-4&quot;>
               {validationSummary && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="border rounded-md p-4">
-                      <p className="text-sm text-muted-foreground">Total Rows</p>
-                      <p className="text-2xl font-semibold">{validationSummary.totalRows}</p>
+                  <div className=&quot;grid grid-cols-1 _md:grid-cols-4 gap-4&quot;>
+                    <div className=&quot;border rounded-md p-4&quot;>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>Total Rows</p>
+                      <p className=&quot;text-2xl font-semibold&quot;>{validationSummary.totalRows}</p>
                     </div>
-                    <div className="border rounded-md p-4">
-                      <p className="text-sm text-muted-foreground">Valid Rows</p>
-                      <p className="text-2xl font-semibold text-primary">
+                    <div className=&quot;border rounded-md p-4&quot;>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>Valid Rows</p>
+                      <p className=&quot;text-2xl font-semibold text-primary&quot;>
                         {validationSummary.processedRows}
                       </p>
                     </div>
-                    <div className="border rounded-md p-4">
-                      <p className="text-sm text-muted-foreground">Skipped Rows</p>
-                      <p className="text-2xl font-semibold text-destructive">
+                    <div className=&quot;border rounded-md p-4&quot;>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>Skipped Rows</p>
+                      <p className=&quot;text-2xl font-semibold text-destructive&quot;>
                         {validationSummary.skippedRows}
                       </p>
                     </div>
-                    <div className="border rounded-md p-4">
-                      <p className="text-sm text-muted-foreground">New Categories</p>
-                      <p className="text-2xl font-semibold text-amber-500">
+                    <div className=&quot;border rounded-md p-4&quot;>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>New Categories</p>
+                      <p className=&quot;text-2xl font-semibold text-amber-500&quot;>
                         {validationSummary.newCategories.length}
                       </p>
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-medium">Validation Success Rate</h3>
-                      <span className="font-semibold">{getValidationSuccessRate()}%</span>
+
+                  <div className=&quot;space-y-2&quot;>
+                    <div className=&quot;flex justify-between items-center&quot;>
+                      <h3 className=&quot;font-medium&quot;>Validation Success Rate</h3>
+                      <span className=&quot;font-semibold&quot;>{getValidationSuccessRate()}%</span>
                     </div>
-                    <Progress value={getValidationSuccessRate()} className="h-2" />
+                    <Progress value={getValidationSuccessRate()} className=&quot;h-2&quot; />
                   </div>
-                  
+
                   {/* New Categories */}
                   {validationSummary.newCategories.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium">New Categories</h3>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="auto-create-categories"
+                    <div className=&quot;space-y-2&quot;>
+                      <div className=&quot;flex items-center justify-between&quot;>
+                        <h3 className=&quot;font-medium&quot;>New Categories</h3>
+                        <div className=&quot;flex items-center space-x-2&quot;>
+                          <Checkbox
+                            id=&quot;auto-create-categories&quot;
                             checked={createCategoriesAutomatically}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               setCreateCategoriesAutomatically(!!checked)
                             }
                           />
-                          <label 
-                            htmlFor="auto-create-categories" 
-                            className="text-sm cursor-pointer"
+                          <label
+                            htmlFor=&quot;auto-create-categories&quot;
+                            className=&quot;text-sm cursor-pointer&quot;
                           >
                             Create automatically
                           </label>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className=&quot;flex flex-wrap gap-2&quot;>
                         {validationSummary.newCategories.map((category, index) => (
-                          <Badge key={index} variant="outline">
+                          <Badge key={index} variant=&quot;outline&quot;>
                             {category}
                           </Badge>
                         ))}
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Validation Errors */}
                   {validationSummary.errors.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium">Validation Errors</h3>
+                    <div className=&quot;space-y-2&quot;>
+                      <div className=&quot;flex items-center justify-between&quot;>
+                        <h3 className=&quot;font-medium&quot;>Validation Errors</h3>
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant=&quot;outline&quot;
+                          size=&quot;sm&quot;
                           onClick={handleDownloadErrorReport}
                           disabled={downloadErrorReportMutation.isPending}
                         >
-                          <Download className="mr-2 h-4 w-4" />
+                          <Download className=&quot;mr-2 h-4 w-4&quot; />
                           Export Errors
                         </Button>
                       </div>
@@ -675,8 +677,8 @@ export default function ProductImport() {
                               <TableCell>{error.row}</TableCell>
                               <TableCell>{error.field}</TableCell>
                               <TableCell>
-                                <code className="px-1 py-0.5 bg-muted rounded text-xs">
-                                  {error.value || '(empty)'}
+                                <code className=&quot;px-1 py-0.5 bg-muted rounded text-xs&quot;>
+                                  {error.value || &apos;(empty)&apos;}
                                 </code>
                               </TableCell>
                               <TableCell>{error.message}</TableCell>
@@ -685,18 +687,18 @@ export default function ProductImport() {
                         </TableBody>
                         {validationSummary.errors.length > 10 && (
                           <TableCaption>
-                            Showing 10 of {validationSummary.errors.length} errors. 
+                            Showing 10 of {validationSummary.errors.length} errors.
                             Download the error report for a complete list.
                           </TableCaption>
                         )}
                       </Table>
                     </div>
                   )}
-                  
+
                   {/* Preview Valid Products */}
                   {validProducts.length > 0 && (
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Product Preview</h3>
+                    <div className=&quot;space-y-2&quot;>
+                      <h3 className=&quot;font-medium&quot;>Product Preview</h3>
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -714,7 +716,7 @@ export default function ProductImport() {
                               <TableCell>{product.sku}</TableCell>
                               <TableCell>{validationSummary.newCategories.find(
                                 (_, i) => product.categoryId === i + 1
-                              ) || `Category ID: ${product.categoryId}`}</TableCell>
+                              ) || `Category _ID: ${product.categoryId}`}</TableCell>
                               <TableCell>{product.price}</TableCell>
                               <TableCell>{product.stock}</TableCell>
                             </TableRow>
@@ -728,11 +730,11 @@ export default function ProductImport() {
                       </Table>
                     </div>
                   )}
-                  
+
                   {/* Store Selection Warning */}
                   {!selectedStoreId && (
                     <Alert>
-                      <AlertCircle className="h-4 w-4" />
+                      <AlertCircle className=&quot;h-4 w-4&quot; />
                       <AlertTitle>Store Selection Required</AlertTitle>
                       <AlertDescription>
                         Please select a store from the dropdown above before importing products.
@@ -742,33 +744,33 @@ export default function ProductImport() {
                 </>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={() => setCurrentTab('upload')}
+            <CardFooter className=&quot;flex justify-between&quot;>
+              <Button
+                variant=&quot;outline&quot;
+                onClick={() => setCurrentTab(&apos;upload&apos;)}
                 disabled={importMutation.isPending}
               >
                 Back
               </Button>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+              <div className=&quot;flex gap-2&quot;>
+                <Button
+                  variant=&quot;outline&quot;
                   onClick={handleReset}
                   disabled={importMutation.isPending}
                 >
                   Start Over
                 </Button>
-                <Button 
+                <Button
                   onClick={handleImportConfirm}
                   disabled={
-                    validProducts.length === 0 || 
-                    !selectedStoreId || 
+                    validProducts.length === 0 ||
+                    !selectedStoreId ||
                     importMutation.isPending
                   }
                 >
                   {importMutation.isPending ? (
                     <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                      <div className=&quot;mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent&quot; />
                       Importing...
                     </>
                   ) : (
@@ -779,8 +781,8 @@ export default function ProductImport() {
             </CardFooter>
           </Card>
         </TabsContent>
-        
-        <TabsContent value="results">
+
+        <TabsContent value=&quot;results&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Import Results</CardTitle>
@@ -788,74 +790,74 @@ export default function ProductImport() {
                 Summary of the product import process.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className=&quot;space-y-4&quot;>
               {importResult && (
                 <>
-                  <div className="flex items-center justify-center p-6">
+                  <div className=&quot;flex items-center justify-center p-6&quot;>
                     {importResult.success && importResult.failedProducts.length === 0 ? (
-                      <div className="flex flex-col items-center text-center">
-                        <div className="rounded-full bg-green-100 p-3 mb-4">
-                          <CheckCircle className="h-10 w-10 text-green-600" />
+                      <div className=&quot;flex flex-col items-center text-center&quot;>
+                        <div className=&quot;rounded-full bg-green-100 p-3 mb-4&quot;>
+                          <CheckCircle className=&quot;h-10 w-10 text-green-600&quot; />
                         </div>
-                        <h3 className="text-xl font-semibold">Import Completed Successfully</h3>
-                        <p className="text-muted-foreground mt-1">
+                        <h3 className=&quot;text-xl font-semibold&quot;>Import Completed Successfully</h3>
+                        <p className=&quot;text-muted-foreground mt-1&quot;>
                           All {importResult.importedCount} products were imported successfully.
                         </p>
                       </div>
                     ) : importResult.success && importResult.failedProducts.length > 0 ? (
-                      <div className="flex flex-col items-center text-center">
-                        <div className="rounded-full bg-amber-100 p-3 mb-4">
-                          <AlertTriangle className="h-10 w-10 text-amber-600" />
+                      <div className=&quot;flex flex-col items-center text-center&quot;>
+                        <div className=&quot;rounded-full bg-amber-100 p-3 mb-4&quot;>
+                          <AlertTriangle className=&quot;h-10 w-10 text-amber-600&quot; />
                         </div>
-                        <h3 className="text-xl font-semibold">Import Completed with Warnings</h3>
-                        <p className="text-muted-foreground mt-1">
-                          {importResult.importedCount} products were imported successfully, 
+                        <h3 className=&quot;text-xl font-semibold&quot;>Import Completed with Warnings</h3>
+                        <p className=&quot;text-muted-foreground mt-1&quot;>
+                          {importResult.importedCount} products were imported successfully,
                           but {importResult.failedProducts.length} products failed.
                         </p>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center text-center">
-                        <div className="rounded-full bg-red-100 p-3 mb-4">
-                          <FileX className="h-10 w-10 text-red-600" />
+                      <div className=&quot;flex flex-col items-center text-center&quot;>
+                        <div className=&quot;rounded-full bg-red-100 p-3 mb-4&quot;>
+                          <FileX className=&quot;h-10 w-10 text-red-600&quot; />
                         </div>
-                        <h3 className="text-xl font-semibold">Import Failed</h3>
-                        <p className="text-muted-foreground mt-1">
-                          {importResult.importedCount > 0 
+                        <h3 className=&quot;text-xl font-semibold&quot;>Import Failed</h3>
+                        <p className=&quot;text-muted-foreground mt-1&quot;>
+                          {importResult.importedCount > 0
                             ? `Only ${importResult.importedCount} products were imported successfully.`
-                            : 'No products were imported.'}
+                            : &apos;No products were imported.&apos;}
                         </p>
                       </div>
                     )}
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="border rounded-md p-4">
-                      <p className="text-sm text-muted-foreground">Imported Successfully</p>
-                      <p className="text-2xl font-semibold text-green-600">
+
+                  <div className=&quot;grid grid-cols-1 _md:grid-cols-3 gap-4&quot;>
+                    <div className=&quot;border rounded-md p-4&quot;>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>Imported Successfully</p>
+                      <p className=&quot;text-2xl font-semibold text-green-600&quot;>
                         {importResult.importedCount}
                       </p>
                     </div>
-                    <div className="border rounded-md p-4">
-                      <p className="text-sm text-muted-foreground">Failed Products</p>
-                      <p className="text-2xl font-semibold text-red-600">
+                    <div className=&quot;border rounded-md p-4&quot;>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>Failed Products</p>
+                      <p className=&quot;text-2xl font-semibold text-red-600&quot;>
                         {importResult.failedProducts.length}
                       </p>
                     </div>
-                    <div className="border rounded-md p-4">
-                      <p className="text-sm text-muted-foreground">Target Store</p>
-                      <div className="flex items-center text-xl font-semibold">
-                        <Store className="h-4 w-4 mr-2 text-primary" />
-                        {Array.isArray(storesQuery.data) && storesQuery.data.find((store: any) => 
+                    <div className=&quot;border rounded-md p-4&quot;>
+                      <p className=&quot;text-sm text-muted-foreground&quot;>Target Store</p>
+                      <div className=&quot;flex items-center text-xl font-semibold&quot;>
+                        <Store className=&quot;h-4 w-4 mr-2 text-primary&quot; />
+                        {Array.isArray(storesQuery.data) && storesQuery.data.find((_store: any) =>
                           store.id.toString() === selectedStoreId
-                        )?.name || `Store ID: ${selectedStoreId}`}
+                        )?.name || `Store _ID: ${selectedStoreId}`}
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Failed Products */}
                   {importResult.failedProducts.length > 0 && (
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Failed Products</h3>
+                    <div className=&quot;space-y-2&quot;>
+                      <h3 className=&quot;font-medium&quot;>Failed Products</h3>
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -869,7 +871,7 @@ export default function ProductImport() {
                             <TableRow key={index}>
                               <TableCell>{item.product.name}</TableCell>
                               <TableCell>{item.product.sku}</TableCell>
-                              <TableCell className="text-red-600">{item.error}</TableCell>
+                              <TableCell className=&quot;text-red-600&quot;>{item.error}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -884,10 +886,10 @@ export default function ProductImport() {
                 </>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={() => setCurrentTab('validate')}
+            <CardFooter className=&quot;flex justify-between&quot;>
+              <Button
+                variant=&quot;outline&quot;
+                onClick={() => setCurrentTab(&apos;validate&apos;)}
               >
                 Back
               </Button>
@@ -898,27 +900,27 @@ export default function ProductImport() {
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {/* Import Confirmation Dialog */}
       <AlertDialog open={importConfirmOpen} onOpenChange={setImportConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Product Import</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to import {validProducts.length} products into{' '}
-              <span className="font-medium">
-                {Array.isArray(storesQuery.data) && storesQuery.data.find((store: any) => 
+              You are about to import {validProducts.length} products into{&apos; &apos;}
+              <span className=&quot;font-medium&quot;>
+                {Array.isArray(storesQuery.data) && storesQuery.data.find((_store: any) =>
                   store.id.toString() === selectedStoreId
-                )?.name || `Store ID: ${selectedStoreId}`}
+                )?.name || `Store _ID: ${selectedStoreId}`}
               </span>.
-              
+
               {validationSummary && validationSummary.newCategories.length > 0 && (
                 <>
                   <br /><br />
                   This will create {validationSummary.newCategories.length} new categories.
                 </>
               )}
-              
+
               <br /><br />
               Are you sure you want to continue?
             </AlertDialogDescription>

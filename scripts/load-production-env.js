@@ -8,7 +8,7 @@ function loadProductionEnv() {
   const envPath = path.join(__dirname, '..', 'deploy', 'config', 'production.env');
 
   if (!fs.existsSync(envPath)) {
-    console.error('Production environment file not found:', envPath);
+    console.error('Production environment file not _found:', envPath);
     process.exit(1);
   }
 

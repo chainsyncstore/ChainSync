@@ -3,13 +3,13 @@
 import * as schema from '@shared/schema';
 
 export function makeMockCustomer(
-  overrides: Partial<schema.CustomerInsert> = {}
+  _overrides: Partial<schema.CustomerInsert> = {}
 ): schema.CustomerInsert {
   return {
-    fullName: 'Test Customer',
-    email: `customer.${Date.now()}@example.com`,
-    phone: '555-1234',
-    storeId: 1, // Default storeId, can be overridden in tests
-    ...overrides,
+    _fullName: 'Test Customer',
+    _email: `customer.${Date.now()}@example.com`,
+    _phone: '555-1234',
+    _storeId: 1, // Default storeId, can be overridden in tests
+    ...overrides
   };
 }

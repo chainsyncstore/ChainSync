@@ -1,28 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState } from &apos;react&apos;;
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { formatCurrency } from '@/lib/utils';
-import { Check, CreditCard, DollarSign, X } from 'lucide-react';
+  DialogDescription
+} from &apos;@/components/ui/dialog&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Label } from &apos;@/components/ui/label&apos;;
+import { RadioGroup, RadioGroupItem } from &apos;@/components/ui/radio-group&apos;;
+import { formatCurrency } from &apos;@/lib/utils&apos;;
+import { Check, CreditCard, DollarSign, X } from &apos;lucide-react&apos;;
 
 interface PaymentModalProps {
-  total: number;
+  _total: number;
   onClose: () => void;
-  onConfirm: () => void;
-  paymentMethod: string;
-  setPaymentMethod: (method: string) => void;
-  isProcessing: boolean;
-  loyaltyId: string;
-  setLoyaltyId: (id: string) => void;
+  _onConfirm: () => void;
+  _paymentMethod: string;
+  setPaymentMethod: (_method: string) => void;
+  _isProcessing: boolean;
+  _loyaltyId: string;
+  setLoyaltyId: (_id: string) => void;
 }
 
 export function PaymentModal({
@@ -33,18 +33,18 @@ export function PaymentModal({
   setPaymentMethod,
   isProcessing,
   loyaltyId,
-  setLoyaltyId,
+  setLoyaltyId
 }: PaymentModalProps) {
   const [cashAmount, setCashAmount] = useState<string>(total.toFixed(2));
-  
-  const handleCashAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleCashAmountChange = (_e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // Allow only numbers and decimals
     if (/^\d*\.?\d{0,2}$/.test(value)) {
       setCashAmount(value);
     }
   };
-  
+
   const getCashChange = () => {
     const amount = parseFloat(cashAmount);
     if (isNaN(amount) || amount < total) {
@@ -52,103 +52,103 @@ export function PaymentModal({
     }
     return amount - total;
   };
-  
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className=&quot;_sm:max-w-[425px]&quot;>
         <DialogHeader>
           <DialogTitle>Payment</DialogTitle>
           <DialogDescription>
             Select payment method and complete the transaction.
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-6 py-4">
-          <div className="text-center bg-muted/30 p-4 rounded-md">
-            <div className="text-sm text-muted-foreground">Amount Due</div>
-            <div className="text-3xl font-bold">{formatCurrency(total)}</div>
+
+        <div className=&quot;space-y-6 py-4&quot;>
+          <div className=&quot;text-center bg-muted/30 p-4 rounded-md&quot;>
+            <div className=&quot;text-sm text-muted-foreground&quot;>Amount Due</div>
+            <div className=&quot;text-3xl font-bold&quot;>{formatCurrency(total)}</div>
           </div>
-          
-          <div className="space-y-3">
-            <Label htmlFor="loyalty-id">Loyalty ID (Optional)</Label>
+
+          <div className=&quot;space-y-3&quot;>
+            <Label htmlFor=&quot;loyalty-id&quot;>Loyalty ID (Optional)</Label>
             <Input
-              id="loyalty-id"
-              placeholder="Enter loyalty ID"
+              id=&quot;loyalty-id&quot;
+              placeholder=&quot;Enter loyalty ID&quot;
               value={loyaltyId}
               onChange={(e) => setLoyaltyId(e.target.value)}
             />
           </div>
-          
+
           <RadioGroup
             value={paymentMethod}
             onValueChange={setPaymentMethod}
-            className="grid grid-cols-2 gap-4"
+            className=&quot;grid grid-cols-2 gap-4&quot;
           >
             <div>
               <RadioGroupItem
-                value="cash"
-                id="cash"
-                className="peer sr-only"
+                value=&quot;cash&quot;
+                id=&quot;cash&quot;
+                className=&quot;peer sr-only&quot;
               />
               <Label
-                htmlFor="cash"
-                className="flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-muted peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                htmlFor=&quot;cash&quot;
+                className=&quot;flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 _hover:bg-muted peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5&quot;
               >
-                <DollarSign className="h-6 w-6 mb-2" />
+                <DollarSign className=&quot;h-6 w-6 mb-2&quot; />
                 Cash
               </Label>
             </div>
-            
+
             <div>
               <RadioGroupItem
-                value="credit_card"
-                id="credit_card"
-                className="peer sr-only"
+                value=&quot;credit_card&quot;
+                id=&quot;credit_card&quot;
+                className=&quot;peer sr-only&quot;
               />
               <Label
-                htmlFor="credit_card"
-                className="flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-muted peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                htmlFor=&quot;credit_card&quot;
+                className=&quot;flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 _hover:bg-muted peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5&quot;
               >
-                <CreditCard className="h-6 w-6 mb-2" />
+                <CreditCard className=&quot;h-6 w-6 mb-2&quot; />
                 Card
               </Label>
             </div>
           </RadioGroup>
-          
-          {paymentMethod === 'cash' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="cash-amount">Cash Amount</Label>
+
+          {paymentMethod === &apos;cash&apos; && (
+            <div className=&quot;space-y-4&quot;>
+              <div className=&quot;space-y-2&quot;>
+                <Label htmlFor=&quot;cash-amount&quot;>Cash Amount</Label>
                 <Input
-                  id="cash-amount"
-                  type="text"
+                  id=&quot;cash-amount&quot;
+                  type=&quot;text&quot;
                   value={cashAmount}
                   onChange={handleCashAmountChange}
-                  className="text-right text-lg"
+                  className=&quot;text-right text-lg&quot;
                 />
               </div>
-              
-              <div className="flex justify-between items-center">
+
+              <div className=&quot;flex justify-between items-center&quot;>
                 <Label>Change Due</Label>
-                <div className="text-xl font-bold">
+                <div className=&quot;text-xl font-bold&quot;>
                   {formatCurrency(getCashChange())}
                 </div>
               </div>
-              
-              <div className="grid grid-cols-3 gap-2">
+
+              <div className=&quot;grid grid-cols-3 gap-2&quot;>
                 {[5, 10, 20, 50, 100].map((amount) => (
                   <Button
                     key={amount}
-                    type="button"
-                    variant="outline"
+                    type=&quot;button&quot;
+                    variant=&quot;outline&quot;
                     onClick={() => setCashAmount(amount.toFixed(2))}
                   >
                     {formatCurrency(amount)}
                   </Button>
                 ))}
                 <Button
-                  type="button"
-                  variant="outline"
+                  type=&quot;button&quot;
+                  variant=&quot;outline&quot;
                   onClick={() => setCashAmount(total.toFixed(2))}
                 >
                   Exact
@@ -157,23 +157,23 @@ export function PaymentModal({
             </div>
           )}
         </div>
-        
+
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-            <X className="mr-2 h-4 w-4" />
+          <Button variant=&quot;outline&quot; onClick={onClose} disabled={isProcessing}>
+            <X className=&quot;mr-2 h-4 w-4&quot; />
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={onConfirm}
             disabled={
-              isProcessing || 
-              (paymentMethod === 'cash' && parseFloat(cashAmount) < total)
+              isProcessing ||
+              (paymentMethod === &apos;cash&apos; && parseFloat(cashAmount) < total)
             }
           >
             {isProcessing ? (
-              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+              <div className=&quot;h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2&quot; />
             ) : (
-              <Check className="mr-2 h-4 w-4" />
+              <Check className=&quot;mr-2 h-4 w-4&quot; />
             )}
             Confirm Payment
           </Button>

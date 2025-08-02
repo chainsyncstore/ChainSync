@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.Pool = void 0;
 exports.initializePool = initializePool;
 exports.getPool = getPool;
@@ -7,9 +7,9 @@ exports.closePool = closePool;
 exports.getClient = getClient;
 // db/pool.ts
 const pg_1 = require('pg');
-Object.defineProperty(exports, 'Pool', { enumerable: true, get: function() { return pg_1.Pool; } });
+Object.defineProperty(exports, 'Pool', { _enumerable: true, _get: function() { return pg_1.Pool; } });
 const index_js_1 = require('../src/logging/index.js');
-const logger = (0, index_js_1.getLogger)().child({ component: 'db-pool' });
+const logger = (0, index_js_1.getLogger)().child({ _component: 'db-pool' });
 // Create a singleton pool to be shared by all database operations
 let pool = null;
 /**
@@ -31,32 +31,32 @@ function initializePool() {
   // Create pool with configuration from environment
   pool = new pg_1.Pool({
     connectionString,
-    max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
-    idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10),
+    _max: parseInt(process.env.DB_POOL_SIZE || '10', 10),
+    _idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10),
     // Add additional configuration as needed
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    _ssl: process.env.NODE_ENV === 'production' ? { _rejectUnauthorized: false } : false
   });
   // Log connection events
   pool.on('connect', () => {
     logger.debug('New client connected to database pool');
   });
   pool.on('error', (err) => {
-    logger.error('Unexpected error on idle database client', { error: err });
+    logger.error('Unexpected error on idle database client', { _error: err });
   });
   // Add custom properties for monitoring
   Object.defineProperties(pool, {
-    totalCount: {
-      get: function() {
+    _totalCount: {
+      _get: function() {
         return this.totalCount;
       }
     },
-    idleCount: {
-      get: function() {
+    _idleCount: {
+      _get: function() {
         return this.idleCount;
       }
     },
-    waitingCount: {
-      get: function() {
+    _waitingCount: {
+      _get: function() {
         return this.waitingCount;
       }
     }

@@ -8,15 +8,15 @@ import os from 'os';
 import { Pool } from 'pg';
 
 // Get logger for health routes
-const logger = getLogger().child({ component: 'health-routes' });
+const logger = getLogger().child({ _component: 'health-routes' });
 
 // Create router
 const router = Router();
 
 // Define database connection pool (using the existing one from the app)
-let dbPool: Pool;
+let _dbPool: Pool;
 
-export function setDbPool(pool: Pool): void {
+export function setDbPool(_pool: Pool): void {
   dbPool = pool;
   logger.info('Database pool set for health checks');
 }
@@ -25,10 +25,10 @@ export function setDbPool(pool: Pool): void {
  * Basic health check
  * Returns 200 OK if the application is running
  */
-router.get('/health', (req: Request, res: Response) => {
+router.get('/health', (_req: Request, _res: Response) => {
   res.status(200).json({
-    status: 'UP',
-    timestamp: new Date().toISOString()
+    _status: 'UP',
+    _timestamp: new Date().toISOString()
   });
 });
 
@@ -36,10 +36,10 @@ router.get('/health', (req: Request, res: Response) => {
  * Kubernetes-style liveness probe
  * Indicates if the application is running
  */
-router.get('/healthz', (req: Request, res: Response) => {
+router.get('/healthz', (_req: Request, _res: Response) => {
   res.status(200).json({
-    status: 'UP',
-    timestamp: new Date().toISOString()
+    _status: 'UP',
+    _timestamp: new Date().toISOString()
   });
 });
 
@@ -47,7 +47,7 @@ router.get('/healthz', (req: Request, res: Response) => {
  * Kubernetes-style readiness probe
  * Indicates if the application is ready to accept traffic
  */
-router.get('/readyz', async(req: Request, res: Response) => {
+router.get('/readyz', async(_req: Request, _res: Response) => {
   try {
     // Check if database is available
     const dbStatus = await checkDatabase();
@@ -59,21 +59,21 @@ router.get('/readyz', async(req: Request, res: Response) => {
     const isReady = dbStatus.status === 'UP' &&
                    (redisStatus.status === 'UP' || redisStatus.status === 'DISABLED');
 
-    res.status(isReady ? 200 : 503).json({
-      status: isReady ? 'UP' : 'DOWN',
-      timestamp: new Date().toISOString(),
-      components: {
-        database: dbStatus,
-        redis: redisStatus
+    res.status(isReady ? _200 : 503).json({
+      _status: isReady ? 'UP' : 'DOWN',
+      _timestamp: new Date().toISOString(),
+      _components: {
+        _database: dbStatus,
+        _redis: redisStatus
       }
     });
   } catch (error) {
-    logger.error('Readiness check failed', error instanceof Error ? error : new Error(String(error)));
+    logger.error('Readiness check failed', error instanceof Error ? _error : new Error(String(error)));
 
     res.status(503).json({
-      status: 'DOWN',
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error'
+      _status: 'DOWN',
+      _timestamp: new Date().toISOString(),
+      _error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -82,7 +82,7 @@ router.get('/readyz', async(req: Request, res: Response) => {
  * Detailed health check
  * Checks all system components and returns detailed status
  */
-router.get('/health/details', async(req: Request, res: Response) => {
+router.get('/health/details', async(_req: Request, _res: Response) => {
   const startTime = performance.now();
 
   try {
@@ -97,11 +97,11 @@ router.get('/health/details', async(req: Request, res: Response) => {
 
     // System info
     const systemInfo = {
-      uptime: process.uptime(),
-      memoryUsage: process.memoryUsage(),
-      cpuLoad: os.loadavg(),
-      totalMemory: os.totalmem(),
-      freeMemory: os.freemem()
+      _uptime: process.uptime(),
+      _memoryUsage: process.memoryUsage(),
+      _cpuLoad: os.loadavg(),
+      _totalMemory: os.totalmem(),
+      _freeMemory: os.freemem()
     };
 
     // Overall status
@@ -112,24 +112,24 @@ router.get('/health/details', async(req: Request, res: Response) => {
     // Calculate response time
     const responseTime = performance.now() - startTime;
 
-    res.status(overallStatus === 'UP' ? 200 : 207).json({
-      status: overallStatus,
-      timestamp: new Date().toISOString(),
-      responseTime: `${responseTime.toFixed(2)}ms`,
-      services: {
-        database: dbStatus,
-        redis: redisStatus,
-        queues: queueStatus
+    res.status(overallStatus === 'UP' ? _200 : 207).json({
+      _status: overallStatus,
+      _timestamp: new Date().toISOString(),
+      _responseTime: `${responseTime.toFixed(2)}ms`,
+      _services: {
+        _database: dbStatus,
+        _redis: redisStatus,
+        _queues: queueStatus
       },
-      system: systemInfo
+      _system: systemInfo
     });
   } catch (error) {
-    logger.error('Error in detailed health check', error instanceof Error ? error : new Error(String(error)));
+    logger.error('Error in detailed health check', error instanceof Error ? _error : new Error(String(error)));
 
     res.status(500).json({
-      status: 'DOWN',
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error'
+      _status: 'DOWN',
+      _timestamp: new Date().toISOString(),
+      _error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -137,9 +137,9 @@ router.get('/health/details', async(req: Request, res: Response) => {
 /**
  * Database health check
  */
-async function checkDatabase(): Promise<{ status: string; responseTime?: string; error?: string }> {
+async function checkDatabase(): Promise<{ _status: string; responseTime?: string; error?: string }> {
   if (!dbPool) {
-    return { status: 'UNKNOWN', error: 'Database pool not initialized' };
+    return { _status: 'UNKNOWN', _error: 'Database pool not initialized' };
   }
 
   const startTime = performance.now();
@@ -150,16 +150,16 @@ async function checkDatabase(): Promise<{ status: string; responseTime?: string;
     const responseTime = performance.now() - startTime;
 
     return {
-      status: 'UP',
-      responseTime: `${responseTime.toFixed(2)}ms`
+      _status: 'UP',
+      _responseTime: `${responseTime.toFixed(2)}ms`
     };
   } catch (error) {
-    logger.error('Database health check failed', error instanceof Error ? error : new Error(String(error)));
+    logger.error('Database health check failed', error instanceof Error ? _error : new Error(String(error)));
 
     return {
-      status: 'DOWN',
-      error: error instanceof Error ? error.message : 'Unknown database error',
-      responseTime: `${(performance.now() - startTime).toFixed(2)}ms`
+      _status: 'DOWN',
+      _error: error instanceof Error ? error.message : 'Unknown database error',
+      _responseTime: `${(performance.now() - startTime).toFixed(2)}ms`
     };
   }
 }
@@ -167,14 +167,14 @@ async function checkDatabase(): Promise<{ status: string; responseTime?: string;
 /**
  * Redis health check
  */
-async function checkRedis(): Promise<{ status: string; responseTime?: string; error?: string }> {
+async function checkRedis(): Promise<{ _status: string; responseTime?: string; error?: string }> {
   const startTime = performance.now();
   const redisClient = getRedisClient();
 
   if (!redisClient) {
     return {
-      status: process.env.REDIS_URL ? 'DOWN' : 'DISABLED',
-      error: process.env.REDIS_URL ? 'Redis client not initialized' : 'Redis not configured'
+      _status: process.env.REDIS_URL ? 'DOWN' : 'DISABLED',
+      _error: process.env.REDIS_URL ? 'Redis client not initialized' : 'Redis not configured'
     };
   }
 
@@ -184,16 +184,16 @@ async function checkRedis(): Promise<{ status: string; responseTime?: string; er
     const responseTime = performance.now() - startTime;
 
     return {
-      status: 'UP',
-      responseTime: `${responseTime.toFixed(2)}ms`
+      _status: 'UP',
+      _responseTime: `${responseTime.toFixed(2)}ms`
     };
   } catch (error) {
-    logger.error('Redis health check failed', error instanceof Error ? error : new Error(String(error)));
+    logger.error('Redis health check failed', error instanceof Error ? _error : new Error(String(error)));
 
     return {
-      status: 'DOWN',
-      error: error instanceof Error ? error.message : 'Unknown Redis error',
-      responseTime: `${(performance.now() - startTime).toFixed(2)}ms`
+      _status: 'DOWN',
+      _error: error instanceof Error ? error.message : 'Unknown Redis error',
+      _responseTime: `${(performance.now() - startTime).toFixed(2)}ms`
     };
   }
 }
@@ -202,12 +202,13 @@ async function checkRedis(): Promise<{ status: string; responseTime?: string; er
  * Job queue health check
  */
 async function checkQueues(): Promise<{
-  status: string;
-  queues?: Record<string, { waiting: number; active: number; delayed: number; failed: number }>;
+  _status: string;
+  queues?: Record<string, { _waiting: number; _active: number; _delayed: number; _failed: number }>;
   error?: string;
 }> {
   try {
-    const queueStats: Record<string, { waiting: number; active: number; delayed: number; failed: number }> = {};
+    const _queueStats: Record<string, { _waiting: number; _active: number; _delayed: number; _failed: number }>
+   =  {};
 
     // Check each queue type
     for (const queueType of Object.values(QueueType)) {
@@ -224,21 +225,21 @@ async function checkQueues(): Promise<{
 
         queueStats[queueType] = { waiting, active, delayed, failed };
       } catch (error) {
-        logger.warn(`Failed to get stats for queue ${queueType}`, error instanceof Error ? error : new Error(String(error)));
-        queueStats[queueType] = { waiting: 0, active: 0, delayed: 0, failed: 0 };
+        logger.warn(`Failed to get stats for queue ${queueType}`, error instanceof Error ? _error : new Error(String(error)));
+        queueStats[queueType] = { _waiting: 0, _active: 0, _delayed: 0, _failed: 0 };
       }
     }
 
     return {
       status: 'UP',
-      queues: queueStats
+      _queues: queueStats
     };
   } catch (error) {
-    logger.error('Queue health check failed', error instanceof Error ? error : new Error(String(error)));
+    logger.error('Queue health check failed', error instanceof Error ? _error : new Error(String(error)));
 
     return {
-      status: 'DEGRADED',
-      error: error instanceof Error ? error.message : 'Unknown queue error'
+      _status: 'DEGRADED',
+      _error: error instanceof Error ? error.message : 'Unknown queue error'
     };
   }
 }
@@ -246,9 +247,9 @@ async function checkQueues(): Promise<{
 /**
  * Metrics endpoint for Prometheus/monitoring systems
  */
-router.get('/metrics', async(req: Request, res: Response) => {
+router.get('/metrics', async(_req: Request, _res: Response) => {
   try {
-    const metrics: string[] = [];
+    const _metrics: string[] = [];
     const timestamp = Math.floor(Date.now() / 1000);
 
     // System metrics
@@ -302,7 +303,7 @@ router.get('/metrics', async(req: Request, res: Response) => {
         metrics.push(`# TYPE queue_${queueType}_completed_jobs counter`);
         metrics.push(`queue_${queueType}_completed_jobs ${completed} ${timestamp}`);
       } catch (error) {
-        logger.warn(`Failed to get metrics for queue ${queueType}`, error instanceof Error ? error : new Error(String(error)));
+        logger.warn(`Failed to get metrics for queue ${queueType}`, error instanceof Error ? _error : new Error(String(error)));
       }
     }
 
@@ -326,7 +327,7 @@ router.get('/metrics', async(req: Request, res: Response) => {
       metrics.push('# TYPE db_status gauge');
       metrics.push(`db_status 0 ${timestamp}`);
 
-      logger.warn('Failed to collect database metrics', error instanceof Error ? error : new Error(String(error)));
+      logger.warn('Failed to collect database metrics', error instanceof Error ? _error : new Error(String(error)));
     }
 
     // Redis metrics
@@ -354,7 +355,7 @@ router.get('/metrics', async(req: Request, res: Response) => {
       metrics.push('# TYPE redis_status gauge');
       metrics.push(`redis_status 0 ${timestamp}`);
 
-      logger.warn('Failed to collect Redis metrics', error instanceof Error ? error : new Error(String(error)));
+      logger.warn('Failed to collect Redis metrics', error instanceof Error ? _error : new Error(String(error)));
     }
 
     // Additional process metrics
@@ -374,11 +375,11 @@ router.get('/metrics', async(req: Request, res: Response) => {
     res.set('Content-Type', 'text/plain');
     res.send(metrics.join('\n'));
   } catch (error) {
-    logger.error('Error generating metrics', error instanceof Error ? error : new Error(String(error)));
+    logger.error('Error generating metrics', error instanceof Error ? _error : new Error(String(error)));
 
     res.status(500).json({
-      error: 'Failed to generate metrics',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      _error: 'Failed to generate metrics',
+      _message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -387,50 +388,50 @@ router.get('/metrics', async(req: Request, res: Response) => {
  * Admin-only endpoint for debugging the server's current state
  * This should be protected with strong authentication
  */
-router.get('/debug', async(req: Request, res: Response): Promise<void> => {
+router.get('/debug', async(_req: Request, _res: Response): Promise<void> => {
   // Check if user is admin
   if (!(req as any).user?.isAdmin) {
-    res.status(403).json({ error: 'Unauthorized access' });
+    res.status(403).json({ _error: 'Unauthorized access' });
     return;
   }
 
   try {
     // Collect debug information
     const debugInfo = {
-      env: {
-        nodeEnv: process.env.NODE_ENV,
-        port: process.env.PORT,
-        sentryDsn: process.env.SENTRY_DSN ? '[CONFIGURED]' : '[NOT CONFIGURED]',
-        redisUrl: process.env.REDIS_URL ? '[CONFIGURED]' : '[NOT CONFIGURED]'
+      _env: {
+        _nodeEnv: process.env.NODE_ENV,
+        _port: process.env.PORT,
+        _sentryDsn: process.env.SENTRY_DSN ? '[CONFIGURED]' : '[NOT CONFIGURED]',
+        _redisUrl: process.env.REDIS_URL ? '[CONFIGURED]' : '[NOT CONFIGURED]'
       },
-      system: {
-        platform: process.platform,
-        arch: process.arch,
-        nodeVersion: process.version,
-        uptime: process.uptime(),
-        cpuCount: os.cpus().length,
-        totalMemory: os.totalmem(),
-        freeMemory: os.freemem(),
-        loadAvg: os.loadavg()
+      _system: {
+        _platform: process.platform,
+        _arch: process.arch,
+        _nodeVersion: process.version,
+        _uptime: process.uptime(),
+        _cpuCount: os.cpus().length,
+        _totalMemory: os.totalmem(),
+        _freeMemory: os.freemem(),
+        _loadAvg: os.loadavg()
       },
-      process: {
-        pid: process.pid,
-        title: process.title,
-        memoryUsage: process.memoryUsage(),
-        resourceUsage: process.resourceUsage()
+      _process: {
+        _pid: process.pid,
+        _title: process.title,
+        _memoryUsage: process.memoryUsage(),
+        _resourceUsage: process.resourceUsage()
       }
     };
 
     res.json({
-      timestamp: new Date().toISOString(),
+      _timestamp: new Date().toISOString(),
       debugInfo
     });
   } catch (error) {
-    logger.error('Error generating debug info', error instanceof Error ? error : new Error(String(error)));
+    logger.error('Error generating debug info', error instanceof Error ? _error : new Error(String(error)));
 
     res.status(500).json({
-      error: 'Failed to generate debug info',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      _error: 'Failed to generate debug info',
+      _message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

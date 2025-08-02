@@ -18,46 +18,46 @@ function log(message, level = 'info') {
 
 // Alert severity levels
 const AlertSeverity = {
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
-  CRITICAL: 'critical'
+  _LOW: 'low',
+  _MEDIUM: 'medium',
+  _HIGH: 'high',
+  _CRITICAL: 'critical'
 };
 
 // Alert types
 const AlertType = {
   SYSTEM_DOWN: 'system_down',
-  HIGH_ERROR_RATE: 'high_error_rate',
-  HIGH_LATENCY: 'high_latency',
-  DISK_SPACE_LOW: 'disk_space_low',
-  MEMORY_LOW: 'memory_low',
-  DATABASE_CONNECTION_ISSUE: 'database_connection_issue',
-  REDIS_CONNECTION_ISSUE: 'redis_connection_issue',
-  SSL_CERTIFICATE_EXPIRING: 'ssl_certificate_expiring',
-  BACKUP_FAILURE: 'backup_failure',
-  SECURITY_BREACH: 'security_breach'
+  _HIGH_ERROR_RATE: 'high_error_rate',
+  _HIGH_LATENCY: 'high_latency',
+  _DISK_SPACE_LOW: 'disk_space_low',
+  _MEMORY_LOW: 'memory_low',
+  _DATABASE_CONNECTION_ISSUE: 'database_connection_issue',
+  _REDIS_CONNECTION_ISSUE: 'redis_connection_issue',
+  _SSL_CERTIFICATE_EXPIRING: 'ssl_certificate_expiring',
+  _BACKUP_FAILURE: 'backup_failure',
+  _SECURITY_BREACH: 'security_breach'
 };
 
 // Monitoring configuration
 const config = {
-  healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL) || 30000,
-  alertThresholds: {
-    errorRate: 0.05, // 5%
-    responseTime: 2000, // 2 seconds
-    cpuUsage: 0.8, // 80%
-    memoryUsage: 0.85, // 85%
-    diskUsage: 0.9 // 90%
+  _healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL) || 30000,
+  _alertThresholds: {
+    _errorRate: 0.05, // 5%
+    _responseTime: 2000, // 2 seconds
+    _cpuUsage: 0.8, // 80%
+    _memoryUsage: 0.85, // 85%
+    _diskUsage: 0.9 // 90%
   },
-  notificationChannels: {
-    email: false,
-    slack: false,
-    pagerDuty: false
+  _notificationChannels: {
+    _email: false,
+    _slack: false,
+    _pagerDuty: false
   },
-  escalationPolicy: {
-    lowTimeout: 300000, // 5 minutes
-    mediumTimeout: 180000, // 3 minutes
-    highTimeout: 60000, // 1 minute
-    criticalTimeout: 30000 // 30 seconds
+  _escalationPolicy: {
+    _lowTimeout: 300000, // 5 minutes
+    _mediumTimeout: 180000, // 3 minutes
+    _highTimeout: 60000, // 1 minute
+    _criticalTimeout: 30000 // 30 seconds
   }
 };
 
@@ -95,9 +95,9 @@ class ProductionMonitor extends EventEmitter {
     log('Performing health checks...');
 
     const services = [
-      { name: 'api', url: 'http://localhost:3000/api/health' },
-      { name: 'database', url: process.env.DATABASE_URL },
-      { name: 'redis', url: process.env.REDIS_URL }
+      { _name: 'api', _url: 'http://_localhost:3000/api/health' },
+      { _name: 'database', _url: process.env.DATABASE_URL },
+      { _name: 'redis', _url: process.env.REDIS_URL }
     ];
 
     for (const service of services) {
@@ -108,7 +108,7 @@ class ProductionMonitor extends EventEmitter {
 
         if (service.name === 'api') {
           try {
-            const response = await axios.get(service.url, { timeout: 5000 });
+            const response = await axios.get(service.url, { _timeout: 5000 });
             if (response.status !== 200) {
               status = 'unhealthy';
               error = `HTTP ${response.status}`;
@@ -129,24 +129,24 @@ class ProductionMonitor extends EventEmitter {
         const responseTime = Date.now() - startTime;
 
         this.healthChecks.set(service.name, {
-          service: service.name,
+          _service: service.name,
           status,
           responseTime,
-          lastCheck: new Date(),
+          _lastCheck: new Date(),
           error
         });
 
         if (status === 'unhealthy') {
           this.createAlert({
-            type: AlertType.SYSTEM_DOWN,
-            severity: AlertSeverity.HIGH,
-            title: `${service.name} service is down`,
-            message: `${service.name} service is not responding: ${error}`,
-            metadata: { service: service.name, error }
+            _type: AlertType.SYSTEM_DOWN,
+            _severity: AlertSeverity.HIGH,
+            _title: `${service.name} service is down`,
+            _message: `${service.name} service is not responding: ${error}`,
+            _metadata: { _service: service.name, error }
           });
         }
 
-        log(`${service.name} health check: ${status} (${responseTime}ms)`);
+        log(`${service.name} health _check: ${status} (${responseTime}ms)`);
       } catch (error) {
         log(`Health check failed for ${service.name}: ${error.message}`, 'error');
       }
@@ -162,54 +162,54 @@ class ProductionMonitor extends EventEmitter {
       // Check thresholds and create alerts
       if (cpuUsage > config.alertThresholds.cpuUsage) {
         this.createAlert({
-          type: AlertType.HIGH_LATENCY,
-          severity: AlertSeverity.MEDIUM,
-          title: 'High CPU usage detected',
-          message: `CPU usage is ${(cpuUsage * 100).toFixed(1)}%`,
-          metadata: { cpuUsage }
+          _type: AlertType.HIGH_LATENCY,
+          _severity: AlertSeverity.MEDIUM,
+          _title: 'High CPU usage detected',
+          _message: `CPU usage is ${(cpuUsage * 100).toFixed(1)}%`,
+          _metadata: { cpuUsage }
         });
       }
 
       if (memoryUsage > config.alertThresholds.memoryUsage) {
         this.createAlert({
-          type: AlertType.MEMORY_LOW,
-          severity: AlertSeverity.HIGH,
-          title: 'High memory usage detected',
-          message: `Memory usage is ${(memoryUsage * 100).toFixed(1)}%`,
-          metadata: { memoryUsage }
+          _type: AlertType.MEMORY_LOW,
+          _severity: AlertSeverity.HIGH,
+          _title: 'High memory usage detected',
+          _message: `Memory usage is ${(memoryUsage * 100).toFixed(1)}%`,
+          _metadata: { memoryUsage }
         });
       }
 
       if (diskUsage > config.alertThresholds.diskUsage) {
         this.createAlert({
-          type: AlertType.DISK_SPACE_LOW,
-          severity: AlertSeverity.HIGH,
-          title: 'Low disk space detected',
-          message: `Disk usage is ${(diskUsage * 100).toFixed(1)}%`,
-          metadata: { diskUsage }
+          _type: AlertType.DISK_SPACE_LOW,
+          _severity: AlertSeverity.HIGH,
+          _title: 'Low disk space detected',
+          _message: `Disk usage is ${(diskUsage * 100).toFixed(1)}%`,
+          _metadata: { diskUsage }
         });
       }
 
-      log(`System metrics - CPU: ${(cpuUsage * 100).toFixed(1)}%, Memory: ${(memoryUsage * 100).toFixed(1)}%, Disk: ${(diskUsage * 100).toFixed(1)}%`);
+      log(`System metrics - _CPU: ${(cpuUsage * 100).toFixed(1)}%, _Memory: ${(memoryUsage * 100).toFixed(1)}%, _Disk: ${(diskUsage * 100).toFixed(1)}%`);
     } catch (error) {
-      log(`Failed to collect system metrics: ${error.message}`, 'error');
+      log(`Failed to collect system _metrics: ${error.message}`, 'error');
     }
   }
 
   createAlert(alertData) {
     const alertId = this.generateAlertId();
     const alert = {
-      id: alertId,
+      _id: alertId,
       ...alertData,
-      timestamp: new Date(),
-      resolved: false,
-      acknowledged: false
+      _timestamp: new Date(),
+      _resolved: false,
+      _acknowledged: false
     };
 
     this.alerts.set(alertId, alert);
     this.emit('alert', alert);
 
-    log(`Alert created: ${alert.title} (${alert.severity})`, 'warn');
+    log(`Alert _created: ${alert.title} (${alert.severity})`, 'warn');
 
     // Send notifications
     this.sendNotifications(alert);
@@ -227,7 +227,7 @@ class ProductionMonitor extends EventEmitter {
     alert.resolvedAt = new Date();
     this.alerts.set(alertId, alert);
 
-    log(`Alert resolved: ${alert.title} by ${resolvedBy}`);
+    log(`Alert _resolved: ${alert.title} by ${resolvedBy}`);
     return true;
   }
 
@@ -242,7 +242,7 @@ class ProductionMonitor extends EventEmitter {
     alert.acknowledgedBy = acknowledgedBy;
     this.alerts.set(alertId, alert);
 
-    log(`Alert acknowledged: ${alert.title} by ${acknowledgedBy}`);
+    log(`Alert _acknowledged: ${alert.title} by ${acknowledgedBy}`);
     return true;
   }
 
@@ -264,27 +264,26 @@ class ProductionMonitor extends EventEmitter {
   }
 
   escalateAlert(alert) {
-    log(`Alert escalated: ${alert.title} (${alert.severity})`, 'error');
+    log(`Alert _escalated: ${alert.title} (${alert.severity})`, 'error');
     this.sendEscalationNotifications(alert);
   }
 
   getEscalationTimeout(severity) {
     switch (severity) {
-      case AlertSeverity.LOW:
+      case AlertSeverity._LOW:
         return config.escalationPolicy.lowTimeout;
-      case AlertSeverity.MEDIUM:
+      case AlertSeverity._MEDIUM:
         return config.escalationPolicy.mediumTimeout;
-      case AlertSeverity.HIGH:
+      case AlertSeverity._HIGH:
         return config.escalationPolicy.highTimeout;
-      case AlertSeverity.CRITICAL:
+      case AlertSeverity._CRITICAL:
         return config.escalationPolicy.criticalTimeout;
-      default:
-        return config.escalationPolicy.mediumTimeout;
+      return config.escalationPolicy.mediumTimeout;
     }
   }
 
   async sendNotifications(alert) {
-    log(`Sending notification for alert: ${alert.title}`);
+    log(`Sending notification for _alert: ${alert.title}`);
 
     if (config.notificationChannels.email) {
       await this.sendEmailNotification(alert);
@@ -300,23 +299,23 @@ class ProductionMonitor extends EventEmitter {
   }
 
   async sendEscalationNotifications(alert) {
-    log(`Sending escalation notification for alert: ${alert.title}`, 'error');
+    log(`Sending escalation notification for _alert: ${alert.title}`, 'error');
     // In a real implementation, this would send to on-call engineers
   }
 
   async sendEmailNotification(alert) {
     // Simulate email notification
-    log(`Email notification sent: ${alert.title}`);
+    log(`Email notification _sent: ${alert.title}`);
   }
 
   async sendSlackNotification(alert) {
     // Simulate Slack notification
-    log(`Slack notification sent: ${alert.title}`);
+    log(`Slack notification _sent: ${alert.title}`);
   }
 
   async sendPagerDutyNotification(alert) {
     // Simulate PagerDuty notification
-    log(`PagerDuty notification sent: ${alert.title}`);
+    log(`PagerDuty notification _sent: ${alert.title}`);
   }
 
   async getCpuUsage() {
@@ -357,10 +356,10 @@ class ProductionMonitor extends EventEmitter {
     const unhealthyServices = healthChecks.filter(check => check.status !== 'healthy');
 
     return {
-      status: unhealthyServices.length > 0 ? 'degraded' : 'healthy',
-      activeAlerts: activeAlerts.length,
-      unhealthyServices: unhealthyServices.length,
-      lastCheck: new Date()
+      _status: unhealthyServices.length > 0 ? 'degraded' : 'healthy',
+      _activeAlerts: activeAlerts.length,
+      _unhealthyServices: unhealthyServices.length,
+      _lastCheck: new Date()
     };
   }
 }
@@ -394,7 +393,7 @@ async function main() {
         // Keep the process running
         setInterval(() => {
           const status = monitor.getStatus();
-          log(`System status: ${status.status} (${status.activeAlerts} active alerts, ${status.unhealthyServices} unhealthy services)`);
+          log(`System _status: ${status.status} (${status.activeAlerts} active alerts, ${status.unhealthyServices} unhealthy services)`);
         }, 60000); // Status update every minute
 
         break;
@@ -402,10 +401,10 @@ async function main() {
       case 'status':
         const status = monitor.getStatus();
         console.log('=== Production Monitoring Status ===');
-        console.log(`Overall Status: ${status.status}`);
-        console.log(`Active Alerts: ${status.activeAlerts}`);
-        console.log(`Unhealthy Services: ${status.unhealthyServices}`);
-        console.log(`Last Check: ${status.lastCheck}`);
+        console.log(`Overall _Status: ${status.status}`);
+        console.log(`Active _Alerts: ${status.activeAlerts}`);
+        console.log(`Unhealthy _Services: ${status.unhealthyServices}`);
+        console.log(`Last _Check: ${status.lastCheck}`);
 
         const alerts = monitor.getActiveAlerts();
         if (alerts.length > 0) {
@@ -424,9 +423,8 @@ async function main() {
         }
         break;
 
-      default:
-        console.error(`Unknown command: ${command}`);
-        console.error('Available commands: start, status');
+      console.error(`Unknown command: ${command}`);
+        console.error('Available _commands: start, status');
         process.exit(1);
     }
   } catch (error) {
@@ -438,7 +436,7 @@ async function main() {
 // Run if called directly
 if (require.main === module) {
   main().catch(error => {
-    log(`Fatal error: ${error.message}`, 'error');
+    log(`Fatal _error: ${error.message}`, 'error');
     process.exit(1);
   });
 }

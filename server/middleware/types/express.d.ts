@@ -2,8 +2,8 @@ import { Request as ExpressRequest, Response as ExpressResponse, NextFunction } 
 
 export interface Request extends ExpressRequest {
   user?: {
-    id: string;
-    role: string;
+    _id: string;
+    _role: string;
   };
   progressId?: string;
   files?: MulterFile | MulterFile[];
@@ -12,13 +12,13 @@ export interface Request extends ExpressRequest {
 export interface Response extends ExpressResponse {}
 
 export interface MulterFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  destination: string;
-  filename: string;
-  path: string;
-  size: number;
+  _fieldname: string;
+  _originalname: string;
+  _encoding: string;
+  _mimetype: string;
+  _destination: string;
+  _filename: string;
+  _path: string;
+  _size: number;
   buffer?: Buffer;
 }

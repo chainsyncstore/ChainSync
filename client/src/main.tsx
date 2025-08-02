@@ -1,12 +1,12 @@
-import { createRoot } from 'react-dom/client';
-import { StrictMode } from 'react';
-import App from './App';
-import './index.css';
-import { AuthProvider } from './providers/auth-provider';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from './lib/queryClient';
+import { createRoot } from &apos;react-dom/client&apos;;
+import { StrictMode } from &apos;react&apos;;
+import App from &apos;./App&apos;;
+import &apos;./index.css&apos;;
+import { AuthProvider } from &apos;./providers/auth-provider&apos;;
+import { QueryClientProvider } from &apos;@tanstack/react-query&apos;;
+import { queryClient } from &apos;./lib/queryClient&apos;;
 
-const root = createRoot(document.getElementById('root')!);
+const root = createRoot(document.getElementById(&apos;root&apos;)!);
 
 root.render(
   <StrictMode>

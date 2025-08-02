@@ -2,24 +2,24 @@ import { z } from 'zod';
 import { ImportExportErrorCode } from '../../../../shared/types/import-export-errors';
 
 export interface ValidationCache {
-  [key: string]: {
-    timestamp: number;
-    result: any;
+  [_key: string]: {
+    _timestamp: number;
+    _result: any;
   };
 }
 
 export interface ValidationBatchResult<T> {
-  valid: T[];
+  _valid: T[];
   invalid: {
-    index: number;
-    errors: string[];
+    _index: number;
+    _errors: string[];
   }[];
 }
 
 export interface ValidationError {
-  code: ImportExportErrorCode;
-  message: string;
-  path: string[];
+  _code: ImportExportErrorCode;
+  _message: string;
+  _path: string[];
 }
 
 export interface ValidationOptions {
@@ -30,30 +30,30 @@ export interface ValidationOptions {
 }
 
 export interface ValidationService {
-  validate(data: any, type: 'products' | 'users' | 'transactions'): Promise<any>;
-  validateBatch(data: any[], type: 'products' | 'users' | 'transactions'): Promise<{
-    valid: any[];
-    invalid: { index: number; errors: string[] }[];
+  validate(_data: any, _type: 'products' | 'users' | 'transactions'): Promise<any>;
+  validateBatch(_data: any[], _type: 'products' | 'users' | 'transactions'): Promise<{
+    _valid: any[];
+    invalid: { _index: number; _errors: string[] }[];
   }>;
   clearCache(): void;
-  clearCacheForData(data: any, type: 'products' | 'users' | 'transactions'): void;
+  clearCacheForData(_data: any, _type: 'products' | 'users' | 'transactions'): void;
 }
 
-export const validationErrors: Record<string, string> = {
-  invalid_type: 'Invalid type',
-  invalid_literal: 'Invalid literal',
-  custom: 'Invalid custom',
-  invalid_union: 'Invalid union',
-  invalid_union_discriminator: 'Invalid union discriminator',
-  invalid_enum_value: 'Invalid enum value',
-  unrecognized_keys: 'Unrecognized keys',
-  invalid_arguments: 'Invalid arguments',
-  invalid_return_type: 'Invalid return type',
-  invalid_date: 'Invalid date',
-  invalid_string: 'Invalid string',
-  too_small: 'Too small',
-  too_big: 'Too big',
-  invalid_intersection_types: 'Invalid intersection type',
-  not_multiple_of: 'Not multiple of',
+export const _validationErrors: Record<string, string> = {
+  _invalid_type: 'Invalid type',
+  _invalid_literal: 'Invalid literal',
+  _custom: 'Invalid custom',
+  _invalid_union: 'Invalid union',
+  _invalid_union_discriminator: 'Invalid union discriminator',
+  _invalid_enum_value: 'Invalid enum value',
+  _unrecognized_keys: 'Unrecognized keys',
+  _invalid_arguments: 'Invalid arguments',
+  _invalid_return_type: 'Invalid return type',
+  _invalid_date: 'Invalid date',
+  _invalid_string: 'Invalid string',
+  _too_small: 'Too small',
+  _too_big: 'Too big',
+  _invalid_intersection_types: 'Invalid intersection type',
+  _not_multiple_of: 'Not multiple of',
   not_finite: 'Not finite'
 };

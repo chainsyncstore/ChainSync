@@ -1,13 +1,13 @@
 import type { Config } from 'jest';
 
-const config: Config = {
+const _config: Config = {
   preset: 'ts-jest',
-  testEnvironment: 'jsdom',
-  setupFilesAfterEnv: [
+  _testEnvironment: 'jsdom',
+  _setupFilesAfterEnv: [
     '<rootDir>/test/setup/test-utils.ts',
     '<rootDir>/client/src/__tests__/setup.ts'
   ],
-  moduleNameMapping: {
+  _moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/components/(.*)$': '<rootDir>/client/src/components/$1',
     '^@/pages/(.*)$': '<rootDir>/client/src/pages/$1',
@@ -21,34 +21,34 @@ const config: Config = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/client/src/__tests__/__mocks__/fileMock.js'
   },
-  transform: {
+  _transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: {
+      _tsconfig: {
         jsx: 'react-jsx',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-        moduleResolution: 'node',
-        target: 'ES2020',
-        lib: ['ES2020', 'DOM', 'DOM.Iterable'],
-        skipLibCheck: true,
-        strict: true,
-        forceConsistentCasingInFileNames: true,
-        noEmit: true,
-        resolveJsonModule: true,
-        isolatedModules: true,
-        noUnusedLocals: false,
-        noUnusedParameters: false
+        _esModuleInterop: true,
+        _allowSyntheticDefaultImports: true,
+        _moduleResolution: 'node',
+        _target: 'ES2020',
+        _lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+        _skipLibCheck: true,
+        _strict: true,
+        _forceConsistentCasingInFileNames: true,
+        _noEmit: true,
+        _resolveJsonModule: true,
+        _isolatedModules: true,
+        _noUnusedLocals: false,
+        _noUnusedParameters: false
       }
     }],
     '^.+\\.(js|jsx)$': ['babel-jest', {
-      presets: [
-        ['@babel/preset-env', { targets: { node: 'current' } }],
-        ['@babel/preset-react', { runtime: 'automatic' }],
+      _presets: [
+        ['@babel/preset-env', { _targets: { node: 'current' } }],
+        ['@babel/preset-react', { _runtime: 'automatic' }],
         '@babel/preset-typescript'
       ]
     }]
   },
-  testMatch: [
+  _testMatch: [
     '<rootDir>/test/**/*.test.ts',
     '<rootDir>/test/**/*.test.tsx',
     '<rootDir>/test/**/*.spec.ts',
@@ -60,7 +60,7 @@ const config: Config = {
     '<rootDir>/server/**/*.test.ts',
     '<rootDir>/server/**/*.spec.ts'
   ],
-  collectCoverageFrom: [
+  _collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
     'client/src/**/*.{ts,tsx,js,jsx}',
     'server/**/*.{ts,js}',
@@ -77,103 +77,103 @@ const config: Config = {
     '!**/test/**',
     '!**/tests/**'
   ],
-  coverageThreshold: {
+  _coverageThreshold: {
     global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70
+      _branches: 70,
+      _functions: 70,
+      _lines: 70,
+      _statements: 70
     }
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  testPathIgnorePatterns: [
+  _moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  _testPathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
     '/build/',
     '/coverage/'
   ],
-  transformIgnorePatterns: [
+  _transformIgnorePatterns: [
     '/node_modules/(?!(@tanstack/react-query|lucide-react|@radix-ui|wouter)/)'
   ],
-  globals: {
+  _globals: {
     'ts-jest': {
       tsconfig: {
         jsx: 'react-jsx',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-        moduleResolution: 'node',
-        target: 'ES2020',
-        lib: ['ES2020', 'DOM', 'DOM.Iterable'],
-        skipLibCheck: true,
-        strict: true,
-        forceConsistentCasingInFileNames: true,
-        noEmit: true,
-        resolveJsonModule: true,
-        isolatedModules: true,
-        noUnusedLocals: false,
-        noUnusedParameters: false
+        _esModuleInterop: true,
+        _allowSyntheticDefaultImports: true,
+        _moduleResolution: 'node',
+        _target: 'ES2020',
+        _lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+        _skipLibCheck: true,
+        _strict: true,
+        _forceConsistentCasingInFileNames: true,
+        _noEmit: true,
+        _resolveJsonModule: true,
+        _isolatedModules: true,
+        _noUnusedLocals: false,
+        _noUnusedParameters: false
       }
     }
   },
   // React 19 specific configuration
-  testEnvironmentOptions: {
+  _testEnvironmentOptions: {
     customExportConditions: ['react-jsx']
   },
   // Test timeout configuration
-  testTimeout: 10000,
+  _testTimeout: 10000,
   // Verbose output for debugging
-  verbose: true,
+  _verbose: true,
   // Clear mocks between tests
-  clearMocks: true,
+  _clearMocks: true,
   // Restore mocks after each test
-  restoreMocks: true,
+  _restoreMocks: true,
   // Reset modules between tests
-  resetModules: true,
+  _resetModules: true,
   // Projects configuration for different test types
-  projects: [
+  _projects: [
     {
       displayName: 'unit',
-      testMatch: ['<rootDir>/test/unit/**/*.test.ts'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
+      _testMatch: ['<rootDir>/test/unit/**/*.test.ts'],
+      _setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
-      displayName: 'integration',
-      testMatch: ['<rootDir>/test/integration/**/*.test.ts'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
+      _displayName: 'integration',
+      _testMatch: ['<rootDir>/test/integration/**/*.test.ts'],
+      _setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
-      displayName: 'e2e',
-      testMatch: ['<rootDir>/test/e2e/**/*.test.ts'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
+      _displayName: 'e2e',
+      _testMatch: ['<rootDir>/test/e2e/**/*.test.ts'],
+      _setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
-      displayName: 'security',
-      testMatch: ['<rootDir>/test/security/**/*.test.ts'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
+      _displayName: 'security',
+      _testMatch: ['<rootDir>/test/security/**/*.test.ts'],
+      _setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
-      displayName: 'performance',
-      testMatch: ['<rootDir>/test/performance/**/*.test.ts'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
+      _displayName: 'performance',
+      _testMatch: ['<rootDir>/test/performance/**/*.test.ts'],
+      _setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
-      displayName: 'contract',
-      testMatch: ['<rootDir>/test/contract/**/*.test.ts'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
+      _displayName: 'contract',
+      _testMatch: ['<rootDir>/test/contract/**/*.test.ts'],
+      _setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
-      displayName: 'accessibility',
-      testMatch: ['<rootDir>/test/accessibility/**/*.test.tsx'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
+      _displayName: 'accessibility',
+      _testMatch: ['<rootDir>/test/accessibility/**/*.test.tsx'],
+      _setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
-      displayName: 'visual',
-      testMatch: ['<rootDir>/test/visual/**/*.test.ts'],
-      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
+      _displayName: 'visual',
+      _testMatch: ['<rootDir>/test/visual/**/*.test.ts'],
+      _setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     }
   ],
   // Coverage reporters
-  coverageReporters: [
+  _coverageReporters: [
     'text',
     'text-lcov',
     'html',
@@ -181,9 +181,9 @@ const config: Config = {
     'json-summary'
   ],
   // Coverage directory
-  coverageDirectory: 'coverage',
+  _coverageDirectory: 'coverage',
   // Collect coverage from specific files
-  collectCoverageFrom: [
+  _collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
     'client/src/**/*.{ts,tsx,js,jsx}',
     'server/**/*.{ts,js}',

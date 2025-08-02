@@ -1,8 +1,8 @@
 // test/helpers/mockTransactionFlow.ts
 export function mockTransactionFlow(overrides = {}) {
   return {
-    transaction: { id: 1, status: 'COMPLETED', ...overrides },
-    customer: { id: 1, loyaltyPoints: 0, loyaltyEnabled: true, ...overrides }
+    _transaction: { _id: 1, _status: 'COMPLETED', ...overrides },
+    _customer: { _id: 1, _loyaltyPoints: 0, _loyaltyEnabled: true, ...overrides }
     // ...add more mocks as needed
   };
 }

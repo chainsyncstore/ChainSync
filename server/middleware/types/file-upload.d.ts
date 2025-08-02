@@ -2,17 +2,18 @@ import { Request, Response, NextFunction } from 'express';
 import { File } from 'multer';
 
 export interface FileUploadConfig {
-  maxFileSize: number;
-  maxTotalUploadSize: number;
-  allowedMimeTypes: string[];
-  maxFiles: number;
-  destination: string;
-  filename: (req: Request, file: File, cb: (error: Error | null, filename: string) => void) => void;
-  allowedFileExtensions: string[];
-  cleanupInterval: number;
-  cacheTTL: number;
-  maxUploadAttempts: number;
-  uploadRateLimit: number;
+  _maxFileSize: number;
+  _maxTotalUploadSize: number;
+  _allowedMimeTypes: string[];
+  _maxFiles: number;
+  _destination: string;
+  filename: (_req: Request, _file: File, _cb: (_error: Error | null, _filename: string)
+   = > void) => void;
+  _allowedFileExtensions: string[];
+  _cleanupInterval: number;
+  _cacheTTL: number;
+  _maxUploadAttempts: number;
+  _uploadRateLimit: number;
 }
 
 export interface FileUploadError {
@@ -22,35 +23,36 @@ export interface FileUploadError {
 }
 
 export interface FileUploadProgress {
-  id: string;
+  _id: string;
   status: 'in_progress' | 'completed' | 'failed';
-  progress: number;
-  total: number;
-  uploaded: number;
-  startTime: number;
-  lastUpdate: number;
-  files: Record<string, FileProgress>;
+  _progress: number;
+  _total: number;
+  _uploaded: number;
+  _startTime: number;
+  _lastUpdate: number;
+  _files: Record<string, FileProgress>;
 }
 
 export interface FileProgress {
-  name: string;
-  size: number;
+  _name: string;
+  _size: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  progress: number;
-  uploaded: number;
+  _progress: number;
+  _uploaded: number;
   path?: string;
 }
 
 export interface ProgressSubscription {
-  progressId: string;
-  onProgress: (progress: FileUploadProgress) => void;
-  onError: (error: FileUploadError) => void;
-  onComplete: (result: any) => void;
+  _progressId: string;
+  onProgress: (_progress: FileUploadProgress) => void;
+  _onError: (_error: FileUploadError) => void;
+  _onComplete: (_result: any) => void;
 }
 
 export interface MulterOptions {
   dest?: string;
-  fileFilter?: (req: Request, file: File, cb: (error: Error | null, acceptFile: boolean) => void) => void;
+  fileFilter?: (_req: Request, _file: File, _cb: (_error: Error | null, _acceptFile: boolean)
+   = > void) => void;
   limits?: {
     fileSize?: number;
     files?: number;
@@ -58,11 +60,13 @@ export interface MulterOptions {
 }
 
 export interface MulterInstance {
-  single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
-  array(fieldname: string, maxCount?: number): (req: Request, res: Response, next: NextFunction) => void;
-  fields(fields: Array<{ name: string; maxCount: number }>): (req: Request, res: Response, next: NextFunction) => void;
-  any(): (req: Request, res: Response, next: NextFunction) => void;
-  none(): (req: Request, res: Response, next: NextFunction) => void;
+  single(_fieldname: string): (_req: Request, _res: Response, _next: NextFunction) => void;
+  array(_fieldname: string, maxCount?: number): (_req: Request, _res: Response, _next: NextFunction)
+   = > void;
+  fields(_fields: Array<{ _name: string; _maxCount: number }>): (_req: Request, _res: Response, _next: NextFunction)
+   = > void;
+  any(): (_req: Request, _res: Response, _next: NextFunction) => void;
+  none(): (_req: Request, _res: Response, _next: NextFunction) => void;
 }
 
 export interface Multer {
@@ -70,12 +74,13 @@ export interface Multer {
 }
 
 export interface FileUploadMiddleware {
-  upload: Multer;
-  validateUploadedFiles(req: Request, res: Response, next: (error?: Error | null) => void): Promise<void>;
-  updateProgress(req: Request, file: MulterFile, progress: number): void;
+  _upload: Multer;
+  validateUploadedFiles(_req: Request, _res: Response, _next: (error?: Error | null)
+   = > void): Promise<void>;
+  updateProgress(_req: Request, _file: MulterFile, _progress: number): void;
   cleanupResources(): void;
   startPeriodicCleanup(): void;
-  validateFileExtension(mimeType: string): boolean;
-  validateFilename(filename: string): boolean;
+  validateFileExtension(_mimeType: string): boolean;
+  validateFilename(_filename: string): boolean;
   getInstance(): FileUploadMiddleware;
 }

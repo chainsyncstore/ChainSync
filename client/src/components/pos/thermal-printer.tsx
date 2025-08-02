@@ -1,135 +1,136 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Printer, Save, AlertCircle, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect } from &apos;react&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Alert, AlertDescription, AlertTitle } from &apos;@/components/ui/alert&apos;;
+import { Separator } from &apos;@/components/ui/separator&apos;;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/components/ui/select&apos;;
+import { Switch } from &apos;@/components/ui/switch&apos;;
+import { Label } from &apos;@/components/ui/label&apos;;
+import { Printer, Save, AlertCircle, HelpCircle } from &apos;lucide-react&apos;;
 import {
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  DialogTitle
+} from &apos;@/components/ui/dialog&apos;;
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import * as escpos from '@/lib/escpos-commands';
-import { TransactionWithDetails } from '@/types/analytics';
+  TooltipTrigger
+} from &apos;@/components/ui/tooltip&apos;;
+import * as escpos from &apos;@/lib/escpos-commands&apos;;
+import { TransactionWithDetails } from &apos;@/types/analytics&apos;;
 
 interface ThermalPrinterProps {
-  transaction: TransactionWithDetails;
+  _transaction: TransactionWithDetails;
   onClose?: () => void;
 }
 
 export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
-  const [printerStatus, setPrinterStatus] = useState<'checking' | 'available' | 'not-available'>('checking');
+  const [printerStatus, setPrinterStatus] = useState<&apos;checking&apos; | &apos;available&apos; |
+  &apos;not-available&apos;>(&apos;checking&apos;);
   const [availablePrinters, setAvailablePrinters] = useState<string[]>([]);
-  const [selectedPrinter, setSelectedPrinter] = useState<string>('');
+  const [selectedPrinter, setSelectedPrinter] = useState<string>(&apos;&apos;);
   const [openDrawer, setOpenDrawer] = useState(true);
   const [paperCut, setPaperCut] = useState(true);
   const [showInstructions, setShowInstructions] = useState(false);
-  
+
   // Check printer availability when component mounts
   useEffect(() => {
     checkPrinterAvailability();
   }, []);
-  
+
   // Function to check if Web USB API is available and if printers are connected
-  const checkPrinterAvailability = async () => {
+  const checkPrinterAvailability = async() => {
     // @ts-ignore
     if (!navigator.usb) {
-      setPrinterStatus('not-available');
+      setPrinterStatus(&apos;not-available&apos;);
       return;
     }
-    
+
     try {
       // In a real implementation, we would check for connected printers here
-      // Since we don't have driver access in the browser, we'll simulate it
+      // Since we don&apos;t have driver access in the browser, we&apos;ll simulate it
       // Simulate some available printers
-      setAvailablePrinters(['POS58 Thermal Printer', 'Epson TM-T20']);
-      setSelectedPrinter('POS58 Thermal Printer');
-      setPrinterStatus('available');
+      setAvailablePrinters([&apos;POS58 Thermal Printer&apos;, &apos;Epson TM-T20&apos;]);
+      setSelectedPrinter(&apos;POS58 Thermal Printer&apos;);
+      setPrinterStatus(&apos;available&apos;);
     } catch (error) {
-      console.error('Error checking printer availability:', error);
-      setPrinterStatus('not-available');
+      console.error(&apos;Error checking printer _availability:&apos;, error);
+      setPrinterStatus(&apos;not-available&apos;);
     }
   };
-  
+
   // Generate receipt data for the ESC/POS commands
   const generateReceiptData = () => {
     // Format the items for the receipt
-    const items = (transaction.items as any[]).map((item: any) => ({
-      name: item.name || item.product?.name || 'Unknown Product',
-      quantity: item.quantity,
-      unitPrice: parseFloat(item.unitPrice),
-      total: parseFloat(item.subtotal)
+    const items = (transaction.items as any[]).map((_item: any) => ({
+      _name: item.name || item.product?.name || &apos;Unknown Product&apos;,
+      _quantity: item.quantity,
+      _unitPrice: parseFloat(item.unitPrice),
+      _total: parseFloat(item.subtotal)
     }));
-    
+
     // Generate the receipt options
     const receiptOptions = {
-      storeName: transaction.store?.name ?? 'ChainSync Store',
-      storeAddress: transaction.store?.address ?? '',
-      storePhone: transaction.store?.phone ?? '',
-      transactionId: transaction.id.toString(),
-      date: new Date(transaction.createdAt!),
-      cashierName: transaction.cashier?.name ?? 'Cashier',
+      _storeName: transaction.store?.name ?? &apos;ChainSync Store&apos;,
+      _storeAddress: transaction.store?.address ?? &apos;&apos;,
+      _storePhone: transaction.store?.phone ?? &apos;&apos;,
+      _transactionId: transaction.id.toString(),
+      _date: new Date(transaction.createdAt!),
+      _cashierName: transaction.cashier?.name ?? &apos;Cashier&apos;,
       items,
-      subtotal: parseFloat(transaction.subtotal),
-      tax: parseFloat(transaction.tax ?? '0'),
-      total: parseFloat(transaction.total),
-      paymentMethod: transaction.paymentMethod,
-      customerName: transaction.customer?.name,
-      loyaltyPoints: transaction.pointsEarned ? {
-        earned: transaction.pointsEarned,
-        balance: transaction.loyaltyMember?.points ?? transaction.pointsEarned
+      _subtotal: parseFloat(transaction.subtotal),
+      _tax: parseFloat(transaction.tax ?? &apos;0&apos;),
+      _total: parseFloat(transaction.total),
+      _paymentMethod: transaction.paymentMethod,
+      _customerName: transaction.customer?.name,
+      _loyaltyPoints: transaction.pointsEarned ? {
+        _earned: transaction.pointsEarned,
+        _balance: transaction.loyaltyMember?.points ?? transaction.pointsEarned
       } : undefined,
       openDrawer,
-      cutPaper: paperCut,
+      _cutPaper: paperCut
     };
-    
+
     return receiptOptions;
   };
-  
+
   // Send print job to the selected printer
   const printReceipt = () => {
     try {
       const receiptOptions = generateReceiptData();
       const commands = escpos.generateReceipt(receiptOptions);
-      
+
       // Since direct USB access requires special permissions and native integration,
-      // we'll provide options for saving the commands or using a local print service
-      
+      // we&apos;ll provide options for saving the commands or using a local print service
+
       // For Web USB enabled browsers, provide instructions on installing a local print service
       setShowInstructions(true);
-      
+
       // Save the print commands for the local print service to pick up
       escpos.saveEscposCommandsForPrinting(commands, selectedPrinter);
-      
+
       // Optionally, allow downloading the raw commands for manual printing
       // escpos.downloadEscposCommands(commands, `receipt-${transaction.transactionId}.bin`);
-      
+
       return true;
     } catch (error) {
-      console.error('Error printing receipt:', error);
+      console.error(&apos;Error printing _receipt:&apos;, error);
       return false;
     }
   };
-  
+
   // Download raw ESC/POS commands for manual printing
   const downloadRawCommands = () => {
     try {
@@ -137,28 +138,28 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
       const commands = escpos.generateReceipt(receiptOptions);
       escpos.downloadEscposCommands(commands, `receipt-${transaction.id}.bin`);
     } catch (error) {
-      console.error('Error generating receipt commands:', error);
+      console.error(&apos;Error generating receipt _commands:&apos;, error);
     }
   };
-  
+
   return (
-    <Card className="max-w-md mx-auto">
+    <Card className=&quot;max-w-md mx-auto&quot;>
       <CardHeader>
         <CardTitle>Thermal Printer</CardTitle>
         <CardDescription>Print receipt to thermal printer</CardDescription>
       </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {printerStatus === 'checking' && (
-          <div className="flex items-center justify-center p-4">
-            <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            <span className="ml-2">Checking for printers...</span>
+
+      <CardContent className=&quot;space-y-4&quot;>
+        {printerStatus === &apos;checking&apos; && (
+          <div className=&quot;flex items-center justify-center p-4&quot;>
+            <div className=&quot;h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent&quot; />
+            <span className=&quot;ml-2&quot;>Checking for printers...</span>
           </div>
         )}
-        
-        {printerStatus === 'not-available' && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
+
+        {printerStatus === &apos;not-available&apos; && (
+          <Alert variant=&quot;destructive&quot;>
+            <AlertCircle className=&quot;h-4 w-4&quot; />
             <AlertTitle>Printer Not Available</AlertTitle>
             <AlertDescription>
               Web USB is not supported in your browser or no thermal printers are connected.
@@ -166,15 +167,15 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
             </AlertDescription>
           </Alert>
         )}
-        
-        {printerStatus === 'available' && (
+
+        {printerStatus === &apos;available&apos; && (
           <>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="printer">Select Printer</Label>
+            <div className=&quot;space-y-4&quot;>
+              <div className=&quot;space-y-2&quot;>
+                <Label htmlFor=&quot;printer&quot;>Select Printer</Label>
                 <Select value={selectedPrinter} onValueChange={setSelectedPrinter}>
-                  <SelectTrigger id="printer">
-                    <SelectValue placeholder="Select printer" />
+                  <SelectTrigger id=&quot;printer&quot;>
+                    <SelectValue placeholder=&quot;Select printer&quot; />
                   </SelectTrigger>
                   <SelectContent>
                     {availablePrinters.map((printer) => (
@@ -185,16 +186,16 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="open-drawer">Open Cash Drawer</Label>
+
+              <div className=&quot;flex items-center justify-between&quot;>
+                <div className=&quot;flex items-center space-x-2&quot;>
+                  <Label htmlFor=&quot;open-drawer&quot;>Open Cash Drawer</Label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                        <HelpCircle className=&quot;h-4 w-4 text-muted-foreground&quot; />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Automatically open the cash drawer after printing</p>
@@ -202,20 +203,20 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <Switch 
-                  id="open-drawer" 
-                  checked={openDrawer} 
-                  onCheckedChange={setOpenDrawer} 
+                <Switch
+                  id=&quot;open-drawer&quot;
+                  checked={openDrawer}
+                  onCheckedChange={setOpenDrawer}
                 />
               </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="paper-cut">Cut Paper</Label>
+
+              <div className=&quot;flex items-center justify-between&quot;>
+                <div className=&quot;flex items-center space-x-2&quot;>
+                  <Label htmlFor=&quot;paper-cut&quot;>Cut Paper</Label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                        <HelpCircle className=&quot;h-4 w-4 text-muted-foreground&quot; />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Automatically cut the receipt paper after printing</p>
@@ -223,43 +224,43 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <Switch 
-                  id="paper-cut" 
-                  checked={paperCut} 
-                  onCheckedChange={setPaperCut} 
+                <Switch
+                  id=&quot;paper-cut&quot;
+                  checked={paperCut}
+                  onCheckedChange={setPaperCut}
                 />
               </div>
             </div>
           </>
         )}
       </CardContent>
-      
-      <CardFooter className="flex flex-col sm:flex-row gap-2">
-        <Button 
-          variant="outline" 
+
+      <CardFooter className=&quot;flex flex-col _sm:flex-row gap-2&quot;>
+        <Button
+          variant=&quot;outline&quot;
           onClick={downloadRawCommands}
-          className="w-full sm:w-auto"
+          className=&quot;w-full _sm:w-auto&quot;
         >
-          <Save className="mr-2 h-4 w-4" />
+          <Save className=&quot;mr-2 h-4 w-4&quot; />
           Download Print File
         </Button>
-        
-        <Button 
+
+        <Button
           onClick={printReceipt}
-          className="w-full sm:w-auto"
-          disabled={printerStatus === 'checking'}
+          className=&quot;w-full _sm:w-auto&quot;
+          disabled={printerStatus === &apos;checking&apos;}
         >
-          <Printer className="mr-2 h-4 w-4" />
+          <Printer className=&quot;mr-2 h-4 w-4&quot; />
           Print Receipt
         </Button>
-        
+
         {onClose && (
-          <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">
+          <Button variant=&quot;ghost&quot; onClick={onClose} className=&quot;w-full _sm:w-auto&quot;>
             Close
           </Button>
         )}
       </CardFooter>
-      
+
       {/* Instructions dialog */}
       <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
         <DialogContent>
@@ -269,41 +270,41 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
               To print directly to a thermal printer, you need to set up a local printing service.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <p>There are a few ways to send the receipt to your thermal printer:</p>
-            
-            <ol className="list-decimal ml-6 space-y-2">
+
+          <div className=&quot;space-y-4&quot;>
+            <p>There are a few ways to send the receipt to your thermal _printer:</p>
+
+            <ol className=&quot;list-decimal ml-6 space-y-2&quot;>
               <li>
-                <strong>ChainSync Print Service:</strong> Install our dedicated print service 
+                <strong>ChainSync Print Service:</strong> Install our dedicated print service
                 that runs in the background and automatically sends print jobs to your printer.
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto"
+                <Button
+                  variant=&quot;link&quot;
+                  className=&quot;p-0 h-auto&quot;
                   onClick={() => {
                     // Download link would go here in a real implementation
-                    alert('Print service download would be available here in production.');
+                    alert(&apos;Print service download would be available here in production.&apos;);
                   }}
                 >
                   Download Print Service
                 </Button>
               </li>
-              
+
               <li>
-                <strong>Manual Method:</strong> Download the receipt file and send it directly 
+                <strong>Manual _Method:</strong> Download the receipt file and send it directly
                 to your printer using a command like:
-                <pre className="bg-muted p-2 rounded-md text-xs mt-1 overflow-x-auto">
-                  {`copy receipt.bin /b LPT1:`}
+                <pre className=&quot;bg-muted p-2 rounded-md text-xs mt-1 overflow-x-auto&quot;>
+                  {&apos;copy receipt.bin /b LPT1:&apos;}
                 </pre>
                 or
-                <pre className="bg-muted p-2 rounded-md text-xs mt-1 overflow-x-auto">
-                  {`cat receipt.bin > /dev/usb/lp0`}
+                <pre className=&quot;bg-muted p-2 rounded-md text-xs mt-1 overflow-x-auto&quot;>
+                  {&apos;cat receipt.bin > /dev/usb/lp0&apos;}
                 </pre>
               </li>
             </ol>
-            
+
             <Alert>
-              <AlertCircle className="h-4 w-4" />
+              <AlertCircle className=&quot;h-4 w-4&quot; />
               <AlertTitle>Receipt Data Saved</AlertTitle>
               <AlertDescription>
                 The receipt data has been saved and is ready for printing.
@@ -312,7 +313,7 @@ export function ThermalPrinter({ transaction, onClose }: ThermalPrinterProps) {
               </AlertDescription>
             </Alert>
           </div>
-          
+
           <DialogFooter>
             <Button onClick={() => setShowInstructions(false)}>
               Close

@@ -1,27 +1,27 @@
 // Comprehensive test utilities for React 19 compatibility
-import { render, RenderOptions } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi, expect } from 'vitest';
+import { render, RenderOptions } from &apos;@testing-library/react&apos;;
+import { QueryClient, QueryClientProvider } from &apos;@tanstack/react-query&apos;;
+import { vi, expect } from &apos;vitest&apos;;
 
 type ReactElement = any;
 
 // Test providers wrapper
 interface TestProvidersProps {
-  children: React.ReactNode;
+  _children: React.ReactNode;
   queryClient?: QueryClient | undefined;
 }
 
 const TestProviders = ({ children, queryClient }: TestProvidersProps) => {
   const defaultQueryClient = new QueryClient({
-    defaultOptions: {
+    _defaultOptions: {
       queries: {
-        retry: false,
-        gcTime: 0,
+        _retry: false,
+        _gcTime: 0
       },
-      mutations: {
-        retry: false,
-      },
-    },
+      _mutations: {
+        _retry: false
+      }
+    }
   });
 
   return (
@@ -33,149 +33,149 @@ const TestProviders = ({ children, queryClient }: TestProvidersProps) => {
 
 // Custom render function with providers
 const customRender = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'> & {
+  _ui: ReactElement,
+  options?: Omit<RenderOptions, &apos;wrapper&apos;> & {
     queryClient?: QueryClient;
   }
 ) => {
   const { queryClient, ...renderOptions } = options || {};
-  
+
   return render(ui, {
-    wrapper: ({ children }: { children: React.ReactNode }) => (
+    _wrapper: ({ children }: { _children: React.ReactNode }) => (
       <TestProviders queryClient={queryClient ?? undefined}>
         {children}
       </TestProviders>
     ),
-    ...renderOptions,
+    ...renderOptions
   });
 };
 
 // Mock data factories with proper typing
 export interface MockUser {
-  id: number;
-  email: string;
-  name: string;
-  role: 'admin' | 'manager' | 'cashier';
+  _id: number;
+  _email: string;
+  _name: string;
+  role: &apos;admin&apos; | &apos;manager&apos; | &apos;cashier&apos;;
   storeId?: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  _isActive: boolean;
+  _createdAt: string;
+  _updatedAt: string;
 }
 
 export interface MockProduct {
-  id: number;
-  name: string;
-  sku: string;
-  price: string;
+  _id: number;
+  _name: string;
+  _sku: string;
+  _price: string;
   description?: string;
-  categoryId: number;
-  storeId: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  _categoryId: number;
+  _storeId: number;
+  _isActive: boolean;
+  _createdAt: string;
+  _updatedAt: string;
 }
 
 export interface MockTransaction {
-  id: number;
-  userId: number;
-  storeId: number;
-  total: string;
-  status: 'pending' | 'completed' | 'cancelled' | 'refunded';
-  paymentMethod: 'cash' | 'card' | 'mobile';
-  createdAt: string;
-  updatedAt: string;
+  _id: number;
+  _userId: number;
+  _storeId: number;
+  _total: string;
+  status: &apos;pending&apos; | &apos;completed&apos; | &apos;cancelled&apos; | &apos;refunded&apos;;
+  paymentMethod: &apos;cash&apos; | &apos;card&apos; | &apos;mobile&apos;;
+  _createdAt: string;
+  _updatedAt: string;
 }
 
 export interface MockInventory {
-  id: number;
-  productId: number;
-  storeId: number;
-  quantity: number;
-  availableQuantity: number;
-  minStock: number;
-  updatedAt: string;
+  _id: number;
+  _productId: number;
+  _storeId: number;
+  _quantity: number;
+  _availableQuantity: number;
+  _minStock: number;
+  _updatedAt: string;
 }
 
 export interface MockCategory {
-  id: number;
-  name: string;
+  _id: number;
+  _name: string;
   description?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  _isActive: boolean;
+  _createdAt: string;
+  _updatedAt: string;
 }
 
 // Factory functions with proper typing
-export const createMockUser = (overrides: Partial<MockUser> = {}): MockUser => ({
-  id: 1,
-  email: 'test@example.com',
-  name: 'Test User',
-  role: 'cashier',
-  storeId: 1,
-  isActive: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  ...overrides,
+export const createMockUser = (_overrides: Partial<MockUser> = {}): MockUser => ({
+  _id: 1,
+  _email: &apos;test@example.com&apos;,
+  _name: &apos;Test User&apos;,
+  _role: &apos;cashier&apos;,
+  _storeId: 1,
+  _isActive: true,
+  _createdAt: new Date().toISOString(),
+  _updatedAt: new Date().toISOString(),
+  ...overrides
 });
 
-export const createMockProduct = (overrides: Partial<MockProduct> = {}): MockProduct => ({
-  id: 1,
-  name: 'Test Product',
-  sku: 'TEST-001',
-  price: '10.99',
-  description: 'Test product description',
-  categoryId: 1,
-  storeId: 1,
-  isActive: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  ...overrides,
+export const createMockProduct = (_overrides: Partial<MockProduct> = {}): MockProduct => ({
+  _id: 1,
+  _name: &apos;Test Product&apos;,
+  _sku: &apos;TEST-001&apos;,
+  _price: &apos;10.99&apos;,
+  _description: &apos;Test product description&apos;,
+  _categoryId: 1,
+  _storeId: 1,
+  _isActive: true,
+  _createdAt: new Date().toISOString(),
+  _updatedAt: new Date().toISOString(),
+  ...overrides
 });
 
-export const createMockTransaction = (overrides: Partial<MockTransaction> = {}): MockTransaction => ({
-  id: 1,
-  userId: 1,
-  storeId: 1,
-  total: '25.99',
-  status: 'completed',
-  paymentMethod: 'cash',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  ...overrides,
+export const createMockTransaction = (_overrides: Partial<MockTransaction> = {}): MockTransaction => ({
+  _id: 1,
+  _userId: 1,
+  _storeId: 1,
+  _total: &apos;25.99&apos;,
+  _status: &apos;completed&apos;,
+  _paymentMethod: &apos;cash&apos;,
+  _createdAt: new Date().toISOString(),
+  _updatedAt: new Date().toISOString(),
+  ...overrides
 });
 
-export const createMockInventory = (overrides: Partial<MockInventory> = {}): MockInventory => ({
-  id: 1,
-  productId: 1,
-  storeId: 1,
-  quantity: 100,
-  availableQuantity: 95,
-  minStock: 10,
-  updatedAt: new Date().toISOString(),
-  ...overrides,
+export const createMockInventory = (_overrides: Partial<MockInventory> = {}): MockInventory => ({
+  _id: 1,
+  _productId: 1,
+  _storeId: 1,
+  _quantity: 100,
+  _availableQuantity: 95,
+  _minStock: 10,
+  _updatedAt: new Date().toISOString(),
+  ...overrides
 });
 
-export const createMockCategory = (overrides: Partial<MockCategory> = {}): MockCategory => ({
-  id: 1,
-  name: 'Test Category',
-  description: 'Test category description',
-  isActive: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  ...overrides,
+export const createMockCategory = (_overrides: Partial<MockCategory> = {}): MockCategory => ({
+  _id: 1,
+  _name: &apos;Test Category&apos;,
+  _description: &apos;Test category description&apos;,
+  _isActive: true,
+  _createdAt: new Date().toISOString(),
+  _updatedAt: new Date().toISOString(),
+  ...overrides
 });
 
 // API mock utilities
-export const createApiMock = (data: any, delay = 0) => {
-  return vi.fn().mockImplementation(() => 
+export const createApiMock = (_data: any, delay = 0) => {
+  return vi.fn().mockImplementation(() =>
     new Promise((resolve) => {
       setTimeout(() => resolve({ data }), delay);
     })
   );
 };
 
-export const createApiErrorMock = (error: any, delay = 0) => {
-  return vi.fn().mockImplementation(() => 
+export const createApiErrorMock = (_error: any, delay = 0) => {
+  return vi.fn().mockImplementation(() =>
     new Promise((_, reject) => {
       setTimeout(() => reject(error), delay);
     })
@@ -186,22 +186,22 @@ export const createApiErrorMock = (error: any, delay = 0) => {
 export const waitFor = (condition: () => boolean, timeout = 5000): Promise<void> => {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
-    
+
     const checkCondition = () => {
       if (condition()) {
         resolve();
       } else if (Date.now() - startTime > timeout) {
-        reject(new Error('Condition not met within timeout'));
+        reject(new Error(&apos;Condition not met within timeout&apos;));
       } else {
         setTimeout(checkCondition, 10);
       }
     };
-    
+
     checkCondition();
   });
 };
 
-export const waitForElementToBeRemoved = (element: Element | null): Promise<void> => {
+export const waitForElementToBeRemoved = (_element: Element | null): Promise<void> => {
   return new Promise((resolve) => {
     if (!element) {
       resolve();
@@ -216,30 +216,30 @@ export const waitForElementToBeRemoved = (element: Element | null): Promise<void
     });
 
     observer.observe(document.body, {
-      childList: true,
-      subtree: true,
+      _childList: true,
+      _subtree: true
     });
   });
 };
 
 // Form testing utilities
-export const fillFormField = async (element: HTMLElement, value: string) => {
+export const fillFormField = async(_element: HTMLElement, _value: string) => {
   const input = element as HTMLInputElement;
   input.value = value;
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
+  input.dispatchEvent(new Event(&apos;input&apos;, { _bubbles: true }));
+  input.dispatchEvent(new Event(&apos;change&apos;, { _bubbles: true }));
 };
 
-export const submitForm = async (form: HTMLFormElement) => {
-  form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+export const submitForm = async(_form: HTMLFormElement) => {
+  form.dispatchEvent(new Event(&apos;submit&apos;, { _bubbles: true, _cancelable: true }));
 };
 
 // Custom matchers
 expect.extend({
-  toHaveBeenCalledWithMatch(received: any, ...expected: any[]) {
-    const pass = received.mock.calls.some((call: any) =>
+  toHaveBeenCalledWithMatch(_received: any, ..._expected: any[]) {
+    const pass = received.mock.calls.some((_call: any) =>
       expected.every((arg, index) => {
-        if (typeof arg === 'object' && arg !== null) {
+        if (typeof arg === &apos;object&apos; && arg !== null) {
           return expect(call[index]).toMatchObject(arg);
         }
         return expect(call[index]).toBe(arg);
@@ -248,34 +248,34 @@ expect.extend({
 
     return {
       pass,
-      message: () =>
-        `expected ${received.getMockName()} to have been called with arguments matching ${expected}`,
+      _message: () =>
+        `expected ${received.getMockName()} to have been called with arguments matching ${expected}`
     };
   },
 
-  toBeValidDate(received: any) {
+  toBeValidDate(_received: any) {
     const pass = received instanceof Date && !isNaN(received.getTime());
     return {
       pass,
-      message: () => `expected ${received} to be a valid Date`,
+      _message: () => `expected ${received} to be a valid Date`
     };
   },
 
-  toBeValidEmail(received: string) {
+  toBeValidEmail(_received: string) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const pass = emailRegex.test(received);
     return {
       pass,
-      message: () => `expected ${received} to be a valid email address`,
+      _message: () => `expected ${received} to be a valid email address`
     };
-  },
+  }
 });
 
 // Type declarations for custom matchers
 declare global {
   namespace jest {
     interface Matchers<R> {
-      toHaveBeenCalledWithMatch(...expected: any[]): R;
+      toHaveBeenCalledWithMatch(..._expected: any[]): R;
       toBeValidDate(): R;
       toBeValidEmail(): R;
     }
@@ -283,63 +283,63 @@ declare global {
 }
 
 // Database testing utilities
-export const createTestDatabase = async () => {
+export const createTestDatabase = async() => {
   // Mock database connection for testing
   return {
-    query: {
+    _query: {
       users: {
-        findMany: vi.fn(),
-        findFirst: vi.fn(),
-        findUnique: vi.fn(),
+        _findMany: vi.fn(),
+        _findFirst: vi.fn(),
+        _findUnique: vi.fn()
       },
-      products: {
-        findMany: vi.fn(),
-        findFirst: vi.fn(),
-        findUnique: vi.fn(),
+      _products: {
+        _findMany: vi.fn(),
+        _findFirst: vi.fn(),
+        _findUnique: vi.fn()
       },
-      transactions: {
-        findMany: vi.fn(),
-        findFirst: vi.fn(),
-        findUnique: vi.fn(),
+      _transactions: {
+        _findMany: vi.fn(),
+        _findFirst: vi.fn(),
+        _findUnique: vi.fn()
       },
-      inventory: {
-        findMany: vi.fn(),
-        findFirst: vi.fn(),
-        findUnique: vi.fn(),
+      _inventory: {
+        _findMany: vi.fn(),
+        _findFirst: vi.fn(),
+        _findUnique: vi.fn()
       },
-      categories: {
-        findMany: vi.fn(),
-        findFirst: vi.fn(),
-        findUnique: vi.fn(),
-      },
+      _categories: {
+        _findMany: vi.fn(),
+        _findFirst: vi.fn(),
+        _findUnique: vi.fn()
+      }
     },
-    insert: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
+    _insert: vi.fn(),
+    _update: vi.fn(),
+    _delete: vi.fn()
   };
 };
 
 // Authentication testing utilities
 export const createMockAuth = (user?: MockUser) => {
   return {
-    user: user || createMockUser(),
-    isAuthenticated: !!user,
-    login: vi.fn(),
-    logout: vi.fn(),
-    register: vi.fn(),
+    _user: user || createMockUser(),
+    _isAuthenticated: !!user,
+    _login: vi.fn(),
+    _logout: vi.fn(),
+    _register: vi.fn()
   };
 };
 
 // Store testing utilities
 export const createMockStore = () => {
   return {
-    dispatch: vi.fn(),
-    getState: vi.fn(),
-    subscribe: vi.fn(),
+    _dispatch: vi.fn(),
+    _getState: vi.fn(),
+    _subscribe: vi.fn()
   };
 };
 
 // Export everything
-export * from '@testing-library/react';
+export * from &apos;@testing-library/react&apos;;
 export { customRender as render };
-export { vi, expect }; 
+export { vi, expect };

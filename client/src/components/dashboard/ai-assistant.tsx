@@ -1,116 +1,116 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/providers/auth-provider';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { LightbulbIcon, ArrowRightIcon, SendIcon, AlertTriangleIcon } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useRef, useEffect } from &apos;react&apos;;
+import { Card, CardContent, CardHeader } from &apos;@/components/ui/card&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { useQuery, useMutation, useQueryClient } from &apos;@tanstack/react-query&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { LightbulbIcon, ArrowRightIcon, SendIcon, AlertTriangleIcon } from &apos;lucide-react&apos;;
+import { Skeleton } from &apos;@/components/ui/skeleton&apos;;
 
 interface Message {
-  role: 'user' | 'assistant';
-  content: string;
+  _role: &apos;user&apos; | &apos;assistant&apos;;
+  _content: string;
 }
 
 interface ConversationData {
-  messages: Message[];
+  _messages: Message[];
   id?: number;
   userId?: number;
 }
 
 export function AiAssistant() {
   const { user } = useAuth();
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(&apos;&apos;);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  
+
   // Fetch conversation history with default value
-  const { data: conversationData = { messages: [] }, isLoading: isLoadingConversation } = useQuery<ConversationData>({
-    queryKey: ['/api/ai/conversation'],
+  const { _data: conversationData = { messages: [] }, _isLoading: isLoadingConversation } = useQuery<ConversationData>({
+    queryKey: [&apos;/api/ai/conversation&apos;]
   });
-  
+
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (message: string) => {
-      return await apiRequest('POST', '/api/ai/chat', { message });
+    _mutationFn: async(_message: string) => {
+      return await apiRequest(&apos;POST&apos;, &apos;/api/ai/chat&apos;, { message });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/ai/conversation'] });
-    },
+    _onSuccess: () => {
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/ai/conversation&apos;] });
+    }
   });
 
   // Scroll to bottom of messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ _behavior: &apos;smooth&apos; });
   }, [conversationData]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = (_e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    
+
     sendMessageMutation.mutate(message);
-    setMessage('');
+    setMessage(&apos;&apos;);
   };
 
   const renderMessages = () => {
     if (isLoadingConversation) {
       return [1, 2, 3].map((_, i) => (
-        <div key={i} className={`flex items-start ${i % 2 === 0 ? '' : 'justify-end'}`}>
-          <Skeleton className={`w-8 h-8 rounded-full flex-shrink-0 ${i % 2 === 0 ? 'mr-3' : 'ml-3 order-2'}`} />
-          <Skeleton className="h-24 w-4/5 rounded-lg" />
+        <div key={i} className={`flex items-start ${i % 2 === 0 ? &apos;&apos; : &apos;justify-end&apos;}`}>
+          <Skeleton className={`w-8 h-8 rounded-full flex-shrink-0 ${i % 2 === 0 ? &apos;mr-3&apos; : &apos;ml-3 order-2&apos;}`} />
+          <Skeleton className=&quot;h-24 w-4/5 rounded-lg&quot; />
         </div>
       ));
     }
 
     // Ensure conversationData and messages exist with proper type checks
     const messages = Array.isArray(conversationData?.messages) ? conversationData.messages : [];
-    
+
     // The backend now always returns at least a welcome message
     // This is just a fallback in case no messages are returned
     if (messages.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center h-48 text-center p-4">
-          <LightbulbIcon className="w-12 h-12 text-primary mb-4 opacity-20" />
-          <p className="text-neutral-500">Ask me about sales trends, inventory levels, or store performance.</p>
-          <p className="text-sm text-neutral-400 mt-2">Example: "Show sales for Downtown Store vs Westside Mall last month"</p>
+        <div className=&quot;flex flex-col items-center justify-center h-48 text-center p-4&quot;>
+          <LightbulbIcon className=&quot;w-12 h-12 text-primary mb-4 opacity-20&quot; />
+          <p className=&quot;text-neutral-500&quot;>Ask me about sales trends, inventory levels, or store performance.</p>
+          <p className=&quot;text-sm text-neutral-400 mt-2&quot;>Example: &quot;Show sales for Downtown Store vs Westside Mall last month&quot;</p>
         </div>
       );
     }
 
-    return messages.map((msg: Message, index: number) => {
-      if (msg.role === 'assistant') {
+    return messages.map((_msg: Message, _index: number) => {
+      if (msg.role === &apos;assistant&apos;) {
         return (
-          <div key={index} className="flex items-start mb-4">
-            <div className="flex-shrink-0 mr-3">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
-                <LightbulbIcon className="w-5 h-5" />
+          <div key={index} className=&quot;flex items-start mb-4&quot;>
+            <div className=&quot;flex-shrink-0 mr-3&quot;>
+              <div className=&quot;w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white&quot;>
+                <LightbulbIcon className=&quot;w-5 h-5&quot; />
               </div>
             </div>
-            <div className="bg-white p-3 rounded-lg shadow-sm max-w-[85%] text-sm">
+            <div className=&quot;bg-white p-3 rounded-lg shadow-sm max-w-[85%] text-sm&quot;>
               {/* Check if this is an alert message */}
-              {msg.content.includes('Alert:') ? (
-                <div className="bg-amber-50 p-3 rounded-lg shadow-sm border border-amber-200">
-                  <p className="font-medium flex items-center text-amber-700">
-                    <AlertTriangleIcon className="w-4 h-4 mr-2" />
+              {msg.content.includes(&apos;Alert:&apos;) ? (
+                <div className=&quot;bg-amber-50 p-3 rounded-lg shadow-sm border border-amber-200&quot;>
+                  <p className=&quot;font-medium flex items-center text-amber-700&quot;>
+                    <AlertTriangleIcon className=&quot;w-4 h-4 mr-2&quot; />
                     {msg.content}
                   </p>
                 </div>
               ) : (
-                <p className="whitespace-pre-line">{msg.content}</p>
+                <p className=&quot;whitespace-pre-line&quot;>{msg.content}</p>
               )}
             </div>
           </div>
         );
       } else {
         return (
-          <div key={index} className="flex items-start justify-end mb-4">
-            <div className="bg-primary-50 p-3 rounded-lg shadow-sm max-w-[85%] text-sm">
+          <div key={index} className=&quot;flex items-start justify-end mb-4&quot;>
+            <div className=&quot;bg-primary-50 p-3 rounded-lg shadow-sm max-w-[85%] text-sm&quot;>
               <p>{msg.content}</p>
             </div>
-            <div className="flex-shrink-0 ml-3">
-              <div className="w-8 h-8 rounded-full bg-neutral-300 flex items-center justify-center text-neutral-700">
-                <span className="text-sm font-medium">{user?.fullName.split(' ').map(n => n[0]).join('')}</span>
+            <div className=&quot;flex-shrink-0 ml-3&quot;>
+              <div className=&quot;w-8 h-8 rounded-full bg-neutral-300 flex items-center justify-center text-neutral-700&quot;>
+                <span className=&quot;text-sm font-medium&quot;>{user?.fullName.split(&apos; &apos;).map(n => n[0]).join(&apos;&apos;)}</span>
               </div>
             </div>
           </div>
@@ -120,52 +120,53 @@ export function AiAssistant() {
   };
 
   return (
-    <Card className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden h-full flex flex-col">
-      <CardHeader className="p-4 border-b border-neutral-200 bg-primary-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="p-2 bg-primary rounded-full mr-3">
-              <LightbulbIcon className="w-5 h-5 text-white" />
+    <Card className=&quot;bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden h-full flex flex-col&quot;>
+      <CardHeader className=&quot;p-4 border-b border-neutral-200 bg-primary-50&quot;>
+        <div className=&quot;flex items-center justify-between&quot;>
+          <div className=&quot;flex items-center&quot;>
+            <div className=&quot;p-2 bg-primary rounded-full mr-3&quot;>
+              <LightbulbIcon className=&quot;w-5 h-5 text-white&quot; />
             </div>
             <div>
-              <h2 className="text-lg font-medium text-neutral-800">Dialogflow Assistant</h2>
-              <p className="text-sm text-neutral-500">Powered by Google Dialogflow</p>
+              <h2 className=&quot;text-lg font-medium text-neutral-800&quot;>Dialogflow Assistant</h2>
+              <p className=&quot;text-sm text-neutral-500&quot;>Powered by Google Dialogflow</p>
             </div>
           </div>
-          <div className="flex items-center bg-amber-100 text-amber-700 text-xs rounded px-2 py-1">
-            <AlertTriangleIcon className="w-3 h-3 mr-1" />
+          <div className=&quot;flex items-center bg-amber-100 text-amber-700 text-xs rounded px-2 py-1&quot;>
+            <AlertTriangleIcon className=&quot;w-3 h-3 mr-1&quot; />
             DEMO MODE
           </div>
         </div>
-        <div className="mt-2 text-xs text-neutral-500 bg-white p-2 rounded border border-neutral-200">
-          <p>This assistant is running in demo mode with mock responses. For full functionality, add <span className="font-mono bg-neutral-100 px-1 rounded">GOOGLE_APPLICATION_CREDENTIALS</span> and <span className="font-mono bg-neutral-100 px-1 rounded">DIALOGFLOW_PROJECT_ID</span> to your environment.</p>
+        <div className=&quot;mt-2 text-xs text-neutral-500 bg-white p-2 rounded border border-neutral-200&quot;>
+          <p>This assistant is running in demo mode with mock responses. For full functionality, add <span
+  className = &quot;font-mono bg-neutral-100 px-1 rounded&quot;>GOOGLE_APPLICATION_CREDENTIALS</span> and <span className=&quot;font-mono bg-neutral-100 px-1 rounded&quot;>DIALOGFLOW_PROJECT_ID</span> to your environment.</p>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto p-4 bg-neutral-50">
-        <div className="space-y-4">
+      <CardContent className=&quot;flex-1 overflow-y-auto p-4 bg-neutral-50&quot;>
+        <div className=&quot;space-y-4&quot;>
           {renderMessages()}
           <div ref={messagesEndRef} />
         </div>
       </CardContent>
-      <div className="p-4 border-t border-neutral-200">
-        <form onSubmit={handleSendMessage} className="flex">
+      <div className=&quot;p-4 border-t border-neutral-200&quot;>
+        <form onSubmit={handleSendMessage} className=&quot;flex&quot;>
           <Input
-            type="text"
-            placeholder="Ask anything about your stores..."
+            type=&quot;text&quot;
+            placeholder=&quot;Ask anything about your stores...&quot;
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="flex-1 rounded-l-md"
+            className=&quot;flex-1 rounded-l-md&quot;
             disabled={sendMessageMutation.isPending}
           />
-          <Button 
-            type="submit" 
-            className="bg-primary text-white rounded-r-md hover:bg-primary-600" 
+          <Button
+            type=&quot;submit&quot;
+            className=&quot;bg-primary text-white rounded-r-md _hover:bg-primary-600&quot;
             disabled={sendMessageMutation.isPending || !message.trim()}
           >
             {sendMessageMutation.isPending ? (
-              <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+              <div className=&quot;w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin&quot; />
             ) : (
-              <SendIcon className="w-5 h-5" />
+              <SendIcon className=&quot;w-5 h-5&quot; />
             )}
           </Button>
         </form>

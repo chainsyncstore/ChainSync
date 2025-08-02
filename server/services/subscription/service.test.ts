@@ -19,56 +19,56 @@ import { SchemaValidationError } from '@shared/schema-validation';
 
 // Mock DB and schema validation
 jest.mock('@db', () => ({
-  query: {
+  _query: {
     subscriptions: {
-      findFirst: jest.fn(),
-      findMany: jest.fn()
+      _findFirst: jest.fn(),
+      _findMany: jest.fn()
     },
-    users: {
-      findFirst: jest.fn()
+    _users: {
+      _findFirst: jest.fn()
     }
   },
-  insert: jest.fn().mockReturnThis(),
-  update: jest.fn().mockReturnThis(),
-  delete: jest.fn().mockReturnThis(),
-  select: jest.fn().mockReturnThis(),
-  from: jest.fn().mockReturnThis(),
-  where: jest.fn().mockReturnThis(),
-  groupBy: jest.fn().mockReturnThis(),
-  orderBy: jest.fn().mockReturnThis(),
-  limit: jest.fn().mockReturnThis(),
-  offset: jest.fn().mockReturnThis(),
-  returning: jest.fn(),
-  set: jest.fn().mockReturnThis(),
-  values: jest.fn().mockReturnThis()
+  _insert: jest.fn().mockReturnThis(),
+  _update: jest.fn().mockReturnThis(),
+  _delete: jest.fn().mockReturnThis(),
+  _select: jest.fn().mockReturnThis(),
+  _from: jest.fn().mockReturnThis(),
+  _where: jest.fn().mockReturnThis(),
+  _groupBy: jest.fn().mockReturnThis(),
+  _orderBy: jest.fn().mockReturnThis(),
+  _limit: jest.fn().mockReturnThis(),
+  _offset: jest.fn().mockReturnThis(),
+  _returning: jest.fn(),
+  _set: jest.fn().mockReturnThis(),
+  _values: jest.fn().mockReturnThis()
 }));
 
 jest.mock('@shared/schema-validation', () => ({
-  subscriptionValidation: {
-    insert: jest.fn(data => data),
-    update: jest.fn(data => data),
-    webhook: jest.fn(data => data)
+  _subscriptionValidation: {
+    _insert: jest.fn(data => data),
+    _update: jest.fn(data => data),
+    _webhook: jest.fn(data => data)
   },
-  SchemaValidationError: class SchemaValidationError extends Error {
-    constructor(message: string, options?: any) {
+  _SchemaValidationError: class SchemaValidationError extends Error {
+    constructor(_message: string, options?: any) {
       super(message);
       this.name = 'SchemaValidationError';
     }
     toJSON() {
       return {
-        error: this.name,
-        message: this.message
+        _error: this.name,
+        _message: this.message
       };
     }
   }
 }));
 
 jest.mock('@shared/schema-helpers', () => ({
-  prepareSubscriptionData: jest.fn(data => data)
+  _prepareSubscriptionData: jest.fn(data => data)
 }));
 
 describe('SubscriptionService', () => {
-  let subscriptionService: SubscriptionService;
+  let _subscriptionService: SubscriptionService;
 
   beforeEach(() => {
     subscriptionService = new SubscriptionService();
@@ -77,25 +77,25 @@ describe('SubscriptionService', () => {
 
   describe('createSubscription', () => {
     const validSubscriptionData = {
-      userId: 1,
-      plan: SubscriptionPlan.PREMIUM,
-      amount: '100.00',
-      currency: 'NGN',
-      provider: PaymentProvider.PAYSTACK,
-      providerReference: 'test-reference',
-      autoRenew: true
+      _userId: 1,
+      _plan: SubscriptionPlan.PREMIUM,
+      _amount: '100.00',
+      _currency: 'NGN',
+      _provider: PaymentProvider.PAYSTACK,
+      _providerReference: 'test-reference',
+      _autoRenew: true
     };
 
     it('should create a subscription with validated data', async() => {
       // Mock user existence
-      (db.query.users.findFirst as jest.Mock).mockResolvedValue({ id: 1, name: 'Test User' });
+      (db.query.users.findFirst as jest.Mock).mockResolvedValue({ _id: 1, _name: 'Test User' });
 
       // Mock no existing active subscription
       jest.spyOn(subscriptionService, 'getActiveSubscription').mockResolvedValue(null);
 
       // Mock returning to return the created subscription
       (db.insert().values().returning as jest.Mock).mockResolvedValue([
-        { id: 1, ...validSubscriptionData, status: SubscriptionStatus.ACTIVE }
+        { _id: 1, ...validSubscriptionData, _status: SubscriptionStatus.ACTIVE }
       ]);
 
       const result = await subscriptionService.createSubscription(validSubscriptionData);
@@ -108,10 +108,10 @@ describe('SubscriptionService', () => {
 
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
-        id: 1,
-        userId: validSubscriptionData.userId,
-        plan: validSubscriptionData.plan,
-        status: SubscriptionStatus.ACTIVE
+        _id: 1,
+        _userId: validSubscriptionData.userId,
+        _plan: validSubscriptionData.plan,
+        _status: SubscriptionStatus.ACTIVE
       }));
     });
 
@@ -125,14 +125,14 @@ describe('SubscriptionService', () => {
 
     it('should throw error when active subscription already exists', async() => {
       // Mock user exists
-      (db.query.users.findFirst as jest.Mock).mockResolvedValue({ id: 1, name: 'Test User' });
+      (db.query.users.findFirst as jest.Mock).mockResolvedValue({ _id: 1, _name: 'Test User' });
 
       // Mock existing active subscription
       jest.spyOn(subscriptionService, 'getActiveSubscription').mockResolvedValue({
-        id: 1,
-        userId: 1,
-        plan: SubscriptionPlan.BASIC,
-        status: SubscriptionStatus.ACTIVE
+        _id: 1,
+        _userId: 1,
+        _plan: SubscriptionPlan.BASIC,
+        _status: SubscriptionStatus.ACTIVE
       } as any);
 
       await expect(subscriptionService.createSubscription(validSubscriptionData))
@@ -141,7 +141,7 @@ describe('SubscriptionService', () => {
 
     it('should handle validation errors properly', async() => {
       // Mock user exists
-      (db.query.users.findFirst as jest.Mock).mockResolvedValue({ id: 1, name: 'Test User' });
+      (db.query.users.findFirst as jest.Mock).mockResolvedValue({ _id: 1, _name: 'Test User' });
 
       // Mock no existing active subscription
       jest.spyOn(subscriptionService, 'getActiveSubscription').mockResolvedValue(null);
@@ -167,22 +167,22 @@ describe('SubscriptionService', () => {
   describe('updateSubscription', () => {
     const subscriptionId = 1;
     const updateData = {
-      plan: SubscriptionPlan.PREMIUM,
-      amount: '150.00',
-      status: SubscriptionStatus.ACTIVE
+      _plan: SubscriptionPlan.PREMIUM,
+      _amount: '150.00',
+      _status: SubscriptionStatus.ACTIVE
     };
 
     it('should update a subscription with validated data', async() => {
       // Mock existing subscription
       (db.query.subscriptions.findFirst as jest.Mock).mockResolvedValue({
-        id: subscriptionId,
-        status: SubscriptionStatus.ACTIVE,
-        metadata: JSON.stringify({ test: 'data' })
+        _id: subscriptionId,
+        _status: SubscriptionStatus.ACTIVE,
+        _metadata: JSON.stringify({ test: 'data' })
       });
 
       // Mock returning to return the updated subscription
       (db.update().set().where().returning as jest.Mock).mockResolvedValue([
-        { id: subscriptionId, ...updateData }
+        { _id: subscriptionId, ...updateData }
       ]);
 
       const result = await subscriptionService.updateSubscription(subscriptionId, updateData);
@@ -195,9 +195,9 @@ describe('SubscriptionService', () => {
 
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
-        id: subscriptionId,
-        plan: updateData.plan,
-        amount: updateData.amount
+        _id: subscriptionId,
+        _plan: updateData.plan,
+        _amount: updateData.amount
       }));
     });
 
@@ -212,14 +212,14 @@ describe('SubscriptionService', () => {
     it('should validate status transitions', async() => {
       // Mock existing subscription with status that cannot transition to the requested status
       (db.query.subscriptions.findFirst as jest.Mock).mockResolvedValue({
-        id: subscriptionId,
-        status: SubscriptionStatus.CANCELLED,
-        metadata: null
+        _id: subscriptionId,
+        _status: SubscriptionStatus.CANCELLED,
+        _metadata: null
       });
 
       // Invalid transition from CANCELLED to PAST_DUE
       const invalidUpdate = {
-        status: SubscriptionStatus.PAST_DUE
+        _status: SubscriptionStatus.PAST_DUE
       };
 
       await expect(subscriptionService.updateSubscription(subscriptionId, invalidUpdate))
@@ -232,11 +232,11 @@ describe('SubscriptionService', () => {
 
     it('should return active subscription if exists', async() => {
       const mockSubscription = {
-        id: 1,
+        _id: 1,
         userId,
-        plan: SubscriptionPlan.PREMIUM,
-        status: SubscriptionStatus.ACTIVE,
-        endDate: new Date(Date.now() + 86400000) // tomorrow
+        _plan: SubscriptionPlan.PREMIUM,
+        _status: SubscriptionStatus.ACTIVE,
+        _endDate: new Date(Date.now() + 86400000) // tomorrow
       };
 
       // Mock findFirst to return an active subscription
@@ -264,29 +264,29 @@ describe('SubscriptionService', () => {
     it('should cancel an active subscription', async() => {
       // Mock existing subscription
       jest.spyOn(subscriptionService, 'getSubscriptionById').mockResolvedValue({
-        id: subscriptionId,
-        status: SubscriptionStatus.ACTIVE,
-        metadata: JSON.stringify({ test: 'data' })
+        _id: subscriptionId,
+        _status: SubscriptionStatus.ACTIVE,
+        _metadata: JSON.stringify({ test: 'data' })
       } as any);
 
       // Mock returning to return the cancelled subscription
       (db.update().set().where().returning as jest.Mock).mockResolvedValue([
-        { id: subscriptionId, status: SubscriptionStatus.CANCELLED }
+        { _id: subscriptionId, _status: SubscriptionStatus.CANCELLED }
       ]);
 
       const result = await subscriptionService.cancelSubscription(subscriptionId, reason);
 
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
-        id: subscriptionId,
-        status: SubscriptionStatus.CANCELLED
+        _id: subscriptionId,
+        _status: SubscriptionStatus.CANCELLED
       }));
 
       // Check that metadata was updated with reason
       expect(db.update).toHaveBeenCalledWith(schema.subscriptions);
       expect(db.set).toHaveBeenCalledWith(expect.objectContaining({
-        status: SubscriptionStatus.CANCELLED,
-        metadata: expect.stringContaining(reason)
+        _status: SubscriptionStatus.CANCELLED,
+        _metadata: expect.stringContaining(reason)
       }));
     });
 
@@ -301,9 +301,9 @@ describe('SubscriptionService', () => {
     it('should throw error when subscription is not active', async() => {
       // Mock subscription that is already cancelled
       jest.spyOn(subscriptionService, 'getSubscriptionById').mockResolvedValue({
-        id: subscriptionId,
-        status: SubscriptionStatus.CANCELLED,
-        metadata: null
+        _id: subscriptionId,
+        _status: SubscriptionStatus.CANCELLED,
+        _metadata: null
       } as any);
 
       await expect(subscriptionService.cancelSubscription(subscriptionId, reason))
@@ -313,21 +313,21 @@ describe('SubscriptionService', () => {
 
   describe('processWebhook', () => {
     const webhookData = {
-      provider: PaymentProvider.PAYSTACK,
-      event: 'subscription.create',
-      data: {
+      _provider: PaymentProvider.PAYSTACK,
+      _event: 'subscription.create',
+      _data: {
         customer: {
           metadata: {
             user_id: '1'
           },
-          customer_code: 'test-customer-code'
+          _customer_code: 'test-customer-code'
         },
-        plan: {
+        _plan: {
           name: 'premium'
         },
-        amount: 10000, // 100.00 in kobo
-        reference: 'test-reference',
-        subscription_code: 'test-subscription-code'
+        _amount: 10000, // 100.00 in kobo
+        _reference: 'test-reference',
+        _subscription_code: 'test-subscription-code'
       }
     };
 
@@ -351,7 +351,7 @@ describe('SubscriptionService', () => {
     it('should handle Flutterwave webhooks', async() => {
       const flutterwaveWebhook = {
         ...webhookData,
-        provider: PaymentProvider.FLUTTERWAVE
+        _provider: PaymentProvider.FLUTTERWAVE
       };
 
       // Mock processFlutterwaveWebhook
@@ -370,7 +370,7 @@ describe('SubscriptionService', () => {
     it('should throw error for unsupported provider', async() => {
       const unsupportedWebhook = {
         ...webhookData,
-        provider: 'unsupported' as PaymentProvider
+        _provider: 'unsupported' as PaymentProvider
       };
 
       await expect(subscriptionService.processWebhook(unsupportedWebhook))
@@ -384,10 +384,10 @@ describe('SubscriptionService', () => {
     it('should return true when user has required plan', async() => {
       // Mock active subscription with premium plan
       jest.spyOn(subscriptionService, 'getActiveSubscription').mockResolvedValue({
-        id: 1,
+        _id: 1,
         userId,
-        plan: SubscriptionPlan.PREMIUM,
-        status: SubscriptionStatus.ACTIVE
+        _plan: SubscriptionPlan.PREMIUM,
+        _status: SubscriptionStatus.ACTIVE
       } as any);
 
       // Check access for basic plan (which is lower than premium)
@@ -399,10 +399,10 @@ describe('SubscriptionService', () => {
     it('should return false when user does not have required plan', async() => {
       // Mock active subscription with basic plan
       jest.spyOn(subscriptionService, 'getActiveSubscription').mockResolvedValue({
-        id: 1,
+        _id: 1,
         userId,
-        plan: SubscriptionPlan.BASIC,
-        status: SubscriptionStatus.ACTIVE
+        _plan: SubscriptionPlan.BASIC,
+        _status: SubscriptionStatus.ACTIVE
       } as any);
 
       // Check access for premium plan (which is higher than basic)
@@ -423,10 +423,10 @@ describe('SubscriptionService', () => {
     it('should return true when checking for any subscription', async() => {
       // Mock active subscription
       jest.spyOn(subscriptionService, 'getActiveSubscription').mockResolvedValue({
-        id: 1,
+        _id: 1,
         userId,
-        plan: SubscriptionPlan.BASIC,
-        status: SubscriptionStatus.ACTIVE
+        _plan: SubscriptionPlan.BASIC,
+        _status: SubscriptionStatus.ACTIVE
       } as any);
 
       // Check access without specifying required plan

@@ -1,39 +1,39 @@
 import { ErrorCategory, ErrorCode } from './error';
 
 export interface FileUploadProgress {
-  id: string;
+  _id: string;
   status: 'in_progress' | 'completed' | 'failed';
-  progress: number;
-  total: number;
-  uploaded: number;
-  startTime: number;
-  lastUpdate: number;
-  files: Record<string, FileProgress>;
+  _progress: number;
+  _total: number;
+  _uploaded: number;
+  _startTime: number;
+  _lastUpdate: number;
+  _files: Record<string, FileProgress>;
 }
 
 export interface FileProgress {
-  name: string;
-  size: number;
+  _name: string;
+  _size: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  progress: number;
-  uploaded: number;
+  _progress: number;
+  _uploaded: number;
   path?: string;
 }
 
 export interface ProgressSubscription {
   id?: string;
-  progressId: string;
-  onProgress?: (progress: FileUploadProgress) => void;
-  onError?: (error: AppError) => void;
-  onComplete?: (result: any) => void;
+  _progressId: string;
+  onProgress?: (_progress: FileUploadProgress) => void;
+  onError?: (_error: AppError) => void;
+  onComplete?: (_result: any) => void;
 }
 
 export interface AppError {
-  category: ErrorCategory;
-  code: ErrorCode;
-  message: string;
+  _category: ErrorCategory;
+  _code: ErrorCode;
+  _message: string;
   data?: Record<string, any>;
-  status: number;
+  _status: number;
   retryable?: boolean;
   retryDelay?: number;
   description?: string;

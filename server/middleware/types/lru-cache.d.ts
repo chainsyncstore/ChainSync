@@ -2,8 +2,8 @@ declare module 'lru-cache' {
   interface CacheOptions<K, V> {
     max?: number;
     maxAge?: number;
-    length?: (value: V, key: K) => number;
-    dispose?: (key: K, value: V) => void;
+    length?: (_value: V, _key: K) => number;
+    dispose?: (_key: K, _value: V) => void;
     updateAgeOnGet?: boolean;
     allowStale?: boolean;
     stale?: boolean;
@@ -11,17 +11,17 @@ declare module 'lru-cache' {
   }
 
   interface Cache<K, V> {
-    set(key: K, value: V, maxAge?: number): V;
-    get(key: K): V | undefined;
-    peek(key: K): V | undefined;
-    has(key: K): boolean;
-    delete(key: K): boolean;
+    set(_key: K, _value: V, maxAge?: number): V;
+    get(_key: K): V | undefined;
+    peek(_key: K): V | undefined;
+    has(_key: K): boolean;
+    delete(_key: K): boolean;
     reset(): void;
     clear(): void;
     keys(): K[];
     values(): V[];
     entries(): Array<[K, V]>;
-    forEach(callback: (value: V, key: K, cache: Cache<K, V>) => void): void;
+    forEach(callback: (_value: V, _key: K, _cache: Cache<K, V>) => void): void;
     size(): number;
     length(): number;
     maxSize(): number;

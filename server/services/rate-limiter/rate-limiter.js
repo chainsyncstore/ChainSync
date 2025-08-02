@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.RateLimiter = void 0;
 const errors_1 = require('@shared/types/errors');
 const ioredis_1 = require('ioredis');
@@ -7,9 +7,9 @@ class RateLimiter {
   constructor(config = {}) {
     this.redis = null;
     this.config = {
-      window: config.window ?? 60, // 1 minute
-      maxRequests: config.maxRequests ?? 60,
-      redisUrl: config.redisUrl ?? (process.env.REDIS_URL || '')
+      _window: config.window ?? 60, // 1 minute
+      _maxRequests: config.maxRequests ?? 60,
+      _redisUrl: config.redisUrl ?? (process.env.REDIS_URL || '')
     };
     if (this.config.redisUrl) {
       this.redis = new ioredis_1.Redis(this.config.redisUrl);
@@ -88,7 +88,7 @@ class RateLimiter {
       }
     }
     catch (error) {
-      console.error('Failed to cleanup rate limits:', error);
+      console.error('Failed to cleanup rate _limits:', error);
     }
   }
 }

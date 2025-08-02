@@ -6,17 +6,17 @@ import { parse } from 'csv-parse/sync';
 // import path from 'path'; // Unused
 
 interface BatchImportRow {
-  storeId: number;
-  productId: number;
-  sku: string;
-  batchNumber: string;
-  quantity: number;
+  _storeId: number;
+  _productId: number;
+  _sku: string;
+  _batchNumber: string;
+  _quantity: number;
   expiryDate?: string;
   manufacturingDate?: string;
   costPerUnit?: number;
 }
 
-function isValidDate(dateString: string): boolean {
+function isValidDate(_dateString: string): boolean {
   if (!dateString || dateString.trim() === '') return true; // Allow empty dates
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
 
@@ -27,7 +27,8 @@ function isValidDate(dateString: string): boolean {
 /**
  * Get batches for a specific product in a store
  */
-export async function getProductBatches(storeId: number, productId: number, includeExpired: boolean = false) {
+export async function getProductBatches(_storeId: number, _productId: number, _includeExpired: boolean
+   =  false) {
   try {
     const inventory = await storage.getInventoryByProduct(productId);
     if (!inventory) {
@@ -36,7 +37,7 @@ export async function getProductBatches(storeId: number, productId: number, incl
 
     return await storage.getInventoryByProduct(productId);
   } catch (error) {
-    console.error('Error getting product batches:', error);
+    console.error('Error getting product _batches:', error);
     throw new Error('Failed to retrieve product batches');
   }
 }
@@ -44,14 +45,14 @@ export async function getProductBatches(storeId: number, productId: number, incl
 /**
  * Validate a batch import CSV file and convert it to a structured format
  */
-export async function validateBatchImportFile(filePath: string) {
+export async function validateBatchImportFile(_filePath: string) {
   try {
     // Read and parse CSV file
     const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const records: any[] = parse(fileContent, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true
+    const _records: any[] = parse(fileContent, {
+      _columns: true,
+      _skip_empty_lines: true,
+      _trim: true
     });
 
     const requiredColumns = ['storeId', 'productId', 'batchNumber', 'quantity'];
@@ -63,21 +64,21 @@ export async function validateBatchImportFile(filePath: string) {
 
     if (missingColumns.length > 0) {
       return {
-        valid: false,
-        errors: [{
-          row: 0,
-          errors: [`Missing required columns: ${missingColumns.join(', ')}`]
+        _valid: false,
+        _errors: [{
+          _row: 0,
+          _errors: [`Missing required columns: ${missingColumns.join(', ')}`]
         }]
       };
     }
 
     // Validate each row
-    const errors: { row: number; errors: string[] }[] = [];
-    const validData: BatchImportRow[] = [];
+    const _errors: { _row: number; _errors: string[] }[] = [];
+    const _validData: BatchImportRow[] = [];
 
     for (let i = 0; i < records.length; i++) {
       const row = records[i];
-      const rowErrors: string[] = [];
+      const _rowErrors: string[] = [];
 
       // Validate required fields
       for (const field of requiredColumns) {
@@ -120,35 +121,35 @@ export async function validateBatchImportFile(filePath: string) {
 
       if (rowErrors.length > 0) {
         errors.push({
-          row: i + 1, // +1 for human readability (1-indexed)
-          errors: rowErrors
+          _row: i + 1, // +1 for human readability (1-indexed)
+          _errors: rowErrors
         });
       } else {
         validData.push({
-          storeId: parseInt(row.storeId),
-          productId: parseInt(row.productId),
-          sku: row.sku || '',
-          batchNumber: row.batchNumber,
-          quantity: parseInt(row.quantity),
-          expiryDate: row.expiryDate || undefined,
-          manufacturingDate: row.manufacturingDate || undefined,
-          costPerUnit: row.costPerUnit ? parseFloat(row.costPerUnit) : 0
+          _storeId: parseInt(row.storeId),
+          _productId: parseInt(row.productId),
+          _sku: row.sku || '',
+          _batchNumber: row.batchNumber,
+          _quantity: parseInt(row.quantity),
+          _expiryDate: row.expiryDate || undefined,
+          _manufacturingDate: row.manufacturingDate || undefined,
+          _costPerUnit: row.costPerUnit ? parseFloat(row.costPerUnit) : 0
         });
       }
     }
 
     return {
-      valid: errors.length === 0,
+      _valid: errors.length === 0,
       errors,
-      data: validData
+      _data: validData
     };
   } catch (error) {
-    console.error('Error validating batch import file:', error);
+    console.error('Error validating batch import _file:', error);
     return {
-      valid: false,
-      errors: [{
-        row: 0,
-        errors: ['Failed to parse the CSV file. Please check the file format.']
+      _valid: false,
+      _errors: [{
+        _row: 0,
+        _errors: ['Failed to parse the CSV file. Please check the file format.']
       }]
     };
   }
@@ -157,16 +158,16 @@ export async function validateBatchImportFile(filePath: string) {
 /**
  * Import batch inventory data from a validated data structure
  */
-export async function importBatchInventory(data: BatchImportRow[]) {
+export async function importBatchInventory(_data: BatchImportRow[]) {
   try {
     const results = {
-      success: true,
-      message: 'Batch import completed successfully',
-      processedRows: data.length,
-      successfulRows: 0,
-      failedRows: 0,
-      errors: [] as { row: number; field: string; message: string }[],
-      warnings: [] as { row: number; field: string; message: string }[]
+      _success: true,
+      _message: 'Batch import completed successfully',
+      _processedRows: data.length,
+      _successfulRows: 0,
+      _failedRows: 0,
+      _errors: [] as { _row: number; _field: string; _message: string }[],
+      _warnings: [] as { _row: number; _field: string; _message: string }[]
     };
 
     let rowIndex = 1;
@@ -177,9 +178,9 @@ export async function importBatchInventory(data: BatchImportRow[]) {
           const expiryDate = new Date(row.expiryDate);
           if (expiryDate < new Date()) {
             results.warnings.push({
-              row: rowIndex,
-              field: 'expiryDate',
-              message: 'Batch is already expired'
+              _row: rowIndex,
+              _field: 'expiryDate',
+              _message: 'Batch is already expired'
             });
           }
         }
@@ -188,9 +189,9 @@ export async function importBatchInventory(data: BatchImportRow[]) {
         const product = await storage.getProductById(row.productId);
         if (!product) {
           results.errors.push({
-            row: rowIndex,
-            field: 'productId',
-            message: `Product with ID ${row.productId} not found`
+            _row: rowIndex,
+            _field: 'productId',
+            _message: `Product with ID ${row.productId} not found`
           });
           results.failedRows++;
           rowIndex++;
@@ -201,9 +202,9 @@ export async function importBatchInventory(data: BatchImportRow[]) {
         const store = await storage.getStoreById(row.storeId);
         if (!store) {
           results.errors.push({
-            row: rowIndex,
-            field: 'storeId',
-            message: `Store with ID ${row.storeId} not found`
+            _row: rowIndex,
+            _field: 'storeId',
+            _message: `Store with ID ${row.storeId} not found`
           });
           results.failedRows++;
           rowIndex++;
@@ -211,43 +212,43 @@ export async function importBatchInventory(data: BatchImportRow[]) {
         }
 
         // Get or create inventory record
-        let inventory: schema.SelectInventory | null = (await storage.getInventoryByProduct(row.productId) as schema.SelectInventory[])[0] ?? null;
+        const _inventory: schema.SelectInventory | null = (await storage.getInventoryByProduct(row.productId) as schema.SelectInventory[])[0] ?? null;
 
         if (!inventory) {
           // Create new inventory record
           inventory = await storage.createInventoryItem({
-            storeId: row.storeId,
-            productId: row.productId,
-            quantity: 0,
-            minStock: 5 // Default minimum level
+            _storeId: row.storeId,
+            _productId: row.productId,
+            _quantity: 0,
+            _minStock: 5 // Default minimum level
           });
         }
 
         // Add batch to inventory
         if (!inventory) {
           results.errors.push({
-            row: rowIndex,
-            field: 'general',
-            message: 'Failed to create inventory record'
+            _row: rowIndex,
+            _field: 'general',
+            _message: 'Failed to create inventory record'
           });
           results.failedRows++;
           rowIndex++;
           continue;
         }
         await storage.createInventoryItem({
-          productId: inventory.productId,
-          storeId: inventory.storeId,
-          quantity: row.quantity,
-          lastRestocked: new Date()
+          _productId: inventory.productId,
+          _storeId: inventory.storeId,
+          _quantity: row.quantity,
+          _lastRestocked: new Date()
         });
 
         results.successfulRows++;
       } catch (error) {
         console.error(`Error processing row ${rowIndex}:`, error);
         results.errors.push({
-          row: rowIndex,
-          field: 'general',
-          message: error instanceof Error ? error.message : 'Unknown error'
+          _row: rowIndex,
+          _field: 'general',
+          _message: error instanceof Error ? error.message : 'Unknown error'
         });
         results.failedRows++;
       }
@@ -257,11 +258,11 @@ export async function importBatchInventory(data: BatchImportRow[]) {
 
     return results;
   } catch (error) {
-    console.error('Error importing batch inventory:', error);
+    console.error('Error importing batch _inventory:', error);
     return {
-      success: false,
-      message: 'Failed to import batch inventory',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      _success: false,
+      _message: 'Failed to import batch inventory',
+      _error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
@@ -269,14 +270,14 @@ export async function importBatchInventory(data: BatchImportRow[]) {
 /**
  * Process sales from batches using FIFO logic (first expiry, first out)
  */
-export async function sellProductFromBatches(storeId: number, productId: number, quantity: number, userId: number) {
+export async function sellProductFromBatches(_storeId: number, _productId: number, _quantity: number, _userId: number) {
   try {
     // Get all non-expired batches for this product, ordered by expiry date (ascending)
     const batches = await storage.getInventoryByProduct(productId);
 
     // Sort batches by expiry date (closest expiry first)
     // Batches without expiry dates will go last
-    const sortedBatches = batches.sort((a: any, b: any) => {
+    const sortedBatches = batches.sort((_a: any, _b: any) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
       if (!b.expiryDate) return -1;
@@ -296,14 +297,14 @@ export async function sellProductFromBatches(storeId: number, productId: number,
       if (qtyToSell > 0) {
         // Sell from this batch
         const updatedBatch = await storage.updateInventory(batch.id, {
-          quantity: (batch.quantity ?? 0) - qtyToSell
+          _quantity: (batch.quantity ?? 0) - qtyToSell
         });
 
         // Create audit log
         const auditLog = await storage.createInventoryItem({
-          productId: batch.productId,
-          storeId: batch.storeId,
-          quantity: qtyToSell
+          _productId: batch.productId,
+          _storeId: batch.storeId,
+          _quantity: qtyToSell
         });
 
         updatedBatches.push(updatedBatch);
@@ -313,16 +314,16 @@ export async function sellProductFromBatches(storeId: number, productId: number,
     }
 
     if (remainingQty > 0) {
-      throw new Error(`Insufficient stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`);
+      throw new Error(`Insufficient _stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`);
     }
 
     return {
-      success: true,
-      batches: updatedBatches,
+      _success: true,
+      _batches: updatedBatches,
       auditLogs
     };
   } catch (error) {
-    console.error('Error selling with FIFO logic:', error);
-    throw new Error('Failed to process sale: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    console.error('Error selling with FIFO _logic:', error);
+    throw new Error('Failed to process _sale: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 }

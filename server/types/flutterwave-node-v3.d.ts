@@ -1,88 +1,88 @@
 declare module 'flutterwave-node-v3' {
   class Flutterwave {
-    constructor(publicKey: string, secretKey: string);
+    constructor(_publicKey: string, _secretKey: string);
     
-    Transfer: {
+    _Transfer: {
       initiate(params: {
-        account_bank: string;
-        account_number: string;
-        amount: number;
-        narration: string;
-        currency: string;
-        reference: string;
+        _account_bank: string;
+        _account_number: string;
+        _amount: number;
+        _narration: string;
+        _currency: string;
+        _reference: string;
       }): Promise<{
-        status: string;
-        message: string;
+        _status: string;
+        _message: string;
         data?: {
-          id: number;
-          account_number: string;
-          bank_code: string;
-          full_name: string;
-          amount: number;
-          currency: string;
-          reference: string;
-          status: string;
-          debit_currency: string;
+          _id: number;
+          _account_number: string;
+          _bank_code: string;
+          _full_name: string;
+          _amount: number;
+          _currency: string;
+          _reference: string;
+          _status: string;
+          _debit_currency: string;
         }
       }>;
     };
     
     Subscription: {
       list(): Promise<{
-        status: string;
-        message: string;
-        data: Array<{
-          id: number;
-          amount: number;
+        _status: string;
+        _message: string;
+        _data: Array<{
+          _id: number;
+          _amount: number;
           customer: {
-            id: number;
-            name: string;
-            email: string;
+            _id: number;
+            _name: string;
+            _email: string;
           };
-          plan: string;
-          status: string;
+          _plan: string;
+          _status: string;
         }>;
       }>;
       
-      activate(params: { id: number }): Promise<{
-        status: string;
-        message: string;
+      activate(params: { _id: number }): Promise<{
+        _status: string;
+        _message: string;
         data: {
-          id: number;
-          status: string;
+          _id: number;
+          _status: string;
         };
       }>;
       
-      cancel(params: { id: number }): Promise<{
-        status: string;
-        message: string;
+      cancel(params: { _id: number }): Promise<{
+        _status: string;
+        _message: string;
         data: {
-          id: number;
-          status: string;
+          _id: number;
+          _status: string;
         };
       }>;
     };
     
     Charge: {
       card(params: {
-        card_number: string;
-        cvv: string;
-        expiry_month: string;
-        expiry_year: string;
-        amount: number;
-        currency: string;
-        email: string;
-        tx_ref: string;
+        _card_number: string;
+        _cvv: string;
+        _expiry_month: string;
+        _expiry_year: string;
+        _amount: number;
+        _currency: string;
+        _email: string;
+        _tx_ref: string;
       }): Promise<{
-        status: string;
-        message: string;
+        _status: string;
+        _message: string;
         data?: {
-          id: number;
-          tx_ref: string;
-          amount: number;
-          currency: string;
-          charged_amount: number;
-          status: string;
+          _id: number;
+          _tx_ref: string;
+          _amount: number;
+          _currency: string;
+          _charged_amount: number;
+          _status: string;
         };
       }>;
     };

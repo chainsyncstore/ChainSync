@@ -1,6 +1,6 @@
 declare module 'express-session' {
   interface SessionData {
-    [key: string]: any; // allow additional arbitrary fields
+    [_key: string]: any; // allow additional arbitrary fields
     userId?: number;
     userRole?: 'admin' | 'manager' | 'cashier';
     storeId?: number;
@@ -27,7 +27,7 @@ declare module 'express-serve-static-core' {
 }
 
 declare module 'express-session' {
-  const session: (options?: import('express-session').SessionOptions) => any;
+  const _session: (options?: import('express-session').SessionOptions) => any;
   export = session;
 
 

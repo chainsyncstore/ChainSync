@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.runMigrations = runMigrations;
 exports.createMigration = createMigration;
 exports.applyMigration = applyMigration;
@@ -14,7 +14,7 @@ const index_js_1 = require('../index.js');
 const path_1 = __importDefault(require('path'));
 const fs_1 = __importDefault(require('fs'));
 const index_js_2 = require('../../src/logging/index.js');
-const logger = (0, index_js_2.getLogger)().child({ component: 'db-migrations' });
+const logger = (0, index_js_2.getLogger)().child({ _component: 'db-migrations' });
 /**
  * Run database migrations
  * This should be called when the application starts
@@ -33,7 +33,7 @@ async function runMigrations() {
     logger.info('Database migrations completed successfully');
   }
   catch (error) {
-    logger.error('Database migration failed', error instanceof Error ? error : new Error(String(error)));
+    logger.error('Database migration failed', error instanceof Error ? _error : new Error(String(error)));
     // In production, we might want to exit the process if migrations fail
     if (process.env.NODE_ENV === 'production') {
       logger.error('Exiting due to migration failure in production environment');
@@ -55,12 +55,12 @@ function createMigration(name) {
   const migrationsFolder = path_1.default.join(__dirname, '../migrations');
   // Create migrations folder if it doesn't exist
   if (!fs_1.default.existsSync(migrationsFolder)) {
-    fs_1.default.mkdirSync(migrationsFolder, { recursive: true });
+    fs_1.default.mkdirSync(migrationsFolder, { _recursive: true });
   }
   // Create migration file
   const migrationPath = path_1.default.join(migrationsFolder, `${migrationName}.sql`);
   // Create empty migration file
-  fs_1.default.writeFileSync(migrationPath, `-- Migration: ${name}\n-- Created at: ${new Date().toISOString()}\n\n-- Write your SQL migration here\n`);
+  fs_1.default.writeFileSync(migrationPath, `-- _Migration: ${name}\n-- Created at: ${new Date().toISOString()}\n\n-- Write your SQL migration here\n`);
   return migrationPath;
 }
 /**
@@ -75,10 +75,10 @@ async function applyMigration(migrationPath) {
     const sql = fs_1.default.readFileSync(migrationPath, 'utf8');
     // Execute SQL
     await index_js_1.db.execute(sql);
-    logger.info(`Applied migration: ${path_1.default.basename(migrationPath)}`);
+    logger.info(`Applied _migration: ${path_1.default.basename(migrationPath)}`);
   }
   catch (error) {
-    logger.error(`Failed to apply migration: ${path_1.default.basename(migrationPath)}`, error instanceof Error ? error : new Error(String(error)));
+    logger.error(`Failed to apply _migration: ${path_1.default.basename(migrationPath)}`, error instanceof Error ? _error : new Error(String(error)));
     throw error;
   }
 }

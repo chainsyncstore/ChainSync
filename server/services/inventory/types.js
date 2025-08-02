@@ -4,7 +4,7 @@
  *
  * This file defines the interfaces and types for the inventory service.
  */
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.InventoryServiceErrors = exports.InventoryAdjustmentType = exports.InventoryTransactionType = void 0;
 let InventoryTransactionType;
 (function(InventoryTransactionType) {
@@ -31,11 +31,11 @@ let InventoryAdjustmentType;
   InventoryAdjustmentType['COUNT'] = 'count';
 })(InventoryAdjustmentType || (exports.InventoryAdjustmentType = InventoryAdjustmentType = {}));
 exports.InventoryServiceErrors = {
-  INVENTORY_NOT_FOUND: new Error('Inventory record not found'),
-  PRODUCT_NOT_FOUND: new Error('Product not found'),
-  STORE_NOT_FOUND: new Error('Store not found'),
-  BATCH_NOT_FOUND: new Error('Inventory batch not found'),
-  INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
-  INVALID_ADJUSTMENT: new Error('Invalid inventory adjustment'),
-  INVALID_BATCH_OPERATION: new Error('Invalid batch operation')
+  _INVENTORY_NOT_FOUND: new Error('Inventory record not found'),
+  _PRODUCT_NOT_FOUND: new Error('Product not found'),
+  _STORE_NOT_FOUND: new Error('Store not found'),
+  _BATCH_NOT_FOUND: new Error('Inventory batch not found'),
+  _INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
+  _INVALID_ADJUSTMENT: new Error('Invalid inventory adjustment'),
+  _INVALID_BATCH_OPERATION: new Error('Invalid batch operation')
 };

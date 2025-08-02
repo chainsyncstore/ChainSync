@@ -9,7 +9,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -17,7 +17,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -38,7 +38,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ProductService = void 0;
 const service_1 = require('../base/service');
 const types_1 = require('./types');
@@ -54,14 +54,14 @@ class ProductService extends service_1.BaseService {
     try {
       // Check if store exists
       const store = await _db_1.db.query.stores.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.stores.id, params.storeId)
+        _where: (0, drizzle_orm_1.eq)(schema.stores.id, params.storeId)
       });
       if (!store) {
         throw types_1.ProductServiceErrors.INVALID_STORE;
       }
       // Check for duplicate SKU
       const existingSku = await _db_1.db.query.products.findFirst({
-        where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.sku, params.sku), (0, drizzle_orm_1.eq)(schema.products.storeId, params.storeId))
+        _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.sku, params.sku), (0, drizzle_orm_1.eq)(schema.products.storeId, params.storeId))
       });
       if (existingSku) {
         throw types_1.ProductServiceErrors.DUPLICATE_SKU;
@@ -69,7 +69,7 @@ class ProductService extends service_1.BaseService {
       // Check for duplicate barcode if provided
       if (params.barcode) {
         const existingBarcode = await _db_1.db.query.products.findFirst({
-          where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.barcode, params.barcode), (0, drizzle_orm_1.eq)(schema.products.storeId, params.storeId))
+          _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.barcode, params.barcode), (0, drizzle_orm_1.eq)(schema.products.storeId, params.storeId))
         });
         if (existingBarcode) {
           throw types_1.ProductServiceErrors.DUPLICATE_BARCODE;
@@ -78,7 +78,7 @@ class ProductService extends service_1.BaseService {
       // Check if category exists if provided
       if (params.categoryId) {
         const category = await _db_1.db.query.categories.findFirst({
-          where: (0, drizzle_orm_1.eq)(schema.categories.id, params.categoryId)
+          _where: (0, drizzle_orm_1.eq)(schema.categories.id, params.categoryId)
         });
         if (!category) {
           throw types_1.ProductServiceErrors.INVALID_CATEGORY;
@@ -86,35 +86,35 @@ class ProductService extends service_1.BaseService {
       }
       // Prepare product data with camelCase field names (will be converted to snake_case in DB)
       const productData = {
-        name: params.name,
-        description: params.description || '',
-        sku: params.sku,
-        price: params.price,
-        cost: params.cost || '0.00',
-        categoryId: params.categoryId,
-        brandId: params.brandId,
-        isActive: params.isActive ?? true,
-        storeId: params.storeId,
-        imageUrl: params.imageUrl,
-        barcode: params.barcode,
-        attributes: params.attributes || {},
-        createdAt: new Date(),
-        updatedAt: new Date()
+        _name: params.name,
+        _description: params.description || '',
+        _sku: params.sku,
+        _price: params.price,
+        _cost: params.cost || '0.00',
+        _categoryId: params.categoryId,
+        _brandId: params.brandId,
+        _isActive: params.isActive ?? true,
+        _storeId: params.storeId,
+        _imageUrl: params.imageUrl,
+        _barcode: params.barcode,
+        _attributes: params.attributes || {},
+        _createdAt: new Date(),
+        _updatedAt: new Date()
       };
       // Insert validated data
       const [product] = await _db_1.db.insert(schema.products).values(productData).returning();
       // Create initial inventory record with zero quantity
       await _db_1.db.insert(schema.inventory).values({
-        productId: product.id,
-        storeId: params.storeId,
-        quantity: 0,
-        minStock: 10
+        _productId: product.id,
+        _storeId: params.storeId,
+        _quantity: 0,
+        _minStock: 10
       });
       return product;
     }
     catch (error) {
       if (error instanceof schema_validation_1.SchemaValidationError) {
-        console.error(`Validation error: ${error.message}`, error.toJSON());
+        console.error(`Validation _error: ${error.message}`, error.toJSON());
       }
       return this.handleError(error, 'Creating product');
     }
@@ -126,7 +126,7 @@ class ProductService extends service_1.BaseService {
     try {
       // Verify product exists
       const existingProduct = await _db_1.db.query.products.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.products.id, productId)
+        _where: (0, drizzle_orm_1.eq)(schema.products.id, productId)
       });
       if (!existingProduct) {
         throw types_1.ProductServiceErrors.PRODUCT_NOT_FOUND;
@@ -134,7 +134,7 @@ class ProductService extends service_1.BaseService {
       // Check for duplicate SKU if being updated
       if (params.sku && params.sku !== existingProduct.sku) {
         const existingSku = await _db_1.db.query.products.findFirst({
-          where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.sku, params.sku), (0, drizzle_orm_1.eq)(schema.products.storeId, existingProduct.storeId))
+          _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.sku, params.sku), (0, drizzle_orm_1.eq)(schema.products.storeId, existingProduct.storeId))
         });
         if (existingSku) {
           throw types_1.ProductServiceErrors.DUPLICATE_SKU;
@@ -143,7 +143,7 @@ class ProductService extends service_1.BaseService {
       // Check for duplicate barcode if being updated
       if (params.barcode && params.barcode !== existingProduct.barcode) {
         const existingBarcode = await _db_1.db.query.products.findFirst({
-          where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.barcode, params.barcode), (0, drizzle_orm_1.eq)(schema.products.storeId, existingProduct.storeId))
+          _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.barcode, params.barcode), (0, drizzle_orm_1.eq)(schema.products.storeId, existingProduct.storeId))
         });
         if (existingBarcode) {
           throw types_1.ProductServiceErrors.DUPLICATE_BARCODE;
@@ -152,7 +152,7 @@ class ProductService extends service_1.BaseService {
       // Check if category exists if being updated
       if (params.categoryId && params.categoryId !== existingProduct.categoryId) {
         const category = await _db_1.db.query.categories.findFirst({
-          where: (0, drizzle_orm_1.eq)(schema.categories.id, params.categoryId)
+          _where: (0, drizzle_orm_1.eq)(schema.categories.id, params.categoryId)
         });
         if (!category) {
           throw types_1.ProductServiceErrors.INVALID_CATEGORY;
@@ -161,7 +161,7 @@ class ProductService extends service_1.BaseService {
       // Prepare update data with proper camelCase field names
       const updateData = {
         ...params,
-        updatedAt: new Date()
+        _updatedAt: new Date()
       };
       // Update with validated data
       const [updatedProduct] = await _db_1.db
@@ -173,7 +173,7 @@ class ProductService extends service_1.BaseService {
     }
     catch (error) {
       if (error instanceof schema_validation_1.SchemaValidationError) {
-        console.error(`Validation error: ${error.message}`, error.toJSON());
+        console.error(`Validation _error: ${error.message}`, error.toJSON());
       }
       return this.handleError(error, 'Updating product');
     }
@@ -186,7 +186,7 @@ class ProductService extends service_1.BaseService {
       const result = await _db_1.db
         .delete(schema.products)
         .where((0, drizzle_orm_1.eq)(schema.products.id, productId))
-        .returning({ id: schema.products.id });
+        .returning({ _id: schema.products.id });
       if (result.length === 0) {
         throw types_1.ProductServiceErrors.PRODUCT_NOT_FOUND;
       }
@@ -202,7 +202,7 @@ class ProductService extends service_1.BaseService {
   async getProductById(productId) {
     try {
       const product = await _db_1.db.query.products.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.products.id, productId)
+        _where: (0, drizzle_orm_1.eq)(schema.products.id, productId)
       });
       return product;
     }
@@ -216,7 +216,7 @@ class ProductService extends service_1.BaseService {
   async getProductBySku(sku, storeId) {
     try {
       const product = await _db_1.db.query.products.findFirst({
-        where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.sku, sku), (0, drizzle_orm_1.eq)(schema.products.storeId, storeId))
+        _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.sku, sku), (0, drizzle_orm_1.eq)(schema.products.storeId, storeId))
       });
       return product;
     }
@@ -230,7 +230,7 @@ class ProductService extends service_1.BaseService {
   async getProductByBarcode(barcode, storeId) {
     try {
       const product = await _db_1.db.query.products.findFirst({
-        where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.barcode, barcode), (0, drizzle_orm_1.eq)(schema.products.storeId, storeId))
+        _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.products.barcode, barcode), (0, drizzle_orm_1.eq)(schema.products.storeId, storeId))
       });
       return product;
     }
@@ -270,16 +270,16 @@ class ProductService extends service_1.BaseService {
       const whereClause = (0, drizzle_orm_1.and)(...conditions);
       // Count total
       const [countResult] = await _db_1.db
-        .select({ count: (0, drizzle_orm_1.sql) `count(*)` })
+        .select({ _count: (0, drizzle_orm_1.sql) `count(*)` })
         .from(schema.products)
         .where(whereClause);
       const total = Number(countResult?.count ?? 0);
       // Main query with pagination
       let products = await _db_1.db.query.products.findMany({
-        where: whereClause,
+        _where: whereClause,
         limit,
         offset,
-        orderBy: [(0, drizzle_orm_1.desc)(schema.products.updatedAt)]
+        _orderBy: [(0, drizzle_orm_1.desc)(schema.products.updatedAt)]
       });
       // Filter by stock status if needed
       if (params.inStock !== undefined) {
@@ -288,7 +288,7 @@ class ProductService extends service_1.BaseService {
         });
       }
       return {
-        products: products,
+        _products: products,
         total,
         page,
         limit
@@ -304,7 +304,7 @@ class ProductService extends service_1.BaseService {
   async getProductsWithLowStock(storeId, limit = 20) {
     try {
       const products = await _db_1.db.query.products.findMany({
-        where: (0, drizzle_orm_1.eq)(schema.products.storeId, storeId),
+        _where: (0, drizzle_orm_1.eq)(schema.products.storeId, storeId),
         limit
       });
       // Filter products where available quantity is less than minimum level
@@ -334,15 +334,15 @@ class ProductService extends service_1.BaseService {
       }
       // Get current inventory
       const inventory = await _db_1.db.query.inventory.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.inventory.productId, productId)
+        _where: (0, drizzle_orm_1.eq)(schema.inventory.productId, productId)
       });
       if (!inventory) {
         // Create inventory record if it doesn't exist
         await _db_1.db.insert(schema.inventory).values({
           productId,
-          storeId: product.storeId,
-          quantity: quantity > 0 ? quantity : 0,
-          minStock: 10
+          _storeId: product.storeId,
+          _quantity: quantity > 0 ? _quantity : 0,
+          _minStock: 10
         });
       }
       else {
@@ -351,25 +351,25 @@ class ProductService extends service_1.BaseService {
         await _db_1.db
           .update(schema.inventory)
           .set({
-            quantity: newAvailable,
-            updatedAt: new Date()
+            _quantity: newAvailable,
+            _updatedAt: new Date()
           })
           .where((0, drizzle_orm_1.eq)(schema.inventory.productId, productId));
       }
       // Create inventory log entry
       if (inventory) {
         await _db_1.db.insert(schema.inventoryTransactions).values({
-          inventoryId: inventory.id,
+          _inventoryId: inventory.id,
           quantity,
-          type: quantity > 0 ? 'in' : 'out',
-          createdAt: new Date()
+          _type: quantity > 0 ? 'in' : 'out',
+          _createdAt: new Date()
         });
       }
       return true;
     }
     catch (error) {
       if (error instanceof schema_validation_1.SchemaValidationError) {
-        console.error(`Validation error: ${error.message}`, error.toJSON());
+        console.error(`Validation _error: ${error.message}`, error.toJSON());
       }
       return this.handleError(error, 'Updating product inventory');
     }

@@ -9,12 +9,12 @@ import { performance } from 'perf_hooks';
 import { AIService as IAIService } from './types';
 
 export class AIService extends BaseService implements IAIService {
-  private openai: OpenAI;
-  private rateLimiter: RateLimiter;
-  private cache: CacheService;
-  private config: AIServiceConfig;
+  private _openai: OpenAI;
+  private _rateLimiter: RateLimiter;
+  private _cache: CacheService;
+  private _config: AIServiceConfig;
 
-  constructor(config: Partial<AIServiceConfig> = {}) {
+  constructor(_config: Partial<AIServiceConfig> = {}) {
     super();
     this.config = { ...defaultAIServiceConfig, ...config };
 
@@ -27,16 +27,16 @@ export class AIService extends BaseService implements IAIService {
       );
     }
 
-    this.openai = new OpenAI({ apiKey: this.config.apiKey });
+    this.openai = new OpenAI({ _apiKey: this.config.apiKey });
     this.rateLimiter = new RateLimiter(this.config.rateLimit);
     this.cache = new CacheService();
   }
 
-  private generateCacheKey(prompt: string, options: any): string {
+  private generateCacheKey(_prompt: string, _options: any): string {
     return `ai:${this.config.model}:${uuidv4()}:${prompt}:${JSON.stringify(options)}`;
   }
 
-  private async validateRequest(prompt: string, options: any): Promise<void> {
+  private async validateRequest(_prompt: string, _options: any): Promise<void> {
     if (!prompt) {
       throw AIServiceErrors.INVALID_REQUEST;
     }
@@ -48,7 +48,7 @@ export class AIService extends BaseService implements IAIService {
         ErrorCategory.VALIDATION,
         false,
         undefined,
-        { message: 'Please keep your prompt under 8192 characters' }
+        { _message: 'Please keep your prompt under 8192 characters' }
       );
     }
 
@@ -59,12 +59,12 @@ export class AIService extends BaseService implements IAIService {
         ErrorCategory.VALIDATION,
         false,
         undefined,
-        { message: `Max tokens cannot exceed ${this.config.maxTokens}` }
+        { _message: `Max tokens cannot exceed ${this.config.maxTokens}` }
       );
     }
   }
 
-  private async checkRateLimit(userId: string): Promise<void> {
+  private async checkRateLimit(_userId: string): Promise<void> {
     try {
       const isRateLimited = await this.rateLimiter.check(userId);
       if (isRateLimited) {
@@ -75,7 +75,7 @@ export class AIService extends BaseService implements IAIService {
     }
   }
 
-  private async incrementRateLimit(userId: string): Promise<void> {
+  private async incrementRateLimit(_userId: string): Promise<void> {
     try {
       await this.rateLimiter.increment(userId);
     } catch (error) {
@@ -84,11 +84,11 @@ export class AIService extends BaseService implements IAIService {
   }
 
   private async logRequest(
-    userId: string,
-    prompt: string,
-    options: any,
-    response: any,
-    duration: number
+    _userId: string,
+    _prompt: string,
+    _options: any,
+    _response: any,
+    _duration: number
   ): Promise<void> {
     try {
       await this.cache.logRequest({
@@ -97,18 +97,18 @@ export class AIService extends BaseService implements IAIService {
         options,
         response,
         duration,
-        timestamp: Date.now()
+        _timestamp: Date.now()
       });
     } catch (error) {
-      console.error('Failed to log AI request:', error);
+      console.error('Failed to log AI _request:', error);
     }
   }
 
   // Text Generation
   async generateCompletion(
-    userId: string,
-    prompt: string,
-    options: any = {}
+    _userId: string,
+    _prompt: string,
+    _options: any = {}
   ): Promise<string> {
     try {
       await this.validateRequest(prompt, options);
@@ -125,14 +125,14 @@ export class AIService extends BaseService implements IAIService {
       const response = await this.withRetry(
         async() => {
           return await this.openai.chat.completions.create({
-            model: this.config.model,
-            messages: [{ role: 'user', content: prompt }],
-            temperature: options.temperature || this.config.temperature,
-            max_tokens: options.maxTokens || this.config.maxTokens,
-            stop: options.stop,
-            top_p: options.topP,
-            presence_penalty: options.presencePenalty,
-            frequency_penalty: options.frequencyPenalty,
+            _model: this.config.model,
+            _messages: [{ role: 'user', _content: prompt }],
+            _temperature: options.temperature || this.config.temperature,
+            _max_tokens: options.maxTokens || this.config.maxTokens,
+            _stop: options.stop,
+            _top_p: options.topP,
+            _presence_penalty: options.presencePenalty,
+            _frequency_penalty: options.frequencyPenalty,
             ...options
           });
         },
@@ -154,9 +154,9 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateChat(
-    userId: string,
-    messages: any[],
-    options: any = {}
+    _userId: string,
+    _messages: any[],
+    _options: any = {}
   ): Promise<string> {
     try {
       await this.validateRequest(JSON.stringify(messages), options);
@@ -173,14 +173,14 @@ export class AIService extends BaseService implements IAIService {
       const response = await this.withRetry(
         async() => {
           return await this.openai.chat.completions.create({
-            model: this.config.model,
+            _model: this.config.model,
             messages,
-            temperature: options.temperature || this.config.temperature,
-            max_tokens: options.maxTokens || this.config.maxTokens,
-            stop: options.stop,
-            top_p: options.topP,
-            presence_penalty: options.presencePenalty,
-            frequency_penalty: options.frequencyPenalty,
+            _temperature: options.temperature || this.config.temperature,
+            _max_tokens: options.maxTokens || this.config.maxTokens,
+            _stop: options.stop,
+            _top_p: options.topP,
+            _presence_penalty: options.presencePenalty,
+            _frequency_penalty: options.frequencyPenalty,
             ...options
           });
         },
@@ -203,18 +203,18 @@ export class AIService extends BaseService implements IAIService {
 
   // Code Generation
   async generateCode(
-    userId: string,
-    prompt: string,
-    language: string = 'javascript',
-    options: any = {}
+    _userId: string,
+    _prompt: string,
+    _language: string = 'javascript',
+    _options: any = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a helpful code assistant. Generate code in ${language} language.`;
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: prompt }
         ],
         options
       );
@@ -224,18 +224,18 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateCodeReview(
-    userId: string,
-    code: string,
-    language: string,
-    options: any = {}
+    _userId: string,
+    _code: string,
+    _language: string,
+    _options: any = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a code reviewer. Review the following ${language} code and provide feedback.`;
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: code }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: code }
         ],
         options
       );
@@ -246,17 +246,17 @@ export class AIService extends BaseService implements IAIService {
 
   // Document Processing
   async generateSummary(
-    userId: string,
-    text: string,
-    options: any = {}
+    _userId: string,
+    _text: string,
+    _options: any = {}
   ): Promise<string> {
     try {
       const systemPrompt = 'You are a helpful assistant. Generate a concise summary of the following text.';
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: text }
         ],
         options
       );
@@ -266,18 +266,18 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateTranslation(
-    userId: string,
-    text: string,
-    targetLanguage: string,
-    options: any = {}
+    _userId: string,
+    _text: string,
+    _targetLanguage: string,
+    _options: any = {}
   ): Promise<string> {
     try {
       const systemPrompt = `You are a translator. Translate the following text into ${targetLanguage}.`;
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: text }
         ],
         options
       );
@@ -290,19 +290,19 @@ export class AIService extends BaseService implements IAIService {
   async listAvailableModels(): Promise<string[]> {
     try {
       const response = await this.openai.models.list();
-      return response.data.map((model: any) => model.id);
+      return response.data.map((_model: any) => model.id);
     } catch (error) {
       this.handleError(error, 'Listing available models');
     }
   }
 
-  async getModelCapabilities(model: string): Promise<any> {
+  async getModelCapabilities(_model: string): Promise<any> {
     try {
       const response = await this.openai.models.retrieve(model);
       return {
-        maxTokens: (response as any).context_window,
-        temperatureRange: [0, 2],
-        supportedFeatures: (response as any).capabilities
+        _maxTokens: (response as any).context_window,
+        _temperatureRange: [0, 2],
+        _supportedFeatures: (response as any).capabilities
       };
     } catch (error) {
       this.handleError(error, 'Getting model capabilities');
@@ -310,17 +310,17 @@ export class AIService extends BaseService implements IAIService {
   }
 
   // Usage Tracking
-  async getUsageStats(userId: string): Promise<any> {
+  async getUsageStats(_userId: string): Promise<any> {
     try {
       const stats = await this.cache.getUsageStats(userId);
       return {
-        totalRequests: stats?.totalRequests || 0,
-        averageDuration: stats?.averageDuration || 0,
-        lastRequest: stats?.lastRequest,
-        rateLimit: {
-          maxRequests: this.config.rateLimit.maxRequests,
-          window: this.config.rateLimit.window,
-          remaining: await this.rateLimiter.getRemaining(userId)
+        _totalRequests: stats?.totalRequests || 0,
+        _averageDuration: stats?.averageDuration || 0,
+        _lastRequest: stats?.lastRequest,
+        _rateLimit: {
+          _maxRequests: this.config.rateLimit.maxRequests,
+          _window: this.config.rateLimit.window,
+          _remaining: await this.rateLimiter.getRemaining(userId)
         }
       };
     } catch (error) {
@@ -329,7 +329,7 @@ export class AIService extends BaseService implements IAIService {
   }
 
   // Cache Management
-  async clearCache(userId: string): Promise<void> {
+  async clearCache(_userId: string): Promise<void> {
     try {
       await this.cache.clear(userId);
     } catch (error) {
@@ -338,8 +338,8 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateImage(
-    userId: string,
-    prompt: string,
+    _userId: string,
+    _prompt: string,
     options?: any
   ): Promise<string | string[]> {
     try {
@@ -365,7 +365,7 @@ export class AIService extends BaseService implements IAIService {
       );
 
       const duration = performance.now() - startTime;
-      const imageUrls = response.data ? response.data.map((image: any) => image.url) : [];
+      const imageUrls = response.data ? response.data.map((_image: any) => image.url) : [];
       await this.cache.set(cacheKey, imageUrls, this.config.cache.ttl);
       await this.logRequest(userId, prompt, options, imageUrls, duration);
       await this.incrementRateLimit(userId);
@@ -377,9 +377,9 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateImageEdit(
-    userId: string,
-    image: string,
-    prompt: string,
+    _userId: string,
+    _image: string,
+    _prompt: string,
     mask?: string,
     options?: any
   ): Promise<string | string[]> {
@@ -398,8 +398,8 @@ export class AIService extends BaseService implements IAIService {
       const response = await this.withRetry(
         async() => {
           return await this.openai.images.edit({
-            image: image,
-            mask: mask,
+            _image: image,
+            _mask: mask,
             prompt,
             ...options
           });
@@ -408,7 +408,7 @@ export class AIService extends BaseService implements IAIService {
       );
 
       const duration = performance.now() - startTime;
-      const imageUrls = response.data ? response.data.map((image: any) => image.url) : [];
+      const imageUrls = response.data ? response.data.map((_image: any) => image.url) : [];
       await this.cache.set(cacheKey, imageUrls, this.config.cache.ttl);
       await this.logRequest(userId, prompt, options, imageUrls, duration);
       await this.incrementRateLimit(userId);
@@ -420,9 +420,9 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async analyzeCode(
-    userId: string,
-    code: string,
-    language: string,
+    _userId: string,
+    _code: string,
+    _language: string,
     options?: any
   ): Promise<string> {
     try {
@@ -430,8 +430,8 @@ export class AIService extends BaseService implements IAIService {
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: code }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: code }
         ],
         options
       );
@@ -441,9 +441,9 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateDocumentation(
-    userId: string,
-    code: string,
-    language: string,
+    _userId: string,
+    _code: string,
+    _language: string,
     options?: any
   ): Promise<string> {
     try {
@@ -451,8 +451,8 @@ export class AIService extends BaseService implements IAIService {
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: code }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: code }
         ],
         options
       );
@@ -462,9 +462,9 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async analyzeData(
-    userId: string,
-    data: string,
-    question: string,
+    _userId: string,
+    _data: string,
+    _question: string,
     options?: any
   ): Promise<string> {
     try {
@@ -472,8 +472,8 @@ export class AIService extends BaseService implements IAIService {
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Data: ${data}\nQuestion: ${question}` }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: `Data: ${data}\nQuestion: ${question}` }
         ],
         options
       );
@@ -483,9 +483,9 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateVisualization(
-    userId: string,
-    data: string,
-    question: string,
+    _userId: string,
+    _data: string,
+    _question: string,
     options?: any
   ): Promise<string> {
     try {
@@ -493,8 +493,8 @@ export class AIService extends BaseService implements IAIService {
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Data: ${data}\nQuestion: ${question}` }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: `Data: ${data}\nQuestion: ${question}` }
         ],
         options
       );
@@ -504,8 +504,8 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateBlogPost(
-    userId: string,
-    topic: string,
+    _userId: string,
+    _topic: string,
     options?: any
   ): Promise<string> {
     try {
@@ -513,8 +513,8 @@ export class AIService extends BaseService implements IAIService {
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: topic }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: topic }
         ],
         options
       );
@@ -524,9 +524,9 @@ export class AIService extends BaseService implements IAIService {
   }
 
   async generateSocialMediaPost(
-    userId: string,
-    topic: string,
-    platform: string,
+    _userId: string,
+    _topic: string,
+    _platform: string,
     options?: any
   ): Promise<string> {
     try {
@@ -534,8 +534,8 @@ export class AIService extends BaseService implements IAIService {
       return await this.generateChat(
         userId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: topic }
+          { _role: 'system', _content: systemPrompt },
+          { _role: 'user', _content: topic }
         ],
         options
       );

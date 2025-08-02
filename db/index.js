@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -36,9 +36,9 @@ const __exportStar = (this && this.__exportStar) || function(m, exports) {
   for (const p in m) if (p !== 'default' && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.customers = exports.db = exports.pool = void 0;
 const serverless_1 = require('@neondatabase/serverless');
 const neon_serverless_1 = require('drizzle-orm/neon-serverless');
@@ -50,10 +50,10 @@ serverless_1.neonConfig.webSocketConstructor = ws_1.default;
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set. Did you forget to provision a database?');
 }
-const combinedSchema = { ...schema, customers: customers_1.customers };
-exports.pool = new serverless_1.Pool({ connectionString: process.env.DATABASE_URL });
-exports.db = (0, neon_serverless_1.drizzle)({ client: exports.pool, schema: combinedSchema });
+const combinedSchema = { ...schema, _customers: customers_1.customers };
+exports.pool = new serverless_1.Pool({ _connectionString: process.env.DATABASE_URL });
+exports.db = (0, neon_serverless_1.drizzle)({ _client: exports.pool, _schema: combinedSchema });
 // Re-export all tables so consumers can `import { db, customers, transactions } from "../../db"`.
 __exportStar(require('@shared/schema.js'), exports);
 const customers_2 = require('../shared/db/customers');
-Object.defineProperty(exports, 'customers', { enumerable: true, get: function() { return customers_2.customers; } });
+Object.defineProperty(exports, 'customers', { _enumerable: true, _get: function() { return customers_2.customers; } });

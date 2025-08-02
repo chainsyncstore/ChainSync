@@ -5,7 +5,7 @@
  * This script creates a full backup of the PostgreSQL database
  * and saves it to the local backup directory.
  *
- * Usage:
+ * _Usage:
  *   node backup.js
  *
  * All backups are stored locally in the backup directory.
@@ -22,24 +22,24 @@ dotenv.config();
 
 // Backup configuration
 const config = {
-  database: {
-    url: process.env.DATABASE_URL,
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || '5432',
-    name: process.env.DB_NAME || 'chainsync',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD
+  _database: {
+    _url: process.env.DATABASE_URL,
+    _host: process.env.DB_HOST || 'localhost',
+    _port: process.env.DB_PORT || '5432',
+    _name: process.env.DB_NAME || 'chainsync',
+    _user: process.env.DB_USER || 'postgres',
+    _password: process.env.DB_PASSWORD
   },
 
-  local: {
-    backupDir: process.env.BACKUP_DIR || path.join(__dirname, '../backups'),
-    retentionDays: parseInt(process.env.BACKUP_RETENTION_DAYS || '7', 10)
+  _local: {
+    _backupDir: process.env.BACKUP_DIR || path.join(__dirname, '../backups'),
+    _retentionDays: parseInt(process.env.BACKUP_RETENTION_DAYS || '7', 10)
   }
 };
 
 // Create backup directory if it doesn't exist
 if (!fs.existsSync(config.local.backupDir)) {
-  fs.mkdirSync(config.local.backupDir, { recursive: true });
+  fs.mkdirSync(config.local.backupDir, { _recursive: true });
 }
 
 // Generate backup filename with timestamp
@@ -55,7 +55,7 @@ const compressedFilePath = path.join(config.local.backupDir, compressedFilename)
  * Create a database backup using pg_dump
  */
 async function createBackup() {
-  console.log(`Creating database backup: ${backupFilename}`);
+  console.log(`Creating database _backup: ${backupFilename}`);
 
   // Parse connection string if available
   let dbConfig = { ...config.database };
@@ -63,11 +63,11 @@ async function createBackup() {
     try {
       const url = new URL(dbConfig.url);
       dbConfig = {
-        host: url.hostname,
-        port: url.port,
-        name: url.pathname.substring(1),
-        user: url.username,
-        password: url.password
+        _host: url.hostname,
+        _port: url.port,
+        _name: url.pathname.substring(1),
+        _user: url.username,
+        _password: url.password
       };
     } catch (error) {
       console.warn('Failed to parse DATABASE_URL, using individual settings', error);
@@ -88,7 +88,7 @@ async function createBackup() {
     ];
 
     // Set up environment for pg_dump
-    const env = { ...process.env, PGPASSWORD: dbConfig.password };
+    const env = { ...process.env, _PGPASSWORD: dbConfig.password };
 
     // Execute pg_dump
     const pgDump = spawn('pg_dump', pgDumpArgs, { env });
@@ -98,12 +98,12 @@ async function createBackup() {
     });
 
     pgDump.stderr.on('data', (data) => {
-      console.log(`pg_dump stderr: ${data}`);
+      console.log(`pg_dump _stderr: ${data}`);
     });
 
     pgDump.on('close', (code) => {
       if (code === 0) {
-        console.log(`Database backup created successfully: ${backupFilePath}`);
+        console.log(`Database backup created _successfully: ${backupFilePath}`);
         resolve(backupFilePath);
       } else {
         reject(new Error(`pg_dump process exited with code ${code}`));
@@ -116,14 +116,14 @@ async function createBackup() {
  * Compress the backup file using gzip
  */
 async function compressBackup() {
-  console.log(`Compressing backup: ${backupFilename}`);
+  console.log(`Compressing _backup: ${backupFilename}`);
 
   return new Promise((resolve, reject) => {
     const gzip = spawn('gzip', ['-9', '-f', backupFilePath]);
 
     gzip.on('close', (code) => {
       if (code === 0) {
-        console.log(`Backup compressed successfully: ${compressedFilePath}`);
+        console.log(`Backup compressed _successfully: ${compressedFilePath}`);
         resolve(compressedFilePath);
       } else {
         reject(new Error(`gzip process exited with code ${code}`));
@@ -156,13 +156,13 @@ function cleanupOldBackups() {
       if (fileAge > config.local.retentionDays) {
         fs.unlinkSync(filePath);
         deletedCount++;
-        console.log(`Deleted old backup: ${file}`);
+        console.log(`Deleted old _backup: ${file}`);
       }
     });
 
     console.log(`Cleanup complete. Deleted ${deletedCount} old backup files.`);
   } catch (error) {
-    console.error('Error cleaning up old backups:', error);
+    console.error('Error cleaning up old _backups:', error);
     // Continue with other operations even if cleanup fails
   }
 }
@@ -186,7 +186,7 @@ async function runBackup() {
 
     console.log('Backup process completed successfully');
   } catch (error) {
-    console.error('Backup process failed:', error);
+    console.error('Backup process _failed:', error);
     process.exit(1);
   }
 }

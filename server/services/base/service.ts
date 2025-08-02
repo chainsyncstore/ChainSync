@@ -1,21 +1,21 @@
 import { ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 export interface IServiceError extends Error {
-  code: ErrorCode;
-  category: ErrorCategory;
+  _code: ErrorCode;
+  _category: ErrorCategory;
   retryable?: boolean;
-  retryAfter: number;
-  details: Record<string, unknown>;
+  _retryAfter: number;
+  _details: Record<string, unknown>;
 }
 
 export class ServiceError extends Error implements IServiceError {
   constructor(
-    message: string,
-    public code: ErrorCode,
-    public category: ErrorCategory,
-    public retryable: boolean = false,
-    public retryAfter: number = 0,
-    public details: Record<string, unknown> = {}
+    _message: string,
+    public _code: ErrorCode,
+    public _category: ErrorCategory,
+    public _retryable: boolean = false,
+    public _retryAfter: number = 0,
+    public _details: Record<string, unknown> = {}
   ) {
     super(message);
     this.name = 'ServiceError';
@@ -23,15 +23,15 @@ export class ServiceError extends Error implements IServiceError {
 }
 
 export abstract class BaseService {
-  protected handleError(error: unknown, context: string): never {
+  protected handleError(_error: unknown, _context: string): never {
     const serviceError = this.convertToServiceError(error);
     /* eslint-disable no-console */
-    console.error(`[${this.constructor.name}] ${context} failed:`, serviceError);
+    console.error(`[${this.constructor.name}] ${context} _failed:`, serviceError);
     /* eslint-enable */
     throw serviceError;
   }
 
-  protected convertToServiceError(error: unknown): IServiceError {
+  protected convertToServiceError(_error: unknown): IServiceError {
     if (error instanceof ServiceError) return error;
 
     const msg =
@@ -45,15 +45,15 @@ export abstract class BaseService {
       ErrorCategory.SYSTEM,
       false,
       0,
-      { originalError: error }
+      { _originalError: error }
     );
   }
 
   /* Simple wrappers ---------------------------------------------------- */
 
   protected async withTransaction<T>(
-    operation: () => Promise<T>,
-    context: string
+    _operation: () => Promise<T>,
+    _context: string
   ): Promise<T> {
     try {
       return await operation();
@@ -63,8 +63,8 @@ export abstract class BaseService {
   }
 
   protected async withRetry<T>(
-    operation: () => Promise<T>,
-    context: string,
+    _operation: () => Promise<T>,
+    _context: string,
     maxRetries = 3,
     baseDelay = 1000
   ): Promise<T> {

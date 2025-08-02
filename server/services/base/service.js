@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.BaseService = exports.ServiceError = void 0;
 const errors_1 = require('@shared/types/errors');
 class ServiceError extends Error {
@@ -18,7 +18,7 @@ class BaseService {
   handleError(error, context) {
     const serviceError = this.convertToServiceError(error);
     /* eslint-disable no-console */
-    console.error(`[${this.constructor.name}] ${context} failed:`, serviceError);
+    console.error(`[${this.constructor.name}] ${context} _failed:`, serviceError);
     /* eslint-enable */
     throw serviceError;
   }
@@ -28,7 +28,7 @@ class BaseService {
     const msg = error && typeof error === 'object' && 'message' in error
       ? String(error.message)
       : 'Unknown error';
-    return new ServiceError(msg, errors_1.ErrorCode.INTERNAL_SERVER_ERROR, errors_1.ErrorCategory.SYSTEM, false, undefined, { originalError: error });
+    return new ServiceError(msg, errors_1.ErrorCode.INTERNAL_SERVER_ERROR, errors_1.ErrorCategory.SYSTEM, false, undefined, { _originalError: error });
   }
   /* Simple wrappers ---------------------------------------------------- */
   async withTransaction(operation, context) {

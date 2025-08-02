@@ -10,7 +10,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -18,7 +18,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -39,7 +39,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.EnhancedInventoryService = void 0;
 const enhanced_service_1 = require('../base/enhanced-service');
 const formatter_1 = require('./formatter');
@@ -89,11 +89,11 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
         return this.updateInventory(existing.id, params);
       const data = {
         ...params,
-        currentUtilization: params.currentUtilization ?? 0,
-        lastAuditDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        _currentUtilization: params.currentUtilization ?? 0,
+        _lastAuditDate: new Date(),
+        _createdAt: new Date(),
+        _updatedAt: new Date(),
+        _metadata: params.metadata ? JSON.stringify(params.metadata) : null
       };
       const validated = (0, schema_validation_1.validateEntity)(schema_validation_1.inventoryValidation.insert, data, 'inventory');
       const [inv] = await db_1.db.insert(schema.inventory).values(validated).returning();
@@ -110,8 +110,8 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
         throw types_1.InventoryServiceErrors.INVENTORY_NOT_FOUND;
       const data = {
         ...params,
-        updatedAt: new Date(),
-        metadata: params.metadata
+        _updatedAt: new Date(),
+        _metadata: params.metadata
           ? JSON.stringify(params.metadata)
           : existing.metadata
       };
@@ -133,9 +133,9 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
   async getInventoryById(id) {
     try {
       const inventory = await db_1.db.query.inventory.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.inventory.id, id)
+        _where: (0, drizzle_orm_1.eq)(schema.inventory.id, id)
       });
-      return inventory ? inventory : null;
+      return inventory ? _inventory : null;
     }
     catch (err) {
       return this.handleError(err, 'getting inventory by ID');
@@ -144,9 +144,9 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
   async getInventoryByProduct(productId, storeId) {
     try {
       const inventory = await db_1.db.query.inventory.findFirst({
-        where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.inventory.productId, productId), storeId ? (0, drizzle_orm_1.eq)(schema.inventory.storeId, storeId) : undefined)
+        _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.inventory.productId, productId), storeId ? (0, drizzle_orm_1.eq)(schema.inventory.storeId, storeId) : undefined)
       });
-      return inventory ? inventory : null;
+      return inventory ? _inventory : null;
     }
     catch (err) {
       return this.handleError(err, 'getting inventory by product');
@@ -165,14 +165,14 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
         throw types_1.InventoryServiceErrors.PRODUCT_NOT_FOUND;
       const data = {
         ...params,
-        sku: params.sku ?? `SKU-${params.productId}-${Date.now()}`,
-        quantity: params.quantity ?? 0,
-        reorderLevel: params.reorderLevel ?? 0,
-        reorderQuantity: params.reorderQuantity ?? 0,
-        receivedDate: params.receivedDate ?? new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        _sku: params.sku ?? `SKU-${params.productId}-${Date.now()}`,
+        _quantity: params.quantity ?? 0,
+        _reorderLevel: params.reorderLevel ?? 0,
+        _reorderQuantity: params.reorderQuantity ?? 0,
+        _receivedDate: params.receivedDate ?? new Date(),
+        _createdAt: new Date(),
+        _updatedAt: new Date(),
+        _metadata: params.metadata ? JSON.stringify(params.metadata) : null
       };
       const validated = (0, schema_validation_1.validateEntity)(schema_validation_1.inventoryValidation.itemInsert, data, 'inventory_item');
       const [item] = await db_1.db
@@ -190,13 +190,13 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
     try {
       const existing = await this.getInventoryItemById(itemId);
       if (!existing) {
-        // TODO: Add specific error code 'INVENTORY_ITEM_NOT_FOUND' to InventoryServiceErrors.
+        // _TODO: Add specific error code 'INVENTORY_ITEM_NOT_FOUND' to InventoryServiceErrors.
         throw types_1.InventoryServiceErrors.INVENTORY_NOT_FOUND;
       }
       const data = {
         ...params,
-        updatedAt: new Date(),
-        metadata: params.metadata
+        _updatedAt: new Date(),
+        _metadata: params.metadata
           ? JSON.stringify(params.metadata)
           : existing.metadata
       };
@@ -219,7 +219,7 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
   async getInventoryItemById(id) {
     try {
       const item = await db_1.db.query.inventoryItems.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.inventoryItems.id, id)
+        _where: (0, drizzle_orm_1.eq)(schema.inventoryItems.id, id)
       });
       if (!item) {
         return null;
@@ -227,16 +227,16 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
       const product = await this.getProductById(item.productId);
       return {
         ...item,
-        sku: item.sku ?? undefined,
-        name: product?.name || '',
-        unit: product?.unit || '',
-        unitCost: product?.cost || '0',
-        isActive: product?.isActive || false,
-        reorderLevel: item.reorderLevel || 0,
-        reorderQuantity: item.reorderQuantity || 0,
-        createdAt: item.createdAt || new Date(),
-        updatedAt: item.updatedAt || new Date(),
-        metadata: item.metadata
+        _sku: item.sku ?? undefined,
+        _name: product?.name || '',
+        _unit: product?.unit || '',
+        _unitCost: product?.cost || '0',
+        _isActive: product?.isActive || false,
+        _reorderLevel: item.reorderLevel || 0,
+        _reorderQuantity: item.reorderQuantity || 0,
+        _createdAt: item.createdAt || new Date(),
+        _updatedAt: item.updatedAt || new Date(),
+        _metadata: item.metadata
       };
     }
     catch (err) {
@@ -264,23 +264,23 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
       const afterQty = beforeQty + params.quantity;
       if (params.quantity < 0 && afterQty < 0)
         throw types_1.InventoryServiceErrors.INSUFFICIENT_STOCK;
-      await this.updateInventoryItem(item.id, { quantity: afterQty });
+      await this.updateInventoryItem(item.id, { _quantity: afterQty });
       const txData = {
-        inventoryId: params.inventoryId,
-        itemId: params.itemId,
-        transactionType: params.transactionType ?? 'adjustment',
-        quantity: params.quantity,
-        beforeQuantity: beforeQty,
-        afterQuantity: afterQty,
-        unitCost: params.unitCost ?? item.unitCost,
-        totalCost: (Number(params.unitCost ?? item.unitCost) * Math.abs(params.quantity)).toFixed(2),
-        referenceId: params.referenceId,
-        notes: params.notes ?? '',
-        performedBy: params.performedBy,
-        transactionDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        _inventoryId: params.inventoryId,
+        _itemId: params.itemId,
+        _transactionType: params.transactionType ?? 'adjustment',
+        _quantity: params.quantity,
+        _beforeQuantity: beforeQty,
+        _afterQuantity: afterQty,
+        _unitCost: params.unitCost ?? item.unitCost,
+        _totalCost: (Number(params.unitCost ?? item.unitCost) * Math.abs(params.quantity)).toFixed(2),
+        _referenceId: params.referenceId,
+        _notes: params.notes ?? '',
+        _performedBy: params.performedBy,
+        _transactionDate: new Date(),
+        _createdAt: new Date(),
+        _updatedAt: new Date(),
+        _metadata: params.metadata ? JSON.stringify(params.metadata) : null
       };
       const validated = (0, schema_validation_1.validateEntity)(schema_validation_1.inventoryValidation.transactionInsert, txData, 'inventory_transaction');
       const [tx] = await db_1.db
@@ -305,20 +305,20 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
     try {
       const [sumRow] = await db_1.db
         .select({
-          total: (0, drizzle_orm_1.sql) `sum(${schema.inventoryItems.quantity})`.mapWith(Number)
+          _total: (0, drizzle_orm_1.sql) `sum(${schema.inventoryItems.quantity})`.mapWith(Number)
         })
         .from(schema.inventoryItems)
         .where((0, drizzle_orm_1.eq)(schema.inventoryItems.inventoryId, id));
       const total = sumRow.total ?? 0;
       const [updated] = await db_1.db
         .update(schema.inventory)
-        .set({ currentUtilization: total })
+        .set({ _currentUtilization: total })
         .where((0, drizzle_orm_1.eq)(schema.inventory.id, id))
         .returning();
       return updated;
     }
     catch (err) {
-      console.error('Error updating inventory utilization:', err);
+      console.error('Error updating inventory _utilization:', err);
       return null;
     }
   }
@@ -327,12 +327,12 @@ class EnhancedInventoryService extends enhanced_service_1.EnhancedBaseService {
   /* -------------------------------------------------------------------------- */
   getProductById(productId) {
     return db_1.db.query.products.findFirst({
-      where: (0, drizzle_orm_1.eq)(schema.products.id, productId)
+      _where: (0, drizzle_orm_1.eq)(schema.products.id, productId)
     });
   }
   getStoreById(storeId) {
     return db_1.db.query.stores.findFirst({
-      where: (0, drizzle_orm_1.eq)(schema.stores.id, storeId)
+      _where: (0, drizzle_orm_1.eq)(schema.stores.id, storeId)
     });
   }
 }

@@ -9,12 +9,12 @@ import * as schema from '../../../shared/schema';
 import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm';
 
 export class AnalyticsService extends BaseService {
-  private redis: Redis;
-  private cache: CacheService;
-  private config: AnalyticsConfig;
-  private aggregationQueue: Array<Record<string, unknown>>;
+  private _redis: Redis;
+  private _cache: CacheService;
+  private _config: AnalyticsConfig;
+  private _aggregationQueue: Array<Record<string, unknown>>;
 
-  constructor(config: Partial<AnalyticsConfig> = {}) {
+  constructor(_config: Partial<AnalyticsConfig> = {}) {
     super(logger);
     this.config = { ...defaultAnalyticsConfig, ...config };
     this.redis = new Redis(this.config.storage.connection as string);
@@ -25,11 +25,11 @@ export class AnalyticsService extends BaseService {
     setInterval(() => this.processAggregationQueue(), this.config.aggregation.window * 1000);
   }
 
-  private generateCacheKey(query: string, params: Record<string, unknown>): string {
+  private generateCacheKey(_query: string, _params: Record<string, unknown>): string {
     return `analytics:${query}:${JSON.stringify(params)}`;
   }
 
-  private async validateQuery(query: string, params: Record<string, unknown>): Promise<void> {
+  private async validateQuery(_query: string, _params: Record<string, unknown>): Promise<void> {
     if (!query) {
       throw AnalyticsServiceErrors.INVALID_QUERY;
     }
@@ -50,22 +50,22 @@ export class AnalyticsService extends BaseService {
       // Process in batches
       for (let i = 0; i < this.aggregationQueue.length; i += this.config.aggregation.batchSize) {
         const batch = this.aggregationQueue.slice(i, i + this.config.aggregation.batchSize);
-        await Promise.all(batch.map(async(item: Record<string, unknown>) => {
+        await Promise.all(batch.map(async(_item: Record<string, unknown>) => {
           try {
             await this.processAggregation(item);
           } catch (error) {
-            console.error('Failed to process aggregation:', error);
+            console.error('Failed to process _aggregation:', error);
           }
         }));
       }
 
       this.aggregationQueue = [];
     } catch (error) {
-      console.error('Failed to process aggregation queue:', error);
+      console.error('Failed to process aggregation _queue:', error);
     }
   }
 
-  private async processAggregation(item: Record<string, unknown>): Promise<void> {
+  private async processAggregation(_item: Record<string, unknown>): Promise<void> {
     try {
       // Implement specific aggregation logic based on item type
       switch (item.type) {
@@ -78,8 +78,7 @@ export class AnalyticsService extends BaseService {
         case 'product':
           await this.aggregateProduct(item.data as Record<string, unknown>);
           break;
-        default:
-          throw new AppError(
+        throw new AppError(
             'Unknown aggregation type',
             ErrorCode.INVALID_FIELD_VALUE,
             ErrorCategory.VALIDATION
@@ -90,76 +89,76 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  private async aggregateTransaction(data: Record<string, unknown>): Promise<void> {
+  private async aggregateTransaction(_data: Record<string, unknown>): Promise<void> {
     try {
       // Aggregate transaction metrics
       const metrics = {
-        totalAmount: data.amount,
-        count: 1,
-        timestamp: data.timestamp
+        _totalAmount: data.amount,
+        _count: 1,
+        _timestamp: data.timestamp
       };
 
       // Store in Redis
-      await this.redis.hincrbyfloat('metrics:transactions:total', String(data.storeId), data.amount as number);
-      await this.redis.hincrby('metrics:transactions:count', String(data.storeId), 1);
+      await this.redis.hincrbyfloat('_metrics:transactions:total', String(data.storeId), data.amount as number);
+      await this.redis.hincrby('_metrics:transactions:count', String(data.storeId), 1);
 
       // Update cache
-      await this.cache.set(`metrics:transactions:${data.storeId}`, metrics, this.config.cache.ttl);
+      await this.cache.set(`_metrics:transactions:${data.storeId}`, metrics, this.config.cache.ttl);
     } catch (error) {
       throw AnalyticsServiceErrors.STORAGE_ERROR;
     }
   }
 
-  private async aggregateUser(data: Record<string, unknown>): Promise<void> {
+  private async aggregateUser(_data: Record<string, unknown>): Promise<void> {
     try {
       // Aggregate user metrics
       const metrics = {
-        totalUsers: 1,
-        activeUsers: data.active ? 1 : 0,
-        timestamp: data.timestamp
+        _totalUsers: 1,
+        _activeUsers: data.active ? _1 : 0,
+        _timestamp: data.timestamp
       };
 
       // Store in Redis
-      await this.redis.hincrby('metrics:users:total', String(data.storeId), 1);
+      await this.redis.hincrby('_metrics:users:total', String(data.storeId), 1);
       if (data.active) {
-        await this.redis.hincrby('metrics:users:active', String(data.storeId), 1);
+        await this.redis.hincrby('_metrics:users:active', String(data.storeId), 1);
       }
 
       // Update cache
-      await this.cache.set(`metrics:users:${data.storeId}`, metrics, this.config.cache.ttl);
+      await this.cache.set(`_metrics:users:${data.storeId}`, metrics, this.config.cache.ttl);
     } catch (error) {
       throw AnalyticsServiceErrors.STORAGE_ERROR;
     }
   }
 
-  private async aggregateProduct(data: Record<string, unknown>): Promise<void> {
+  private async aggregateProduct(_data: Record<string, unknown>): Promise<void> {
     try {
       // Aggregate product metrics
       const metrics = {
-        totalProducts: 1,
-        inStock: data.inStock ? 1 : 0,
-        outOfStock: !data.inStock ? 1 : 0,
-        timestamp: data.timestamp
+        _totalProducts: 1,
+        _inStock: data.inStock ? _1 : 0,
+        _outOfStock: !data.inStock ? _1 : 0,
+        _timestamp: data.timestamp
       };
 
       // Store in Redis
-      await this.redis.hincrby('metrics:products:total', String(data.storeId), 1);
+      await this.redis.hincrby('_metrics:products:total', String(data.storeId), 1);
       if (data.inStock) {
-        await this.redis.hincrby('metrics:products:in_stock', String(data.storeId), 1);
+        await this.redis.hincrby('_metrics:products:in_stock', String(data.storeId), 1);
       }
 
       // Update cache
-      await this.cache.set(`metrics:products:${data.storeId}`, metrics, this.config.cache.ttl);
+      await this.cache.set(`_metrics:products:${data.storeId}`, metrics, this.config.cache.ttl);
     } catch (error) {
       throw AnalyticsServiceErrors.STORAGE_ERROR;
     }
   }
 
   async getStoreMetrics(
-    storeId: number,
-    startDate: Date,
-    endDate: Date,
-    interval: 'day' | 'week' | 'month' = 'day'
+    _storeId: number,
+    _startDate: Date,
+    _endDate: Date,
+    _interval: 'day' | 'week' | 'month' = 'day'
   ): Promise<Record<string, unknown>[]> {
     try {
       // Validate query
@@ -168,8 +167,8 @@ export class AnalyticsService extends BaseService {
       // Generate cache key
       const cacheKey = this.generateCacheKey('store_metrics', {
         storeId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        _startDate: startDate.toISOString(),
+        _endDate: endDate.toISOString(),
         interval
       });
 
@@ -184,10 +183,10 @@ export class AnalyticsService extends BaseService {
         async() => {
           const query = db
             .select({
-              date: sql<string>`DATE(${schema.transactions.createdAt})`.as('date'),
-              totalSales: sql<number>`SUM(${schema.transactions.total})`.as('totalSales'),
-              totalTransactions: sql<number>`COUNT(*)`.as('totalTransactions'),
-              averageTransaction: sql<number>`AVG(${schema.transactions.total})`.as('averageTransaction')
+              _date: sql<string>`DATE(${schema.transactions.createdAt})`.as('date'),
+              _totalSales: sql<number>`SUM(${schema.transactions.total})`.as('totalSales'),
+              _totalTransactions: sql<number>`COUNT(*)`.as('totalTransactions'),
+              _averageTransaction: sql<number>`AVG(${schema.transactions.total})`.as('averageTransaction')
             })
             .from(schema.transactions)
             .where(
@@ -215,10 +214,10 @@ export class AnalyticsService extends BaseService {
   }
 
   async getUserMetrics(
-    storeId: number,
-    startDate: Date,
-    endDate: Date,
-    interval: 'day' | 'week' | 'month' = 'day'
+    _storeId: number,
+    _startDate: Date,
+    _endDate: Date,
+    _interval: 'day' | 'week' | 'month' = 'day'
   ): Promise<Record<string, unknown>[]> {
     try {
       // Validate query
@@ -227,8 +226,8 @@ export class AnalyticsService extends BaseService {
       // Generate cache key
       const cacheKey = this.generateCacheKey('user_metrics', {
         storeId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        _startDate: startDate.toISOString(),
+        _endDate: endDate.toISOString(),
         interval
       });
 
@@ -243,10 +242,12 @@ export class AnalyticsService extends BaseService {
         async() => {
           const query = db
             .select({
-              date: sql<string>`DATE(${schema.users.createdAt})`.as('date'),
-              totalUsers: sql<number>`COUNT(*)`.as('totalUsers'),
-              activeUsers: sql<number>`COUNT(*) filter (where ${schema.users.isActive} = true)`.as('activeUsers'),
-              averageTransactions: sql<number>`AVG((SELECT COUNT(*) FROM ${schema.transactions} WHERE ${schema.transactions.userId} = ${schema.users.id}))`.as('averageTransactions')
+              _date: sql<string>`DATE(${schema.users.createdAt})`.as('date'),
+              _totalUsers: sql<number>`COUNT(*)`.as('totalUsers'),
+              _activeUsers: sql<number>`COUNT(*) filter (where ${schema.users.isActive}
+   =  true)`.as('activeUsers'),
+              _averageTransactions: sql<number>`AVG((SELECT COUNT(*) FROM ${schema.transactions} WHERE ${schema.transactions.userId}
+   =  ${schema.users.id}))`.as('averageTransactions')
             })
             .from(schema.users)
             .where(
@@ -274,10 +275,10 @@ export class AnalyticsService extends BaseService {
   }
 
   async getProductMetrics(
-    storeId: number,
-    startDate: Date,
-    endDate: Date,
-    interval: 'day' | 'week' | 'month' = 'day'
+    _storeId: number,
+    _startDate: Date,
+    _endDate: Date,
+    _interval: 'day' | 'week' | 'month' = 'day'
   ): Promise<Record<string, unknown>[]> {
     try {
       // Validate query
@@ -286,8 +287,8 @@ export class AnalyticsService extends BaseService {
       // Generate cache key
       const cacheKey = this.generateCacheKey('product_metrics', {
         storeId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        _startDate: startDate.toISOString(),
+        _endDate: endDate.toISOString(),
         interval
       });
 
@@ -302,11 +303,12 @@ export class AnalyticsService extends BaseService {
         async() => {
           const query = db
             .select({
-              date: sql<string>`DATE(${schema.products.createdAt})`.as('date'),
-              totalProducts: sql<number>`COUNT(*)`.as('totalProducts'),
-              inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.inventory.quantity} > 0)`.as('inStock'),
-              outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.inventory.quantity} = 0)`.as('outOfStock'),
-              averagePrice: sql<number>`AVG(${schema.products.price})`.as('averagePrice')
+              _date: sql<string>`DATE(${schema.products.createdAt})`.as('date'),
+              _totalProducts: sql<number>`COUNT(*)`.as('totalProducts'),
+              _inStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.inventory.quantity} > 0)`.as('inStock'),
+              _outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${schema.inventory.quantity}
+   =  0)`.as('outOfStock'),
+              _averagePrice: sql<number>`AVG(${schema.products.price})`.as('averagePrice')
             })
             .from(schema.products)
             .leftJoin(schema.inventory, eq(schema.products.id, schema.inventory.productId))
@@ -334,10 +336,10 @@ export class AnalyticsService extends BaseService {
   }
 
   async getLoyaltyMetrics(
-    storeId: number,
-    startDate: Date,
-    endDate: Date,
-    interval: 'day' | 'week' | 'month' = 'day'
+    _storeId: number,
+    _startDate: Date,
+    _endDate: Date,
+    _interval: 'day' | 'week' | 'month' = 'day'
   ): Promise<Record<string, unknown>[]> {
     try {
       // Validate query
@@ -346,8 +348,8 @@ export class AnalyticsService extends BaseService {
       // Generate cache key
       const cacheKey = this.generateCacheKey('loyalty_metrics', {
         storeId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        _startDate: startDate.toISOString(),
+        _endDate: endDate.toISOString(),
         interval
       });
 
@@ -362,10 +364,10 @@ export class AnalyticsService extends BaseService {
         async() => {
           const query = db
             .select({
-              date: sql<string>`DATE(${schema.loyaltyTransactions.createdAt})`.as('date'),
-              totalPoints: sql<number>`SUM(${schema.loyaltyTransactions.pointsEarned})`.as('totalPoints'),
-              totalRedemptions: sql<number>`SUM(${schema.loyaltyTransactions.pointsRedeemed})`.as('totalRedemptions'),
-              activeMembers: sql<number>`COUNT(DISTINCT ${schema.loyaltyTransactions.memberId})`.as('activeMembers')
+              _date: sql<string>`DATE(${schema.loyaltyTransactions.createdAt})`.as('date'),
+              _totalPoints: sql<number>`SUM(${schema.loyaltyTransactions.pointsEarned})`.as('totalPoints'),
+              _totalRedemptions: sql<number>`SUM(${schema.loyaltyTransactions.pointsRedeemed})`.as('totalRedemptions'),
+              _activeMembers: sql<number>`COUNT(DISTINCT ${schema.loyaltyTransactions.memberId})`.as('activeMembers')
             })
             .from(schema.loyaltyTransactions)
             .where(
@@ -392,8 +394,8 @@ export class AnalyticsService extends BaseService {
   }
 
   async addAggregationToQueue(
-    type: string,
-    data: Record<string, unknown>
+    _type: string,
+    _data: Record<string, unknown>
   ): Promise<void> {
     try {
       this.aggregationQueue.push({ type, data });
@@ -405,7 +407,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  async clearCache(userId: string): Promise<void> {
+  async clearCache(_userId: string): Promise<void> {
     try {
       await this.cache.clear(userId);
     } catch (error) {
@@ -413,7 +415,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  async getCacheStats(userId: string): Promise<Record<string, unknown> | null> {
+  async getCacheStats(_userId: string): Promise<Record<string, unknown> | null> {
     try {
       return await this.cache.getUsageStats(userId);
     } catch (error) {
@@ -421,7 +423,7 @@ export class AnalyticsService extends BaseService {
     }
   }
 
-  protected handleError(error: unknown, context: string): never {
+  protected handleError(_error: unknown, _context: string): never {
     if (error instanceof AppError) {
       throw error;
     }
@@ -429,17 +431,17 @@ export class AnalyticsService extends BaseService {
       `Failed when ${context}`,
       ErrorCode.INTERNAL_SERVER_ERROR,
       ErrorCategory.SYSTEM,
-      { originalError: error }
+      { _originalError: error }
     );
   }
 
   private async withRetry<T>(
-    operation: () => Promise<T>,
-    context: string,
+    _operation: () => Promise<T>,
+    _context: string,
     maxRetries = 3,
     delay = 1000
   ): Promise<T> {
-    let lastError: unknown;
+    let _lastError: unknown;
     for (let i = 0; i < maxRetries; i++) {
       try {
         return await operation();

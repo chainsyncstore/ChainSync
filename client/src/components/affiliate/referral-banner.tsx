@@ -1,93 +1,93 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircleIcon, InfoIcon } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import React, { useEffect, useState } from &apos;react&apos;;
+import { Card, CardContent } from &apos;@/components/ui/card&apos;;
+import { Badge } from &apos;@/components/ui/badge&apos;;
+import { CheckCircleIcon, InfoIcon } from &apos;lucide-react&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import { useQuery } from &apos;@tanstack/react-query&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
 
 interface ReferralInfo {
-  isValid: boolean;
+  _isValid: boolean;
   affiliateName?: string;
-  discount: number;
-  duration: number;
+  _discount: number;
+  _duration: number;
 }
 
 export function ReferralBanner() {
   const { toast } = useToast();
   const [referralCode, setReferralCode] = useState<string | null>(null);
-  
+
   // Get referral code from URL query parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('ref');
+    const code = urlParams.get(&apos;ref&apos;);
     if (code) {
       setReferralCode(code);
-      
+
       // Track the click if we have a valid code
-      const trackClick = async () => {
+      const trackClick = async() => {
         try {
           const img = new Image();
           img.src = `/api/affiliates/track-click?code=${code}&source=${window.location.href}`;
         } catch (error) {
-          console.error('Error tracking referral click:', error);
+          console.error(&apos;Error tracking referral _click:&apos;, error);
         }
       };
-      
+
       trackClick();
     }
   }, []);
-  
+
   // Verify referral code
-  const { data: referralInfo, isLoading } = useQuery<ReferralInfo>({
-    queryKey: ['/api/affiliates/verify', referralCode],
-    queryFn: async () => {
-      if (!referralCode) return { isValid: false, discount: 0, duration: 0 };
-      return await apiRequest('GET', `/api/affiliates/verify?code=${referralCode}`);
+  const { _data: referralInfo, isLoading } = useQuery<ReferralInfo>({
+    _queryKey: [&apos;/api/affiliates/verify&apos;, referralCode],
+    _queryFn: async() => {
+      if (!referralCode) return { _isValid: false, _discount: 0, _duration: 0 };
+      return await apiRequest(&apos;GET&apos;, `/api/affiliates/verify?code=${referralCode}`);
     },
-    enabled: !!referralCode,
-    refetchOnWindowFocus: false,
-    retry: false,
+    _enabled: !!referralCode,
+    _refetchOnWindowFocus: false,
+    _retry: false
   });
-  
-  // If no referral code or invalid code, don't show the banner
+
+  // If no referral code or invalid code, don&apos;t show the banner
   if (!referralCode || (referralInfo && !referralInfo.isValid)) {
     return null;
   }
-  
+
   // Show loading state
   if (isLoading) {
     return (
-      <Card className="border-2 border-dashed border-primary/30 bg-primary/5 mb-6 animate-pulse">
-        <CardContent className="p-4 flex items-center justify-center">
-          <div className="w-full h-10 bg-primary/20 rounded-md"></div>
+      <Card className=&quot;border-2 border-dashed border-primary/30 bg-primary/5 mb-6 animate-pulse&quot;>
+        <CardContent className=&quot;p-4 flex items-center justify-center&quot;>
+          <div className=&quot;w-full h-10 bg-primary/20 rounded-md&quot; />
         </CardContent>
       </Card>
     );
   }
-  
+
   // Show referral banner with discount information
   return (
-    <Card className="border-2 border-dashed border-primary/30 bg-primary/5 mb-6">
-      <CardContent className="p-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <CheckCircleIcon className="h-5 w-5 text-primary mr-2" />
+    <Card className=&quot;border-2 border-dashed border-primary/30 bg-primary/5 mb-6&quot;>
+      <CardContent className=&quot;p-4 flex items-center justify-between&quot;>
+        <div className=&quot;flex items-center&quot;>
+          <CheckCircleIcon className=&quot;h-5 w-5 text-primary mr-2&quot; />
           <div>
-            <div className="flex items-center">
-              <p className="font-medium">
+            <div className=&quot;flex items-center&quot;>
+              <p className=&quot;font-medium&quot;>
                 10% Discount Applied!
               </p>
-              <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20">
+              <Badge variant=&quot;outline&quot; className=&quot;ml-2 bg-primary/10 text-primary border-primary/20&quot;>
                 REFERRAL
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              You were referred by {referralInfo?.affiliateName || "a partner"} and will receive 10% off for 12 months
+            <p className=&quot;text-sm text-muted-foreground&quot;>
+              You were referred by {referralInfo?.affiliateName || &apos;a partner&apos;} and will receive 10% off for 12 months
             </p>
           </div>
         </div>
-        <div className="hidden md:flex items-center text-sm text-muted-foreground">
-          <InfoIcon className="h-4 w-4 mr-1" />
+        <div className=&quot;hidden _md:flex items-center text-sm text-muted-foreground&quot;>
+          <InfoIcon className=&quot;h-4 w-4 mr-1&quot; />
           <span>Discount will apply automatically</span>
         </div>
       </CardContent>

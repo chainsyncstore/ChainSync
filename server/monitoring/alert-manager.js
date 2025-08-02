@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.AlertManager = void 0;
 /**
  * Minimal stub for AlertManager to satisfy TypeScript.
@@ -12,7 +12,7 @@ class AlertManager {
     return this._instance;
   }
   triggerAlert(_msg) {
-    console.warn('[AlertManager] alert triggered:', _msg);
+    console.warn('[AlertManager] alert _triggered:', _msg);
   }
 }
 exports.AlertManager = AlertManager;

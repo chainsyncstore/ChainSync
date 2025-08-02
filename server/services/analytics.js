@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.getStorePerformanceComparison = getStorePerformanceComparison;
 exports.getDateRangeDescription = getDateRangeDescription;
 const storage_1 = require('../storage');
@@ -58,10 +58,10 @@ async function getStorePerformanceComparison(startDate, endDate) {
   }
   // Get transaction metrics by store
   const storeMetrics = await _db_1.db.select({
-    storeId: schema.transactions.storeId,
-    totalRevenue: (0, drizzle_orm_1.sql) `SUM(${schema.transactions.total})`,
-    averageTransaction: (0, drizzle_orm_1.sql) `AVG(${schema.transactions.total})`,
-    transactionCount: (0, drizzle_orm_1.count)()
+    _storeId: schema.transactions.storeId,
+    _totalRevenue: (0, drizzle_orm_1.sql) `SUM(${schema.transactions.total})`,
+    _averageTransaction: (0, drizzle_orm_1.sql) `AVG(${schema.transactions.total})`,
+    _transactionCount: (0, drizzle_orm_1.count)()
   })
     .from(schema.transactions)
     .where(transactionWhereClause)
@@ -72,10 +72,10 @@ async function getStorePerformanceComparison(startDate, endDate) {
     try {
       // For transaction items, we need to join with transactions to apply the date filtering
       const topProducts = await _db_1.db.select({
-        productId: schema.transactionItems.productId,
-        productName: schema.products.name,
-        quantity: (0, drizzle_orm_1.sql) `SUM(${schema.transactionItems.quantity})`,
-        total: (0, drizzle_orm_1.sql) `SUM(${schema.transactionItems.unitPrice} * ${schema.transactionItems.quantity})`
+        _productId: schema.transactionItems.productId,
+        _productName: schema.products.name,
+        _quantity: (0, drizzle_orm_1.sql) `SUM(${schema.transactionItems.quantity})`,
+        _total: (0, drizzle_orm_1.sql) `SUM(${schema.transactionItems.unitPrice} * ${schema.transactionItems.quantity})`
       })
         .from(schema.transactionItems)
         .leftJoin(schema.products, (0, drizzle_orm_1.eq)(schema.transactionItems.productId, schema.products.id))
@@ -85,32 +85,32 @@ async function getStorePerformanceComparison(startDate, endDate) {
         .orderBy((0, drizzle_orm_1.desc)((0, drizzle_orm_1.sql) `SUM(${schema.transactionItems.quantity})`))
         .limit(5);
       return {
-        storeId: store.id,
+        _storeId: store.id,
         topProducts
       };
     }
     catch (error) {
       console.error(`Error fetching top products for store ${store.id}:`, error);
       return {
-        storeId: store.id,
-        topProducts: []
+        _storeId: store.id,
+        _topProducts: []
       };
     }
   }));
     // Combine store metadata with performance metrics
   const storePerformance = stores.map(store => {
     const metrics = storeMetrics.find(m => m.storeId === store.id) || {
-      totalRevenue: 0,
-      averageTransaction: 0,
-      transactionCount: 0
+      _totalRevenue: 0,
+      _averageTransaction: 0,
+      _transactionCount: 0
     };
     const topProducts = topProductsByStore.find(p => p.storeId === store.id)?.topProducts || [];
     return {
       ...store,
-      metrics: {
-        totalRevenue: parseFloat(metrics.totalRevenue) || 0,
-        averageTransaction: parseFloat(metrics.averageTransaction) || 0,
-        transactionCount: Number(metrics.transactionCount) || 0
+      _metrics: {
+        _totalRevenue: parseFloat(metrics.totalRevenue) || 0,
+        _averageTransaction: parseFloat(metrics.averageTransaction) || 0,
+        _transactionCount: Number(metrics.transactionCount) || 0
       },
       topProducts
     };
@@ -120,17 +120,17 @@ async function getStorePerformanceComparison(startDate, endDate) {
     acc.totalRevenue += parseFloat(curr.totalRevenue) || 0;
     acc.transactionCount += Number(curr.transactionCount) || 0;
     return acc;
-  }, { totalRevenue: 0, transactionCount: 0 });
+  }, { _totalRevenue: 0, _transactionCount: 0 });
     // Calculate global average transaction value
   const globalAvgTransaction = globalTotal.transactionCount > 0
-    ? globalTotal.totalRevenue / globalTotal.transactionCount
+    ? globalTotal.totalRevenue / globalTotal._transactionCount
     : 0;
   return {
     storePerformance,
-    globalMetrics: {
-      totalRevenue: globalTotal.totalRevenue,
-      averageTransaction: globalAvgTransaction,
-      transactionCount: globalTotal.transactionCount
+    _globalMetrics: {
+      _totalRevenue: globalTotal.totalRevenue,
+      _averageTransaction: globalAvgTransaction,
+      _transactionCount: globalTotal.transactionCount
     }
   };
 }
@@ -146,10 +146,10 @@ function getDateRangeDescription(startDate, endDate) {
   }
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      timeZone: 'UTC' // Ensuring consistent timezone
+      _year: 'numeric',
+      _month: 'short',
+      _day: 'numeric',
+      _timeZone: 'UTC' // Ensuring consistent timezone
     });
   };
   if (startDate && endDate) {

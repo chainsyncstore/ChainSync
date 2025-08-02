@@ -41,7 +41,7 @@ export class EnhancedSubscriptionService
   /* -------------------------------------------------------------------------- */
 
   async createSubscription(
-    params: CreateSubscriptionParams
+    _params: CreateSubscriptionParams
   ): Promise<SelectSubscription> {
     try {
       const validated = subscriptionValidation.insert.parse(params);
@@ -55,15 +55,15 @@ export class EnhancedSubscriptionService
       return this.ensureExists(subscription, 'Subscription');
     } catch (err) {
       if (err instanceof SchemaValidationError) {
-        console.error(`Validation error: ${err.message}`, err.toJSON());
+        console.error(`Validation _error: ${err.message}`, err.toJSON());
       }
       throw this.handleError(err as Error, 'creating subscription');
     }
   }
 
   async updateSubscription(
-    subscriptionId: number,
-    params: UpdateSubscriptionParams
+    _subscriptionId: number,
+    _params: UpdateSubscriptionParams
   ): Promise<SelectSubscription> {
     try {
       const existing = await this.getSubscriptionById(subscriptionId);
@@ -75,10 +75,10 @@ export class EnhancedSubscriptionService
 
       const updateData = {
         ...params,
-        metadata: params.metadata
+        _metadata: params.metadata
           ? JSON.stringify(params.metadata)
           : existing.metadata,
-        updatedAt: new Date()
+        _updatedAt: new Date()
       };
 
       const validated = subscriptionValidation.update.parse(updateData);
@@ -100,10 +100,10 @@ export class EnhancedSubscriptionService
   /*                               READ METHODS                                 */
   /* -------------------------------------------------------------------------- */
 
-  async getSubscriptionById(id: number): Promise<SelectSubscription | null> {
+  async getSubscriptionById(_id: number): Promise<SelectSubscription | null> {
     try {
       const subscription = await db.query.subscriptions.findFirst({
-        where: eq(schema.subscriptions.id, id)
+        _where: eq(schema.subscriptions.id, id)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
@@ -111,11 +111,11 @@ export class EnhancedSubscriptionService
     }
   }
 
-  async getSubscriptionByUser(userId: number): Promise<SelectSubscription | null> {
+  async getSubscriptionByUser(_userId: number): Promise<SelectSubscription | null> {
     try {
       const subscription = await db.query.subscriptions.findFirst({
-        where: eq(schema.subscriptions.userId, userId),
-        orderBy: desc(schema.subscriptions.createdAt)
+        _where: eq(schema.subscriptions.userId, userId),
+        _orderBy: desc(schema.subscriptions.createdAt)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
@@ -123,14 +123,14 @@ export class EnhancedSubscriptionService
     }
   }
 
-  async getActiveSubscription(userId: number): Promise<SelectSubscription | null> {
+  async getActiveSubscription(_userId: number): Promise<SelectSubscription | null> {
     try {
       const subscription = await db.query.subscriptions.findFirst({
-        where: and(
+        _where: and(
           eq(schema.subscriptions.userId, userId),
           eq(schema.subscriptions.status, 'active')
         ),
-        orderBy: desc(schema.subscriptions.createdAt)
+        _orderBy: desc(schema.subscriptions.createdAt)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
@@ -139,12 +139,12 @@ export class EnhancedSubscriptionService
   }
 
   async searchSubscriptions(
-    params: SubscriptionSearchParams
+    _params: SubscriptionSearchParams
   ): Promise<{
-    subscriptions: SelectSubscription[];
-    total: number;
-    page: number;
-    limit: number;
+    _subscriptions: SelectSubscription[];
+    _total: number;
+    _page: number;
+    _limit: number;
   }> {
     try {
       const page = params.page ?? 1;
@@ -169,21 +169,21 @@ export class EnhancedSubscriptionService
 
       const countResult = await db
         .select({
-          count: sql<number>`count(*)`.mapWith(Number)
+          _count: sql<number>`count(*)`.mapWith(Number)
         })
         .from(schema.subscriptions)
         .where(whereClause);
 
       const records = await db.query.subscriptions.findMany({
-        where: whereClause,
+        _where: whereClause,
         limit,
         offset,
-        orderBy: desc(schema.subscriptions.createdAt)
+        _orderBy: desc(schema.subscriptions.createdAt)
       });
 
       return {
-        subscriptions: records.map((r) => this.formatter.formatResult(r)),
-        total: countResult[0]?.count ?? 0,
+        _subscriptions: records.map((r) => this.formatter.formatResult(r)),
+        _total: countResult[0]?.count ?? 0,
         page,
         limit
       };
@@ -197,7 +197,7 @@ export class EnhancedSubscriptionService
   /* -------------------------------------------------------------------------- */
 
   async cancelSubscription(
-    subscriptionId: number,
+    _subscriptionId: number,
     reason?: string
   ): Promise<SelectSubscription> {
     try {
@@ -207,17 +207,17 @@ export class EnhancedSubscriptionService
       this.validateStatusTransition(sub.status as SubscriptionStatus, SubscriptionStatus.CANCELLED);
 
       const updated = await this.updateSubscription(subscriptionId, {
-        status: SubscriptionStatus.CANCELLED
+        _status: SubscriptionStatus.CANCELLED
       });
 
-      // TODO: persist `reason` to an audit table if required.
+      // _TODO: persist `reason` to an audit table if required.
       return updated;
     } catch (err) {
       throw this.handleError(err as Error, 'cancelling subscription');
     }
   }
 
-  async renewSubscription(id: number): Promise<SelectSubscription> {
+  async renewSubscription(_id: number): Promise<SelectSubscription> {
     try {
       const sub = await this.getSubscriptionById(id);
       if (!sub) throw SubscriptionServiceErrors.SUBSCRIPTION_NOT_FOUND;
@@ -226,8 +226,8 @@ export class EnhancedSubscriptionService
       newEnd.setMonth(newEnd.getMonth() + 1);
 
       return await this.updateSubscription(id, {
-        endDate: newEnd,
-        status: SubscriptionStatus.ACTIVE
+        _endDate: newEnd,
+        _status: SubscriptionStatus.ACTIVE
       });
     } catch (err) {
       throw this.handleError(err as Error, 'renewing subscription');
@@ -244,7 +244,7 @@ export class EnhancedSubscriptionService
   }
 
   async validateSubscriptionAccess(
-    userId: number,
+    _userId: number,
     requiredPlan?: SubscriptionPlan | string
   ): Promise<boolean> {
     const sub = await this.getActiveSubscription(userId);
@@ -258,45 +258,45 @@ export class EnhancedSubscriptionService
   /* -------------------------------------------------------------------------- */
 
   async getSubscriptionMetrics(): Promise<{
-    totalSubscriptions: number;
-    activeSubscriptions: number;
-    revenueThisMonth: string;
-    revenueLastMonth: string;
-    subscriptionsByPlan: Record<string, number>;
-    churnRate: string;
+    _totalSubscriptions: number;
+    _activeSubscriptions: number;
+    _revenueThisMonth: string;
+    _revenueLastMonth: string;
+    _subscriptionsByPlan: Record<string, number>;
+    _churnRate: string;
   }> {
     // These could be optimized into a single SQL query; kept simple for clarity.
     const [totals] = await db
       .select({
-        total: sql<number>`count(*)`.mapWith(Number)
+        _total: sql<number>`count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions);
 
     const [active] = await db
       .select({
-        total: sql<number>`count(*)`.mapWith(Number)
+        _total: sql<number>`count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions)
       .where(eq(schema.subscriptions.status, 'active'));
 
     const plans = await db
       .select({
-        plan: schema.subscriptions.planId,
-        total: sql<number>`count(*)`.mapWith(Number)
+        _plan: schema.subscriptions.planId,
+        _total: sql<number>`count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions)
       .groupBy(schema.subscriptions.planId);
 
     // Placeholder revenue & churn; implement as required.
     return {
-      totalSubscriptions: totals?.total ?? 0,
-      activeSubscriptions: active?.total ?? 0,
-      revenueThisMonth: '0.00',
-      revenueLastMonth: '0.00',
-      subscriptionsByPlan: Object.fromEntries(
+      _totalSubscriptions: totals?.total ?? 0,
+      _activeSubscriptions: active?.total ?? 0,
+      _revenueThisMonth: '0.00',
+      _revenueLastMonth: '0.00',
+      _subscriptionsByPlan: Object.fromEntries(
         plans.map((p) => [p.plan as string, p.total])
       ),
-      churnRate: '0.00%'
+      _churnRate: '0.00%'
     };
   }
 
@@ -305,10 +305,10 @@ export class EnhancedSubscriptionService
   /* -------------------------------------------------------------------------- */
 
   private validateStatusTransition(
-    current: SubscriptionStatus,
-    next: SubscriptionStatus
+    _current: SubscriptionStatus,
+    _next: SubscriptionStatus
   ): void {
-    const allowed: Record<SubscriptionStatus, SubscriptionStatus[]> = {
+    const _allowed: Record<SubscriptionStatus, SubscriptionStatus[]> = {
       [SubscriptionStatus.ACTIVE]: [
         SubscriptionStatus.CANCELLED,
         SubscriptionStatus.EXPIRED,

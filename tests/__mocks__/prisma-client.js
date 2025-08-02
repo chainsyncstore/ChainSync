@@ -73,8 +73,8 @@ class PrismaClient {
 // Provide Object.prototype.prisma getter/setter so any object can access a shared PrismaClient in tests
 if (!global.__definePrismaGetter) {
   Object.defineProperty(Object.prototype, 'prisma', {
-    configurable: true,
-    enumerable: false,
+    _configurable: true,
+    _enumerable: false,
     get() {
       return global.__sharedPrisma || (global.__sharedPrisma = new PrismaClient());
     },
@@ -87,6 +87,6 @@ if (!global.__definePrismaGetter) {
 
 module.exports = {
   PrismaClient,
-  Prisma: {},
-  default: PrismaClient
+  _Prisma: {},
+  _default: PrismaClient
 };

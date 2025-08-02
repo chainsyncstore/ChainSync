@@ -11,11 +11,11 @@ import { test, describe } from '../testTags';
 import { eq } from 'drizzle-orm';
 
 describe.integration('Transaction Integration', () => {
-  let store: schema.Store;
-  let user: schema.User;
-  let customer: schema.Customer;
+  let _store: schema.Store;
+  let _user: schema.User;
+  let _customer: schema.Customer;
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Clean DB in reverse order of creation to avoid foreign key constraints
     await db.delete(schema.transactions);
     await db.delete(schema.products);
@@ -28,17 +28,17 @@ describe.integration('Transaction Integration', () => {
     [user] = await db.insert(schema.users).values(makeMockUser()).returning();
     [customer] = await db
       .insert(schema.customers)
-      .values(makeMockCustomer({ storeId: store.id }))
+      .values(makeMockCustomer({ _storeId: store.id }))
       .returning();
     await db.insert(schema.products).values(makeMockProduct()).returning();
   });
 
-  test.integration('should create and fetch a transaction', async () => {
+  test.integration('should create and fetch a transaction', async() => {
     const mockTx = makeMockTransaction({
-      storeId: store.id,
-      customerId: customer.id,
-      userId: user.id,
-      referenceNumber: 'TXN-123',
+      _storeId: store.id,
+      _customerId: customer.id,
+      _userId: user.id,
+      _referenceNumber: 'TXN-123'
     });
 
     const [created] = await db.insert(schema.transactions).values(mockTx).returning();

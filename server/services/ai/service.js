@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.AIService = void 0;
 const service_1 = require('../base/service');
 const ai_1 = require('../../config/ai');
@@ -19,7 +19,7 @@ class AIService extends service_1.BaseService {
     if (!this.config.apiKey) {
       throw new service_1.ServiceError('Invalid API Key', errors_1.ErrorCode.CONFIGURATION_ERROR, errors_1.ErrorCategory.SYSTEM, false);
     }
-    this.openai = new openai_1.OpenAI({ apiKey: this.config.apiKey });
+    this.openai = new openai_1.OpenAI({ _apiKey: this.config.apiKey });
     this.rateLimiter = new rate_limiter_1.RateLimiter(this.config.rateLimit);
     this.cache = new cache_1.CacheService();
   }
@@ -31,10 +31,10 @@ class AIService extends service_1.BaseService {
       throw ai_1.AIServiceErrors.INVALID_REQUEST;
     }
     if (prompt.length > 8192) {
-      throw new ai_1.AIError('Prompt too long', errors_1.ErrorCode.INVALID_FIELD_VALUE, errors_1.ErrorCategory.VALIDATION, false, undefined, { message: 'Please keep your prompt under 8192 characters' });
+      throw new ai_1.AIError('Prompt too long', errors_1.ErrorCode.INVALID_FIELD_VALUE, errors_1.ErrorCategory.VALIDATION, false, undefined, { _message: 'Please keep your prompt under 8192 characters' });
     }
     if (options.maxTokens && options.maxTokens > this.config.maxTokens) {
-      throw new ai_1.AIError('Max tokens exceeds limit', errors_1.ErrorCode.INVALID_FIELD_VALUE, errors_1.ErrorCategory.VALIDATION, false, undefined, { message: `Max tokens cannot exceed ${this.config.maxTokens}` });
+      throw new ai_1.AIError('Max tokens exceeds limit', errors_1.ErrorCode.INVALID_FIELD_VALUE, errors_1.ErrorCategory.VALIDATION, false, undefined, { _message: `Max tokens cannot exceed ${this.config.maxTokens}` });
     }
   }
   async checkRateLimit(userId) {
@@ -64,11 +64,11 @@ class AIService extends service_1.BaseService {
         options,
         response,
         duration,
-        timestamp: Date.now()
+        _timestamp: Date.now()
       });
     }
     catch (error) {
-      console.error('Failed to log AI request:', error);
+      console.error('Failed to log AI _request:', error);
     }
   }
   // Text Generation
@@ -84,14 +84,14 @@ class AIService extends service_1.BaseService {
       const startTime = perf_hooks_1.performance.now();
       const response = await this.withRetry(async() => {
         return await this.openai.chat.completions.create({
-          model: this.config.model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: options.temperature || this.config.temperature,
-          max_tokens: options.maxTokens || this.config.maxTokens,
-          stop: options.stop,
-          top_p: options.topP,
-          presence_penalty: options.presencePenalty,
-          frequency_penalty: options.frequencyPenalty,
+          _model: this.config.model,
+          _messages: [{ role: 'user', _content: prompt }],
+          _temperature: options.temperature || this.config.temperature,
+          _max_tokens: options.maxTokens || this.config.maxTokens,
+          _stop: options.stop,
+          _top_p: options.topP,
+          _presence_penalty: options.presencePenalty,
+          _frequency_penalty: options.frequencyPenalty,
           ...options
         });
       }, 'Generating AI completion');
@@ -117,14 +117,14 @@ class AIService extends service_1.BaseService {
       const startTime = perf_hooks_1.performance.now();
       const response = await this.withRetry(async() => {
         return await this.openai.chat.completions.create({
-          model: this.config.model,
+          _model: this.config.model,
           messages,
-          temperature: options.temperature || this.config.temperature,
-          max_tokens: options.maxTokens || this.config.maxTokens,
-          stop: options.stop,
-          top_p: options.topP,
-          presence_penalty: options.presencePenalty,
-          frequency_penalty: options.frequencyPenalty,
+          _temperature: options.temperature || this.config.temperature,
+          _max_tokens: options.maxTokens || this.config.maxTokens,
+          _stop: options.stop,
+          _top_p: options.topP,
+          _presence_penalty: options.presencePenalty,
+          _frequency_penalty: options.frequencyPenalty,
           ...options
         });
       }, 'Generating AI chat');
@@ -143,8 +143,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = `You are a helpful code assistant. Generate code in ${language} language.`;
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: prompt }
       ], options);
     }
     catch (error) {
@@ -155,8 +155,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = `You are a code reviewer. Review the following ${language} code and provide feedback.`;
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: code }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: code }
       ], options);
     }
     catch (error) {
@@ -168,8 +168,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = 'You are a helpful assistant. Generate a concise summary of the following text.';
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: text }
       ], options);
     }
     catch (error) {
@@ -180,8 +180,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = `You are a translator. Translate the following text into ${targetLanguage}.`;
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: text }
       ], options);
     }
     catch (error) {
@@ -202,9 +202,9 @@ class AIService extends service_1.BaseService {
     try {
       const response = await this.openai.models.retrieve(model);
       return {
-        maxTokens: response.context_window,
-        temperatureRange: [0, 2],
-        supportedFeatures: response.capabilities
+        _maxTokens: response.context_window,
+        _temperatureRange: [0, 2],
+        _supportedFeatures: response.capabilities
       };
     }
     catch (error) {
@@ -216,13 +216,13 @@ class AIService extends service_1.BaseService {
     try {
       const stats = await this.cache.getUsageStats(userId);
       return {
-        totalRequests: stats?.totalRequests || 0,
-        averageDuration: stats?.averageDuration || 0,
-        lastRequest: stats?.lastRequest,
-        rateLimit: {
-          maxRequests: this.config.rateLimit.maxRequests,
-          window: this.config.rateLimit.window,
-          remaining: await this.rateLimiter.getRemaining(userId)
+        _totalRequests: stats?.totalRequests || 0,
+        _averageDuration: stats?.averageDuration || 0,
+        _lastRequest: stats?.lastRequest,
+        _rateLimit: {
+          _maxRequests: this.config.rateLimit.maxRequests,
+          _window: this.config.rateLimit.window,
+          _remaining: await this.rateLimiter.getRemaining(userId)
         }
       };
     }
@@ -278,8 +278,8 @@ class AIService extends service_1.BaseService {
       const startTime = perf_hooks_1.performance.now();
       const response = await this.withRetry(async() => {
         return await this.openai.images.edit({
-          image: image,
-          mask: mask,
+          _image: image,
+          _mask: mask,
           prompt,
           ...options
         });
@@ -299,8 +299,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = `You are a code analyzer. Analyze the following ${language} code and provide feedback.`;
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: code }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: code }
       ], options);
     }
     catch (error) {
@@ -311,8 +311,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = `You are a documentation writer. Generate documentation for the following ${language} code.`;
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: code }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: code }
       ], options);
     }
     catch (error) {
@@ -323,8 +323,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = 'You are a data analyst. Analyze the following data and answer the question.';
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Data: ${data}\nQuestion: ${question}` }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: `Data: ${data}\nQuestion: ${question}` }
       ], options);
     }
     catch (error) {
@@ -335,8 +335,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = 'You are a data visualizer. Generate a visualization for the following data and question.';
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Data: ${data}\nQuestion: ${question}` }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: `Data: ${data}\nQuestion: ${question}` }
       ], options);
     }
     catch (error) {
@@ -347,8 +347,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = 'You are a blog post writer. Write a blog post on the following topic.';
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: topic }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: topic }
       ], options);
     }
     catch (error) {
@@ -359,8 +359,8 @@ class AIService extends service_1.BaseService {
     try {
       const systemPrompt = `You are a social media manager. Write a social media post for ${platform} on the following topic.`;
       return await this.generateChat(userId, [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: topic }
+        { _role: 'system', _content: systemPrompt },
+        { _role: 'user', _content: topic }
       ], options);
     }
     catch (error) {

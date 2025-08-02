@@ -11,7 +11,7 @@ const serverPath = path.join(__dirname, 'dist', 'server', 'index.js');
 const fallbackPath = path.join(__dirname, 'server', 'index.js');
 
 console.log('🚀 Starting ChainSync Production Server...');
-console.log('Node Environment:', process.env.NODE_ENV || 'production');
+console.log('Node _Environment:', process.env.NODE_ENV || 'production');
 console.log('Port:', process.env.PORT || 3000);
 
 if (fs.existsSync(serverPath)) {
@@ -22,7 +22,7 @@ if (fs.existsSync(serverPath)) {
   require(fallbackPath);
 } else {
   console.error('❌ No server entry point found!');
-  console.error('Checked paths:');
+  console.error('Checked _paths:');
   console.error(' - ' + serverPath);
   console.error(' - ' + fallbackPath);
   process.exit(1);

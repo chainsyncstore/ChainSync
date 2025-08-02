@@ -1,21 +1,21 @@
 import { Request } from 'express';
 
 export interface User {
-    id: string;
-    username: string;
-    email: string;
-    role: string;
+    _id: string;
+    _username: string;
+    _email: string;
+    _role: string;
 }
 
 export interface Role {
-    id: string;
-    name: string;
-    permissions: string[];
+    _id: string;
+    _name: string;
+    _permissions: string[];
 }
 
 export interface AppError extends Error {
-    code: string;
-    category: string;
+    _code: string;
+    _category: string;
     details?: Record<string, unknown>;
     statusCode?: number;
 }
@@ -37,53 +37,53 @@ export enum ErrorCode {
 }
 
 export interface FileUtils {
-    VALID_FILENAME_REGEX: RegExp;
-    sanitizeFilename(filename: string): string;
-    validateFilename(filename: string): boolean;
-    validateFileExtension(mimeType: string): boolean;
-    calculateFileSize(buffer: Buffer): number;
-    calculateFileHash(buffer: Buffer): Promise<string>;
+    _VALID_FILENAME_REGEX: RegExp;
+    sanitizeFilename(_filename: string): string;
+    validateFilename(_filename: string): boolean;
+    validateFileExtension(_mimeType: string): boolean;
+    calculateFileSize(_buffer: Buffer): number;
+    calculateFileHash(_buffer: Buffer): Promise<string>;
 }
 
 export interface FileUploadConfig {
-    destination: string;
-    maxFileSize: number;
-    maxFiles: number;
-    uploadRateLimit: number;
-    allowedMimeTypes: string[];
-    maxTotalUploadSize: number;
-    maxUploadAttempts: number;
+    _destination: string;
+    _maxFileSize: number;
+    _maxFiles: number;
+    _uploadRateLimit: number;
+    _allowedMimeTypes: string[];
+    _maxTotalUploadSize: number;
+    _maxUploadAttempts: number;
 }
 
 export interface FileUploadErrors {
-    FILE_TOO_LARGE: string;
-    INVALID_FILE_TYPE: string;
-    INVALID_FILE_NAME: string;
-    UPLOAD_RATE_LIMIT: string;
-    TOTAL_SIZE_LIMIT: string;
-    MAX_ATTEMPTS: string;
-    UNKNOWN_ERROR: string;
+    _FILE_TOO_LARGE: string;
+    _INVALID_FILE_TYPE: string;
+    _INVALID_FILE_NAME: string;
+    _UPLOAD_RATE_LIMIT: string;
+    _TOTAL_SIZE_LIMIT: string;
+    _MAX_ATTEMPTS: string;
+    _UNKNOWN_ERROR: string;
 }
 
 export interface ProgressSubscription {
-    callback: (progress: FileUploadProgress) => void;
-    lastUpdate: number;
+    callback: (_progress: FileUploadProgress) => void;
+    _lastUpdate: number;
 }
 
 export interface FileUploadProgress {
-    id: string;
+    _id: string;
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
-    progress: number;
-    total: number;
-    uploaded: number;
-    startTime: number;
-    lastUpdate: number;
-    files: Record<string, {
-        name: string;
-        size: number;
+    _progress: number;
+    _total: number;
+    _uploaded: number;
+    _startTime: number;
+    _lastUpdate: number;
+    _files: Record<string, {
+        _name: string;
+        _size: number;
         status: 'pending' | 'in_progress' | 'completed' | 'failed';
-        progress: number;
-        uploaded: number;
+        _progress: number;
+        _uploaded: number;
         error?: string;
         path?: string;
     }>;

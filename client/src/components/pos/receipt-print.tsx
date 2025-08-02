@@ -1,52 +1,52 @@
-import React, { useRef } from 'react';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
+import React, { useRef } from &apos;react&apos;;
+import { formatCurrency, formatDateTime } from &apos;@/lib/utils&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Printer } from &apos;lucide-react&apos;;
 
 // Type definitions for receipt data
 interface ReceiptItem {
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
+  _name: string;
+  _quantity: number;
+  _unitPrice: number;
+  _subtotal: number;
 }
 
 interface ReceiptData {
-  receiptNumber: string;
-  storeName: string;
+  _receiptNumber: string;
+  _storeName: string;
   storeAddress?: string;
   storePhone?: string;
-  date: Date;
-  cashierName: string;
-  items: ReceiptItem[];
-  subtotal: number;
-  tax: number;
-  total: number;
-  paymentMethod: string;
+  _date: Date;
+  _cashierName: string;
+  _items: ReceiptItem[];
+  _subtotal: number;
+  _tax: number;
+  _total: number;
+  _paymentMethod: string;
   loyaltyPoints?: {
-    earned: number;
-    balance: number;
+    _earned: number;
+    _balance: number;
   };
   customerName?: string;
 }
 
 // Component that renders a printable receipt
-export const ReceiptPrint: React.FC<{ 
-  data: ReceiptData;
+export const _ReceiptPrint: React.FC<{
+  _data: ReceiptData;
   onClose?: () => void;
 }> = ({ data, onClose }) => {
   const receiptRef = useRef<HTMLDivElement>(null);
-  
+
   const handlePrint = () => {
     const content = receiptRef.current;
     if (!content) return;
-    
-    const printWindow = window.open('', '_blank');
+
+    const printWindow = window.open(&apos;&apos;, &apos;_blank&apos;);
     if (!printWindow) {
-      alert('Please allow popups to print receipts');
+      alert(&apos;Please allow popups to print receipts&apos;);
       return;
     }
-    
+
     // Write the receipt content to the new window
     printWindow.document.write(`
       <html>
@@ -61,9 +61,9 @@ export const ReceiptPrint: React.FC<{
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
-    
+
     // Wait for content to load before printing
     printWindow.onload = function() {
       printWindow.focus();
@@ -75,100 +75,100 @@ export const ReceiptPrint: React.FC<{
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="print-receipt" ref={receiptRef}>
-        <div className="receipt-content">
+    <div className=&quot;flex flex-col gap-4&quot;>
+      <div className=&quot;print-receipt&quot; ref={receiptRef}>
+        <div className=&quot;receipt-content&quot;>
           {/* Header */}
-          <div className="receipt-header">
-            <div className="receipt-logo">
-              <svg className="logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="currentColor"/>
-                <path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="currentColor"/>
-                <path d="M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z" fill="currentColor"/>
+          <div className=&quot;receipt-header&quot;>
+            <div className=&quot;receipt-logo&quot;>
+              <svg className=&quot;logo-svg&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;>
+                <path d=&quot;M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z&quot; fill=&quot;currentColor&quot;/>
+                <path d=&quot;M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z&quot; fill=&quot;currentColor&quot;/>
+                <path d=&quot;M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z&quot; fill=&quot;currentColor&quot;/>
               </svg>
             </div>
-            <div className="receipt-store-name">{data.storeName}</div>
-            {data.storeAddress && <div className="receipt-store-address">{data.storeAddress}</div>}
-            {data.storePhone && <div className="receipt-store-phone">{data.storePhone}</div>}
-            <div className="receipt-divider">================================</div>
-            <div className="receipt-info">
+            <div className=&quot;receipt-store-name&quot;>{data.storeName}</div>
+            {data.storeAddress && <div className=&quot;receipt-store-address&quot;>{data.storeAddress}</div>}
+            {data.storePhone && <div className=&quot;receipt-store-phone&quot;>{data.storePhone}</div>}
+            <div className=&quot;receipt-divider&quot;>================================</div>
+            <div className=&quot;receipt-info&quot;>
               <div>Receipt #: {data.receiptNumber}</div>
               <div>Date: {formatDateTime(data.date)}</div>
               <div>Cashier: {data.cashierName}</div>
               {data.customerName && <div>Customer: {data.customerName}</div>}
             </div>
-            <div className="receipt-divider">================================</div>
+            <div className=&quot;receipt-divider&quot;>================================</div>
           </div>
-          
+
           {/* Items */}
-          <div className="receipt-items">
-            <div className="receipt-item receipt-item-header">
-              <div className="item-name">Item</div>
-              <div className="item-qty">Qty</div>
-              <div className="item-price">Price</div>
-              <div className="item-total">Total</div>
+          <div className=&quot;receipt-items&quot;>
+            <div className=&quot;receipt-item receipt-item-header&quot;>
+              <div className=&quot;item-name&quot;>Item</div>
+              <div className=&quot;item-qty&quot;>Qty</div>
+              <div className=&quot;item-price&quot;>Price</div>
+              <div className=&quot;item-total&quot;>Total</div>
             </div>
-            
-            <div className="receipt-divider">--------------------------------</div>
-            
+
+            <div className=&quot;receipt-divider&quot;>--------------------------------</div>
+
             {data.items.map((item, index) => (
-              <div className="receipt-item" key={index}>
-                <div className="item-name">{item.name}</div>
-                <div className="item-qty">{item.quantity}</div>
-                <div className="item-price">{formatCurrency(item.unitPrice)}</div>
-                <div className="item-total">{formatCurrency(item.subtotal)}</div>
+              <div className=&quot;receipt-item&quot; key={index}>
+                <div className=&quot;item-name&quot;>{item.name}</div>
+                <div className=&quot;item-qty&quot;>{item.quantity}</div>
+                <div className=&quot;item-price&quot;>{formatCurrency(item.unitPrice)}</div>
+                <div className=&quot;item-total&quot;>{formatCurrency(item.subtotal)}</div>
               </div>
             ))}
           </div>
-          
+
           {/* Totals */}
-          <div className="receipt-divider">--------------------------------</div>
-          <div className="receipt-totals">
-            <div className="total-row">
-              <div className="total-label">Subtotal:</div>
-              <div className="total-value">{formatCurrency(data.subtotal)}</div>
+          <div className=&quot;receipt-divider&quot;>--------------------------------</div>
+          <div className=&quot;receipt-totals&quot;>
+            <div className=&quot;total-row&quot;>
+              <div className=&quot;total-label&quot;>Subtotal:</div>
+              <div className=&quot;total-value&quot;>{formatCurrency(data.subtotal)}</div>
             </div>
-            <div className="total-row">
-              <div className="total-label">Tax:</div>
-              <div className="total-value">{formatCurrency(data.tax)}</div>
+            <div className=&quot;total-row&quot;>
+              <div className=&quot;total-label&quot;>Tax:</div>
+              <div className=&quot;total-value&quot;>{formatCurrency(data.tax)}</div>
             </div>
-            <div className="total-row total-row-main">
-              <div className="total-label">TOTAL:</div>
-              <div className="total-value">{formatCurrency(data.total)}</div>
+            <div className=&quot;total-row total-row-main&quot;>
+              <div className=&quot;total-label&quot;>TOTAL:</div>
+              <div className=&quot;total-value&quot;>{formatCurrency(data.total)}</div>
             </div>
-            <div className="receipt-divider">--------------------------------</div>
-            <div className="payment-method">
-              Payment Method: {data.paymentMethod}
+            <div className=&quot;receipt-divider&quot;>--------------------------------</div>
+            <div className=&quot;payment-method&quot;>
+              Payment _Method: {data.paymentMethod}
             </div>
           </div>
-          
+
           {/* Loyalty Points */}
           {data.loyaltyPoints && (
             <>
-              <div className="receipt-divider">--------------------------------</div>
-              <div className="loyalty-points">
+              <div className=&quot;receipt-divider&quot;>--------------------------------</div>
+              <div className=&quot;loyalty-points&quot;>
                 <div>Points Earned: {data.loyaltyPoints.earned}</div>
                 <div>Points Balance: {data.loyaltyPoints.balance}</div>
               </div>
             </>
           )}
-          
+
           {/* Footer */}
-          <div className="receipt-divider">================================</div>
-          <div className="receipt-footer">
+          <div className=&quot;receipt-divider&quot;>================================</div>
+          <div className=&quot;receipt-footer&quot;>
             <p>Thank you for shopping at {data.storeName}!</p>
             <p>Powered by ChainSync</p>
           </div>
         </div>
       </div>
-      
-      <div className="print-actions">
-        <Button onClick={handlePrint} className="print-button">
-          <Printer className="w-4 h-4 mr-2" />
+
+      <div className=&quot;print-actions&quot;>
+        <Button onClick={handlePrint} className=&quot;print-button&quot;>
+          <Printer className=&quot;w-4 h-4 mr-2&quot; />
           Print Receipt
         </Button>
         {onClose && (
-          <Button variant="outline" onClick={onClose} className="close-button">
+          <Button variant=&quot;outline&quot; onClick={onClose} className=&quot;close-button&quot;>
             Close
           </Button>
         )}
@@ -181,171 +181,171 @@ export const ReceiptPrint: React.FC<{
 const printStyles = `
   @media print {
     @page {
-      size: 80mm auto;
-      margin: 0;
+      _size: 80mm auto;
+      _margin: 0;
     }
     
     body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Courier New', monospace;
-      font-size: 10pt;
-      width: 80mm;
+      _margin: 0;
+      _padding: 0;
+      font-family: &apos;Courier New&apos;, monospace;
+      font-_size: 10pt;
+      _width: 80mm;
     }
     
     .print-actions {
-      display: none;
+      _display: none;
     }
   }
   
   /* Receipt styling */
   .print-receipt {
-    font-family: 'Courier New', monospace;
-    font-size: 10pt;
-    width: 76mm;
-    max-width: 100%;
-    background-color: white;
-    padding: 5mm 2mm;
-    box-sizing: border-box;
-    margin: 0 auto;
-    display: block;
+    font-family: &apos;Courier New&apos;, monospace;
+    font-_size: 10pt;
+    _width: 76mm;
+    max-_width: 100%;
+    background-_color: white;
+    _padding: 5mm 2mm;
+    box-_sizing: border-box;
+    _margin: 0 auto;
+    _display: block;
   }
   
   .receipt-content {
-    width: 100%;
-    text-align: center;
+    _width: 100%;
+    text-_align: center;
   }
   
   .receipt-header {
-    text-align: center;
-    margin-bottom: 10px;
+    text-_align: center;
+    margin-_bottom: 10px;
   }
   
   .logo-svg {
-    width: 24px;
-    height: 24px;
-    margin: 0 auto 5px;
+    _width: 24px;
+    _height: 24px;
+    _margin: 0 auto 5px;
   }
   
   .receipt-store-name {
-    font-size: 12pt;
-    font-weight: bold;
-    margin-bottom: 2px;
+    font-_size: 12pt;
+    font-_weight: bold;
+    margin-_bottom: 2px;
   }
   
   .receipt-store-address, .receipt-store-phone {
-    font-size: 9pt;
-    margin-bottom: 2px;
+    font-_size: 9pt;
+    margin-_bottom: 2px;
   }
   
   .receipt-info {
-    text-align: left;
-    margin: 5px 0;
-    font-size: 9pt;
+    text-_align: left;
+    _margin: 5px 0;
+    font-_size: 9pt;
   }
   
   .receipt-divider {
-    margin: 5px 0;
-    font-size: 9pt;
+    _margin: 5px 0;
+    font-_size: 9pt;
   }
   
   .receipt-items {
-    width: 100%;
-    text-align: left;
+    _width: 100%;
+    text-_align: left;
   }
   
   .receipt-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 2px;
-    font-size: 9pt;
+    _display: flex;
+    justify-_content: space-between;
+    margin-_bottom: 2px;
+    font-_size: 9pt;
   }
   
   .receipt-item-header {
-    font-weight: bold;
+    font-_weight: bold;
   }
   
   .item-name {
-    flex: 2;
-    text-align: left;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    _flex: 2;
+    text-_align: left;
+    _overflow: hidden;
+    text-_overflow: ellipsis;
+    white-_space: nowrap;
   }
   
   .item-qty {
-    flex: 0.5;
-    text-align: center;
+    _flex: 0.5;
+    text-_align: center;
   }
   
   .item-price {
-    flex: 0.75;
-    text-align: right;
+    _flex: 0.75;
+    text-_align: right;
   }
   
   .item-total {
-    flex: 0.75;
-    text-align: right;
+    _flex: 0.75;
+    text-_align: right;
   }
   
   .receipt-totals {
-    text-align: right;
-    margin-top: 5px;
+    text-_align: right;
+    margin-_top: 5px;
   }
   
   .total-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 2px;
+    _display: flex;
+    justify-_content: space-between;
+    margin-_bottom: 2px;
   }
   
   .total-row-main {
-    font-weight: bold;
-    font-size: 11pt;
+    font-_weight: bold;
+    font-_size: 11pt;
   }
   
   .total-label {
-    text-align: left;
+    text-_align: left;
   }
   
   .total-value {
-    margin-left: 10px;
+    margin-_left: 10px;
   }
   
   .payment-method {
-    font-size: 9pt;
-    margin-top: 5px;
-    text-align: left;
+    font-_size: 9pt;
+    margin-_top: 5px;
+    text-_align: left;
   }
   
   .loyalty-points {
-    font-size: 9pt;
-    text-align: left;
-    margin: 5px 0;
+    font-_size: 9pt;
+    text-_align: left;
+    _margin: 5px 0;
   }
   
   .receipt-footer {
-    text-align: center;
-    margin-top: 10px;
-    font-size: 9pt;
+    text-_align: center;
+    margin-_top: 10px;
+    font-_size: 9pt;
   }
   
   .receipt-footer p {
-    margin: 2px 0;
+    _margin: 2px 0;
   }
   
   /* For screen display only */
   @media screen {
     .print-receipt {
-      border: 1px dashed #ccc;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      _border: 1px dashed #ccc;
+      box-_shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .print-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 10px;
+      _display: flex;
+      _gap: 10px;
+      justify-_content: center;
+      margin-_top: 10px;
     }
   }
 `;

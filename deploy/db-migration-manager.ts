@@ -17,13 +17,13 @@ const execAsync = promisify(exec);
  * by managing schema changes in a backward-compatible way.
  */
 class DbMigrationManager {
-  private adapter: DrizzleAdapter;
-  private migrationDir: string;
-  private lockTimeout: number = 60000; // 1 minute lock timeout
-  private lockKey: string = 'db_migration_lock';
-  private migrationTableName: string = 'schema_migrations';
+  private _adapter: DrizzleAdapter;
+  private _migrationDir: string;
+  private _lockTimeout: number = 60000; // 1 minute lock timeout
+  private _lockKey: string = 'db_migration_lock';
+  private _migrationTableName: string = 'schema_migrations';
 
-  constructor(migrationDir: string = '../db/migrations') {
+  constructor(_migrationDir: string = '../db/migrations') {
     this.adapter = new DrizzleAdapter(db);
     this.migrationDir = path.resolve(__dirname, migrationDir);
   }
@@ -56,13 +56,13 @@ class DbMigrationManager {
       }
 
       // Specify the expected row type for the query result
-      const result = await db.execute<{ migration_name: string }>(
+      const result = await db.execute<{ _migration_name: string }>(
         sql`SELECT migration_name FROM ${sql.raw(this.migrationTableName)} ORDER BY executed_at ASC`
       );
 
       return result.rows.map(row => row.migration_name);
     } catch (error) {
-      console.error('Error fetching applied migrations:', error);
+      console.error('Error fetching applied _migrations:', error);
       return [];
     }
   }
@@ -78,7 +78,7 @@ class DbMigrationManager {
         .map(file => path.parse(file).name)
         .sort();
     } catch (error) {
-      console.error('Error reading migration directory:', error);
+      console.error('Error reading migration _directory:', error);
       return [];
     }
   }
@@ -99,7 +99,7 @@ class DbMigrationManager {
 
       return result.rows.length > 0;
     } catch (error) {
-      console.error('Error acquiring migration lock:', error);
+      console.error('Error acquiring migration _lock:', error);
       return false;
     }
   }
@@ -112,14 +112,14 @@ class DbMigrationManager {
       await db.execute(sql`DELETE FROM locks WHERE key = ${this.lockKey}`);
       return true;
     } catch (error) {
-      console.error('Error releasing migration lock:', error);
+      console.error('Error releasing migration _lock:', error);
       return false;
     }
   }
 
   /**
    * Performs database migrations in a safe manner for blue-green deployments
-   * This ensures backward compatibility by following these rules:
+   * This ensures backward compatibility by following these _rules:
    * 1. Only additive changes (new tables, columns) are allowed initially
    * 2. Removals happen in a later deployment after code no longer references old schema
    */
@@ -150,7 +150,7 @@ class DbMigrationManager {
       for (const migration of availableMigrations) {
         if (!appliedMigrations.includes(migration)) {
           try {
-            console.log(`Applying migration: ${migration}`);
+            console.log(`Applying _migration: ${migration}`);
 
             // Execute migration
             await this.executeMigration(migration);
@@ -172,7 +172,7 @@ class DbMigrationManager {
       console.log('All migrations applied successfully');
       return true;
     } catch (error) {
-      console.error('Migration failed:', error);
+      console.error('Migration _failed:', error);
       return false;
     } finally {
       await this.releaseLock();
@@ -204,7 +204,7 @@ class DbMigrationManager {
   /**
    * Executes a specific migration
    */
-  private async executeMigration(migrationName: string): Promise<void> {
+  private async executeMigration(_migrationName: string): Promise<void> {
     const migrationPath = path.join(this.migrationDir, `${migrationName}`);
 
     try {
@@ -235,13 +235,13 @@ class DbMigrationManager {
    * Validates migration backward compatibility
    * This checks for potentially breaking schema changes
    */
-  async validateMigrationCompatibility(): Promise<{ valid: boolean; issues: string[] }> {
-    const issues: string[] = [];
+  async validateMigrationCompatibility(): Promise<{ _valid: boolean; _issues: string[] }> {
+    const _issues: string[] = [];
     const availableMigrations = await this.getAvailableMigrations();
 
     for (const migration of availableMigrations) {
       const migrationPath = path.join(this.migrationDir, `${migration}`);
-      let migrationContent: string;
+      let _migrationContent: string;
 
       try {
         migrationContent = await fs.readFile(`${migrationPath}.ts`, 'utf8');
@@ -249,7 +249,7 @@ class DbMigrationManager {
         try {
           migrationContent = await fs.readFile(`${migrationPath}.js`, 'utf8');
         } catch (innerError) {
-          issues.push(`Could not read migration file: ${migration}`);
+          issues.push(`Could not read migration _file: ${migration}`);
           continue;
         }
       }
@@ -267,8 +267,8 @@ class DbMigrationManager {
     }
 
     return {
-      valid: issues.length === 0,
-      issues,
+      _valid: issues.length === 0,
+      issues
     };
   }
 }
@@ -284,7 +284,7 @@ if (require.main === module) {
       case 'check':
         const needed = await migrationManager.checkMigrationsNeeded();
         console.log(needed ? 'Migrations needed' : 'No migrations needed');
-        process.exit(needed ? 1 : 0);
+        process.exit(needed ? _1 : 0);
         break;
 
       case 'validate':
@@ -293,7 +293,7 @@ if (require.main === module) {
           console.log('All migrations are backward compatible');
           process.exit(0);
         } else {
-          console.error('Migration compatibility issues found:');
+          console.error('Migration compatibility issues _found:');
           validation.issues.forEach(issue => console.error(`- ${issue}`));
           process.exit(1);
         }
@@ -301,11 +301,10 @@ if (require.main === module) {
 
       case 'migrate':
         const success = await migrationManager.migrateDatabase();
-        process.exit(success ? 0 : 1);
+        process.exit(success ? _0 : 1);
         break;
 
-      default:
-        console.error('Unknown command. Use: check, validate, or migrate');
+      console.error('Unknown command. _Use: check, validate, or migrate');
         process.exit(1);
     }
   }

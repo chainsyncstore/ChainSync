@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.UploadMetricsTracker = exports.logger = void 0;
 const winston_1 = require('winston');
 const { combine, timestamp, json, printf } = winston_1.format;
@@ -7,24 +7,24 @@ const customFormat = printf(({ level, message, timestamp, ...meta }) => {
   return `${timestamp} [${level}] ${message} ${JSON.stringify(meta)}`;
 });
 exports.logger = (0, winston_1.createLogger)({
-  level: 'info',
-  format: combine(timestamp(), customFormat),
-  transports: [
+  _level: 'info',
+  _format: combine(timestamp(), customFormat),
+  _transports: [
     new winston_1.transports.Console(),
-    new winston_1.transports.File({ filename: 'uploads.log' })
+    new winston_1.transports.File({ _filename: 'uploads.log' })
   ]
 });
 class UploadMetricsTracker {
   constructor() {
     this.metrics = {
-      totalRequests: 0,
-      successfulUploads: 0,
-      failedUploads: 0,
-      averageUploadTime: 0,
-      currentMemoryUsage: 0,
-      maxMemoryUsage: 0,
-      cacheHits: 0,
-      cacheMisses: 0
+      _totalRequests: 0,
+      _successfulUploads: 0,
+      _failedUploads: 0,
+      _averageUploadTime: 0,
+      _currentMemoryUsage: 0,
+      _maxMemoryUsage: 0,
+      _cacheHits: 0,
+      _cacheMisses: 0
     };
     this.startTime = Date.now();
   }
@@ -62,8 +62,8 @@ class UploadMetricsTracker {
     exports.logger.info('Upload Metrics Report', {
       uptime,
       ...metrics,
-      successRate: metrics.totalRequests > 0
-        ? (metrics.successfulUploads / metrics.totalRequests) * 100
+      _successRate: metrics.totalRequests > 0
+        ? (metrics.successfulUploads / metrics.totalRequests) * _100
         : 0
     });
   }

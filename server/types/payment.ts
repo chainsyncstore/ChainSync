@@ -1,27 +1,27 @@
 export interface PaymentStatus {
-  reference: string;
+  _reference: string;
   status: 'pending' | 'successful' | 'failed' | 'cancelled' | 'refunded';
-  amount: number;
-  currency: string;
+  _amount: number;
+  _currency: string;
   provider: 'paystack' | 'flutterwave';
-  metadata: Record<string, unknown>;
-  updatedAt: Date;
+  _metadata: Record<string, unknown>;
+  _updatedAt: Date;
 }
 
 export interface PaymentAnalytics {
-  reference: string;
-  amount: number;
-  currency: string;
+  _reference: string;
+  _amount: number;
+  _currency: string;
   provider: 'paystack' | 'flutterwave';
-  success: boolean;
-  metadata: Record<string, unknown>;
-  timestamp: Date;
+  _success: boolean;
+  _metadata: Record<string, unknown>;
+  _timestamp: Date;
 }
 
 export interface PaymentWebhookRequest {
   provider: 'paystack' | 'flutterwave';
-  reference: string;
-  status: string;
+  _reference: string;
+  _status: string;
   amount?: number;
   currency?: string;
   metadata?: Record<string, unknown>;

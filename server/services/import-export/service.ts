@@ -19,7 +19,7 @@ import * as ExcelJS from 'exceljs';
 // Helper function to chunk arrays
 // type Chunk<T> = T[][]; // Unused
 
-// function chunkArray<T>(array: T[], size: number): Chunk<T> { // Unused
+// function chunkArray<T>(_array: T[], _size: number): Chunk<T> { // Unused
 //   if (!Array.isArray(array)) {
 //     throw new Error('Input must be an array');
 //   }
@@ -36,49 +36,49 @@ import * as ExcelJS from 'exceljs';
 // }
 
 export class ImportExportService {
-  private config: {
-    batchSize: number;
+  private _config: {
+    _batchSize: number;
   };
 
   private errors: {
-    INVALID_FILE_FORMAT: AppError;
-    FILE_TOO_LARGE: AppError;
-    INVALID_DATA: AppError;
-    PROCESSING_ERROR: AppError;
-    STORAGE_ERROR: AppError;
-    PROGRESS_ERROR: AppError;
+    _INVALID_FILE_FORMAT: AppError;
+    _FILE_TOO_LARGE: AppError;
+    _INVALID_DATA: AppError;
+    _PROCESSING_ERROR: AppError;
+    _STORAGE_ERROR: AppError;
+    _PROGRESS_ERROR: AppError;
   };
 
-  private repository: ImportExportRepository;
-  private validationService: ValidationServiceImpl;
+  private _repository: ImportExportRepository;
+  private _validationService: ValidationServiceImpl;
 
   constructor() {
     this.config = {
-      batchSize: 1000
+      _batchSize: 1000
     };
 
     this.errors = {
-      INVALID_FILE_FORMAT: new AppError('Invalid file format', ErrorCategory.IMPORT_EXPORT, 'INVALID_FILE_FORMAT'),
-      FILE_TOO_LARGE: new AppError('File size exceeds maximum allowed size', ErrorCategory.IMPORT_EXPORT, 'FILE_TOO_LARGE'),
-      INVALID_DATA: new AppError('Invalid data format', ErrorCategory.IMPORT_EXPORT, 'INVALID_DATA'),
-      PROCESSING_ERROR: new AppError('Processing failed', ErrorCategory.IMPORT_EXPORT, 'PROCESSING_ERROR'),
-      STORAGE_ERROR: new AppError('Storage operation failed', ErrorCategory.IMPORT_EXPORT, 'STORAGE_ERROR'),
-      PROGRESS_ERROR: new AppError('Progress tracking failed', ErrorCategory.IMPORT_EXPORT, 'PROGRESS_ERROR')
+      _INVALID_FILE_FORMAT: new AppError('Invalid file format', ErrorCategory.IMPORT_EXPORT, 'INVALID_FILE_FORMAT'),
+      _FILE_TOO_LARGE: new AppError('File size exceeds maximum allowed size', ErrorCategory.IMPORT_EXPORT, 'FILE_TOO_LARGE'),
+      _INVALID_DATA: new AppError('Invalid data format', ErrorCategory.IMPORT_EXPORT, 'INVALID_DATA'),
+      _PROCESSING_ERROR: new AppError('Processing failed', ErrorCategory.IMPORT_EXPORT, 'PROCESSING_ERROR'),
+      _STORAGE_ERROR: new AppError('Storage operation failed', ErrorCategory.IMPORT_EXPORT, 'STORAGE_ERROR'),
+      _PROGRESS_ERROR: new AppError('Progress tracking failed', ErrorCategory.IMPORT_EXPORT, 'PROGRESS_ERROR')
     };
 
     this.repository = new ImportExportRepository();
     this.validationService = new ValidationServiceImpl();
   }
 
-  async validateData(data: any[], options?: ValidationOptions): Promise<{
-    success: boolean;
-    message: string;
+  async validateData(_data: any[], options?: ValidationOptions): Promise<{
+    _success: boolean;
+    _message: string;
     data?: any[];
-    errors?: { record: any; errors: string[] }[];
-    validCount: number;
-    invalidCount: number;
-    totalProcessed: number;
-    totalErrors: number;
+    errors?: { _record: any; _errors: string[] }[];
+    _validCount: number;
+    _invalidCount: number;
+    _totalProcessed: number;
+    _totalErrors: number;
   }> {
     try {
       if (!Array.isArray(data)) {
@@ -88,35 +88,35 @@ export class ImportExportService {
       const result = await this.validationService.validate(data, options);
 
       return {
-        success: result.invalidCount === 0,
-        message: result.invalidCount === 0 ? 'Validation successful' : 'Validation failed',
-        data: result.validRecords,
-        errors: result.invalidRecords.map((record, index) => ({ record, errors: result.invalidRecords[index]?.errors || [] })),
-        validCount: result.validCount,
-        invalidCount: result.invalidCount,
-        totalProcessed: result.validCount + result.invalidCount,
-        totalErrors: result.invalidCount
+        _success: result.invalidCount === 0,
+        _message: result.invalidCount === 0 ? 'Validation successful' : 'Validation failed',
+        _data: result.validRecords,
+        _errors: result.invalidRecords.map((record, index) => ({ record, _errors: result.invalidRecords[index]?.errors || [] })),
+        _validCount: result.validCount,
+        _invalidCount: result.invalidCount,
+        _totalProcessed: result.validCount + result.invalidCount,
+        _totalErrors: result.invalidCount
       };
     } catch (error) {
       throw this.errors.INVALID_DATA;
     }
   }
 
-  async importData(userId: number, data: any[], entityType: string, options: {
+  async importData(_userId: number, _data: any[], _entityType: string, _options: {
     batchSize?: number;
     delimiter?: string;
     includeHeaders?: boolean;
     format?: string;
     filters?: Record<string, any>;
   } = {}): Promise<{
-    success: boolean;
-    message: string;
+    _success: boolean;
+    _message: string;
     data?: any[];
     errors?: any[];
-    validCount: number;
-    invalidCount: number;
-    totalProcessed: number;
-    totalErrors: number;
+    _validCount: number;
+    _invalidCount: number;
+    _totalProcessed: number;
+    _totalErrors: number;
     importId?: string;
   }> {
     try {
@@ -128,7 +128,7 @@ export class ImportExportService {
     }
   }
 
-  async exportData(userId: number, entityType: string, options: ExportOptions): Promise<Buffer> {
+  async exportData(_userId: number, _entityType: string, _options: ExportOptions): Promise<Buffer> {
     try {
       const data = await this.repository.getExportData(userId, entityType, options);
 
@@ -139,15 +139,14 @@ export class ImportExportService {
           return await this.generateJSON(data);
         case 'xlsx':
           return await this.generateExcel(data, options);
-        default:
-          throw this.errors.INVALID_FILE_FORMAT;
+        throw this.errors.INVALID_FILE_FORMAT;
       }
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
     }
   }
 
-  async validateFile(file: MulterFile): Promise<{ type: string; data: any[] }> {
+  async validateFile(_file: MulterFile): Promise<{ _type: string; _data: any[] }> {
     try {
       // Check file size
       if (file.size > 50 * 1024 * 1024) { // 50MB
@@ -161,7 +160,7 @@ export class ImportExportService {
         throw this.errors.INVALID_FILE_FORMAT;
       }
 
-      let parsedData: any[] = [];
+      const _parsedData: any[] = [];
 
       switch (extension) {
         case 'csv':
@@ -173,33 +172,32 @@ export class ImportExportService {
         case 'xlsx':
           parsedData = await this.parseExcel(file.buffer);
           break;
-        default:
-          throw this.errors.INVALID_FILE_FORMAT;
+        throw this.errors.INVALID_FILE_FORMAT;
       }
 
       return {
-        type: extension || '',
-        data: parsedData
+        _type: extension || '',
+        _data: parsedData
       };
     } catch (error) {
       throw this.errors.INVALID_DATA;
     }
   }
 
-  async processImport(data: any[], options: {
+  async processImport(_data: any[], _options: {
     batchSize?: number;
     delimiter?: string;
     includeHeaders?: boolean;
     format?: string;
     filters?: Record<string, any>;
-  }, importId: string): Promise<{
-    success: boolean;
-    message: string;
-    validCount: number;
-    invalidCount: number;
-    totalProcessed: number;
-    totalErrors: number;
-    importId: string;
+  }, _importId: string): Promise<{
+    _success: boolean;
+    _message: string;
+    _validCount: number;
+    _invalidCount: number;
+    _totalProcessed: number;
+    _totalErrors: number;
+    _importId: string;
   }> {
     try {
       const batchSize = options.batchSize || this.config.batchSize;
@@ -219,12 +217,12 @@ export class ImportExportService {
       }
 
       return {
-        success: errors === 0,
-        message: errors === 0 ? 'Import successful' : 'Import completed with errors',
-        validCount: processed - errors,
-        invalidCount: errors,
-        totalProcessed: processed,
-        totalErrors: errors,
+        _success: errors === 0,
+        _message: errors === 0 ? 'Import successful' : 'Import completed with errors',
+        _validCount: processed - errors,
+        _invalidCount: errors,
+        _totalProcessed: processed,
+        _totalErrors: errors,
         importId
       };
     } catch (error) {
@@ -232,25 +230,25 @@ export class ImportExportService {
     }
   }
 
-  async processBatch(data: any[], importId: string): Promise<{
-    success: boolean;
-    message: string;
-    validCount: number;
-    invalidCount: number;
-    totalProcessed: number;
-    totalErrors: number;
-    importId: string;
+  async processBatch(_data: any[], _importId: string): Promise<{
+    _success: boolean;
+    _message: string;
+    _validCount: number;
+    _invalidCount: number;
+    _totalProcessed: number;
+    _totalErrors: number;
+    _importId: string;
   }> {
     try {
       const result = await this.repository.processBatch(data, importId);
 
       return {
-        success: result.errors.length === 0,
-        message: result.errors.length === 0 ? 'Batch processed successfully' : 'Batch processed with errors',
-        validCount: data.length - result.errors.length,
-        invalidCount: result.errors.length,
-        totalProcessed: data.length,
-        totalErrors: result.errors.length,
+        _success: result.errors.length === 0,
+        _message: result.errors.length === 0 ? 'Batch processed successfully' : 'Batch processed with errors',
+        _validCount: data.length - result.errors.length,
+        _invalidCount: result.errors.length,
+        _totalProcessed: data.length,
+        _totalErrors: result.errors.length,
         importId
       };
     } catch (error) {
@@ -258,15 +256,15 @@ export class ImportExportService {
     }
   }
 
-  private async generateCSV(data: any[], options: {
-    format: string;
-    includeHeaders: boolean;
+  private async generateCSV(_data: any[], _options: {
+    _format: string;
+    _includeHeaders: boolean;
     delimiter?: string;
   }): Promise<Buffer> {
     try {
       const config = {
-        fields: options.includeHeaders ? Object.keys(data[0] || {}) : undefined,
-        delimiter: options.delimiter || ','
+        _fields: options.includeHeaders ? Object.keys(data[0] || {}) : undefined,
+        _delimiter: options.delimiter || ','
       };
 
       const csv = json2csv(data, config as any);
@@ -276,7 +274,7 @@ export class ImportExportService {
     }
   }
 
-  private async generateJSON(data: any[]): Promise<Buffer> {
+  private async generateJSON(_data: any[]): Promise<Buffer> {
     try {
       return Buffer.from(JSON.stringify(data, null, 2));
     } catch (error) {
@@ -284,9 +282,9 @@ export class ImportExportService {
     }
   }
 
-  private async generateExcel(data: any[], options: {
-    format: string;
-    includeHeaders: boolean;
+  private async generateExcel(_data: any[], _options: {
+    _format: string;
+    _includeHeaders: boolean;
     delimiter?: string;
   }): Promise<Buffer> {
     try {
@@ -307,15 +305,15 @@ export class ImportExportService {
     }
   }
 
-  private async parseCSV(buffer: Buffer): Promise<any[]> {
+  private async parseCSV(_buffer: Buffer): Promise<any[]> {
     try {
       const parser = parse({
-        columns: true,
-        skip_empty_lines: true
+        _columns: true,
+        _skip_empty_lines: true
       });
 
       return new Promise((resolve, reject) => {
-        const results: any[] = [];
+        const _results: any[] = [];
         parser.on('data', (row) => {
           results.push(row);
         });
@@ -333,7 +331,7 @@ export class ImportExportService {
     }
   }
 
-  private async parseJSON(buffer: Buffer): Promise<any[]> {
+  private async parseJSON(_buffer: Buffer): Promise<any[]> {
     try {
       return JSON.parse(buffer.toString());
     } catch (error) {
@@ -341,7 +339,7 @@ export class ImportExportService {
     }
   }
 
-  private async parseExcel(buffer: Buffer): Promise<any[]> {
+  private async parseExcel(_buffer: Buffer): Promise<any[]> {
     try {
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer as unknown as Buffer);
@@ -352,11 +350,11 @@ export class ImportExportService {
       const row1 = worksheet.getRow(1).values as string[];
       const headers = Array.isArray(row1) ? row1.slice(1) : [];
 
-      const results: any[] = [];
+      const _results: any[] = [];
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;
-        const rowData: any = {};
-        headers.forEach((header: any, index: number) => {
+        const _rowData: any = {};
+        headers.forEach((_header: any, _index: number) => {
           if (header) {
             const cell = row.getCell(index + 1);
             rowData[String(header)] = cell?.value;
@@ -369,7 +367,7 @@ export class ImportExportService {
       throw this.errors.INVALID_DATA;
     }
   }
-  private generatePrettyJSON(data: any[]): Buffer {
+  private generatePrettyJSON(_data: any[]): Buffer {
     try {
       return Buffer.from(JSON.stringify(data, null, 2));
     } catch (error) {
@@ -379,7 +377,7 @@ export class ImportExportService {
 
   // private getConfig(): ImportExportConfig { // Unused
   //   return {
-  //     batchSize: 100
+  //     _batchSize: 100
   //   };
   // }
 }

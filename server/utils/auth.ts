@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { getLogger } from '../../src/logging';
 
 // Get centralized logger for auth utilities
-const logger = getLogger().child({ component: 'auth-utils' });
+const logger = getLogger().child({ _component: 'auth-utils' });
 
 /**
  * Validates API key using constant-time comparison to prevent timing attacks
@@ -12,7 +12,7 @@ const logger = getLogger().child({ component: 'auth-utils' });
  * @param validKeys Array of valid API keys
  * @returns Boolean indicating if the key is valid
  */
-export function validateApiKeySecurely(providedKey: string, validKeys: string[]): boolean {
+export function validateApiKeySecurely(_providedKey: string, _validKeys: string[]): boolean {
   if (!providedKey || !validKeys || validKeys.length === 0) {
     return false;
   }
@@ -31,8 +31,8 @@ export function validateApiKeySecurely(providedKey: string, validKeys: string[])
  * @param req Express request object
  * @returns Object containing validation result and key info
  */
-export function extractAndValidateApiKey(req: Request): {
-  isValid: boolean;
+export function extractAndValidateApiKey(_req: Request): {
+  _isValid: boolean;
   keyPrefix?: string;
   keySource?: string;
 } {
@@ -43,7 +43,7 @@ export function extractAndValidateApiKey(req: Request): {
 
   if (!apiKey) {
     return {
-      isValid: false
+      _isValid: false
     };
   }
 
@@ -55,8 +55,8 @@ export function extractAndValidateApiKey(req: Request): {
 
   return {
     isValid,
-    keyPrefix: apiKey.substring(0, 8),
-    keySource: req.headers['x-api-key'] ? 'header' :
+    _keyPrefix: apiKey.substring(0, 8),
+    _keySource: req.headers['x-api-key'] ? 'header' :
                req.query.api_key ? 'query' : 'body'
   };
 }
@@ -65,7 +65,7 @@ export function extractAndValidateApiKey(req: Request): {
  * Generate a cryptographically secure random API key
  * @returns A new API key with prefix
  */
-export function generateApiKey(prefix: string = 'csk'): string {
+export function generateApiKey(_prefix: string = 'csk'): string {
   const randomBytes = crypto.randomBytes(24).toString('base64url');
   return `${prefix}_${randomBytes}`;
 }
@@ -75,12 +75,12 @@ export function generateApiKey(prefix: string = 'csk'): string {
  * @param origin Origin header from request
  * @returns Boolean indicating if origin is allowed
  */
-export function isOriginAllowed(origin: string): boolean {
+export function isOriginAllowed(_origin: string): boolean {
   if (!origin) return false;
 
   const allowedOrigins = process.env.ALLOWED_ORIGINS ?
     process.env.ALLOWED_ORIGINS.split(',') :
-    ['http://localhost:3000'];
+    ['http://_localhost:3000'];
 
   return allowedOrigins.some(allowedOrigin => {
     // Exact match

@@ -26,7 +26,7 @@ class FileUtils {
   static async validateFile(filePath, maxSize, allowedTypes) {
     try {
       const stats = await fs.promises.stat(filePath);
-      
+
       // Validate file size
       if (stats.size > maxSize) {
         throw new AppError(
@@ -35,7 +35,7 @@ class FileUtils {
           FileUploadErrors.FILE_TOO_LARGE.category
         );
       }
-      
+
       // Validate file type
       const type = await this.detectFileType(filePath);
       if (!allowedTypes.includes(type)) {
@@ -45,7 +45,7 @@ class FileUtils {
           FileUploadErrors.INVALID_FILE_TYPE.category
         );
       }
-      
+
       // Validate file age
       if (Date.now() - stats.birthtimeMs > FileUtils.MAX_FILE_AGE) {
         throw new AppError(
@@ -74,7 +74,7 @@ class FileUtils {
       const buffer = Buffer.alloc(4);
       await fileHandle.read(buffer, 0, 4, 0);
       await fileHandle.close();
-      
+
       switch (buffer.toString('hex', 0, 4)) {
         case '89504e47':
           return 'image/png';
@@ -86,8 +86,7 @@ class FileUtils {
           return 'image/gif';
         case '25504446':
           return 'application/pdf';
-        default:
-          return 'application/octet-stream';
+        return 'application/octet-stream';
       }
     } catch (error) {
       throw new AppError(
@@ -106,7 +105,7 @@ class FileUtils {
     try {
       const hash = crypto.createHash('sha256');
       const stream = fs.createReadStream(filePath);
-      
+
       return new Promise((resolve, reject) => {
         stream.on('data', (chunk) => hash.update(chunk));
         stream.on('end', () => resolve(hash.digest('hex')));
@@ -128,26 +127,26 @@ class FileUtils {
   static async cleanupOldFiles(directory, maxAge = FileUtils.MAX_FILE_AGE) {
     try {
       const files = await fs.promises.readdir(directory);
-      
+
       for (const file of files) {
         const filePath = path.join(directory, file);
         const stats = await fs.promises.stat(filePath);
-        
+
         if (Date.now() - stats.birthtimeMs > maxAge) {
           await fs.promises.unlink(filePath);
         }
       }
     } catch (error) {
-      logger.error('Failed to cleanup old files:', { 
-        error: error.message,
+      logger.error('Failed to cleanup old _files:', {
+        _error: error.message,
         directory,
-        context: 'cleanupOldFiles'
+        _context: 'cleanupOldFiles'
       });
     }
   }
 
   static async compressFile(filePath, targetSize) {
-    // TODO: Implement file compression logic
+    // _TODO: Implement file compression logic
     throw new Error('File compression not implemented');
   }
 }

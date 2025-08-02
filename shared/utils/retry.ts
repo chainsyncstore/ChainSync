@@ -1,21 +1,21 @@
 import { AppError, RetryableError } from '../types/errors';
 
 export class RetryStrategy {
-  private readonly maxRetries: number;
-  private readonly baseDelay: number;
-  private readonly maxDelay: number;
+  private readonly _maxRetries: number;
+  private readonly _baseDelay: number;
+  private readonly _maxDelay: number;
 
   constructor(
-    maxRetries: number = 3,
-    baseDelay: number = 1000, // 1 second
-    maxDelay: number = 10000 // 10 seconds
+    _maxRetries: number = 3,
+    _baseDelay: number = 1000, // 1 second
+    _maxDelay: number = 10000 // 10 seconds
   ) {
     this.maxRetries = maxRetries;
     this.baseDelay = baseDelay;
     this.maxDelay = maxDelay;
   }
 
-  private calculateDelay(attempt: number): number {
+  private calculateDelay(_attempt: number): number {
     const delay = Math.min(
       this.baseDelay * Math.pow(2, attempt),
       this.maxDelay
@@ -24,12 +24,12 @@ export class RetryStrategy {
   }
 
   public async retry<T>(
-    operation: () => Promise<T>,
-    errorFilter: (error: Error) => boolean = (error) => {
+    _operation: () => Promise<T>,
+    _errorFilter: (_error: Error) => boolean = (error) => {
       const appError = error as AppError;
       return appError.retryable !== undefined;
     },
-    onRetry?: (error: Error, attempt: number) => void
+    onRetry?: (_error: Error, _attempt: number) => void
   ): Promise<T> {
     let attempt = 0;
 
@@ -58,12 +58,12 @@ export class RetryStrategy {
     throw new Error('Max retries exceeded');
   }
 
-  public static isRetryableError(error: Error): boolean {
+  public static isRetryableError(_error: Error): boolean {
     const appError = error as AppError;
     return appError.retryable !== undefined;
   }
 
-  public static getRetryAfter(error: Error): number | undefined {
+  public static getRetryAfter(_error: Error): number | undefined {
     const appError = error as AppError;
     return appError.retryAfter;
   }

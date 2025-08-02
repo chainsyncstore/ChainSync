@@ -1,17 +1,17 @@
 // src/components/NotFound.tsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from &apos;react&apos;;
+import { useNavigate } from &apos;react-router-dom&apos;;
 
 /**
  * NotFound component displayed when a route is not found
  * This provides a user-friendly 404 page
  */
-const NotFound: React.FC = () => {
+const _NotFound: React.FC = () => {
   const navigate = useNavigate();
 
   // Navigate back to home page
   const goToHome = () => {
-    navigate('/');
+    navigate(&apos;/&apos;);
   };
 
   // Navigate back to previous page
@@ -20,25 +20,25 @@ const NotFound: React.FC = () => {
   };
 
   return (
-    <div className="not-found-page">
-      <div className="not-found-container">
-        <h1 className="not-found-code">404</h1>
-        <h2 className="not-found-title">Page Not Found</h2>
-        <p className="not-found-message">
-          We couldn't find the page you were looking for. 
+    <div className=&quot;not-found-page&quot;>
+      <div className=&quot;not-found-container&quot;>
+        <h1 className=&quot;not-found-code&quot;>404</h1>
+        <h2 className=&quot;not-found-title&quot;>Page Not Found</h2>
+        <p className=&quot;not-found-message&quot;>
+          We couldn&apos;t find the page you were looking for.
           It might have been moved, deleted, or never existed.
         </p>
-        
-        <div className="not-found-actions">
+
+        <div className=&quot;not-found-actions&quot;>
           <button
-            className="not-found-back-button"
+            className=&quot;not-found-back-button&quot;
             onClick={goBack}
           >
             Go Back
           </button>
-          
+
           <button
-            className="not-found-home-button"
+            className=&quot;not-found-home-button&quot;
             onClick={goToHome}
           >
             Go to Home

@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ImportExportService = void 0;
 // import { Request, Express } from 'express'; // Unused
 // import * as multer from 'multer'; // Unused
@@ -48,7 +48,7 @@ const ExcelJS = __importStar(require('exceljs'));
 // import * as xlsx from 'xlsx'; // Unused
 // Helper function to chunk arrays
 // type Chunk<T> = T[][]; // Unused
-// function chunkArray<T>(array: T[], size: number): Chunk<T> { // Unused
+// function chunkArray<T>(_array: T[], _size: number): Chunk<T> { // Unused
 //   if (!Array.isArray(array)) {
 //     throw new Error('Input must be an array');
 //   }
@@ -65,15 +65,15 @@ const ExcelJS = __importStar(require('exceljs'));
 class ImportExportService {
   constructor() {
     this.config = {
-      batchSize: 1000
+      _batchSize: 1000
     };
     this.errors = {
-      INVALID_FILE_FORMAT: new errors_1.AppError('Invalid file format', errors_1.ErrorCategory.IMPORT_EXPORT, 'INVALID_FILE_FORMAT'),
-      FILE_TOO_LARGE: new errors_1.AppError('File size exceeds maximum allowed size', errors_1.ErrorCategory.IMPORT_EXPORT, 'FILE_TOO_LARGE'),
-      INVALID_DATA: new errors_1.AppError('Invalid data format', errors_1.ErrorCategory.IMPORT_EXPORT, 'INVALID_DATA'),
-      PROCESSING_ERROR: new errors_1.AppError('Processing failed', errors_1.ErrorCategory.IMPORT_EXPORT, 'PROCESSING_ERROR'),
-      STORAGE_ERROR: new errors_1.AppError('Storage operation failed', errors_1.ErrorCategory.IMPORT_EXPORT, 'STORAGE_ERROR'),
-      PROGRESS_ERROR: new errors_1.AppError('Progress tracking failed', errors_1.ErrorCategory.IMPORT_EXPORT, 'PROGRESS_ERROR')
+      _INVALID_FILE_FORMAT: new errors_1.AppError('Invalid file format', errors_1.ErrorCategory.IMPORT_EXPORT, 'INVALID_FILE_FORMAT'),
+      _FILE_TOO_LARGE: new errors_1.AppError('File size exceeds maximum allowed size', errors_1.ErrorCategory.IMPORT_EXPORT, 'FILE_TOO_LARGE'),
+      _INVALID_DATA: new errors_1.AppError('Invalid data format', errors_1.ErrorCategory.IMPORT_EXPORT, 'INVALID_DATA'),
+      _PROCESSING_ERROR: new errors_1.AppError('Processing failed', errors_1.ErrorCategory.IMPORT_EXPORT, 'PROCESSING_ERROR'),
+      _STORAGE_ERROR: new errors_1.AppError('Storage operation failed', errors_1.ErrorCategory.IMPORT_EXPORT, 'STORAGE_ERROR'),
+      _PROGRESS_ERROR: new errors_1.AppError('Progress tracking failed', errors_1.ErrorCategory.IMPORT_EXPORT, 'PROGRESS_ERROR')
     };
     this.repository = new repository_1.ImportExportRepository();
     this.validationService = new validation_1.ValidationService();
@@ -85,14 +85,14 @@ class ImportExportService {
       }
       const result = await this.validationService.validate(data, options);
       return {
-        success: result.invalidCount === 0,
-        message: result.invalidCount === 0 ? 'Validation successful' : 'Validation failed',
-        data: result.validRecords,
-        errors: result.invalidRecords.map((record, index) => ({ record, errors: result.invalidRecords[index].errors })),
-        validCount: result.validCount,
-        invalidCount: result.invalidCount,
-        totalProcessed: result.validCount + result.invalidCount,
-        totalErrors: result.invalidCount
+        _success: result.invalidCount === 0,
+        _message: result.invalidCount === 0 ? 'Validation successful' : 'Validation failed',
+        _data: result.validRecords,
+        _errors: result.invalidRecords.map((record, index) => ({ record, _errors: result.invalidRecords[index].errors })),
+        _validCount: result.validCount,
+        _invalidCount: result.invalidCount,
+        _totalProcessed: result.validCount + result.invalidCount,
+        _totalErrors: result.invalidCount
       };
     }
     catch (error) {
@@ -118,8 +118,7 @@ class ImportExportService {
           return await this.generateJSON(data);
         case 'xlsx':
           return await this.generateExcel(data, options);
-        default:
-          throw this.errors.INVALID_FILE_FORMAT;
+        throw this.errors.INVALID_FILE_FORMAT;
       }
     }
     catch (error) {
@@ -149,12 +148,11 @@ class ImportExportService {
         case 'xlsx':
           parsedData = await this.parseExcel(file.buffer);
           break;
-        default:
-          throw this.errors.INVALID_FILE_FORMAT;
+        throw this.errors.INVALID_FILE_FORMAT;
       }
       return {
-        type: extension || '',
-        data: parsedData
+        _type: extension || '',
+        _data: parsedData
       };
     }
     catch (error) {
@@ -176,12 +174,12 @@ class ImportExportService {
         errors += result.totalErrors;
       }
       return {
-        success: errors === 0,
-        message: errors === 0 ? 'Import successful' : 'Import completed with errors',
-        validCount: processed - errors,
-        invalidCount: errors,
-        totalProcessed: processed,
-        totalErrors: errors,
+        _success: errors === 0,
+        _message: errors === 0 ? 'Import successful' : 'Import completed with errors',
+        _validCount: processed - errors,
+        _invalidCount: errors,
+        _totalProcessed: processed,
+        _totalErrors: errors,
         importId
       };
     }
@@ -193,12 +191,12 @@ class ImportExportService {
     try {
       const result = await this.repository.processBatch(data, importId);
       return {
-        success: result.errors.length === 0,
-        message: result.errors.length === 0 ? 'Batch processed successfully' : 'Batch processed with errors',
-        validCount: data.length - result.errors.length,
-        invalidCount: result.errors.length,
-        totalProcessed: data.length,
-        totalErrors: result.errors.length,
+        _success: result.errors.length === 0,
+        _message: result.errors.length === 0 ? 'Batch processed successfully' : 'Batch processed with errors',
+        _validCount: data.length - result.errors.length,
+        _invalidCount: result.errors.length,
+        _totalProcessed: data.length,
+        _totalErrors: result.errors.length,
         importId
       };
     }
@@ -209,8 +207,8 @@ class ImportExportService {
   async generateCSV(data, options) {
     try {
       const config = {
-        fields: options.includeHeaders ? Object.keys(data[0]) : undefined,
-        delimiter: options.delimiter || ','
+        _fields: options.includeHeaders ? Object.keys(data[0]) : undefined,
+        _delimiter: options.delimiter || ','
       };
       const csv = (0, json2csv_1.parse)(data, config);
       return Buffer.from(csv, 'utf8');
@@ -246,8 +244,8 @@ class ImportExportService {
   async parseCSV(buffer) {
     try {
       const parser = (0, csv_parse_1.parse)({
-        columns: true,
-        skip_empty_lines: true
+        _columns: true,
+        _skip_empty_lines: true
       });
       return new Promise((resolve, reject) => {
         const results = [];

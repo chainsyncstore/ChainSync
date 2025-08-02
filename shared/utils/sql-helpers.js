@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.formatDateForSql = formatDateForSql;
 exports.formatJsonForSql = formatJsonForSql;
 exports.buildInsertQuery = buildInsertQuery;
@@ -53,7 +53,7 @@ function buildInsertQuery(tableName, data, returnFields = ['*']) {
   const placeholders = fields.map((_, i) => `$${i + 1}`);
   const values = Object.values(dbFields);
   return {
-    query: `
+    _query: `
       INSERT INTO ${tableName} (${fields.join(', ')})
       VALUES (${placeholders.join(', ')})
       ${returnFields.length ? `RETURNING ${returnFields.join(', ')}` : ''}
@@ -77,7 +77,7 @@ function buildUpdateQuery(tableName, data, whereCondition, returnFields = ['*'])
   // Create SET clauses like "field1 = $1, field2 = $2"
   const setClauses = fields.map((field, index) => `${field} = $${index + 1}`);
   return {
-    query: `
+    _query: `
       UPDATE ${tableName}
       SET ${setClauses.join(', ')}
       WHERE ${whereCondition}
@@ -88,7 +88,7 @@ function buildUpdateQuery(tableName, data, whereCondition, returnFields = ['*'])
 }
 /**
  * Build a raw SQL INSERT query using string interpolation (for cases where parameterized queries cause TypeScript errors)
- * NOTE: This is less secure than parameterized queries but resolves certain TypeScript issues
+ * _NOTE: This is less secure than parameterized queries but resolves certain TypeScript issues
  *
  * @param tableName The name of the table to insert into
  * @param data The data object with values already formatted for SQL
@@ -107,7 +107,7 @@ function buildRawInsertQuery(tableName, data, // Values should already be format
 }
 /**
  * Build a raw SQL UPDATE query using string interpolation (for cases where parameterized queries cause TypeScript errors)
- * NOTE: This is less secure than parameterized queries but resolves certain TypeScript issues
+ * _NOTE: This is less secure than parameterized queries but resolves certain TypeScript issues
  *
  * @param tableName The name of the table to update
  * @param data The data object with values already formatted for SQL

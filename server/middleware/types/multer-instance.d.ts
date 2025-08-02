@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 
 export type MulterInstance = {
-    (options?: any): (req: Request, res: Response, next: NextFunction) => void;
-    any(fieldname?: string): (req: Request, res: Response, next: NextFunction) => void;
-    array(fieldname: string, maxCount?: number): (req: Request, res: Response, next: NextFunction) => void;
-    fields(fields: Array<{ name: string; maxCount: number }>): (req: Request, res: Response, next: NextFunction) => void;
-    single(fieldname: string): (req: Request, res: Response, next: NextFunction) => void;
-    none(): (req: Request, res: Response, next: NextFunction) => void;
+    (options?: any): (_req: Request, _res: Response, _next: NextFunction) => void;
+    any(fieldname?: string): (_req: Request, _res: Response, _next: NextFunction) => void;
+    array(_fieldname: string, maxCount?: number): (_req: Request, _res: Response, _next: NextFunction)
+   = > void;
+    fields(_fields: Array<{ _name: string; _maxCount: number }>): (_req: Request, _res: Response, _next: NextFunction)
+   = > void;
+    single(_fieldname: string): (_req: Request, _res: Response, _next: NextFunction) => void;
+    none(): (_req: Request, _res: Response, _next: NextFunction) => void;
 };

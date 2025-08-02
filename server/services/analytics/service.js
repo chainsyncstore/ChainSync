@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.AnalyticsService = void 0;
 const base_service_1 = require('../base/base-service');
 const analytics_1 = require('../../config/analytics');
@@ -76,14 +76,14 @@ class AnalyticsService extends base_service_1.BaseService {
             await this.processAggregation(item);
           }
           catch (error) {
-            console.error('Failed to process aggregation:', error);
+            console.error('Failed to process _aggregation:', error);
           }
         }));
       }
       this.aggregationQueue = [];
     }
     catch (error) {
-      console.error('Failed to process aggregation queue:', error);
+      console.error('Failed to process aggregation _queue:', error);
     }
   }
   async processAggregation(item) {
@@ -99,8 +99,7 @@ class AnalyticsService extends base_service_1.BaseService {
         case 'product':
           await this.aggregateProduct(item.data);
           break;
-        default:
-          throw new errors_1.AppError('Unknown aggregation type', errors_1.ErrorCode.INVALID_FIELD_VALUE, errors_1.ErrorCategory.VALIDATION);
+        throw new errors_1.AppError('Unknown aggregation type', errors_1.ErrorCode.INVALID_FIELD_VALUE, errors_1.ErrorCategory.VALIDATION);
       }
     }
     catch (error) {
@@ -111,15 +110,15 @@ class AnalyticsService extends base_service_1.BaseService {
     try {
       // Aggregate transaction metrics
       const metrics = {
-        totalAmount: data.amount,
-        count: 1,
-        timestamp: data.timestamp
+        _totalAmount: data.amount,
+        _count: 1,
+        _timestamp: data.timestamp
       };
       // Store in Redis
-      await this.redis.hincrbyfloat('metrics:transactions:total', String(data.storeId), data.amount);
-      await this.redis.hincrby('metrics:transactions:count', String(data.storeId), 1);
+      await this.redis.hincrbyfloat('_metrics:transactions:total', String(data.storeId), data.amount);
+      await this.redis.hincrby('_metrics:transactions:count', String(data.storeId), 1);
       // Update cache
-      await this.cache.set(`metrics:transactions:${data.storeId}`, metrics, this.config.cache.ttl);
+      await this.cache.set(`_metrics:transactions:${data.storeId}`, metrics, this.config.cache.ttl);
     }
     catch (error) {
       throw analytics_1.AnalyticsServiceErrors.STORAGE_ERROR;
@@ -129,17 +128,17 @@ class AnalyticsService extends base_service_1.BaseService {
     try {
       // Aggregate user metrics
       const metrics = {
-        totalUsers: 1,
-        activeUsers: data.active ? 1 : 0,
-        timestamp: data.timestamp
+        _totalUsers: 1,
+        _activeUsers: data.active ? _1 : 0,
+        _timestamp: data.timestamp
       };
       // Store in Redis
-      await this.redis.hincrby('metrics:users:total', String(data.storeId), 1);
+      await this.redis.hincrby('_metrics:users:total', String(data.storeId), 1);
       if (data.active) {
-        await this.redis.hincrby('metrics:users:active', String(data.storeId), 1);
+        await this.redis.hincrby('_metrics:users:active', String(data.storeId), 1);
       }
       // Update cache
-      await this.cache.set(`metrics:users:${data.storeId}`, metrics, this.config.cache.ttl);
+      await this.cache.set(`_metrics:users:${data.storeId}`, metrics, this.config.cache.ttl);
     }
     catch (error) {
       throw analytics_1.AnalyticsServiceErrors.STORAGE_ERROR;
@@ -149,18 +148,18 @@ class AnalyticsService extends base_service_1.BaseService {
     try {
       // Aggregate product metrics
       const metrics = {
-        totalProducts: 1,
-        inStock: data.inStock ? 1 : 0,
-        outOfStock: !data.inStock ? 1 : 0,
-        timestamp: data.timestamp
+        _totalProducts: 1,
+        _inStock: data.inStock ? _1 : 0,
+        _outOfStock: !data.inStock ? _1 : 0,
+        _timestamp: data.timestamp
       };
       // Store in Redis
-      await this.redis.hincrby('metrics:products:total', String(data.storeId), 1);
+      await this.redis.hincrby('_metrics:products:total', String(data.storeId), 1);
       if (data.inStock) {
-        await this.redis.hincrby('metrics:products:in_stock', String(data.storeId), 1);
+        await this.redis.hincrby('_metrics:products:in_stock', String(data.storeId), 1);
       }
       // Update cache
-      await this.cache.set(`metrics:products:${data.storeId}`, metrics, this.config.cache.ttl);
+      await this.cache.set(`_metrics:products:${data.storeId}`, metrics, this.config.cache.ttl);
     }
     catch (error) {
       throw analytics_1.AnalyticsServiceErrors.STORAGE_ERROR;
@@ -173,8 +172,8 @@ class AnalyticsService extends base_service_1.BaseService {
       // Generate cache key
       const cacheKey = this.generateCacheKey('store_metrics', {
         storeId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        _startDate: startDate.toISOString(),
+        _endDate: endDate.toISOString(),
         interval
       });
       // Check cache
@@ -186,10 +185,10 @@ class AnalyticsService extends base_service_1.BaseService {
       const metrics = await this.withRetry(async() => {
         const query = connection_1.db
           .select({
-            date: (0, drizzle_orm_1.sql) `DATE(${schema.transactions.createdAt})`.as('date'),
-            totalSales: (0, drizzle_orm_1.sql) `SUM(${schema.transactions.total})`.as('totalSales'),
-            totalTransactions: (0, drizzle_orm_1.sql) `COUNT(*)`.as('totalTransactions'),
-            averageTransaction: (0, drizzle_orm_1.sql) `AVG(${schema.transactions.total})`.as('averageTransaction')
+            _date: (0, drizzle_orm_1.sql) `DATE(${schema.transactions.createdAt})`.as('date'),
+            _totalSales: (0, drizzle_orm_1.sql) `SUM(${schema.transactions.total})`.as('totalSales'),
+            _totalTransactions: (0, drizzle_orm_1.sql) `COUNT(*)`.as('totalTransactions'),
+            _averageTransaction: (0, drizzle_orm_1.sql) `AVG(${schema.transactions.total})`.as('averageTransaction')
           })
           .from(schema.transactions)
           .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.transactions.storeId, storeId), (0, drizzle_orm_1.gte)(schema.transactions.createdAt, startDate), (0, drizzle_orm_1.lte)(schema.transactions.createdAt, endDate)))
@@ -212,8 +211,8 @@ class AnalyticsService extends base_service_1.BaseService {
       // Generate cache key
       const cacheKey = this.generateCacheKey('user_metrics', {
         storeId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        _startDate: startDate.toISOString(),
+        _endDate: endDate.toISOString(),
         interval
       });
       // Check cache
@@ -225,10 +224,12 @@ class AnalyticsService extends base_service_1.BaseService {
       const metrics = await this.withRetry(async() => {
         const query = connection_1.db
           .select({
-            date: (0, drizzle_orm_1.sql) `DATE(${schema.users.createdAt})`.as('date'),
-            totalUsers: (0, drizzle_orm_1.sql) `COUNT(*)`.as('totalUsers'),
-            activeUsers: (0, drizzle_orm_1.sql) `COUNT(*) filter (where ${schema.users.isActive} = true)`.as('activeUsers'),
-            averageTransactions: (0, drizzle_orm_1.sql) `AVG((SELECT COUNT(*) FROM ${schema.transactions} WHERE ${schema.transactions.userId} = ${schema.users.id}))`.as('averageTransactions')
+            _date: (0, drizzle_orm_1.sql) `DATE(${schema.users.createdAt})`.as('date'),
+            _totalUsers: (0, drizzle_orm_1.sql) `COUNT(*)`.as('totalUsers'),
+            _activeUsers: (0, drizzle_orm_1.sql) `COUNT(*) filter (where ${schema.users.isActive}
+   =  true)`.as('activeUsers'),
+            _averageTransactions: (0, drizzle_orm_1.sql) `AVG((SELECT COUNT(*) FROM ${schema.transactions} WHERE ${schema.transactions.userId}
+   =  ${schema.users.id}))`.as('averageTransactions')
           })
           .from(schema.users)
           .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.users.storeId, storeId), (0, drizzle_orm_1.gte)(schema.users.createdAt, startDate), (0, drizzle_orm_1.lte)(schema.users.createdAt, endDate)))
@@ -251,8 +252,8 @@ class AnalyticsService extends base_service_1.BaseService {
       // Generate cache key
       const cacheKey = this.generateCacheKey('product_metrics', {
         storeId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        _startDate: startDate.toISOString(),
+        _endDate: endDate.toISOString(),
         interval
       });
       // Check cache
@@ -264,11 +265,12 @@ class AnalyticsService extends base_service_1.BaseService {
       const metrics = await this.withRetry(async() => {
         const query = connection_1.db
           .select({
-            date: (0, drizzle_orm_1.sql) `DATE(${schema.products.createdAt})`.as('date'),
-            totalProducts: (0, drizzle_orm_1.sql) `COUNT(*)`.as('totalProducts'),
-            inStock: (0, drizzle_orm_1.sql) `COUNT(*) FILTER (WHERE ${schema.inventory.quantity} > 0)`.as('inStock'),
-            outOfStock: (0, drizzle_orm_1.sql) `COUNT(*) FILTER (WHERE ${schema.inventory.quantity} = 0)`.as('outOfStock'),
-            averagePrice: (0, drizzle_orm_1.sql) `AVG(${schema.products.price})`.as('averagePrice')
+            _date: (0, drizzle_orm_1.sql) `DATE(${schema.products.createdAt})`.as('date'),
+            _totalProducts: (0, drizzle_orm_1.sql) `COUNT(*)`.as('totalProducts'),
+            _inStock: (0, drizzle_orm_1.sql) `COUNT(*) FILTER (WHERE ${schema.inventory.quantity} > 0)`.as('inStock'),
+            _outOfStock: (0, drizzle_orm_1.sql) `COUNT(*) FILTER (WHERE ${schema.inventory.quantity}
+   =  0)`.as('outOfStock'),
+            _averagePrice: (0, drizzle_orm_1.sql) `AVG(${schema.products.price})`.as('averagePrice')
           })
           .from(schema.products)
           .leftJoin(schema.inventory, (0, drizzle_orm_1.eq)(schema.products.id, schema.inventory.productId))
@@ -292,8 +294,8 @@ class AnalyticsService extends base_service_1.BaseService {
       // Generate cache key
       const cacheKey = this.generateCacheKey('loyalty_metrics', {
         storeId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        _startDate: startDate.toISOString(),
+        _endDate: endDate.toISOString(),
         interval
       });
       // Check cache
@@ -305,10 +307,10 @@ class AnalyticsService extends base_service_1.BaseService {
       const metrics = await this.withRetry(async() => {
         const query = connection_1.db
           .select({
-            date: (0, drizzle_orm_1.sql) `DATE(${schema.loyaltyTransactions.createdAt})`.as('date'),
-            totalPoints: (0, drizzle_orm_1.sql) `SUM(${schema.loyaltyTransactions.pointsEarned})`.as('totalPoints'),
-            totalRedemptions: (0, drizzle_orm_1.sql) `SUM(${schema.loyaltyTransactions.pointsRedeemed})`.as('totalRedemptions'),
-            activeMembers: (0, drizzle_orm_1.sql) `COUNT(DISTINCT ${schema.loyaltyTransactions.memberId})`.as('activeMembers')
+            _date: (0, drizzle_orm_1.sql) `DATE(${schema.loyaltyTransactions.createdAt})`.as('date'),
+            _totalPoints: (0, drizzle_orm_1.sql) `SUM(${schema.loyaltyTransactions.pointsEarned})`.as('totalPoints'),
+            _totalRedemptions: (0, drizzle_orm_1.sql) `SUM(${schema.loyaltyTransactions.pointsRedeemed})`.as('totalRedemptions'),
+            _activeMembers: (0, drizzle_orm_1.sql) `COUNT(DISTINCT ${schema.loyaltyTransactions.memberId})`.as('activeMembers')
           })
           .from(schema.loyaltyTransactions)
           .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.gte)(schema.loyaltyTransactions.createdAt, startDate), (0, drizzle_orm_1.lte)(schema.loyaltyTransactions.createdAt, endDate)))
@@ -355,7 +357,7 @@ class AnalyticsService extends base_service_1.BaseService {
     if (error instanceof errors_1.AppError) {
       throw error;
     }
-    throw new errors_1.AppError(`Failed when ${context}`, errors_1.ErrorCode.INTERNAL_SERVER_ERROR, errors_1.ErrorCategory.SYSTEM, { originalError: error });
+    throw new errors_1.AppError(`Failed when ${context}`, errors_1.ErrorCode.INTERNAL_SERVER_ERROR, errors_1.ErrorCategory.SYSTEM, { _originalError: error });
   }
   async withRetry(operation, context, maxRetries = 3, delay = 1000) {
     let lastError;

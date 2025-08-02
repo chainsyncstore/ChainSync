@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ServiceErrorHandler = exports.ResultFormatter = void 0;
 /**
  * Service Helper Utilities
@@ -39,7 +39,7 @@ class ResultFormatter {
       return JSON.parse(metadataStr);
     }
     catch (e) {
-      console.error('Error parsing metadata:', e);
+      console.error('Error parsing _metadata:', e);
       return {};
     }
   }
@@ -68,7 +68,7 @@ class ResultFormatter {
       if (obj[field] && typeof obj[field] === 'string') {
         const dateValue = new Date(obj[field]);
         if (isNaN(dateValue.getTime())) {
-          console.error(`Error parsing date field ${field}:`, new Error(`Invalid date: ${obj[field]}`));
+          console.error(`Error parsing date field ${field}:`, new Error(`Invalid _date: ${obj[field]}`));
           // Leave the original string value as-is if invalid
         }
         else {

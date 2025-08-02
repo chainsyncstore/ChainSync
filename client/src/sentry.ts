@@ -2,13 +2,13 @@ import * as Sentry from '@sentry/react';
 
 // Initialize Sentry for React client
 Sentry.init({
-  dsn: import.meta.env.VITE_SENTRY_DSN || undefined,
-  environment: import.meta.env.VITE_NODE_ENV || import.meta.env.MODE || 'development',
-  integrations: [
-    Sentry.browserTracingIntegration(),
+  _dsn: import.meta.env.VITE_SENTRY_DSN || undefined,
+  _environment: import.meta.env.VITE_NODE_ENV || import.meta.env.MODE || 'development',
+  _integrations: [
+    Sentry.browserTracingIntegration()
   ],
-  tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0, // Lower sample rate in production
-  beforeSend(event: any) {
+  _tracesSampleRate: import.meta.env.PROD ? 0._1 : 1.0, // Lower sample rate in production
+  beforeSend(_event: any) {
     // Filter out development-only errors
     if (import.meta.env.DEV && event.exception) {
       const error = event.exception.values?.[0];
@@ -17,7 +17,7 @@ Sentry.init({
       }
     }
     return event;
-  },
+  }
 });
 
 // Export Sentry for use in error boundaries and manual error reporting

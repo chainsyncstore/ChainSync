@@ -1,24 +1,24 @@
-import { useAuth } from '@/providers/auth-provider';
-import { AppShell } from '@/components/layout/app-shell';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Link } from 'wouter';
-import { formatDate } from '@/lib/utils';
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { AppShell } from &apos;@/components/layout/app-shell&apos;;
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from &apos;@/components/ui/card&apos;;
+import { Label } from &apos;@/components/ui/label&apos;;
+import { ArrowLeft } from &apos;lucide-react&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Link } from &apos;wouter&apos;;
+import { formatDate } from &apos;@/lib/utils&apos;;
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  
+
   if (!user) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="text-center p-8 bg-destructive/10 rounded-lg max-w-md">
-            <h1 className="text-xl font-semibold mb-4">Not Authenticated</h1>
+        <div className=&quot;flex items-center justify-center h-[80vh]&quot;>
+          <div className=&quot;text-center p-8 bg-destructive/10 rounded-lg max-w-md&quot;>
+            <h1 className=&quot;text-xl font-semibold mb-4&quot;>Not Authenticated</h1>
             <p>Please log in to view your profile.</p>
-            <Button asChild className="mt-4">
-              <Link href="/login">Log In</Link>
+            <Button asChild className=&quot;mt-4&quot;>
+              <Link href=&quot;/login&quot;>Log In</Link>
             </Button>
           </div>
         </div>
@@ -28,81 +28,81 @@ export default function ProfilePage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
+      <div className=&quot;flex items-center justify-between mb-6&quot;>
         <div>
-          <h1 className="text-2xl font-bold text-neutral-800">Your Profile</h1>
-          <p className="text-neutral-500 mt-1">View and manage your account information</p>
+          <h1 className=&quot;text-2xl font-bold text-neutral-800&quot;>Your Profile</h1>
+          <p className=&quot;text-neutral-500 mt-1&quot;>View and manage your account information</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+        <Button variant=&quot;outline&quot; asChild>
+          <Link href=&quot;/dashboard&quot;>
+            <ArrowLeft className=&quot;mr-2 h-4 w-4&quot; />
             Back to Dashboard
           </Link>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className=&quot;grid grid-cols-1 _md:grid-cols-2 gap-6&quot;>
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
             <CardDescription>Your basic account details</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Full Name</Label>
-              <p className="text-lg font-medium">{user.fullName}</p>
+          <CardContent className=&quot;space-y-4&quot;>
+            <div className=&quot;space-y-2&quot;>
+              <Label className=&quot;text-muted-foreground&quot;>Full Name</Label>
+              <p className=&quot;text-lg font-medium&quot;>{user.fullName}</p>
             </div>
-            
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Email Address</Label>
-              <p className="text-lg">{user.email}</p>
+
+            <div className=&quot;space-y-2&quot;>
+              <Label className=&quot;text-muted-foreground&quot;>Email Address</Label>
+              <p className=&quot;text-lg&quot;>{user.email}</p>
             </div>
-            
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Username</Label>
-              <p className="text-lg">{user.username}</p>
+
+            <div className=&quot;space-y-2&quot;>
+              <Label className=&quot;text-muted-foreground&quot;>Username</Label>
+              <p className=&quot;text-lg&quot;>{user.username}</p>
             </div>
-            
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Role</Label>
-              <p className="text-lg capitalize">{user.role}</p>
+
+            <div className=&quot;space-y-2&quot;>
+              <Label className=&quot;text-muted-foreground&quot;>Role</Label>
+              <p className=&quot;text-lg capitalize&quot;>{user.role}</p>
             </div>
-            
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">User ID</Label>
-              <p className="text-lg">{user.id}</p>
+
+            <div className=&quot;space-y-2&quot;>
+              <Label className=&quot;text-muted-foreground&quot;>User ID</Label>
+              <p className=&quot;text-lg&quot;>{user.id}</p>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Account Information</CardTitle>
             <CardDescription>Details about your account</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className=&quot;space-y-4&quot;>
             {user.storeId && (
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Assigned Store ID</Label>
-                <p className="text-lg">{user.storeId}</p>
+              <div className=&quot;space-y-2&quot;>
+                <Label className=&quot;text-muted-foreground&quot;>Assigned Store ID</Label>
+                <p className=&quot;text-lg&quot;>{user.storeId}</p>
               </div>
             )}
-            
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Account Created</Label>
-              <p className="text-lg">{formatDate(user.createdAt)}</p>
+
+            <div className=&quot;space-y-2&quot;>
+              <Label className=&quot;text-muted-foreground&quot;>Account Created</Label>
+              <p className=&quot;text-lg&quot;>{formatDate(user.createdAt)}</p>
             </div>
-            
+
             {user.lastLogin && (
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Last Login</Label>
-                <p className="text-lg">{formatDate(user.lastLogin)}</p>
+              <div className=&quot;space-y-2&quot;>
+                <Label className=&quot;text-muted-foreground&quot;>Last Login</Label>
+                <p className=&quot;text-lg&quot;>{formatDate(user.lastLogin)}</p>
               </div>
             )}
-            
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Account Updated</Label>
-              <p className="text-lg">{formatDate(user.updatedAt)}</p>
+
+            <div className=&quot;space-y-2&quot;>
+              <Label className=&quot;text-muted-foreground&quot;>Account Updated</Label>
+              <p className=&quot;text-lg&quot;>{formatDate(user.updatedAt)}</p>
             </div>
           </CardContent>
         </Card>

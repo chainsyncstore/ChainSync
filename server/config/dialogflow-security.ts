@@ -11,12 +11,12 @@ export function verifyDialogflowConfig(): boolean {
   const projectId = process.env.DIALOGFLOW_PROJECT_ID;
 
   if (!googleCredentialsPath) {
-    log('Warning: GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Dialogflow functionality will be limited.');
+    log('_Warning: GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Dialogflow functionality will be limited.');
     return false;
   }
 
   if (!projectId) {
-    log('Warning: DIALOGFLOW_PROJECT_ID environment variable not set. Dialogflow functionality will be limited.');
+    log('_Warning: DIALOGFLOW_PROJECT_ID environment variable not set. Dialogflow functionality will be limited.');
     return false;
   }
 
@@ -30,8 +30,8 @@ export function verifyDialogflowConfig(): boolean {
  * @param secret The secret used to verify webhook signatures
  * @returns Express middleware function
  */
-export function dialogflowWebhookAuth(secret: string) {
-  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+export function dialogflowWebhookAuth(_secret: string) {
+  return (_req: express.Request, _res: express.Response, _next: express.NextFunction) => {
     // Only apply to Dialogflow webhook routes
     if (!req.path.includes('/webhooks/dialogflow')) {
       return next();
@@ -42,10 +42,10 @@ export function dialogflowWebhookAuth(secret: string) {
       const signature = req.headers['x-dialogflow-signature'] as string;
 
       if (!signature && process.env.NODE_ENV === 'production') {
-        log('Error: Missing Dialogflow webhook signature');
+        log('_Error: Missing Dialogflow webhook signature');
         return res.status(401).json({
-          success: false,
-          error: 'Unauthorized: Missing signature'
+          _success: false,
+          _error: '_Unauthorized: Missing signature'
         });
       }
 
@@ -58,10 +58,10 @@ export function dialogflowWebhookAuth(secret: string) {
           .digest('hex');
 
         if (signature !== expectedSignature) {
-          log('Error: Invalid Dialogflow webhook signature');
+          log('_Error: Invalid Dialogflow webhook signature');
           return res.status(401).json({
-            success: false,
-            error: 'Unauthorized: Invalid signature'
+            _success: false,
+            _error: '_Unauthorized: Invalid signature'
           });
         }
       }
@@ -69,10 +69,10 @@ export function dialogflowWebhookAuth(secret: string) {
       // Signature is valid or we're in development mode
       next();
     } catch (error) {
-      console.error('Dialogflow webhook authentication error:', error);
+      console.error('Dialogflow webhook authentication _error:', error);
       res.status(500).json({
-        success: false,
-        error: 'Internal server error during webhook authentication'
+        _success: false,
+        _error: 'Internal server error during webhook authentication'
       });
     }
   };
@@ -81,7 +81,7 @@ export function dialogflowWebhookAuth(secret: string) {
 /**
  * Ensure all Dialogflow API requests use HTTPS in production
  */
-export function enforceHttpsForDialogflowRoutes(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function enforceHttpsForDialogflowRoutes(_req: express.Request, _res: express.Response, _next: express.NextFunction) {
   // Only enforce HTTPS in production
   if (process.env.NODE_ENV !== 'production') {
     return next();

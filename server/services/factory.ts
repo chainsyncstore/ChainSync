@@ -13,23 +13,23 @@ import { BaseService } from './base/base-service';
 import { CacheService } from './cache';
 
 export type ServiceConfig = {
-  logger: ReturnType<typeof getLogger>;
-  db: typeof db;
-  cache: CacheService;
-  redis: Redis;
+  _logger: ReturnType<typeof getLogger>;
+  _db: typeof db;
+  _cache: CacheService;
+  _redis: Redis;
 };
 
 /**
  * Service factory for creating properly configured services
  */
 export class ServiceFactory {
-  private static instance: ServiceFactory;
-  private readonly serviceInstances: Map<string, any> = new Map();
+  private static _instance: ServiceFactory;
+  private readonly _serviceInstances: Map<string, any> = new Map();
 
   private constructor(
-    private readonly config: {
-      logger: ReturnType<typeof getLogger>;
-      db: typeof db;
+    private readonly _config: {
+      _logger: ReturnType<typeof getLogger>;
+      _db: typeof db;
       cache?: CacheService;
       redis?: Redis;
     }
@@ -39,8 +39,8 @@ export class ServiceFactory {
    * Get the singleton instance of the service factory
    */
   public static getInstance(config?: {
-    logger: ReturnType<typeof getLogger>;
-    db: typeof db;
+    _logger: ReturnType<typeof getLogger>;
+    _db: typeof db;
     cache?: CacheService;
     redis?: Redis;
   }): ServiceFactory {
@@ -56,17 +56,17 @@ export class ServiceFactory {
   /**
    * Get a service instance, creating it if it doesn't exist
    */
-  public getService<T>(serviceClass: new (config: ServiceConfig) => T): T {
+  public getService<T>(_serviceClass: new (_config: ServiceConfig) => T): T {
     const serviceName = serviceClass.name;
 
     if (!this.serviceInstances.has(serviceName)) {
       this.serviceInstances.set(
         serviceName,
         new serviceClass({
-          logger: this.config.logger,
-          db: this.config.db,
-          cache: this.config.cache!,
-          redis: this.config.redis!
+          _logger: this.config.logger,
+          _db: this.config.db,
+          _cache: this.config.cache!,
+          _redis: this.config.redis!
         })
       );
     }
@@ -78,8 +78,8 @@ export class ServiceFactory {
    * Get a service instance with custom configuration
    */
   public getServiceWithConfig<T>(
-    serviceClass: new (config: ServiceConfig & Record<string, any>) => T,
-    additionalConfig: Record<string, any>
+    _serviceClass: new (_config: ServiceConfig & Record<string, any>) => T,
+    _additionalConfig: Record<string, any>
   ): T {
     const serviceName = `${serviceClass.name}:${JSON.stringify(additionalConfig)}`;
 
@@ -87,10 +87,10 @@ export class ServiceFactory {
       this.serviceInstances.set(
         serviceName,
         new serviceClass({
-          logger: this.config.logger,
-          db: this.config.db,
-          cache: this.config.cache!,
-          redis: this.config.redis!,
+          _logger: this.config.logger,
+          _db: this.config.db,
+          _cache: this.config.cache!,
+          _redis: this.config.redis!,
           ...additionalConfig
         })
       );
@@ -104,14 +104,14 @@ export class ServiceFactory {
    * Useful for services that need to be configured differently each time
    */
   public createService<T>(
-    serviceClass: new (config: ServiceConfig & Record<string, any>) => T,
-    additionalConfig: Record<string, any> = {}
+    _serviceClass: new (_config: ServiceConfig & Record<string, any>) => T,
+    _additionalConfig: Record<string, any> = {}
   ): T {
     return new serviceClass({
-      logger: this.config.logger,
-      db: this.config.db,
-      cache: this.config.cache!,
-      redis: this.config.redis!,
+      _logger: this.config.logger,
+      _db: this.config.db,
+      _cache: this.config.cache!,
+      _redis: this.config.redis!,
       ...additionalConfig
     });
   }
@@ -126,7 +126,7 @@ export class ServiceFactory {
   /**
    * Remove a specific service instance
    */
-  public removeInstance(serviceName: string): boolean {
+  public removeInstance(_serviceName: string): boolean {
     return this.serviceInstances.delete(serviceName);
   }
 }
@@ -136,10 +136,10 @@ export class ServiceFactory {
  * This provides a more concise way to use the factory
  */
 export function getService<T>(
-  serviceClass: new (config: ServiceConfig) => T,
+  _serviceClass: new (_config: ServiceConfig) => T,
   factoryConfig?: {
-    logger: ReturnType<typeof getLogger>;
-    db: typeof db;
+    _logger: ReturnType<typeof getLogger>;
+    _db: typeof db;
     cache?: CacheService;
     redis?: Redis;
   }
@@ -152,11 +152,11 @@ export function getService<T>(
  * Helper function to get a service instance with custom configuration
  */
 export function getServiceWithConfig<T>(
-  serviceClass: new (config: ServiceConfig & Record<string, any>) => T,
-  additionalConfig: Record<string, any>,
+  _serviceClass: new (_config: ServiceConfig & Record<string, any>) => T,
+  _additionalConfig: Record<string, any>,
   factoryConfig?: {
-    logger: ReturnType<typeof getLogger>;
-    db: typeof db;
+    _logger: ReturnType<typeof getLogger>;
+    _db: typeof db;
     cache?: CacheService;
     redis?: Redis;
   }

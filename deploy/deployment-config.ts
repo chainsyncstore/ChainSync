@@ -2,134 +2,134 @@ import * as dotenv from 'dotenv';
 import { z } from 'zod';
 import { getLogger } from '../src/logging';
 
-const logger = getLogger().child({ component: 'deployment-config' });
+const logger = getLogger().child({ _component: 'deployment-config' });
 
 // Load environment variables
 dotenv.config();
 
 // Environment schema validation
 const EnvironmentSchema = z.object({
-  NODE_ENV: z.enum(['development', 'staging', 'production', 'test']),
-  PORT: z.string().transform(Number).pipe(z.number().min(1).max(65535)),
-  DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url().optional(),
-  JWT_SECRET: z.string().min(32),
-  ENCRYPTION_KEY: z.string().length(32),
-  SESSION_SECRET: z.string().min(32),
-  CORS_ORIGIN: z.string().url().optional(),
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-  SENTRY_DSN: z.string().url().optional(),
-  PROMETHEUS_PORT: z.coerce.number().min(1).max(65535).default(9090),
-  HEALTH_CHECK_INTERVAL: z.coerce.number().min(1000).default(30000),
-  RATE_LIMIT_WINDOW: z.coerce.number().min(1000).default(900000),
-  RATE_LIMIT_MAX: z.coerce.number().min(1).default(100),
-  BACKUP_RETENTION_DAYS: z.coerce.number().min(1).default(30),
-  MAX_FILE_SIZE: z.coerce.number().min(1).default(10485760),
-  SSL_ENABLED: z.coerce.boolean().default(false),
-  COMPRESSION_ENABLED: z.coerce.boolean().default(true),
-  CACHE_TTL: z.coerce.number().min(0).default(3600),
-  API_VERSION: z.string().default('v1'),
-  DEPLOYMENT_ID: z.string().optional(),
-  BUILD_VERSION: z.string().optional(),
-  COMMIT_SHA: z.string().optional(),
+  _NODE_ENV: z.enum(['development', 'staging', 'production', 'test']),
+  _PORT: z.string().transform(Number).pipe(z.number().min(1).max(65535)),
+  _DATABASE_URL: z.string().url(),
+  _REDIS_URL: z.string().url().optional(),
+  _JWT_SECRET: z.string().min(32),
+  _ENCRYPTION_KEY: z.string().length(32),
+  _SESSION_SECRET: z.string().min(32),
+  _CORS_ORIGIN: z.string().url().optional(),
+  _LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  _SENTRY_DSN: z.string().url().optional(),
+  _PROMETHEUS_PORT: z.coerce.number().min(1).max(65535).default(9090),
+  _HEALTH_CHECK_INTERVAL: z.coerce.number().min(1000).default(30000),
+  _RATE_LIMIT_WINDOW: z.coerce.number().min(1000).default(900000),
+  _RATE_LIMIT_MAX: z.coerce.number().min(1).default(100),
+  _BACKUP_RETENTION_DAYS: z.coerce.number().min(1).default(30),
+  _MAX_FILE_SIZE: z.coerce.number().min(1).default(10485760),
+  _SSL_ENABLED: z.coerce.boolean().default(false),
+  _COMPRESSION_ENABLED: z.coerce.boolean().default(true),
+  _CACHE_TTL: z.coerce.number().min(0).default(3600),
+  _API_VERSION: z.string().default('v1'),
+  _DEPLOYMENT_ID: z.string().optional(),
+  _BUILD_VERSION: z.string().optional(),
+  _COMMIT_SHA: z.string().optional()
 });
 
 // Environment-specific configurations
 const environmentConfigs = {
-  development: {
+  _development: {
     logLevel: 'debug' as const,
-    corsOrigin: 'http://localhost:3000',
-    healthCheckInterval: 10000,
-    rateLimitWindow: 60000,
-    rateLimitMax: 1000,
-    sslEnabled: false,
-    compressionEnabled: true,
-    cacheTTL: 300,
+    _corsOrigin: 'http://_localhost:3000',
+    _healthCheckInterval: 10000,
+    _rateLimitWindow: 60000,
+    _rateLimitMax: 1000,
+    _sslEnabled: false,
+    _compressionEnabled: true,
+    _cacheTTL: 300
   },
-  staging: {
+  _staging: {
     logLevel: 'info' as const,
-    corsOrigin: 'https://staging.chainsync.example.com',
-    healthCheckInterval: 30000,
-    rateLimitWindow: 900000,
-    rateLimitMax: 100,
-    sslEnabled: true,
-    compressionEnabled: true,
-    cacheTTL: 1800,
+    _corsOrigin: 'https://staging.chainsync.example.com',
+    _healthCheckInterval: 30000,
+    _rateLimitWindow: 900000,
+    _rateLimitMax: 100,
+    _sslEnabled: true,
+    _compressionEnabled: true,
+    _cacheTTL: 1800
   },
-  production: {
+  _production: {
     logLevel: 'warn' as const,
-    corsOrigin: 'https://chainsync.example.com',
-    healthCheckInterval: 60000,
-    rateLimitWindow: 900000,
-    rateLimitMax: 50,
-    sslEnabled: true,
-    compressionEnabled: true,
-    cacheTTL: 3600,
+    _corsOrigin: 'https://chainsync.example.com',
+    _healthCheckInterval: 60000,
+    _rateLimitWindow: 900000,
+    _rateLimitMax: 50,
+    _sslEnabled: true,
+    _compressionEnabled: true,
+    _cacheTTL: 3600
   },
-  test: {
+  _test: {
     logLevel: 'error' as const,
-    corsOrigin: 'http://localhost:3000',
-    healthCheckInterval: 5000,
-    rateLimitWindow: 1000,
-    rateLimitMax: 10000,
-    sslEnabled: false,
-    compressionEnabled: false,
-    cacheTTL: 0,
-  },
+    _corsOrigin: 'http://_localhost:3000',
+    _healthCheckInterval: 5000,
+    _rateLimitWindow: 1000,
+    _rateLimitMax: 10000,
+    _sslEnabled: false,
+    _compressionEnabled: false,
+    _cacheTTL: 0
+  }
 };
 
 // Secrets management
 interface SecretsConfig {
   database: {
-    url: string;
-    ssl: boolean;
-    maxConnections: number;
-    idleTimeoutMillis: number;
+    _url: string;
+    _ssl: boolean;
+    _maxConnections: number;
+    _idleTimeoutMillis: number;
   };
   redis: {
-    url: string;
-    maxRetriesPerRequest: number;
-    retryDelayOnFailover: number;
+    _url: string;
+    _maxRetriesPerRequest: number;
+    _retryDelayOnFailover: number;
   };
   jwt: {
-    secret: string;
-    expiresIn: string;
-    refreshExpiresIn: string;
+    _secret: string;
+    _expiresIn: string;
+    _refreshExpiresIn: string;
   };
   encryption: {
-    key: string;
-    algorithm: string;
+    _key: string;
+    _algorithm: string;
   };
   session: {
-    secret: string;
-    maxAge: number;
-    secure: boolean;
-    httpOnly: boolean;
+    _secret: string;
+    _maxAge: number;
+    _secure: boolean;
+    _httpOnly: boolean;
   };
   email: {
-    host: string;
-    port: number;
-    secure: boolean;
+    _host: string;
+    _port: number;
+    _secure: boolean;
     auth: {
-      user: string;
-      pass: string;
+      _user: string;
+      _pass: string;
     };
   };
   payment: {
-    stripeSecretKey: string;
-    stripeWebhookSecret: string;
+    _stripeSecretKey: string;
+    _stripeWebhookSecret: string;
   };
   monitoring: {
-    sentryDsn: string;
-    prometheusPort: number;
+    _sentryDsn: string;
+    _prometheusPort: number;
   };
 }
 
 // Configuration manager
 export class DeploymentConfig {
-  private config: z.infer<typeof EnvironmentSchema>;
-  private secrets: SecretsConfig;
-  private environment: string;
+  private _config: z.infer<typeof EnvironmentSchema>;
+  private _secrets: SecretsConfig;
+  private _environment: string;
 
   constructor() {
     this.environment = process.env.NODE_ENV || 'development';
@@ -144,10 +144,10 @@ export class DeploymentConfig {
   private validateEnvironment(): void {
     try {
       EnvironmentSchema.parse(process.env);
-      logger.info('Environment validation passed', { environment: this.environment });
+      logger.info('Environment validation passed', { _environment: this.environment });
     } catch (error) {
-      logger.error('Environment validation failed', { error, environment: this.environment });
-      throw new Error(`Environment validation failed: ${error}`);
+      logger.error('Environment validation failed', { error, _environment: this.environment });
+      throw new Error(`Environment validation _failed: ${error}`);
     }
   }
 
@@ -159,25 +159,25 @@ export class DeploymentConfig {
     const envConfig = environmentConfigs[this.environment as keyof typeof environmentConfigs];
 
     if (!envConfig) {
-      throw new Error(`Unknown environment: ${this.environment}`);
+      throw new Error(`Unknown _environment: ${this.environment}`);
     }
 
     // Apply environment-specific overrides
     const config = {
       ...baseConfig,
-      LOG_LEVEL: envConfig.logLevel,
-      CORS_ORIGIN: envConfig.corsOrigin || baseConfig.CORS_ORIGIN,
-      HEALTH_CHECK_INTERVAL: envConfig.healthCheckInterval,
-      RATE_LIMIT_WINDOW: envConfig.rateLimitWindow,
-      RATE_LIMIT_MAX: envConfig.rateLimitMax,
-      SSL_ENABLED: envConfig.sslEnabled,
-      COMPRESSION_ENABLED: envConfig.compressionEnabled,
-      CACHE_TTL: envConfig.cacheTTL,
+      _LOG_LEVEL: envConfig.logLevel,
+      _CORS_ORIGIN: envConfig.corsOrigin || baseConfig.CORS_ORIGIN,
+      _HEALTH_CHECK_INTERVAL: envConfig.healthCheckInterval,
+      _RATE_LIMIT_WINDOW: envConfig.rateLimitWindow,
+      _RATE_LIMIT_MAX: envConfig.rateLimitMax,
+      _SSL_ENABLED: envConfig.sslEnabled,
+      _COMPRESSION_ENABLED: envConfig.compressionEnabled,
+      _CACHE_TTL: envConfig.cacheTTL
     };
 
-    logger.info('Configuration loaded', { 
-      environment: this.environment,
-      config: this.sanitizeConfig(config)
+    logger.info('Configuration loaded', {
+      _environment: this.environment,
+      _config: this.sanitizeConfig(config)
     });
 
     return config;
@@ -187,63 +187,63 @@ export class DeploymentConfig {
    * Load secrets configuration
    */
   private loadSecrets(): SecretsConfig {
-    const secrets: SecretsConfig = {
+    const _secrets: SecretsConfig = {
       database: {
-        url: this.config.DATABASE_URL,
-        ssl: this.environment === 'production',
-        maxConnections: this.environment === 'production' ? 20 : 10,
-        idleTimeoutMillis: 30000,
+        _url: this.config.DATABASE_URL,
+        _ssl: this.environment === 'production',
+        _maxConnections: this.environment === 'production' ? _20 : 10,
+        _idleTimeoutMillis: 30000
       },
-      redis: {
-        url: this.config.REDIS_URL || 'redis://localhost:6379',
-        maxRetriesPerRequest: 3,
-        retryDelayOnFailover: 100,
+      _redis: {
+        _url: this.config.REDIS_URL || 'redis://_localhost:6379',
+        _maxRetriesPerRequest: 3,
+        _retryDelayOnFailover: 100
       },
-      jwt: {
-        secret: this.config.JWT_SECRET,
-        expiresIn: '15m',
-        refreshExpiresIn: '7d',
+      _jwt: {
+        _secret: this.config.JWT_SECRET,
+        _expiresIn: '15m',
+        _refreshExpiresIn: '7d'
       },
-      encryption: {
-        key: this.config.ENCRYPTION_KEY,
-        algorithm: 'aes-256-gcm',
+      _encryption: {
+        _key: this.config.ENCRYPTION_KEY,
+        _algorithm: 'aes-256-gcm'
       },
-      session: {
-        secret: this.config.SESSION_SECRET,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        secure: this.environment === 'production',
-        httpOnly: true,
+      _session: {
+        _secret: this.config.SESSION_SECRET,
+        _maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        _secure: this.environment === 'production',
+        _httpOnly: true
       },
-      email: {
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT || '587'),
-        secure: this.environment === 'production',
-        auth: {
-          user: process.env.EMAIL_USER || '',
-          pass: process.env.EMAIL_PASS || '',
-        },
+      _email: {
+        _host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        _port: parseInt(process.env.EMAIL_PORT || '587'),
+        _secure: this.environment === 'production',
+        _auth: {
+          _user: process.env.EMAIL_USER || '',
+          _pass: process.env.EMAIL_PASS || ''
+        }
       },
-      payment: {
-        stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
-        stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+      _payment: {
+        _stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+        _stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || ''
       },
-      monitoring: {
-        sentryDsn: this.config.SENTRY_DSN || '',
-        prometheusPort: this.config.PROMETHEUS_PORT,
-      },
+      _monitoring: {
+        _sentryDsn: this.config.SENTRY_DSN || '',
+        _prometheusPort: this.config.PROMETHEUS_PORT
+      }
     };
 
-    logger.info('Secrets loaded', { environment: this.environment });
+    logger.info('Secrets loaded', { _environment: this.environment });
     return secrets;
   }
 
   /**
    * Sanitize configuration for logging (remove sensitive data)
    */
-  private sanitizeConfig(config: any): any {
+  private sanitizeConfig(_config: any): any {
     const sanitized = { ...config };
     const sensitiveKeys = ['JWT_SECRET', 'ENCRYPTION_KEY', 'SESSION_SECRET', 'DATABASE_URL'];
-    
+
     sensitiveKeys.forEach(key => {
       if (sanitized[key]) {
         sanitized[key] = '***REDACTED***';
@@ -256,7 +256,7 @@ export class DeploymentConfig {
   /**
    * Get configuration value
    */
-  get<K extends keyof z.infer<typeof EnvironmentSchema>>(key: K): z.infer<typeof EnvironmentSchema>[K] {
+  get<K extends keyof z.infer<typeof EnvironmentSchema>>(_key: K): z.infer<typeof EnvironmentSchema>[K] {
     return this.config[key];
   }
 
@@ -305,8 +305,8 @@ export class DeploymentConfig {
   /**
    * Validate deployment readiness
    */
-  validateDeploymentReadiness(): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
+  validateDeploymentReadiness(): { _valid: boolean; _errors: string[] } {
+    const _errors: string[] = [];
 
     // Check required environment variables
     if (!this.config.DATABASE_URL) {
@@ -341,7 +341,7 @@ export class DeploymentConfig {
     }
 
     const valid = errors.length === 0;
-    
+
     if (!valid) {
       logger.error('Deployment readiness validation failed', { errors });
     } else {
@@ -356,16 +356,16 @@ export class DeploymentConfig {
    */
   getDeploymentMetadata(): Record<string, any> {
     return {
-      environment: this.environment,
-      version: this.config.BUILD_VERSION || 'unknown',
-      commitSha: this.config.COMMIT_SHA || 'unknown',
-      deploymentId: this.config.DEPLOYMENT_ID || 'unknown',
-      timestamp: new Date().toISOString(),
-      nodeVersion: process.version,
-      platform: process.platform,
+      _environment: this.environment,
+      _version: this.config.BUILD_VERSION || 'unknown',
+      _commitSha: this.config.COMMIT_SHA || 'unknown',
+      _deploymentId: this.config.DEPLOYMENT_ID || 'unknown',
+      _timestamp: new Date().toISOString(),
+      _nodeVersion: process.version,
+      _platform: process.platform
     };
   }
 }
 
 // Export singleton instance
-export const deploymentConfig = new DeploymentConfig(); 
+export const deploymentConfig = new DeploymentConfig();

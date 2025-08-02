@@ -1,11 +1,11 @@
-import { pgTable, serial, timestamp, text, integer, decimal, index } from "drizzle-orm/pg-core";
-import { z } from "zod";
-import { baseTable, baseInsertSchema, baseSelectSchema, commonValidators } from "./base";
-import { stores } from "./stores";
-import { products } from "./products";
-import { inventoryBatches } from "./inventory";
-import { users } from "./users";
-import { relations } from "drizzle-orm";
+import { pgTable, serial, timestamp, text, integer, decimal, index } from 'drizzle-orm/pg-core';
+import { z } from 'zod';
+import { baseTable, baseInsertSchema, baseSelectSchema, commonValidators } from './base';
+import { stores } from './stores';
+import { products } from './products';
+import { inventoryBatches } from './inventory';
+import { users } from './users';
+import { relations } from 'drizzle-orm';
 
 // Transaction status enum
 export const TransactionStatus = text('transaction_status').notNull();
@@ -20,23 +20,23 @@ export const transactions = pgTable(
   'transactions',
   {
     ...baseTable,
-    transactionId: serial('transaction_id').primaryKey(),
-    storeId: integer('store_id').references(() => stores.id),
-    userId: integer('user_id').references(() => users.id),
-    customerId: integer('customer_id').references(() => users.id),
-    cashierId: integer('cashier_id').references(() => users.id),
-    status: text('status').default('pending'),
-    totalAmount: decimal('total_amount').notNull(),
-    paymentStatus: text('payment_status').default('pending'),
-    paymentMethod: text('payment_method').default('cash'),
-    notes: text('notes'),
-    referenceNumber: text('reference_number').unique(),
-    referenceId: text('reference_id').unique(),
+    _transactionId: serial('transaction_id').primaryKey(),
+    _storeId: integer('store_id').references(() => stores.id),
+    _userId: integer('user_id').references(() => users.id),
+    _customerId: integer('customer_id').references(() => users.id),
+    _cashierId: integer('cashier_id').references(() => users.id),
+    _status: text('status').default('pending'),
+    _totalAmount: decimal('total_amount').notNull(),
+    _paymentStatus: text('payment_status').default('pending'),
+    _paymentMethod: text('payment_method').default('cash'),
+    _notes: text('notes'),
+    _referenceNumber: text('reference_number').unique(),
+    _referenceId: text('reference_id').unique()
   },
   table => ({
-    storeUserId: index('transactions_store_user_idx').on(table.storeId, table.userId),
-    paymentStatusIndex: index('transactions_payment_status_idx').on(table.paymentStatus),
-    statusIndex: index('transactions_status_idx').on(table.status),
+    _storeUserId: index('transactions_store_user_idx').on(table.storeId, table.userId),
+    _paymentStatusIndex: index('transactions_payment_status_idx').on(table.paymentStatus),
+    _statusIndex: index('transactions_status_idx').on(table.status)
   })
 );
 
@@ -44,23 +44,23 @@ export const transactionItems = pgTable(
   'transaction_items',
   {
     ...baseTable,
-    transactionItemId: serial('transaction_item_id').primaryKey(),
-    transactionId: integer('transaction_id').references(() => transactions.transactionId),
-    productId: integer('product_id').references(() => products.id),
-    inventoryBatchId: integer('inventory_batch_id').references(() => inventoryBatches.id),
-    quantity: integer('quantity').notNull(),
-    unitPrice: decimal('unit_price').notNull(),
-    discount: decimal('discount'),
-    tax: decimal('tax'),
-    notes: text('notes'),
-    expiryDate: timestamp('expiry_date'),
+    _transactionItemId: serial('transaction_item_id').primaryKey(),
+    _transactionId: integer('transaction_id').references(() => transactions.transactionId),
+    _productId: integer('product_id').references(() => products.id),
+    _inventoryBatchId: integer('inventory_batch_id').references(() => inventoryBatches.id),
+    _quantity: integer('quantity').notNull(),
+    _unitPrice: decimal('unit_price').notNull(),
+    _discount: decimal('discount'),
+    _tax: decimal('tax'),
+    _notes: text('notes'),
+    _expiryDate: timestamp('expiry_date')
   },
   table => ({
-    transactionProductIndex: index('transaction_items_transaction_product_idx').on(
+    _transactionProductIndex: index('transaction_items_transaction_product_idx').on(
       table.transactionId,
       table.productId
     ),
-    expiryDateIndex: index('transaction_items_expiry_idx').on(table.expiryDate),
+    _expiryDateIndex: index('transaction_items_expiry_idx').on(table.expiryDate)
   })
 );
 
@@ -68,153 +68,153 @@ export const transactionPayments = pgTable(
   'transaction_payments',
   {
     ...baseTable,
-    transactionPaymentId: serial('transaction_payment_id').primaryKey(),
-    transactionId: integer('transaction_id').references(() => transactions.transactionId),
-    amount: decimal('amount').notNull(),
-    paymentMethod: text('payment_method'),
-    referenceNumber: text('reference_number'),
-    notes: text('notes'),
+    _transactionPaymentId: serial('transaction_payment_id').primaryKey(),
+    _transactionId: integer('transaction_id').references(() => transactions.transactionId),
+    _amount: decimal('amount').notNull(),
+    _paymentMethod: text('payment_method'),
+    _referenceNumber: text('reference_number'),
+    _notes: text('notes')
   },
   table => ({
-    transactionPaymentIndex: index('transaction_payments_transaction_idx').on(table.transactionId),
-    paymentMethodIndex: index('transaction_payments_method_idx').on(table.paymentMethod),
+    _transactionPaymentIndex: index('transaction_payments_transaction_idx').on(table.transactionId),
+    _paymentMethodIndex: index('transaction_payments_method_idx').on(table.paymentMethod)
   })
 );
 
 // Validation schemas
 export const transactionInsertSchema = baseInsertSchema.extend({
-  transactionId: z.number().int().optional(),
-  storeId: z.number().int().positive('Store ID must be positive'),
-  userId: z.number().int().positive('User ID must be positive'),
-  customerId: z.number().int().positive('Customer ID must be positive').optional(),
-  status: z.enum(['pending', 'completed', 'cancelled', 'failed']).default('pending'),
-  totalAmount: z
+  _transactionId: z.number().int().optional(),
+  _storeId: z.number().int().positive('Store ID must be positive'),
+  _userId: z.number().int().positive('User ID must be positive'),
+  _customerId: z.number().int().positive('Customer ID must be positive').optional(),
+  _status: z.enum(['pending', 'completed', 'cancelled', 'failed']).default('pending'),
+  _totalAmount: z
     .string()
     .refine(val => !isNaN(parseFloat(val)), {
-      message: 'Total amount must be a valid numeric string',
+      _message: 'Total amount must be a valid numeric string'
     }),
-  paymentStatus: z
+  _paymentStatus: z
     .enum(['pending', 'paid', 'partially_paid', 'overpaid', 'failed'])
     .default('pending'),
-  paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_money']).default('cash'),
-  notes: z.string().pipe(z.string().max(1000, 'Notes cannot exceed 1000 characters')).optional(),
-  referenceNumber: z
+  _paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_money']).default('cash'),
+  _notes: z.string().pipe(z.string().max(1000, 'Notes cannot exceed 1000 characters')).optional(),
+  _referenceNumber: z
     .string()
     .min(1, 'Reference number is required')
-    .pipe(z.string().max(50, 'Reference number cannot exceed 50 characters')),
+    .pipe(z.string().max(50, 'Reference number cannot exceed 50 characters'))
 });
 
 export const transactionSelectSchema = baseSelectSchema.extend({
-  transactionId: z.number().int(),
-  storeId: z.number().int(),
-  userId: z.number().int(),
-  customerId: z.number().int().optional(),
-  status: z.enum(['pending', 'completed', 'cancelled', 'failed']),
-  totalAmount: z.number().min(0),
-  paymentStatus: z.enum(['pending', 'paid', 'partially_paid', 'overpaid', 'failed']),
-  paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_money']),
-  notes: z.string().optional(),
-  referenceNumber: z.string(),
+  _transactionId: z.number().int(),
+  _storeId: z.number().int(),
+  _userId: z.number().int(),
+  _customerId: z.number().int().optional(),
+  _status: z.enum(['pending', 'completed', 'cancelled', 'failed']),
+  _totalAmount: z.number().min(0),
+  _paymentStatus: z.enum(['pending', 'paid', 'partially_paid', 'overpaid', 'failed']),
+  _paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_money']),
+  _notes: z.string().optional(),
+  _referenceNumber: z.string()
 });
 
 export const transactionItemInsertSchema = baseInsertSchema.extend({
-  transactionItemId: z.number().int().optional(),
-  transactionId: z.number().int().positive('Transaction ID must be positive'),
-  productId: z.number().int().positive('Product ID must be positive'),
-  inventoryBatchId: z.number().int().positive('Inventory batch ID must be positive'),
-  quantity: z
+  _transactionItemId: z.number().int().optional(),
+  _transactionId: z.number().int().positive('Transaction ID must be positive'),
+  _productId: z.number().int().positive('Product ID must be positive'),
+  _inventoryBatchId: z.number().int().positive('Inventory batch ID must be positive'),
+  _quantity: z
     .number()
     .int()
     .min(1, 'Quantity must be positive')
     .max(1000, 'Quantity cannot exceed 1000'),
-  unitPrice: z
+  _unitPrice: z
     .string()
     .refine(val => !isNaN(parseFloat(val)), {
-      message: 'Unit price must be a valid numeric string',
+      _message: 'Unit price must be a valid numeric string'
     }),
-  discount: z
+  _discount: z
     .number()
     .min(0, 'Discount must be positive')
     .max(100, 'Discount cannot exceed 100%')
     .optional(),
-  tax: z.number().min(0, 'Tax must be positive').max(100, 'Tax cannot exceed 100%').optional(),
-  notes: z.string().pipe(z.string().max(500, 'Notes cannot exceed 500 characters')).optional(),
+  _tax: z.number().min(0, 'Tax must be positive').max(100, 'Tax cannot exceed 100%').optional(),
+  _notes: z.string().pipe(z.string().max(500, 'Notes cannot exceed 500 characters')).optional()
 });
 
 export const transactionItemSelectSchema = baseSelectSchema.extend({
-  transactionItemId: z.number().int(),
-  transactionId: z.number().int(),
-  productId: z.number().int(),
-  inventoryBatchId: z.number().int(),
-  quantity: z.number().int(),
-  unitPrice: z.number(),
-  discount: z.number().optional(),
-  tax: z.number().optional(),
-  notes: z.string().optional(),
+  _transactionItemId: z.number().int(),
+  _transactionId: z.number().int(),
+  _productId: z.number().int(),
+  _inventoryBatchId: z.number().int(),
+  _quantity: z.number().int(),
+  _unitPrice: z.number(),
+  _discount: z.number().optional(),
+  _tax: z.number().optional(),
+  _notes: z.string().optional()
 });
 
 export const transactionPaymentInsertSchema = baseInsertSchema.extend({
-  transactionPaymentId: z.number().int().optional(),
-  transactionId: z.number().int().positive('Transaction ID must be positive'),
-  amount: z
+  _transactionPaymentId: z.number().int().optional(),
+  _transactionId: z.number().int().positive('Transaction ID must be positive'),
+  _amount: z
     .number()
     .min(0, 'Amount must be positive')
     .max(1000000, 'Amount cannot exceed 1,000,000'),
-  paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_money']).default('cash'),
-  referenceNumber: z
+  _paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_money']).default('cash'),
+  _referenceNumber: z
     .string()
     .min(1, 'Reference number is required')
     .pipe(z.string().max(50, 'Reference number cannot exceed 50 characters')),
-  notes: z.string().pipe(z.string().max(500, 'Notes cannot exceed 500 characters')).optional(),
+  _notes: z.string().pipe(z.string().max(500, 'Notes cannot exceed 500 characters')).optional()
 });
 
 export const transactionPaymentSelectSchema = baseSelectSchema.extend({
-  transactionPaymentId: z.number().int(),
-  transactionId: z.number().int(),
-  amount: z.number(),
-  paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_money']),
-  referenceNumber: z.string().optional(),
-  notes: z.string().optional(),
+  _transactionPaymentId: z.number().int(),
+  _transactionId: z.number().int(),
+  _amount: z.number(),
+  _paymentMethod: z.enum(['cash', 'card', 'bank_transfer', 'mobile_money']),
+  _referenceNumber: z.string().optional(),
+  _notes: z.string().optional()
 });
 
 // Relations
 export const transactionRelations = relations(transactions, helpers => ({
-  store: helpers.one(stores, {
-    fields: [transactions.storeId],
-    references: [stores.id],
+  _store: helpers.one(stores, {
+    _fields: [transactions.storeId],
+    _references: [stores.id]
   }),
-  user: helpers.one(users, {
-    fields: [transactions.userId],
-    references: [users.id],
+  _user: helpers.one(users, {
+    _fields: [transactions.userId],
+    _references: [users.id]
   }),
-  customer: helpers.one(users, {
-    fields: [transactions.customerId],
-    references: [users.id],
+  _customer: helpers.one(users, {
+    _fields: [transactions.customerId],
+    _references: [users.id]
   }),
-  items: helpers.many(transactionItems),
-  payments: helpers.many(transactionPayments),
+  _items: helpers.many(transactionItems),
+  _payments: helpers.many(transactionPayments)
 }));
 
 export const transactionItemRelations = relations(transactionItems, helpers => ({
-  transaction: helpers.one(transactions, {
-    fields: [transactionItems.transactionId],
-    references: [transactions.transactionId],
+  _transaction: helpers.one(transactions, {
+    _fields: [transactionItems.transactionId],
+    _references: [transactions.transactionId]
   }),
-  product: helpers.one(products, {
-    fields: [transactionItems.productId],
-    references: [products.id],
+  _product: helpers.one(products, {
+    _fields: [transactionItems.productId],
+    _references: [products.id]
   }),
-  inventoryBatch: helpers.one(inventoryBatches, {
-    fields: [transactionItems.inventoryBatchId],
-    references: [inventoryBatches.id],
-  }),
+  _inventoryBatch: helpers.one(inventoryBatches, {
+    _fields: [transactionItems.inventoryBatchId],
+    _references: [inventoryBatches.id]
+  })
 }));
 
 export const transactionPaymentRelations = relations(transactionPayments, helpers => ({
-  transaction: helpers.one(transactions, {
-    fields: [transactionPayments.transactionId],
-    references: [transactions.transactionId],
-  }),
+  _transaction: helpers.one(transactions, {
+    _fields: [transactionPayments.transactionId],
+    _references: [transactions.transactionId]
+  })
 }));
 
 export type TransactionItem = z.infer<typeof transactionItemSelectSchema>;

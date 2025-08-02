@@ -14,17 +14,17 @@ const __dirname = path.dirname(__filename);
 
 // Start the integrated server
 const server = spawn('tsx', ['watch', 'server/index.ts'], {
-  cwd: __dirname,
-  stdio: 'inherit',
-  env: {
+  _cwd: __dirname,
+  _stdio: 'inherit',
+  _env: {
     ...process.env,
-    NODE_ENV: 'development',
-    PORT: '3000'
+    _NODE_ENV: 'development',
+    _PORT: '3000'
   }
 });
 
 server.on('error', (error) => {
-  console.error('Failed to start development server:', error);
+  console.error('Failed to start development _server:', error);
   process.exit(1);
 });
 

@@ -8,12 +8,12 @@ import { customers } from '../shared/db/customers';
 neonConfig.webSocketConstructor = ws as any;
 
 // For development/testing, use a dummy URL if DATABASE_URL is not set
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://_dummy:dummy@_localhost:5432/dummy';
 
 const combinedSchema = { ...schema, customers };
 
-export const pool = new Pool({ connectionString: databaseUrl });
-export const db = drizzle({ client: pool, schema: combinedSchema });
+export const pool = new Pool({ _connectionString: databaseUrl });
+export const db = drizzle({ _client: pool, _schema: combinedSchema });
 
 // Re-export all tables so consumers can `import { db, customers, transactions } from "../../db"`.
 export * from '../shared/schema.js';

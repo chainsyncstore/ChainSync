@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,14 +32,14 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.validateSession = exports.hasStoreAccess = exports.isCashierOrAbove = exports.isManagerOrAdmin = exports.isAdmin = exports.authorizeRoles = exports.authenticateUser = exports.isAuthenticated = void 0;
 const index_js_1 = require('../../db/index.js');
 const schema = __importStar(require('@shared/schema'));
 const drizzle_orm_1 = require('drizzle-orm');
 const index_js_2 = require('../../src/logging/index.js');
 // Get centralized logger for auth middleware
-const logger = (0, index_js_2.getLogger)().child({ component: 'auth-middleware' });
+const logger = (0, index_js_2.getLogger)().child({ _component: 'auth-middleware' });
 /**
  * Authentication middleware to verify user is logged in
  */
@@ -48,11 +48,11 @@ const isAuthenticated = (req, res, next) => {
   const reqLogger = (0, index_js_2.getRequestLogger)(req) || logger;
   if (!req.session.userId) {
     reqLogger.warn('Unauthorized access attempt', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip
     });
-    return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    return res.status(401).json({ _message: '_Unauthorized: Please log in', _code: 'UNAUTHORIZED' });
   }
   next();
 };
@@ -71,35 +71,35 @@ const authorizeRoles = (allowedRoles) => {
     const reqLogger = (0, index_js_2.getRequestLogger)(req) || logger;
     if (!req.session.userId) {
       reqLogger.warn('Unauthorized access attempt', {
-        path: req.path,
-        method: req.method,
-        ip: req.ip,
-        requiredRoles: allowedRoles.join(', ')
+        _path: req.path,
+        _method: req.method,
+        _ip: req.ip,
+        _requiredRoles: allowedRoles.join(', ')
       });
-      return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+      return res.status(401).json({ _message: '_Unauthorized: Please log in', _code: 'UNAUTHORIZED' });
     }
     if (!req.session.userRole || !allowedRoles.includes(req.session.userRole)) {
       reqLogger.warn('Forbidden access attempt', {
-        path: req.path,
-        method: req.method,
-        ip: req.ip,
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        requiredRoles: allowedRoles.join(', ')
+        _path: req.path,
+        _method: req.method,
+        _ip: req.ip,
+        _userId: req.session.userId,
+        _userRole: req.session.userRole,
+        _requiredRoles: allowedRoles.join(', ')
       });
       return res.status(403).json({
-        message: `Forbidden: Required role not found. Need one of: ${allowedRoles.join(', ')}`,
-        code: 'FORBIDDEN_ROLE'
+        _message: `_Forbidden: Required role not found. Need one of: ${allowedRoles.join(', ')}`,
+        _code: 'FORBIDDEN_ROLE'
       });
     }
     // Set user object for downstream middleware and route handlers
     if (req.session.userRole) {
       req.user = {
-        id: String(req.session.userId), // Convert number to string to match interface
-        role: req.session.userRole,
-        storeId: req.session.storeId,
-        name: req.session.fullName || '',
-        email: '' // Add email property
+        _id: String(req.session.userId), // Convert number to string to match interface
+        _role: req.session.userRole,
+        _storeId: req.session.storeId,
+        _name: req.session.fullName || '',
+        _email: '' // Add email property
       };
     }
     next();
@@ -114,25 +114,25 @@ const isAdmin = (req, res, next) => {
   const reqLogger = (0, index_js_2.getRequestLogger)(req) || logger;
   if (!req.session.userId) {
     reqLogger.warn('Unauthorized access attempt', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      requiredRole: 'admin'
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
+      _requiredRole: 'admin'
     });
-    return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    return res.status(401).json({ _message: '_Unauthorized: Please log in', _code: 'UNAUTHORIZED' });
   }
   if (req.session.userRole !== 'admin') {
     reqLogger.warn('Forbidden access attempt', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      userId: req.session.userId,
-      userRole: req.session.userRole,
-      requiredRole: 'admin'
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
+      _userId: req.session.userId,
+      _userRole: req.session.userRole,
+      _requiredRole: 'admin'
     });
     return res.status(403).json({
-      message: 'Forbidden: Admin access required',
-      code: 'FORBIDDEN_ROLE'
+      _message: '_Forbidden: Admin access required',
+      _code: 'FORBIDDEN_ROLE'
     });
   }
   next();
@@ -146,25 +146,25 @@ const isManagerOrAdmin = (req, res, next) => {
   const reqLogger = (0, index_js_2.getRequestLogger)(req) || logger;
   if (!req.session.userId) {
     reqLogger.warn('Unauthorized access attempt', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      requiredRole: 'manager or admin'
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
+      _requiredRole: 'manager or admin'
     });
-    return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    return res.status(401).json({ _message: '_Unauthorized: Please log in', _code: 'UNAUTHORIZED' });
   }
   if (req.session.userRole !== 'manager' && req.session.userRole !== 'admin') {
     reqLogger.warn('Forbidden access attempt', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      userId: req.session.userId,
-      userRole: req.session.userRole,
-      requiredRole: 'manager or admin'
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
+      _userId: req.session.userId,
+      _userRole: req.session.userRole,
+      _requiredRole: 'manager or admin'
     });
     return res.status(403).json({
-      message: 'Forbidden: Manager or admin access required',
-      code: 'FORBIDDEN_ROLE'
+      _message: '_Forbidden: Manager or admin access required',
+      _code: 'FORBIDDEN_ROLE'
     });
   }
   next();
@@ -178,26 +178,26 @@ const isCashierOrAbove = (req, res, next) => {
   const reqLogger = (0, index_js_2.getRequestLogger)(req) || logger;
   if (!req.session.userId) {
     reqLogger.warn('Unauthorized access attempt', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      requiredRole: 'cashier or above'
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
+      _requiredRole: 'cashier or above'
     });
-    return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    return res.status(401).json({ _message: '_Unauthorized: Please log in', _code: 'UNAUTHORIZED' });
   }
   const validRoles = ['cashier', 'manager', 'admin'];
   if (!req.session.userRole || !validRoles.includes(req.session.userRole)) {
     reqLogger.warn('Forbidden access attempt', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      userId: req.session.userId,
-      userRole: req.session.userRole,
-      requiredRole: 'cashier or above'
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
+      _userId: req.session.userId,
+      _userRole: req.session.userRole,
+      _requiredRole: 'cashier or above'
     });
     return res.status(403).json({
-      message: 'Forbidden: Staff access required',
-      code: 'FORBIDDEN_ROLE'
+      _message: '_Forbidden: Staff access required',
+      _code: 'FORBIDDEN_ROLE'
     });
   }
   next();
@@ -213,14 +213,14 @@ const hasStoreAccess = (storeIdParam = 'storeId') => {
     const reqLogger = (0, index_js_2.getRequestLogger)(req) || logger;
     if (!req.session.userId) {
       reqLogger.warn('Unauthorized store access attempt', {
-        path: req.path,
-        method: req.method,
-        ip: req.ip,
+        _path: req.path,
+        _method: req.method,
+        _ip: req.ip,
         storeIdParam
       });
       return res.status(401).json({
-        message: 'Unauthorized: Please log in',
-        code: 'UNAUTHORIZED'
+        _message: '_Unauthorized: Please log in',
+        _code: 'UNAUTHORIZED'
       });
     }
     // Extract store ID from request (params, query, or body)
@@ -236,20 +236,20 @@ const hasStoreAccess = (storeIdParam = 'storeId') => {
     }
     if (!storeId || isNaN(storeId)) {
       reqLogger.warn('Invalid store ID in request', {
-        path: req.path,
-        method: req.method,
+        _path: req.path,
+        _method: req.method,
         storeIdParam,
-        providedValue: req.params[storeIdParam] || req.body[storeIdParam] || req.query[storeIdParam]
+        _providedValue: req.params[storeIdParam] || req.body[storeIdParam] || req.query[storeIdParam]
       });
       return res.status(400).json({
-        message: 'Invalid store ID',
-        code: 'INVALID_STORE_ID'
+        _message: 'Invalid store ID',
+        _code: 'INVALID_STORE_ID'
       });
     }
     // Admins have access to all stores
     if (req.session.userRole === 'admin') {
       reqLogger.debug('Admin access to store granted', {
-        userId: req.session.userId,
+        _userId: req.session.userId,
         storeId
       });
       return next();
@@ -257,17 +257,17 @@ const hasStoreAccess = (storeIdParam = 'storeId') => {
     // Managers and cashiers can only access their assigned store
     if (req.session.storeId !== storeId) {
       reqLogger.warn('Forbidden store access attempt', {
-        path: req.path,
-        method: req.method,
-        ip: req.ip,
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        assignedStoreId: req.session.storeId,
-        requestedStoreId: storeId
+        _path: req.path,
+        _method: req.method,
+        _ip: req.ip,
+        _userId: req.session.userId,
+        _userRole: req.session.userRole,
+        _assignedStoreId: req.session.storeId,
+        _requestedStoreId: storeId
       });
       return res.status(403).json({
-        message: 'Forbidden: You do not have access to this store',
-        code: 'FORBIDDEN_STORE_ACCESS'
+        _message: '_Forbidden: You do not have access to this store',
+        _code: 'FORBIDDEN_STORE_ACCESS'
       });
     }
     next();
@@ -282,36 +282,36 @@ const validateSession = async(req, res, next) => {
   // Get request-scoped logger if available
   const reqLogger = (0, index_js_2.getRequestLogger)(req) || logger;
   reqLogger.debug('Validating session', {
-    path: req.path,
-    method: req.method,
-    sessionID: req.sessionID,
-    hasUserId: !!req.session.userId
+    _path: req.path,
+    _method: req.method,
+    _sessionID: req.sessionID,
+    _hasUserId: !!req.session.userId
   });
   if (req.session.userId) {
     try {
       // Verify user still exists and is valid
       const user = await index_js_1.db.query.users.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.users.id, req.session.userId),
-        columns: {
-          id: true,
-          email: true,
-          role: true,
-          isActive: true
+        _where: (0, drizzle_orm_1.eq)(schema.users.id, req.session.userId),
+        _columns: {
+          _id: true,
+          _email: true,
+          _role: true,
+          _isActive: true
         }
       });
       if (!user) {
         reqLogger.warn('Invalid session - user not found', {
-          userId: req.session.userId,
-          sessionID: req.sessionID
+          _userId: req.session.userId,
+          _sessionID: req.sessionID
         });
         // User no longer exists, destroy session
         await new Promise((resolve) => {
           req.session.destroy((err) => {
             if (err) {
-              reqLogger.error('Error destroying session', err, { sessionID: req.sessionID });
+              reqLogger.error('Error destroying session', err, { _sessionID: req.sessionID });
             }
             else {
-              reqLogger.info('Session destroyed successfully', { sessionID: req.sessionID });
+              reqLogger.info('Session destroyed successfully', { _sessionID: req.sessionID });
             }
             resolve();
           });
@@ -321,16 +321,16 @@ const validateSession = async(req, res, next) => {
           return next(); // Continue to auth/me handler for proper error response
         }
         return res.status(401).json({
-          message: 'Session expired. Please log in again.',
-          code: 'SESSION_EXPIRED'
+          _message: 'Session expired. Please log in again.',
+          _code: 'SESSION_EXPIRED'
         });
       }
       // Check if user is active
       if (user.isActive === false) {
         reqLogger.warn('Inactive user attempted access', {
-          userId: user.id,
-          role: user.role,
-          sessionID: req.sessionID
+          _userId: user.id,
+          _role: user.role,
+          _sessionID: req.sessionID
         });
         // Destroy session for inactive user
         await new Promise((resolve) => {
@@ -342,36 +342,36 @@ const validateSession = async(req, res, next) => {
           });
         });
         return res.status(403).json({
-          message: 'Your account has been deactivated. Please contact an administrator.',
-          code: 'ACCOUNT_INACTIVE'
+          _message: 'Your account has been deactivated. Please contact an administrator.',
+          _code: 'ACCOUNT_INACTIVE'
         });
       }
       // Verify session matches current role (prevent stale permissions)
       if (user.role !== req.session.userRole) {
         reqLogger.warn('User role mismatch - updating session', {
-          userId: user.id,
-          sessionRole: req.session.userRole,
-          actualRole: user.role
+          _userId: user.id,
+          _sessionRole: req.session.userRole,
+          _actualRole: user.role
         });
         // Update session with current role
         req.session.userRole = user.role;
       }
       // Session is valid
       reqLogger.debug('User session validated', {
-        userId: user.id,
-        role: user.role
+        _userId: user.id,
+        _role: user.role
       });
       // Update user context in request for downstream use
       req.user = {
-        id: user.id,
-        email: user.email,
-        role: user.role
+        _id: user.id,
+        _email: user.email,
+        _role: user.role
       };
     }
     catch (error) {
-      reqLogger.error('Error validating session', error instanceof Error ? error : new Error(String(error)), {
-        path: req.path,
-        sessionID: req.sessionID
+      reqLogger.error('Error validating session', error instanceof Error ? _error : new Error(String(error)), {
+        _path: req.path,
+        _sessionID: req.sessionID
       });
       // Continue processing request, but session may be invalid
       // This prevents one DB error from blocking all requests
@@ -379,10 +379,10 @@ const validateSession = async(req, res, next) => {
   }
   else {
     reqLogger.debug('No user ID in session', {
-      path: req.path,
-      method: req.method,
-      sessionID: req.sessionID,
-      isPublicRoute: req.path.startsWith('/api/public/')
+      _path: req.path,
+      _method: req.method,
+      _sessionID: req.sessionID,
+      _isPublicRoute: req.path.startsWith('/api/public/')
     });
   }
   next();

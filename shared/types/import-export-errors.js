@@ -1,20 +1,20 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ImportExportErrors = exports.ImportExportErrorCategories = exports.ImportExportErrorCodes = void 0;
 const errors_1 = require('@shared/types/errors');
 exports.ImportExportErrorCodes = {
-  INVALID_FILE: 'INVALID_FILE',
-  PROCESSING_ERROR: 'PROCESSING_ERROR',
-  INVALID_FORMAT: 'INVALID_FORMAT',
-  EXPORT_ERROR: 'EXPORT_ERROR',
-  DATABASE_ERROR: 'DATABASE_ERROR'
+  _INVALID_FILE: 'INVALID_FILE',
+  _PROCESSING_ERROR: 'PROCESSING_ERROR',
+  _INVALID_FORMAT: 'INVALID_FORMAT',
+  _EXPORT_ERROR: 'EXPORT_ERROR',
+  _DATABASE_ERROR: 'DATABASE_ERROR'
 };
 exports.ImportExportErrorCategories = {
   IMPORT_EXPORT: 'IMPORT_EXPORT',
-  PROCESSING: 'PROCESSING',
-  INVALID_FORMAT: 'INVALID_FORMAT',
-  EXPORT_ERROR: 'EXPORT_ERROR',
-  DATABASE: 'DATABASE'
+  _PROCESSING: 'PROCESSING',
+  _INVALID_FORMAT: 'INVALID_FORMAT',
+  _EXPORT_ERROR: 'EXPORT_ERROR',
+  _DATABASE: 'DATABASE'
 };
 exports.ImportExportErrors = {
   [exports.ImportExportErrorCodes.INVALID_FILE]: new errors_1.AppError('Invalid file provided', errors_1.ErrorCategory.IMPORT_EXPORT, errors_1.ErrorCode.INVALID_FILE, undefined, 400),

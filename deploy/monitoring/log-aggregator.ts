@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'log-aggregator' });
+const logger = getLogger().child({ _component: 'log-aggregator' });
 
 // Log levels
 export enum LogLevel {
@@ -16,25 +16,25 @@ export enum LogLevel {
 
 // Log entry interface
 export interface LogEntry {
-  timestamp: Date;
-  level: LogLevel;
-  message: string;
-  service: string;
+  _timestamp: Date;
+  _level: LogLevel;
+  _message: string;
+  _service: string;
   component?: string;
   traceId?: string;
   userId?: string;
   sessionId?: string;
   metadata?: Record<string, any>;
   error?: {
-    name: string;
-    message: string;
+    _name: string;
+    _message: string;
     stack?: string;
     code?: string;
   };
   performance?: {
-    duration: number;
-    memoryUsage: number;
-    cpuUsage: number;
+    _duration: number;
+    _memoryUsage: number;
+    _cpuUsage: number;
   };
 }
 
@@ -44,8 +44,8 @@ export interface LogFilter {
   service?: string;
   component?: string;
   timeRange?: {
-    start: Date;
-    end: Date;
+    _start: Date;
+    _end: Date;
   };
   keywords?: string[];
   excludeKeywords?: string[];
@@ -58,70 +58,70 @@ export interface LogAggregatorConfig {
   storage: {
     type: 'file' | 'database' | 'elasticsearch';
     path?: string;
-    maxFileSize: number;
-    maxFiles: number;
-    retentionDays: number;
+    _maxFileSize: number;
+    _maxFiles: number;
+    _retentionDays: number;
   };
   processing: {
-    batchSize: number;
-    batchTimeout: number;
-    enableCompression: boolean;
-    enableEncryption: boolean;
+    _batchSize: number;
+    _batchTimeout: number;
+    _enableCompression: boolean;
+    _enableEncryption: boolean;
   };
   alerting: {
-    enabled: boolean;
-    errorThreshold: number;
-    errorWindow: number;
-    alertChannels: string[];
+    _enabled: boolean;
+    _errorThreshold: number;
+    _errorWindow: number;
+    _alertChannels: string[];
   };
   performance: {
-    maxConcurrentProcessors: number;
-    bufferSize: number;
-    flushInterval: number;
+    _maxConcurrentProcessors: number;
+    _bufferSize: number;
+    _flushInterval: number;
   };
 }
 
 // Default configuration
-const defaultConfig: LogAggregatorConfig = {
+const _defaultConfig: LogAggregatorConfig = {
   storage: {
     type: 'file',
-    path: './logs',
-    maxFileSize: 10 * 1024 * 1024, // 10MB
-    maxFiles: 100,
-    retentionDays: 30,
+    _path: './logs',
+    _maxFileSize: 10 * 1024 * 1024, // 10MB
+    _maxFiles: 100,
+    _retentionDays: 30
   },
-  processing: {
-    batchSize: 1000,
-    batchTimeout: 5000, // 5 seconds
-    enableCompression: true,
-    enableEncryption: false,
+  _processing: {
+    _batchSize: 1000,
+    _batchTimeout: 5000, // 5 seconds
+    _enableCompression: true,
+    _enableEncryption: false
   },
-  alerting: {
-    enabled: true,
-    errorThreshold: 10,
-    errorWindow: 60000, // 1 minute
-    alertChannels: ['email', 'slack'],
+  _alerting: {
+    _enabled: true,
+    _errorThreshold: 10,
+    _errorWindow: 60000, // 1 minute
+    _alertChannels: ['email', 'slack']
   },
-  performance: {
-    maxConcurrentProcessors: 4,
-    bufferSize: 10000,
-    flushInterval: 1000, // 1 second
-  },
+  _performance: {
+    _maxConcurrentProcessors: 4,
+    _bufferSize: 10000,
+    _flushInterval: 1000 // 1 second
+  }
 };
 
 /**
  * Log Aggregator System
  */
 export class LogAggregator extends EventEmitter {
-  private config: LogAggregatorConfig;
-  private buffer: LogEntry[] = [];
-  private isProcessing: boolean = false;
-  private errorCount: number = 0;
-  private lastErrorTime: Date = new Date();
-  private currentFile: string = '';
-  private currentFileSize: number = 0;
+  private _config: LogAggregatorConfig;
+  private _buffer: LogEntry[] = [];
+  private _isProcessing: boolean = false;
+  private _errorCount: number = 0;
+  private _lastErrorTime: Date = new Date();
+  private _currentFile: string = '';
+  private _currentFileSize: number = 0;
 
-  constructor(config: Partial<LogAggregatorConfig> = {}) {
+  constructor(_config: Partial<LogAggregatorConfig> = {}) {
     super();
     this.config = { ...defaultConfig, ...config };
     this.initializeStorage();
@@ -135,9 +135,9 @@ export class LogAggregator extends EventEmitter {
   private async initializeStorage(): Promise<void> {
     if (this.config.storage.type === 'file' && this.config.storage.path) {
       try {
-        await fs.mkdir(this.config.storage.path, { recursive: true });
+        await fs.mkdir(this.config.storage.path, { _recursive: true });
         this.currentFile = this.generateFileName();
-        logger.info('Log storage initialized', { path: this.config.storage.path });
+        logger.info('Log storage initialized', { _path: this.config.storage.path });
       } catch (error) {
         logger.error('Failed to initialize log storage', { error });
         throw error;
@@ -156,7 +156,7 @@ export class LogAggregator extends EventEmitter {
   /**
    * Collect a log entry
    */
-  async collect(entry: LogEntry): Promise<void> {
+  async collect(_entry: LogEntry): Promise<void> {
     try {
       this.buffer.push(entry);
 
@@ -192,8 +192,8 @@ export class LogAggregator extends EventEmitter {
       this.emit('batch-processed', batch);
 
       logger.debug('Log batch processed', {
-        originalSize: batch.length,
-        processedSize: batch.length,
+        _originalSize: batch.length,
+        _processedSize: batch.length
       });
     } catch (error) {
       logger.error('Failed to process log batch', { error });
@@ -206,7 +206,7 @@ export class LogAggregator extends EventEmitter {
   /**
    * Store logs to storage
    */
-  private async storeLogs(logs: LogEntry[]): Promise<void> {
+  private async storeLogs(_logs: LogEntry[]): Promise<void> {
     if (this.config.storage.type === 'file') {
       await this.storeToFile(logs);
     }
@@ -215,7 +215,7 @@ export class LogAggregator extends EventEmitter {
   /**
    * Store logs to file
    */
-  private async storeToFile(logs: LogEntry[]): Promise<void> {
+  private async storeToFile(_logs: LogEntry[]): Promise<void> {
     try {
       if (this.currentFileSize >= this.config.storage.maxFileSize) {
         await this.rotateLogFile();
@@ -226,9 +226,9 @@ export class LogAggregator extends EventEmitter {
       this.currentFileSize += Buffer.byteLength(logLines, 'utf8');
 
       logger.debug('Logs stored to file', {
-        file: this.currentFile,
-        count: logs.length,
-        size: this.currentFileSize,
+        _file: this.currentFile,
+        _count: logs.length,
+        _size: this.currentFileSize
       });
     } catch (error) {
       logger.error('Failed to store logs to file', { error });
@@ -250,7 +250,7 @@ export class LogAggregator extends EventEmitter {
    * Start background processing
    */
   private startProcessing(): void {
-    setInterval(async () => {
+    setInterval(async() => {
       if (this.buffer.length > 0) {
         await this.processBatch();
       }
@@ -261,7 +261,7 @@ export class LogAggregator extends EventEmitter {
    * Start cleanup process
    */
   private startCleanup(): void {
-    setInterval(async () => {
+    setInterval(async() => {
       await this.cleanupOldLogs();
     }, 24 * 60 * 60 * 1000); // Run daily
   }
@@ -283,7 +283,7 @@ export class LogAggregator extends EventEmitter {
         if (file.startsWith('logs-') && file.endsWith('.jsonl')) {
           const filePath = path.join(this.config.storage.path!, file);
           const stats = await fs.stat(filePath);
-          
+
           if (stats.mtime < cutoffDate) {
             await fs.unlink(filePath);
             logger.info('Deleted old log file', { file });
@@ -300,22 +300,22 @@ export class LogAggregator extends EventEmitter {
    */
   private async checkErrorThreshold(): Promise<void> {
     const timeSinceLastError = Date.now() - this.lastErrorTime.getTime();
-    
+
     if (
       this.config.alerting.enabled &&
       this.errorCount >= this.config.alerting.errorThreshold &&
       timeSinceLastError <= this.config.alerting.errorWindow
     ) {
       await this.sendAlert({
-        type: 'error_threshold_exceeded',
-        severity: 'high',
-        title: 'High Error Rate Detected',
-        message: `Error threshold exceeded: ${this.errorCount} errors in ${this.config.alerting.errorWindow}ms`,
-        metadata: {
-          errorCount: this.errorCount,
-          timeWindow: this.config.alerting.errorWindow,
-          threshold: this.config.alerting.errorThreshold,
-        },
+        _type: 'error_threshold_exceeded',
+        _severity: 'high',
+        _title: 'High Error Rate Detected',
+        _message: `Error threshold exceeded: ${this.errorCount} errors in ${this.config.alerting.errorWindow}ms`,
+        _metadata: {
+          _errorCount: this.errorCount,
+          _timeWindow: this.config.alerting.errorWindow,
+          _threshold: this.config.alerting.errorThreshold
+        }
       });
 
       this.errorCount = 0;
@@ -325,9 +325,9 @@ export class LogAggregator extends EventEmitter {
   /**
    * Send alert
    */
-  private async sendAlert(alert: any): Promise<void> {
+  private async sendAlert(_alert: any): Promise<void> {
     this.emit('alert', alert);
-    
+
     for (const channel of this.config.alerting.alertChannels) {
       try {
         await this.sendAlertToChannel(channel, alert);
@@ -340,7 +340,7 @@ export class LogAggregator extends EventEmitter {
   /**
    * Send alert to specific channel
    */
-  private async sendAlertToChannel(channel: string, alert: any): Promise<void> {
+  private async sendAlertToChannel(_channel: string, _alert: any): Promise<void> {
     switch (channel) {
       case 'email':
         logger.info('Email alert sent', { alert });
@@ -348,18 +348,17 @@ export class LogAggregator extends EventEmitter {
       case 'slack':
         logger.info('Slack alert sent', { alert });
         break;
-      default:
-        logger.warn('Unknown alert channel', { channel });
+      logger.warn('Unknown alert channel', { channel });
     }
   }
 
   /**
    * Get buffer status
    */
-  getBufferStatus(): { size: number; isProcessing: boolean } {
+  getBufferStatus(): { _size: number; _isProcessing: boolean } {
     return {
-      size: this.buffer.length,
-      isProcessing: this.isProcessing,
+      _size: this.buffer.length,
+      _isProcessing: this.isProcessing
     };
   }
 
@@ -383,4 +382,4 @@ export class LogAggregator extends EventEmitter {
 }
 
 // Export default instance
-export const logAggregator = new LogAggregator(); 
+export const logAggregator = new LogAggregator();

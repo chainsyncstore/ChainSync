@@ -1,36 +1,36 @@
-import React from 'react';
-import { Link, useLocation } from 'wouter';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/providers/auth-provider';
-import { useOfflineMode } from '@/hooks/use-offline-mode';
-import { 
-  LayoutDashboard, 
-  Store, 
-  BarChart2, 
-  Package, 
-  Users, 
+import React from &apos;react&apos;;
+import { Link, useLocation } from &apos;wouter&apos;;
+import { cn } from &apos;@/lib/utils&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { useOfflineMode } from &apos;@/hooks/use-offline-mode&apos;;
+import {
+  LayoutDashboard,
+  Store,
+  BarChart2,
+  Package,
+  Users,
   Settings,
   ShoppingCart,
   Share2,
   RotateCcw,
   Award,
   FileInput
-} from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { useMobile } from '@/hooks/use-mobile';
+} from &apos;lucide-react&apos;;
+import { ScrollArea } from &apos;@/components/ui/scroll-area&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { useMobile } from &apos;@/hooks/use-mobile&apos;;
 
 interface SidebarProps {
-  isOpen: boolean;
+  _isOpen: boolean;
   onClose: () => void;
-  role: 'admin' | 'manager' | 'cashier' | 'affiliate';
+  _role: &apos;admin&apos; | &apos;manager&apos; | &apos;cashier&apos; | &apos;affiliate&apos;;
 }
 
 interface NavItemProps {
-  href: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  active: boolean;
+  _href: string;
+  _icon: React.ReactNode;
+  _children: React.ReactNode;
+  _active: boolean;
   onClick?: () => void;
   external?: boolean;
 }
@@ -41,11 +41,11 @@ const NavItem = ({ href, icon, children, active, onClick }: NavItemProps) => (
     href={href}
     onClick={onClick}
     className={cn(
-      "flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors",
-      active && "bg-primary-600"
+      &apos;flex items-center px-4 py-3 text-primary-100 _hover:bg-primary-600 transition-colors&apos;,
+      active && &apos;bg-primary-600&apos;
     )}
   >
-    <div className="w-5 h-5 mr-3 text-primary-100">
+    <div className=&quot;w-5 h-5 mr-3 text-primary-100&quot;>
       {icon}
     </div>
     <span>{children}</span>
@@ -54,9 +54,9 @@ const NavItem = ({ href, icon, children, active, onClick }: NavItemProps) => (
 
 // Separate component for external links outside the app
 interface ExternalLinkProps {
-  href: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
+  _href: string;
+  _icon: React.ReactNode;
+  _children: React.ReactNode;
   onClick?: () => void;
 }
 
@@ -64,11 +64,11 @@ const ExternalLink = ({ href, icon, children, onClick }: ExternalLinkProps) => (
   <a
     href={href}
     onClick={onClick}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="flex items-center px-4 py-3 text-primary-100 hover:bg-primary-600 transition-colors"
+    target=&quot;_blank&quot;
+    rel=&quot;noopener noreferrer&quot;
+    className=&quot;flex items-center px-4 py-3 text-primary-100 _hover:bg-primary-600 transition-colors&quot;
   >
-    <div className="w-5 h-5 mr-3 text-primary-100">
+    <div className=&quot;w-5 h-5 mr-3 text-primary-100&quot;>
       {icon}
     </div>
     <span>{children}</span>
@@ -79,162 +79,162 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
   const isMobile = useMobile();
   const [location] = useLocation();
   const { isOnline, hasPendingTransactions } = useOfflineMode();
-  
+
   return (
     <>
       {/* Mobile overlay */}
       {isMobile && isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40"
+          className=&quot;fixed inset-0 bg-black/50 z-40&quot;
           onClick={onClose}
         />
       )}
-      
-      <aside 
+
+      <aside
         className={cn(
-          "bg-primary text-white w-64 flex-shrink-0 h-full overflow-hidden z-50 transition-all duration-300 ease-in-out",
-          isMobile && "fixed top-0 bottom-0 left-0",
-          isMobile && !isOpen && "-translate-x-full"
+          &apos;bg-primary text-white w-64 flex-shrink-0 h-full overflow-hidden z-50 transition-all duration-300 ease-in-out&apos;,
+          isMobile && &apos;fixed top-0 bottom-0 left-0&apos;,
+          isMobile && !isOpen && &apos;-translate-x-full&apos;
         )}
       >
-        <div className="p-4 border-b border-primary-600">
-          <div className="flex items-center space-x-2">
-            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="white"/>
-              <path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="white"/>
-              <path d="M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z" fill="white"/>
+        <div className=&quot;p-4 border-b border-primary-600&quot;>
+          <div className=&quot;flex items-center space-x-2&quot;>
+            <svg className=&quot;w-8 h-8&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;>
+              <path d=&quot;M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z&quot; fill=&quot;white&quot;/>
+              <path d=&quot;M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z&quot; fill=&quot;white&quot;/>
+              <path d=&quot;M5 16C4.44772 16 4 16.4477 4 17V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V17C20 16.4477 19.5523 16 19 16H5Z&quot; fill=&quot;white&quot;/>
             </svg>
-            <h1 className="text-xl font-bold">ChainSync</h1>
+            <h1 className=&quot;text-xl font-bold&quot;>ChainSync</h1>
           </div>
         </div>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className=&quot;flex-1&quot;>
           {/* Main Navigation */}
-          <div className="py-2">
-            <div className="px-4 py-3 text-xs uppercase text-primary-100 font-semibold">
+          <div className=&quot;py-2&quot;>
+            <div className=&quot;px-4 py-3 text-xs uppercase text-primary-100 font-semibold&quot;>
               Navigation
             </div>
-            
+
             <nav>
-              {role === 'cashier' ? (
+              {role === &apos;cashier&apos; ? (
                 <>
-                  <NavItem 
-                    href="/pos" 
-                    icon={<ShoppingCart className="w-5 h-5" />} 
-                    active={location === '/pos'} 
-                    onClick={isMobile ? onClose : undefined}
+                  <NavItem
+                    href=&quot;/pos&quot;
+                    icon={<ShoppingCart className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/pos&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Point of Sale
                   </NavItem>
-                  
-                  <NavItem 
-                    href="/loyalty" 
-                    icon={<Award className="w-5 h-5" />} 
-                    active={location === '/loyalty'} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <NavItem
+                    href=&quot;/loyalty&quot;
+                    icon={<Award className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/loyalty&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Loyalty Program
                   </NavItem>
-                  
-                  <ExternalLink 
-                    href="https://chainsync.store/affiliates" 
-                    icon={<Share2 className="w-5 h-5" />} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <ExternalLink
+                    href=&quot;https://chainsync.store/affiliates&quot;
+                    icon={<Share2 className=&quot;w-5 h-5&quot; />}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Affiliate Program
                   </ExternalLink>
                 </>
               ) : (
                 <>
-                  <NavItem 
-                    href="/dashboard" 
-                    icon={<LayoutDashboard className="w-5 h-5" />} 
-                    active={location === '/dashboard'} 
-                    onClick={isMobile ? onClose : undefined}
+                  <NavItem
+                    href=&quot;/dashboard&quot;
+                    icon={<LayoutDashboard className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/dashboard&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Dashboard
                   </NavItem>
-                  
-                  <NavItem 
-                    href="/stores" 
-                    icon={<Store className="w-5 h-5" />} 
-                    active={location === '/stores'} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <NavItem
+                    href=&quot;/stores&quot;
+                    icon={<Store className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/stores&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Stores
                   </NavItem>
-                  
-                  <NavItem 
-                    href="/analytics" 
-                    icon={<BarChart2 className="w-5 h-5" />} 
-                    active={location === '/analytics'} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <NavItem
+                    href=&quot;/analytics&quot;
+                    icon={<BarChart2 className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/analytics&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Analytics
                   </NavItem>
-                  
-                  <NavItem 
-                    href="/inventory" 
-                    icon={<Package className="w-5 h-5" />} 
-                    active={location === '/inventory'} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <NavItem
+                    href=&quot;/inventory&quot;
+                    icon={<Package className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/inventory&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Inventory
                   </NavItem>
-                  
-                  <NavItem 
-                    href="/returns" 
-                    icon={<RotateCcw className="w-5 h-5" />} 
-                    active={location === '/returns'} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <NavItem
+                    href=&quot;/returns&quot;
+                    icon={<RotateCcw className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/returns&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Returns
                   </NavItem>
-                  
-                  <NavItem 
-                    href="/loyalty" 
-                    icon={<Award className="w-5 h-5" />} 
-                    active={location === '/loyalty'} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <NavItem
+                    href=&quot;/loyalty&quot;
+                    icon={<Award className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/loyalty&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Loyalty Program
                   </NavItem>
-                  
-                  {(role === 'admin' || role === 'manager') && (
-                    <NavItem 
-                      href="/import" 
-                      icon={<FileInput className="w-5 h-5" />} 
-                      active={location === '/import'} 
-                      onClick={isMobile ? onClose : undefined}
+
+                  {(role === &apos;admin&apos; || role === &apos;manager&apos;) && (
+                    <NavItem
+                      href=&quot;/import&quot;
+                      icon={<FileInput className=&quot;w-5 h-5&quot; />}
+                      active={location === &apos;/import&apos;}
+                      onClick={isMobile ? _onClose : undefined}
                     >
                       Import Data
                     </NavItem>
                   )}
-                  
-                  {role === 'admin' && (
-                    <NavItem 
-                      href="/users" 
-                      icon={<Users className="w-5 h-5" />} 
-                      active={location === '/users'} 
-                      onClick={isMobile ? onClose : undefined}
+
+                  {role === &apos;admin&apos; && (
+                    <NavItem
+                      href=&quot;/users&quot;
+                      icon={<Users className=&quot;w-5 h-5&quot; />}
+                      active={location === &apos;/users&apos;}
+                      onClick={isMobile ? _onClose : undefined}
                     >
                       Users
                     </NavItem>
                   )}
-                  
-                  <ExternalLink 
-                    href="https://chainsync.store/affiliates" 
-                    icon={<Share2 className="w-5 h-5" />} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <ExternalLink
+                    href=&quot;https://chainsync.store/affiliates&quot;
+                    icon={<Share2 className=&quot;w-5 h-5&quot; />}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Affiliate Program
                   </ExternalLink>
-                  
-                  <NavItem 
-                    href="/settings" 
-                    icon={<Settings className="w-5 h-5" />} 
-                    active={location === '/settings'} 
-                    onClick={isMobile ? onClose : undefined}
+
+                  <NavItem
+                    href=&quot;/settings&quot;
+                    icon={<Settings className=&quot;w-5 h-5&quot; />}
+                    active={location === &apos;/settings&apos;}
+                    onClick={isMobile ? _onClose : undefined}
                   >
                     Settings
                   </NavItem>
@@ -244,25 +244,25 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
           </div>
         </ScrollArea>
 
-        <div className="px-4 pt-6 pb-2 text-primary-100 border-t border-primary-600 mt-auto">
-          <div className="flex items-center mb-3">
+        <div className=&quot;px-4 pt-6 pb-2 text-primary-100 border-t border-primary-600 mt-auto&quot;>
+          <div className=&quot;flex items-center mb-3&quot;>
             <div className={cn(
-              "w-2 h-2 rounded-full mr-2",
-              isOnline ? "bg-green-500" : "bg-amber-500 animate-pulse-custom"
-            )}></div>
-            <p className="text-xs font-medium">
-              System Status: {isOnline ? "Online" : "Offline"}
+              &apos;w-2 h-2 rounded-full mr-2&apos;,
+              isOnline ? &apos;bg-green-500&apos; : &apos;bg-amber-500 animate-pulse-custom&apos;
+            )} />
+            <p className=&quot;text-xs font-medium&quot;>
+              System _Status: {isOnline ? &apos;Online&apos; : &apos;Offline&apos;}
             </p>
           </div>
-          
+
           {hasPendingTransactions && (
-            <div className="text-xs text-amber-300 mb-2">
-              {`${hasPendingTransactions ? 'Pending transactions to sync' : ''}`}
+            <div className=&quot;text-xs text-amber-300 mb-2&quot;>
+              {`${hasPendingTransactions ? &apos;Pending transactions to sync&apos; : &apos;&apos;}`}
             </div>
           )}
-          
-          <div className="text-xs text-primary-100 opacity-75">
-            Last sync: {new Date().toLocaleTimeString()}
+
+          <div className=&quot;text-xs text-primary-100 opacity-75&quot;>
+            Last _sync: {new Date().toLocaleTimeString()}
           </div>
         </div>
       </aside>

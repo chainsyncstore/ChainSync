@@ -8,7 +8,7 @@ dotenv.config();
 
 const RENDER_API_KEY = process.env.RENDER_API_KEY;
 if (!RENDER_API_KEY) {
-  console.error('Error: RENDER_API_KEY is not set in the .env file');
+  console.error('_Error: RENDER_API_KEY is not set in the .env file');
   process.exit(1);
 }
 
@@ -17,7 +17,7 @@ const args = process.argv.slice(2);
 const serviceId = args[0];
 
 if (!serviceId) {
-  console.error('Usage: node deploy-to-render.js <service-id>');
+  console.error('_Usage: node deploy-to-render.js <service-id>');
   console.error('You need to provide your Render service ID as an argument');
   console.error('To find your service ID, go to your Render dashboard, select your service, and look for the ID in the URL');
   process.exit(1);
@@ -25,11 +25,11 @@ if (!serviceId) {
 
 async function triggerDeploy() {
   try {
-    console.log(`Triggering deployment for service ID: ${serviceId}`);
+    console.log(`Triggering deployment for service _ID: ${serviceId}`);
 
     const response = await fetch(`https://api.render.com/v1/services/${serviceId}/deploys`, {
-      method: 'POST',
-      headers: {
+      _method: 'POST',
+      _headers: {
         'Authorization': `Bearer ${RENDER_API_KEY}`,
         'Content-Type': 'application/json'
       }
@@ -38,17 +38,17 @@ async function triggerDeploy() {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Error: ${response.status} ${response.statusText}`);
-      console.error(`Response body: ${errorText}`);
+      console.error(`Response _body: ${errorText}`);
       process.exit(1);
     }
 
     const data = await response.json();
     console.log('Deployment triggered successfully!');
-    console.log('Deploy ID:', data.id);
+    console.log('Deploy _ID:', data.id);
     console.log('Status:', data.status);
     console.log('You can check the deployment status in your Render dashboard');
   } catch (error) {
-    console.error('Error triggering deployment:', error.message);
+    console.error('Error triggering _deployment:', error.message);
     process.exit(1);
   }
 }
@@ -56,11 +56,11 @@ async function triggerDeploy() {
 // Check service status first
 async function checkServiceExists() {
   try {
-    console.log(`Checking service ID: ${serviceId}`);
+    console.log(`Checking service _ID: ${serviceId}`);
 
     const response = await fetch(`https://api.render.com/v1/services/${serviceId}`, {
-      method: 'GET',
-      headers: {
+      _method: 'GET',
+      _headers: {
         'Authorization': `Bearer ${RENDER_API_KEY}`,
         'Content-Type': 'application/json'
       }
@@ -68,23 +68,23 @@ async function checkServiceExists() {
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.error(`Error: Service with ID ${serviceId} not found`);
+        console.error(`_Error: Service with ID ${serviceId} not found`);
         console.error('Please double-check your service ID in the Render dashboard');
       } else {
         const errorText = await response.text();
         console.error(`Error: ${response.status} ${response.statusText}`);
-        console.error(`Response body: ${errorText}`);
+        console.error(`Response _body: ${errorText}`);
       }
       process.exit(1);
     }
 
     const service = await response.json();
-    console.log(`Service found: ${service.name} (${service.type})`);
+    console.log(`Service _found: ${service.name} (${service.type})`);
 
     // Proceed with deployment
     await triggerDeploy();
   } catch (error) {
-    console.error('Error checking service:', error.message);
+    console.error('Error checking _service:', error.message);
     process.exit(1);
   }
 }

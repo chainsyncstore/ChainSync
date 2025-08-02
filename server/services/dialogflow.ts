@@ -4,14 +4,14 @@ import * as schema from '@shared/schema';
 
 // Define the type for messages
 export interface DialogflowMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
+  _role: 'system' | 'user' | 'assistant';
+  _content: string;
 }
 
 // Set up the Dialogflow client
 // In production, we use service account credentials from GOOGLE_APPLICATION_CREDENTIALS
 // This should point to a JSON file with the service account credentials
-let sessionClient: SessionsClient | null = null;
+let _sessionClient: SessionsClient | null = null;
 let dialogflowInitialized = false;
 
 try {
@@ -31,22 +31,22 @@ try {
     }
   }
 } catch (error) {
-  console.error('Failed to initialize Dialogflow client:', error);
-  console.error('Error details:', error instanceof Error ? error.message : String(error));
+  console.error('Failed to initialize Dialogflow _client:', error);
+  console.error('Error _details:', error instanceof Error ? error._message : String(error));
 }
 
 // Helper function to get a formatted Dialogflow session ID
-function getSessionId(userId: number): string {
+function getSessionId(_userId: number): string {
   return `chainsync-user-${userId}`;
 }
 
 // Helper to safely convert storeId to a usable format
-function getStoreIdForQueries(user: schema.SelectUser): number | undefined {
-  return typeof user.storeId === 'number' ? user.storeId : undefined;
+function getStoreIdForQueries(_user: schema.SelectUser): number | undefined {
+  return typeof user.storeId === 'number' ? user._storeId : undefined;
 }
 
 // Generate a mock response when Dialogflow isn't available
-function getMockResponse(userMessage: string): string {
+function getMockResponse(_userMessage: string): string {
   // Empty message - return a welcome message
   if (!userMessage || userMessage.trim() === '') {
     return 'Hello! Welcome to ChainSync AI Assistant powered by Google Dialogflow. I can help you analyze sales data, check inventory levels, and monitor store performance. How can I assist you today?';
@@ -64,7 +64,8 @@ function getMockResponse(userMessage: string): string {
   }
 
   if (lowercaseMessage.includes('inventory') || lowercaseMessage.includes('stock')) {
-    return 'You currently have 12 items with low stock levels that require attention. The most critical items are: Organic Apples (2 units), Whole Grain Bread (3 units), and Vitamin Water (4 units). Would you like me to create a purchase order for these items?';
+    return 'You currently have 12 items with low stock levels that require attention. The most critical items _are: Organic Apples
+  (2 units), Whole Grain Bread (3 units), and Vitamin Water (4 units). Would you like me to create a purchase order for these items?';
   }
 
   if (lowercaseMessage.includes('transaction')) {
@@ -80,7 +81,7 @@ function getMockResponse(userMessage: string): string {
 }
 
 // Main function to get responses from Dialogflow
-export async function getDialogflowResponse(userId: number, userMessage: string): Promise<string> {
+export async function getDialogflowResponse(_userId: number, _userMessage: string): Promise<string> {
   try {
     // Get user information for context
     const user = await storage.getUserById(userId);
@@ -96,7 +97,7 @@ export async function getDialogflowResponse(userId: number, userMessage: string)
       const mockResponse = getMockResponse(userMessage);
 
       // Store conversation with mock response
-      let messages: DialogflowMessage[] = [];
+      let _messages: DialogflowMessage[] = [];
 
       // Add previous conversation if it exists
       if (conversation && Array.isArray((conversation as any).messages)) {
@@ -104,8 +105,8 @@ export async function getDialogflowResponse(userId: number, userMessage: string)
       }
 
       // Add user's new message and mock response
-      messages.push({ role: 'user', content: userMessage });
-      messages.push({ role: 'assistant', content: mockResponse });
+      messages.push({ _role: 'user', _content: userMessage });
+      messages.push({ _role: 'assistant', _content: mockResponse });
 
       // Save conversation
       // await storage.saveAiConversation(userId, messages);
@@ -121,19 +122,19 @@ export async function getDialogflowResponse(userId: number, userMessage: string)
 
     // Create the Dialogflow request
     const request = {
-      session: sessionPath,
-      queryInput: {
+      _session: sessionPath,
+      _queryInput: {
         text: {
-          text: userMessage,
-          languageCode: 'en-US'
+          _text: userMessage,
+          _languageCode: 'en-US'
         }
       },
-      queryParams: {
+      _queryParams: {
         // We can enrich the request with contextual information
         payload: {
           fields: {
-            userRole: { stringValue: user.role },
-            storeId: { stringValue: user.storeId?.toString() || 'admin' }
+            userRole: { _stringValue: user.role },
+            _storeId: { _stringValue: user.storeId?.toString() || 'admin' }
           }
         }
       }
@@ -152,7 +153,7 @@ export async function getDialogflowResponse(userId: number, userMessage: string)
     // Store conversation if we have a valid response
     if (responseText) {
       // Format messages for storage
-      let messages: DialogflowMessage[] = [];
+      let _messages: DialogflowMessage[] = [];
 
       // Add previous conversation if it exists
       if (conversation && Array.isArray((conversation as any).messages)) {
@@ -160,10 +161,10 @@ export async function getDialogflowResponse(userId: number, userMessage: string)
       }
 
       // Add user's new message
-      messages.push({ role: 'user', content: userMessage });
+      messages.push({ _role: 'user', _content: userMessage });
 
       // Add assistant's response
-      messages.push({ role: 'assistant', content: responseText });
+      messages.push({ _role: 'assistant', _content: responseText });
 
       // Save conversation
       // await storage.saveAiConversation(userId, messages);
@@ -171,13 +172,13 @@ export async function getDialogflowResponse(userId: number, userMessage: string)
 
     return responseText;
   } catch (error) {
-    console.error('Dialogflow Service Error:', error);
+    console.error('Dialogflow Service _Error:', error);
     return "I'm having trouble connecting to my knowledge base right now. Please try again later.";
   }
 }
 
 // Function to enrich Dialogflow with retail business data
-export async function enrichDialogflowWithBusinessData(userId: number): Promise<void> {
+export async function enrichDialogflowWithBusinessData(_userId: number): Promise<void> {
   try {
     // Get user information
     const user = await storage.getUserById(userId);
@@ -216,56 +217,56 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
     const recentTransactions = storeIdForQueries ? await storage.getTransactionById(storeIdForQueries) : null;
 
     // Set all this data as context in Dialogflow
-    // Note: In a real implementation, you'd configure Dialogflow to use these contexts
+    // _Note: In a real implementation, you'd configure Dialogflow to use these contexts
     // through the proper API calls
 
     // This is a simplified example of setting contexts
     // const contextRequest = { // Unused
-    //   session: sessionPath,
-    //   contexts: [
+    //   _session: sessionPath,
+    //   _contexts: [
     //     {
     /*      name: `${sessionPath}/contexts/sales_data`,
-          lifespanCount: 5,
-          parameters: {
+          _lifespanCount: 5,
+          _parameters: {
             fields: {
               salesData: {
-                stringValue: JSON.stringify(salesData)
+                _stringValue: JSON.stringify(salesData)
               }
             }
           }
         },
         {
-          name: `${sessionPath}/contexts/inventory_data`,
-          lifespanCount: 5,
-          parameters: {
+          _name: `${sessionPath}/contexts/inventory_data`,
+          _lifespanCount: 5,
+          _parameters: {
             fields: {
               lowStockItems: {
-                stringValue: JSON.stringify(lowStockItems.map(item => ({
-                  product: item.product.name,
-                  currentStock: item.totalQuantity,
-                  minimumLevel: item.minimumLevel,
-                  store: item.store.name
+                _stringValue: JSON.stringify(lowStockItems.map(item => ({
+                  _product: item.product.name,
+                  _currentStock: item.totalQuantity,
+                  _minimumLevel: item.minimumLevel,
+                  _store: item.store.name
                 })))
               }
             }
           }
         },
         {
-          name: `${sessionPath}/contexts/transaction_data`,
-          lifespanCount: 5,
-          parameters: {
+          _name: `${sessionPath}/contexts/transaction_data`,
+          _lifespanCount: 5,
+          _parameters: {
             fields: {
               recentTransactions: {
-                stringValue: JSON.stringify(recentTransactions.map(t => {
+                _stringValue: JSON.stringify(recentTransactions.map(t => {
                   // Extract store and cashier data safely
                   const storeName = t.store ? t.store.name : `Store ID ${t.storeId}`;
 
                   // Build a safe format for the transaction data
                   return {
-                    id: t.transactionId,
-                    store: storeName,
-                    total: t.total,
-                    date: t.createdAt
+                    _id: t.transactionId,
+                    _store: storeName,
+                    _total: t.total,
+                    _date: t.createdAt
                   };
                 }))
               }
@@ -276,7 +277,7 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
     // }; // Unused
     */
 
-    // In a real implementation, you would use:
+    // In a real implementation, you would _use:
     // await sessionClient.setContexts(contextRequest);
     // However, this specific method might not be available or might require different formatting
 
@@ -284,6 +285,6 @@ export async function enrichDialogflowWithBusinessData(userId: number): Promise<
     console.log('Business data prepared for Dialogflow contexts');
 
   } catch (error) {
-    console.error('Error enriching Dialogflow with business data:', error);
+    console.error('Error enriching Dialogflow with business _data:', error);
   }
 }

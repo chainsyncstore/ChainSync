@@ -3,7 +3,7 @@ import { getLogger } from '../logging/index.js';
 import { CircuitBreaker, CircuitBreakerFactory } from './circuit-breaker.js';
 import { getCacheValue, setCacheValue } from '../cache/redis.js';
 
-const logger = getLogger().child({ component: 'graceful-degradation' });
+const logger = getLogger().child({ _component: 'graceful-degradation' });
 
 /**
  * Service degradation levels
@@ -19,35 +19,35 @@ export enum DegradationLevel {
  * Service health status
  */
 export interface ServiceHealth {
-  name: string;
-  healthy: boolean;
-  responseTime: number;
-  lastCheck: number;
-  errorRate: number;
-  degradationLevel: DegradationLevel;
+  _name: string;
+  _healthy: boolean;
+  _responseTime: number;
+  _lastCheck: number;
+  _errorRate: number;
+  _degradationLevel: DegradationLevel;
 }
 
 /**
  * Fallback strategy configuration
  */
 export interface FallbackConfig {
-  useCache: boolean;
-  cacheTTL: number;
-  useDefaultValues: boolean;
-  defaultValues: Record<string, any>;
-  retryAttempts: number;
-  timeout: number;
+  _useCache: boolean;
+  _cacheTTL: number;
+  _useDefaultValues: boolean;
+  _defaultValues: Record<string, any>;
+  _retryAttempts: number;
+  _timeout: number;
 }
 
 /**
  * Graceful degradation manager
  */
 export class GracefulDegradationManager {
-  private static instance: GracefulDegradationManager;
+  private static _instance: GracefulDegradationManager;
   private serviceHealth = new Map<string, ServiceHealth>();
   private circuitBreakers = new Map<string, CircuitBreaker>();
   private fallbackConfigs = new Map<string, FallbackConfig>();
-  private degradationCallbacks = new Map<string, (level: DegradationLevel) => void>();
+  private degradationCallbacks = new Map<string, (_level: DegradationLevel) => void>();
 
   private constructor() {
     this.initializeDefaultServices();
@@ -74,19 +74,19 @@ export class GracefulDegradationManager {
 
     for (const service of defaultServices) {
       const breaker = CircuitBreakerFactory.create(service, {
-        failureThreshold: 3,
-        recoveryTimeout: 30000,
-        monitorInterval: 5000,
+        _failureThreshold: 3,
+        _recoveryTimeout: 30000,
+        _monitorInterval: 5000
       });
 
       this.circuitBreakers.set(service, breaker);
       this.serviceHealth.set(service, {
-        name: service,
-        healthy: true,
-        responseTime: 0,
-        lastCheck: Date.now(),
-        errorRate: 0,
-        degradationLevel: DegradationLevel.FULL,
+        _name: service,
+        _healthy: true,
+        _responseTime: 0,
+        _lastCheck: Date.now(),
+        _errorRate: 0,
+        _degradationLevel: DegradationLevel.FULL
       });
 
       // Set up circuit breaker event listeners
@@ -100,25 +100,25 @@ export class GracefulDegradationManager {
    * Register a service for degradation management
    */
   registerService(
-    name: string,
-    fallbackConfig: FallbackConfig,
-    onDegradation?: (level: DegradationLevel) => void
+    _name: string,
+    _fallbackConfig: FallbackConfig,
+    onDegradation?: (_level: DegradationLevel) => void
   ): void {
     this.fallbackConfigs.set(name, fallbackConfig);
-    
+
     if (onDegradation) {
       this.degradationCallbacks.set(name, onDegradation);
     }
 
-    logger.info('Service registered for graceful degradation', { service: name });
+    logger.info('Service registered for graceful degradation', { _service: name });
   }
 
   /**
    * Execute operation with graceful degradation
    */
   async executeWithDegradation<T>(
-    serviceName: string,
-    operation: () => Promise<T>,
+    _serviceName: string,
+    _operation: () => Promise<T>,
     fallbackOperation?: () => Promise<T>
   ): Promise<T> {
     const breaker = this.circuitBreakers.get(serviceName);
@@ -132,8 +132,8 @@ export class GracefulDegradationManager {
       return await breaker.execute(operation);
     } catch (error) {
       logger.warn('Service operation failed, attempting graceful degradation', {
-        service: serviceName,
-        error: error instanceof Error ? error.message : String(error)
+        _service: serviceName,
+        _error: error instanceof Error ? error._message : String(error)
       });
 
       return await this.handleDegradation(serviceName, fallbackOperation, fallbackConfig);
@@ -144,12 +144,12 @@ export class GracefulDegradationManager {
    * Handle service degradation with fallback strategies
    */
   private async handleDegradation<T>(
-    serviceName: string,
+    _serviceName: string,
     fallbackOperation?: () => Promise<T>,
     fallbackConfig?: FallbackConfig
   ): Promise<T> {
     if (!fallbackConfig) {
-      throw new Error(`No fallback configuration for service: ${serviceName}`);
+      throw new Error(`No fallback configuration for _service: ${serviceName}`);
     }
 
     // Try cache first if enabled
@@ -157,13 +157,13 @@ export class GracefulDegradationManager {
       try {
         const cacheKey = `fallback:${serviceName}:${Date.now()}`;
         const cachedValue = await getCacheValue<T>(cacheKey);
-        
+
         if (cachedValue) {
-          logger.info('Using cached fallback data', { service: serviceName });
+          logger.info('Using cached fallback data', { _service: serviceName });
           return cachedValue;
         }
       } catch (error) {
-        logger.debug('Cache fallback failed', { service: serviceName, error });
+        logger.debug('Cache fallback failed', { _service: serviceName, error });
       }
     }
 
@@ -171,38 +171,38 @@ export class GracefulDegradationManager {
     if (fallbackOperation) {
       try {
         const result = await fallbackOperation();
-        
+
         // Cache the result if caching is enabled
         if (fallbackConfig.useCache) {
           const cacheKey = `fallback:${serviceName}:${Date.now()}`;
           await setCacheValue(cacheKey, result, fallbackConfig.cacheTTL);
         }
-        
+
         return result;
       } catch (error) {
-        logger.warn('Fallback operation failed', { service: serviceName, error });
+        logger.warn('Fallback operation failed', { _service: serviceName, error });
       }
     }
 
     // Use default values as last resort
     if (fallbackConfig.useDefaultValues && fallbackConfig.defaultValues) {
-      logger.info('Using default values due to service degradation', { service: serviceName });
+      logger.info('Using default values due to service degradation', { _service: serviceName });
       return fallbackConfig.defaultValues as T;
     }
 
-    throw new Error(`All fallback strategies failed for service: ${serviceName}`);
+    throw new Error(`All fallback strategies failed for _service: ${serviceName}`);
   }
 
   /**
    * Update service health status
    */
-  private updateServiceHealth(serviceName: string, healthy: boolean): void {
+  private updateServiceHealth(_serviceName: string, _healthy: boolean): void {
     const health = this.serviceHealth.get(serviceName);
     if (!health) return;
 
     health.healthy = healthy;
     health.lastCheck = Date.now();
-    
+
     // Calculate degradation level based on health
     const newLevel = this.calculateDegradationLevel(serviceName);
     health.degradationLevel = newLevel;
@@ -214,16 +214,16 @@ export class GracefulDegradationManager {
     }
 
     logger.info('Service health updated', {
-      service: serviceName,
+      _service: serviceName,
       healthy,
-      degradationLevel: newLevel
+      _degradationLevel: newLevel
     });
   }
 
   /**
    * Calculate degradation level based on service health
    */
-  private calculateDegradationLevel(serviceName: string): DegradationLevel {
+  private calculateDegradationLevel(_serviceName: string): DegradationLevel {
     const health = this.serviceHealth.get(serviceName);
     if (!health) return DegradationLevel.FULL;
 
@@ -231,8 +231,8 @@ export class GracefulDegradationManager {
     if (!breaker) return DegradationLevel.FULL;
 
     const stats = breaker.getStats();
-    const errorRate = stats.totalRequests > 0 ? 
-      stats.failureCount / stats.totalRequests : 0;
+    const errorRate = stats.totalRequests > 0 ?
+      stats.failureCount / stats._totalRequests : 0;
 
     if (stats.state === 'OPEN') {
       return DegradationLevel.EMERGENCY;
@@ -266,7 +266,7 @@ export class GracefulDegradationManager {
   /**
    * Get service health status
    */
-  getServiceHealth(serviceName: string): ServiceHealth | undefined {
+  getServiceHealth(_serviceName: string): ServiceHealth | undefined {
     return this.serviceHealth.get(serviceName);
   }
 
@@ -280,7 +280,7 @@ export class GracefulDegradationManager {
   /**
    * Check if service is available
    */
-  isServiceAvailable(serviceName: string): boolean {
+  isServiceAvailable(_serviceName: string): boolean {
     const health = this.serviceHealth.get(serviceName);
     return health?.healthy ?? true;
   }
@@ -305,15 +305,15 @@ export class GracefulDegradationManager {
  * Decorator for automatic graceful degradation
  */
 export function withGracefulDegradation(
-  serviceName: string,
+  _serviceName: string,
   fallbackConfig?: Partial<FallbackConfig>
 ) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+  return function(_target: any, _propertyName: string, _descriptor: PropertyDescriptor) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function(..._args: any[]) {
       const manager = GracefulDegradationManager.getInstance();
-      
+
       return await manager.executeWithDegradation(
         serviceName,
         () => method.apply(this, args),
@@ -335,15 +335,15 @@ export function isSystemHealthy(): boolean {
  * Utility function to get system status
  */
 export function getSystemStatus(): {
-  degradationLevel: DegradationLevel;
-  services: ServiceHealth[];
-  circuitBreakers: Record<string, any>;
+  _degradationLevel: DegradationLevel;
+  _services: ServiceHealth[];
+  _circuitBreakers: Record<string, any>;
 } {
   const manager = GracefulDegradationManager.getInstance();
-  
+
   return {
-    degradationLevel: manager.getSystemDegradationLevel(),
-    services: manager.getAllServiceHealth(),
-    circuitBreakers: manager.getCircuitBreakerStats(),
+    _degradationLevel: manager.getSystemDegradationLevel(),
+    _services: manager.getAllServiceHealth(),
+    _circuitBreakers: manager.getCircuitBreakerStats()
   };
-} 
+}

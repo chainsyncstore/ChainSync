@@ -17,7 +17,7 @@ export class LoyaltyProgramFormatter extends ResultFormatter<LoyaltyProgram> {
    * @param dbResult The raw database result row
    * @returns A properly formatted LoyaltyProgram object
    */
-  formatResult(dbResult: Record<string, unknown>): LoyaltyProgram {
+  formatResult(_dbResult: Record<string, unknown>): LoyaltyProgram {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined loyalty program result');
     }
@@ -37,11 +37,11 @@ export class LoyaltyProgramFormatter extends ResultFormatter<LoyaltyProgram> {
     // Format the loyalty program with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      storeId: Number(withDates.storeId),
-      name: String(withDates.name),
-      description: withDates.description || '',
-      active: Boolean(withDates.active)
+      _id: Number(withDates.id),
+      _storeId: Number(withDates.storeId),
+      _name: String(withDates.name),
+      _description: withDates.description || '',
+      _active: Boolean(withDates.active)
     } as LoyaltyProgram;
   }
 }
@@ -56,7 +56,7 @@ export class LoyaltyMemberFormatter extends ResultFormatter<LoyaltyMember> {
    * @param dbResult The raw database result row
    * @returns A properly formatted LoyaltyMember object
    */
-  formatResult(dbResult: Record<string, unknown>): LoyaltyMember {
+  formatResult(_dbResult: Record<string, unknown>): LoyaltyMember {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined loyalty member result');
     }
@@ -76,13 +76,13 @@ export class LoyaltyMemberFormatter extends ResultFormatter<LoyaltyMember> {
     // Format the loyalty member with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      programId: Number(withDates.programId),
-      userId: Number(withDates.userId),
-      loyaltyId: String(withDates.loyaltyId || ''),
-      points: Number(withDates.points || 0),
-      currentPoints: String(withDates.currentPoints || '0.00'),
-      customerId: Number(withDates.customerId)
+      _id: Number(withDates.id),
+      _programId: Number(withDates.programId),
+      _userId: Number(withDates.userId),
+      _loyaltyId: String(withDates.loyaltyId || ''),
+      _points: Number(withDates.points || 0),
+      _currentPoints: String(withDates.currentPoints || '0.00'),
+      _customerId: Number(withDates.customerId)
     } as LoyaltyMember;
   }
 }
@@ -97,7 +97,7 @@ export class LoyaltyTransactionFormatter extends ResultFormatter<LoyaltyTransact
    * @param dbResult The raw database result row
    * @returns A properly formatted LoyaltyTransaction object
    */
-  formatResult(dbResult: Record<string, unknown>): LoyaltyTransaction {
+  formatResult(_dbResult: Record<string, unknown>): LoyaltyTransaction {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined loyalty transaction result');
     }
@@ -117,16 +117,16 @@ export class LoyaltyTransactionFormatter extends ResultFormatter<LoyaltyTransact
     // Format the loyalty transaction with specific type handling
     return {
       ...withDates,
-      id: Number(withDates.id),
-      memberId: Number(withDates.memberId),
-      programId: Number(withDates.programId),
-      pointsEarned: Number(withDates.pointsEarned || 0),
-      pointsRedeemed: Number(withDates.pointsRedeemed || 0),
-      pointsBalance: Number(withDates.pointsBalance || 0),
-      transactionType: (withDates.transactionType || 'earn') as 'earn' | 'redeem',
-      source: String(withDates.source || ''),
-      transactionId: withDates.transactionId || null,
-      description: withDates.description || ''
+      _id: Number(withDates.id),
+      _memberId: Number(withDates.memberId),
+      _programId: Number(withDates.programId),
+      _pointsEarned: Number(withDates.pointsEarned || 0),
+      _pointsRedeemed: Number(withDates.pointsRedeemed || 0),
+      _pointsBalance: Number(withDates.pointsBalance || 0),
+      _transactionType: (withDates.transactionType || 'earn') as 'earn' | 'redeem',
+      _source: String(withDates.source || ''),
+      _transactionId: withDates.transactionId || null,
+      _description: withDates.description || ''
     } as LoyaltyTransaction;
   }
 }

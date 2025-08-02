@@ -6,6 +6,6 @@ export function initializeTracing() {
   initTracing();
 }
 
-export function initializeHealthChecks(app: Express) {
+export function initializeHealthChecks(_app: Express) {
   app.use('/health', healthRouter);
 }

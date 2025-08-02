@@ -22,40 +22,40 @@ type MulterFile = any;
 interface MulterRequest extends Request {
   file?: any;
   files?: {
-    [fieldname: string]: any[];
+    [_fieldname: string]: any[];
   } | any[];
   user?: any;
   progressId?: string;
 }
 
 // File upload configuration
-const fileUploadConfig: FileUploadConfig = {
-  maxFileSize: 10 * 1024 * 1024, // 10MB
-  maxFiles: 10,
-  rateLimit: { windowMs: 15 * 60 * 1000, max: 100 }, // 100 uploads per 15 minutes
-  maxTotalUploadSize: 100 * 1024 * 1024, // 100MB
-  maxUploadAttempts: 5,
-  allowedFileExtensions: ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'],
-  allowedMimeTypes: [
+const _fileUploadConfig: FileUploadConfig = {
+  _maxFileSize: 10 * 1024 * 1024, // 10MB
+  _maxFiles: 10,
+  _rateLimit: { _windowMs: 15 * 60 * 1000, _max: 100 }, // 100 uploads per 15 minutes
+  _maxTotalUploadSize: 100 * 1024 * 1024, // 100MB
+  _maxUploadAttempts: 5,
+  _allowedFileExtensions: ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'],
+  _allowedMimeTypes: [
     'image/jpeg',
     'image/png',
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ],
-  destination: './uploads',
-  filename: (req, file, cb) => {
+  _destination: './uploads',
+  _filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix);
   },
-  cleanupInterval: 3600000, // 1 hour
-  cacheTTL: 300000 // 5 minutes
+  _cleanupInterval: 3600000, // 1 hour
+  _cacheTTL: 300000 // 5 minutes
 };
 
 // Cache instances
 const progressCache = new LRUCache<string, FileUploadProgress>({
-  max: 1000,
-  maxAge: fileUploadConfig.cleanupInterval
+  _max: 1000,
+  _maxAge: fileUploadConfig.cleanupInterval
 });
 
 const subscriptionCache = new Map<string, ProgressSubscription[]>();
@@ -63,26 +63,27 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
 /*
 // Multer instance
 // const upload = multer({ // Unused
-//   storage: multer.memoryStorage(),
-//   limits: {
-//     fileSize: fileUploadConfig.maxFileSize,
-    files: fileUploadConfig.maxFiles
+//   _storage: multer.memoryStorage(),
+//   _limits: {
+//     _fileSize: fileUploadConfig.maxFileSize,
+    _files: fileUploadConfig.maxFiles
   },
-  fileFilter: async (req: Request, file: MulterFile, cb: (error: Error | null, acceptFile: boolean) => void) => {
+  _fileFilter: async (_req: Request, _file: MulterFile, _cb: (_error: Error | null, _acceptFile: boolean)
+   = > void) => {
     try {
       UploadMetricsTracker.getInstance().trackRequest();
 
       // Validate file size
       if (file.size > fileUploadConfig.maxFileSize) {
         logger.warn('File size limit exceeded', {
-          filename: file.originalname,
-          size: file.size,
-          maxSize: fileUploadConfig.maxFileSize
+          _filename: file.originalname,
+          _size: file.size,
+          _maxSize: fileUploadConfig.maxFileSize
         });
         const error = new Error('File size too large') as any;
         error.code = ErrorCode.BAD_REQUEST;
         error.category = ErrorCategory.VALIDATION;
-        error.details = { maxSize: fileUploadConfig.maxFileSize };
+        error.details = { _maxSize: fileUploadConfig.maxFileSize };
         error.statusCode = 400;
         cb(error, false);
         return;
@@ -94,13 +95,13 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
 
       if (!fileType || !isValidType) {
         logger.warn('Invalid file type', {
-          filename: file.originalname,
-          mimeType: fileType?.mime
+          _filename: file.originalname,
+          _mimeType: fileType?.mime
         });
         const error = new Error('Invalid file type') as any;
         error.code = ErrorCode.BAD_REQUEST;
         error.category = ErrorCategory.VALIDATION;
-        error.details = { allowedTypes: await FileUtils.validateFileExtension.toString() };
+        error.details = { _allowedTypes: await FileUtils.validateFileExtension.toString() };
         error.statusCode = 400;
         cb(error, false);
         return;
@@ -110,8 +111,8 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
       const fileExt = path.extname(file.originalname).toLowerCase();
       if (!fileExt || !fileUploadConfig.allowedFileExtensions.includes(fileExt)) {
         logger.warn('Invalid file extension', {
-          filename: file.originalname,
-          extension: fileExt
+          _filename: file.originalname,
+          _extension: fileExt
         });
         cb(null, false);
         return;
@@ -119,16 +120,16 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
 
       // Log successful validation
       logger.info('File validation succeeded', {
-        filename: file.originalname,
-        size: file.size,
-        mimeType: fileType.mime,
-        extension: fileExt
+        _filename: file.originalname,
+        _size: file.size,
+        _mimeType: fileType.mime,
+        _extension: fileExt
       });
       cb(null, true);
     } catch (error) {
       logger.error('File validation failed', {
-        filename: file.originalname,
-        error: error instanceof Error ? error.message : String(error)
+        _filename: file.originalname,
+        _error: error instanceof Error ? error._message : String(error)
       });
       cb(null, false);
     }
@@ -138,33 +139,33 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
 */
 // File upload middleware class
 export class FileUploadMiddleware {
-  private static instance: FileUploadMiddleware;
-  private readonly fileUploadConfig: FileUploadConfig;
-  private readonly upload: multer.Multer;
-  private readonly progressCache: LRUCache<string, FileUploadProgress>;
-  private readonly subscriptionCache: Map<string, ProgressSubscription[]>;
-  private readonly fileValidationCache: LRUCache<string, boolean>;
-  private readonly uploadAttempts: Map<string, number>;
-  private readonly metricsTracker: UploadMetricsTracker;
-  private lastUploadTime: number = Date.now();
+  private static _instance: FileUploadMiddleware;
+  private readonly _fileUploadConfig: FileUploadConfig;
+  private readonly _upload: multer.Multer;
+  private readonly _progressCache: LRUCache<string, FileUploadProgress>;
+  private readonly _subscriptionCache: Map<string, ProgressSubscription[]>;
+  private readonly _fileValidationCache: LRUCache<string, boolean>;
+  private readonly _uploadAttempts: Map<string, number>;
+  private readonly _metricsTracker: UploadMetricsTracker;
+  private _lastUploadTime: number = Date.now();
 
-  private constructor(config: FileUploadConfig) {
+  private constructor(_config: FileUploadConfig) {
     this.fileUploadConfig = config;
     this.upload = multer({
-      storage: multer.memoryStorage(),
-      limits: {
-        fileSize: config.maxFileSize,
-        files: config.maxFiles
+      _storage: multer.memoryStorage(),
+      _limits: {
+        _fileSize: config.maxFileSize,
+        _files: config.maxFiles
       }
     });
     this.progressCache = new LRUCache<string, FileUploadProgress>({
-      max: 1000,
-      maxAge: config.cleanupInterval
+      _max: 1000,
+      _maxAge: config.cleanupInterval
     });
     this.subscriptionCache = new Map<string, ProgressSubscription[]>();
     this.fileValidationCache = new LRUCache<string, boolean>({
-      max: 1000,
-      maxAge: config.cacheTTL
+      _max: 1000,
+      _maxAge: config.cacheTTL
     });
     this.uploadAttempts = new Map<string, number>();
     this.metricsTracker = UploadMetricsTracker.getInstance();
@@ -180,7 +181,7 @@ export class FileUploadMiddleware {
     return FileUploadMiddleware.instance;
   }
 
-  private async handleFileUpload(req: Request, res: Response, next: NextFunction): Promise<void> {
+  private async handleFileUpload(_req: Request, _res: Response, _next: NextFunction): Promise<void> {
     try {
       const startTime = Date.now();
 
@@ -195,7 +196,7 @@ export class FileUploadMiddleware {
         );
       }
 
-      const files: any[] = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+      const _files: any[] = Array.isArray(req.files) ? req._files : Object.values(req.files).flat();
       const userId = req.user?.id;
 
       // Validate files
@@ -206,7 +207,7 @@ export class FileUploadMiddleware {
             'Invalid file type',
             ErrorCategory.VALIDATION,
             ErrorCode.UNSUPPORTED_MEDIA_TYPE,
-            { fileType: fileTypeResult },
+            { _fileType: fileTypeResult },
             400
           );
         }
@@ -217,7 +218,7 @@ export class FileUploadMiddleware {
             'Invalid file extension',
             ErrorCategory.VALIDATION,
             ErrorCode.UNSUPPORTED_MEDIA_TYPE,
-            { extension: fileExt },
+            { _extension: fileExt },
             400
           );
         }
@@ -225,21 +226,21 @@ export class FileUploadMiddleware {
 
       // Create progress tracking
       const uploadId = uuidv4();
-      const progressData: FileUploadProgress = {
-        id: uploadId,
-        status: 'in_progress',
-        progress: 0,
-        total: files.reduce((acc: number, file: any) => acc + file.size, 0),
-        uploaded: 0,
-        startTime: Date.now(),
-        lastUpdate: Date.now(),
-        files: files.reduce((acc: { [key: string]: any }, file: any) => {
+      const _progressData: FileUploadProgress = {
+        _id: uploadId,
+        _status: 'in_progress',
+        _progress: 0,
+        _total: files.reduce((_acc: number, _file: any) => acc + file.size, 0),
+        _uploaded: 0,
+        _startTime: Date.now(),
+        _lastUpdate: Date.now(),
+        _files: files.reduce((acc: { [_key: string]: any }, _file: any) => {
           acc[file.originalname] = {
-            name: file.originalname,
-            size: file.size,
-            status: 'pending',
-            progress: 0,
-            uploaded: 0
+            _name: file.originalname,
+            _size: file.size,
+            _status: 'pending',
+            _progress: 0,
+            _uploaded: 0
           };
           return acc;
         }, {})
@@ -253,8 +254,8 @@ export class FileUploadMiddleware {
       logger.info('File upload started', {
         uploadId,
         userId,
-        fileCount: files.length,
-        totalSize: progressData.total,
+        _fileCount: files.length,
+        _totalSize: progressData.total,
         memoryUsage
       });
 
@@ -262,13 +263,13 @@ export class FileUploadMiddleware {
       res.json(progressData);
 
       // Process files with Multer
-      this.upload.any()(req, res, (error: unknown) => {
+      this.upload.any()(req, res, (_error: unknown) => {
         if (error) {
           next(new AppError(
             'Multer error',
             ErrorCategory.SYSTEM,
             ErrorCode.INTERNAL_SERVER_ERROR,
-            { error: error instanceof Error ? error.message : String(error) },
+            { _error: error instanceof Error ? error._message : String(error) },
             500
           ));
           return;
@@ -284,23 +285,23 @@ export class FileUploadMiddleware {
           memoryUsage
         });
       });
-    } catch (error: unknown) {
-      logger.error('File upload error:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+    } catch (_error: unknown) {
+      logger.error('File upload _error:', {
+        _error: error instanceof Error ? error._message : String(error),
+        _stack: error instanceof Error ? error._stack : undefined
       });
       this.metricsTracker.trackFailure();
       throw new AppError(
         'File upload error',
         ErrorCategory.SYSTEM,
         ErrorCode.INTERNAL_SERVER_ERROR,
-        { error: error instanceof Error ? error.message : String(error) },
+        { _error: error instanceof Error ? error._message : String(error) },
         500
       );
     }
   }
 
-  public getProgress(req: Request, res: Response, next: NextFunction): void {
+  public getProgress(_req: Request, _res: Response, _next: NextFunction): void {
     try {
       const progressId = req.params.id;
       if (!progressId) {
@@ -326,20 +327,20 @@ export class FileUploadMiddleware {
 
       logger.info('Progress request', {
         progressId,
-        status: progressData.status,
-        progress: progressData.progress
+        _status: progressData.status,
+        _progress: progressData.progress
       });
 
       res.json(progressData);
-    } catch (error: unknown) {
-      logger.error('Progress retrieval error:', {
-        error: error instanceof Error ? error.message : String(error)
+    } catch (_error: unknown) {
+      logger.error('Progress retrieval _error:', {
+        _error: error instanceof Error ? error._message : String(error)
       });
       next(new AppError(
         'Progress retrieval error',
         ErrorCategory.SYSTEM,
         ErrorCode.INTERNAL_SERVER_ERROR,
-        { error: error instanceof Error ? error.message : String(error) },
+        { _error: error instanceof Error ? error._message : String(error) },
         500
       ));
     }
@@ -371,11 +372,11 @@ export class FileUploadMiddleware {
 
     // Log cleanup stats
     logger.info('Resource cleanup completed', {
-      memoryUsage: process.memoryUsage().heapUsed,
-      cacheSizes: {
-        progressCache: progressCache.size,
-        validationCache: this.fileValidationCache.size,
-        subscriptionCache: subscriptionCache.size
+      _memoryUsage: process.memoryUsage().heapUsed,
+      _cacheSizes: {
+        _progressCache: progressCache.size,
+        _validationCache: this.fileValidationCache.size,
+        _subscriptionCache: subscriptionCache.size
       }
     });
 
@@ -386,9 +387,9 @@ export class FileUploadMiddleware {
   }
 
   public async uploadFile(
-    req: MulterRequest,
-    res: Response,
-    next: NextFunction
+    _req: MulterRequest,
+    _res: Response,
+    _next: NextFunction
   ): Promise<void> {
     try {
       // Check if user is authenticated
@@ -410,7 +411,7 @@ export class FileUploadMiddleware {
           'Upload limit exceeded',
           ErrorCategory.AUTHENTICATION,
           ErrorCode.TOO_MANY_REQUESTS,
-          { limit: this.fileUploadConfig.maxUploadAttempts },
+          { _limit: this.fileUploadConfig.maxUploadAttempts },
           403
         );
       }
@@ -435,22 +436,22 @@ export class FileUploadMiddleware {
 
       // Update progress
       const progressId = req.progressId || uuidv4();
-      const progressData: FileUploadProgress = {
-        id: progressId,
-        status: 'completed',
-        progress: 100,
-        total: req.file?.size || 0,
-        uploaded: req.file?.size || 0,
-        startTime: Date.now(),
-        lastUpdate: Date.now(),
-        files: {
+      const _progressData: FileUploadProgress = {
+        _id: progressId,
+        _status: 'completed',
+        _progress: 100,
+        _total: req.file?.size || 0,
+        _uploaded: req.file?.size || 0,
+        _startTime: Date.now(),
+        _lastUpdate: Date.now(),
+        _files: {
           [req.file?.fieldname || 'file']: {
-            name: req.file?.originalname || '',
-            size: req.file?.size || 0,
-            status: 'completed',
-            progress: 100,
-            uploaded: req.file?.size || 0,
-            path: req.file?.path || ''
+            _name: req.file?.originalname || '',
+            _size: req.file?.size || 0,
+            _status: 'completed',
+            _progress: 100,
+            _uploaded: req.file?.size || 0,
+            _path: req.file?.path || ''
           }
         }
       };
@@ -466,25 +467,25 @@ export class FileUploadMiddleware {
             sub.callback(progressData);
           }
         } catch (err) {
-          console.error('Failed to notify subscriber:', err instanceof Error ? err.message : String(err));
+          console.error('Failed to notify _subscriber:', err instanceof Error ? err._message : String(err));
         }
       }
-    } catch (error: unknown) {
-      console.error('File upload error:', error instanceof Error ? error.message : String(error));
+    } catch (_error: unknown) {
+      console.error('File upload _error:', error instanceof Error ? error._message : String(error));
       throw new AppError(
         'File upload error',
         ErrorCategory.SYSTEM,
         ErrorCode.INTERNAL_SERVER_ERROR,
-        { error: error instanceof Error ? error.message : String(error) },
+        { _error: error instanceof Error ? error._message : String(error) },
         500
       );
     }
   }
 
   public subscribeToProgress(
-    req: Request,
-    res: Response,
-    next: NextFunction
+    _req: Request,
+    _res: Response,
+    _next: NextFunction
   ): void {
     try {
       const progressId = req.query.progressId as string;
@@ -492,14 +493,14 @@ export class FileUploadMiddleware {
         return next();
       }
 
-      const subscription: ProgressSubscription = {
-        id: uuidv4(),
+      const _subscription: ProgressSubscription = {
+        _id: uuidv4(),
         progressId,
-        callback: (progress: FileUploadProgress) => {
+        _callback: (_progress: FileUploadProgress) => {
           logger.info('Progress update', { progress });
           res.json(progress);
         },
-        lastUpdate: Date.now()
+        _lastUpdate: Date.now()
       };
 
       const subscriptions = subscriptionCache.get(progressId) || [];
@@ -511,22 +512,24 @@ export class FileUploadMiddleware {
       if (progressData && subscription && subscription.callback) {
         subscription.callback(progressData);
       }
-    } catch (subscriptionError: unknown) {
-      logger.error('Progress subscription error:', {
-        error: subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError),
-        stack: subscriptionError instanceof Error ? subscriptionError.stack : undefined
+    } catch (_subscriptionError: unknown) {
+      logger.error('Progress subscription _error:', {
+        _error: subscriptionError instanceof Error ? subscriptionError._message :
+  String(subscriptionError),
+        _stack: subscriptionError instanceof Error ? subscriptionError._stack : undefined
       });
       next(new AppError(
         'Progress subscription error',
         ErrorCategory.SYSTEM,
         ErrorCode.INTERNAL_SERVER_ERROR,
-        { error: subscriptionError instanceof Error ? subscriptionError.message : String(subscriptionError) },
+        { _error: subscriptionError instanceof Error ? subscriptionError._message :
+  String(subscriptionError) },
         500
       ));
     }
   }
 
-  private async validateUploadedFiles(req: MulterRequest, res: Response, next: NextFunction): Promise<void> {
+  private async validateUploadedFiles(_req: MulterRequest, _res: Response, _next: NextFunction): Promise<void> {
     try {
       if (!req.file) {
         throw new AppError(
@@ -544,7 +547,7 @@ export class FileUploadMiddleware {
           'Invalid file type',
           ErrorCategory.VALIDATION,
           ErrorCode.UNSUPPORTED_MEDIA_TYPE,
-          { fileType: fileTypeResult },
+          { _fileType: fileTypeResult },
           400
         );
       }
@@ -555,16 +558,16 @@ export class FileUploadMiddleware {
           'Invalid file extension',
           ErrorCategory.VALIDATION,
           ErrorCode.UNSUPPORTED_MEDIA_TYPE,
-          { extension: fileExt },
+          { _extension: fileExt },
           400
         );
       }
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       throw new AppError(
         'Failed to validate uploaded files',
         ErrorCategory.SYSTEM,
         ErrorCode.INTERNAL_SERVER_ERROR,
-        { error: error instanceof Error ? error.message : String(error) },
+        { _error: error instanceof Error ? error._message : String(error) },
         500
       );
     }

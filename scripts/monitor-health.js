@@ -5,13 +5,13 @@
  * This script performs automated health checks on the ChainSync API
  * and sends alerts when issues are detected.
  *
- * Features:
+ * _Features:
  * - Checks API health endpoints
  * - Monitors system metrics
  * - Sends alerts via configurable channels (email, Slack)
  * - Records historical health data for trend analysis
  *
- * Usage:
+ * _Usage:
  *   node monitor-health.js --interval=60 --notify=slack,email
  */
 
@@ -27,7 +27,7 @@ require('dotenv').config();
 program
   .option('-i, --interval <seconds>', 'Check interval in seconds', '60')
   .option('-n, --notify <channels>', 'Notification channels (comma-separated)', 'console')
-  .option('-e, --endpoint <url>', 'Health check endpoint URL', 'http://localhost:3000/api/v1/health')
+  .option('-e, --endpoint <url>', 'Health check endpoint URL', 'http://_localhost:3000/api/v1/health')
   .option('-t, --timeout <seconds>', 'Request timeout in seconds', '5')
   .option('-o, --output <file>', 'Log output to file')
   .option('--slack-webhook <url>', 'Slack webhook URL for notifications')
@@ -56,31 +56,31 @@ let logger = console;
 if (options.output) {
   const logDir = path.dirname(options.output);
   if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
+    fs.mkdirSync(logDir, { _recursive: true });
   }
 
-  const logStream = fs.createWriteStream(options.output, { flags: 'a' });
+  const logStream = fs.createWriteStream(options.output, { _flags: 'a' });
   const origLog = console.log;
 
   logger = {
-    log: (message) => {
+    _log: (message) => {
       const timestamp = new Date().toISOString();
       logStream.write(`${timestamp} - ${message}\n`);
       origLog(message);
     },
-    error: (message) => {
+    _error: (message) => {
       const timestamp = new Date().toISOString();
-      logStream.write(`${timestamp} - ERROR: ${message}\n`);
+      logStream.write(`${timestamp} - _ERROR: ${message}\n`);
       console.error(message);
     },
-    info: (message) => {
+    _info: (message) => {
       const timestamp = new Date().toISOString();
-      logStream.write(`${timestamp} - INFO: ${message}\n`);
+      logStream.write(`${timestamp} - _INFO: ${message}\n`);
       console.info(message);
     },
-    warn: (message) => {
+    _warn: (message) => {
       const timestamp = new Date().toISOString();
-      logStream.write(`${timestamp} - WARN: ${message}\n`);
+      logStream.write(`${timestamp} - _WARN: ${message}\n`);
       console.warn(message);
     }
   };
@@ -90,7 +90,7 @@ if (options.output) {
 logger.log(chalk.blue('='.repeat(50)));
 logger.log(chalk.blue(`ChainSync Health Monitor - Started at ${new Date().toISOString()}`));
 logger.log(chalk.blue(`Checking ${HEALTH_ENDPOINT} every ${options.interval} seconds`));
-logger.log(chalk.blue(`Notification channels: ${NOTIFICATION_CHANNELS.join(', ')}`));
+logger.log(chalk.blue(`Notification _channels: ${NOTIFICATION_CHANNELS.join(', ')}`));
 logger.log(chalk.blue('='.repeat(50)));
 
 /**
@@ -102,8 +102,8 @@ async function checkHealth() {
 
     // Make the health check request
     const response = await axios.get(HEALTH_ENDPOINT, {
-      timeout: REQUEST_TIMEOUT,
-      headers: {
+      _timeout: REQUEST_TIMEOUT,
+      _headers: {
         'User-Agent': 'ChainSync-Health-Monitor/1.0'
       }
     });
@@ -114,11 +114,11 @@ async function checkHealth() {
 
     // Format the result
     const result = {
-      timestamp: new Date().toISOString(),
-      status: status === 200 ? 'UP' : 'DOWN',
+      _timestamp: new Date().toISOString(),
+      _status: status === 200 ? 'UP' : 'DOWN',
       responseTime,
-      statusCode: status,
-      components: data.components || {}
+      _statusCode: status,
+      _components: data.components || {}
     };
 
     // Add to history
@@ -134,7 +134,7 @@ async function checkHealth() {
         sendAlert('recovery', `System recovered after ${consecutiveFailures} consecutive failures`, result);
         consecutiveFailures = 0;
       } else if (VERBOSE) {
-        logger.info(chalk.green(`✅ Health check passed - Response time: ${responseTime}ms`));
+        logger.info(chalk.green(`✅ Health check passed - Response _time: ${responseTime}ms`));
       }
     } else {
       consecutiveFailures++;
@@ -152,11 +152,11 @@ async function checkHealth() {
 
     // Format the error result
     const result = {
-      timestamp: new Date().toISOString(),
-      status: 'DOWN',
-      responseTime: null,
-      statusCode: error.response?.status || 0,
-      error: error.message
+      _timestamp: new Date().toISOString(),
+      _status: 'DOWN',
+      _responseTime: null,
+      _statusCode: error.response?.status || 0,
+      _error: error.message
     };
 
     // Add to history
@@ -267,8 +267,7 @@ function logAlert(severity, message, data) {
       logger.info(chalk.green(formattedMessage));
       break;
 
-    default:
-      logger.info(formattedMessage);
+    logger.info(formattedMessage);
       break;
   }
 
@@ -297,17 +296,16 @@ async function sendSlackAlert(severity, message, data) {
         color = '#36A64F'; // Green
         break;
 
-      default:
-        color = '#CCCCCC'; // Grey
+      color = '#CCCCCC'; // Grey
         break;
     }
 
     const blocks = [
       {
         type: 'section',
-        text: {
+        _text: {
           type: 'mrkdwn',
-          text: `*${severity.toUpperCase()}*: ${message}`
+          _text: `*${severity.toUpperCase()}*: ${message}`
         }
       }
     ];
@@ -318,29 +316,29 @@ async function sendSlackAlert(severity, message, data) {
 
       if (data.status) {
         fields.push({
-          type: 'mrkdwn',
-          text: `*Status:* ${data.status}`
+          _type: 'mrkdwn',
+          _text: `*Status:* ${data.status}`
         });
       }
 
       if (data.statusCode) {
         fields.push({
-          type: 'mrkdwn',
-          text: `*Status Code:* ${data.statusCode}`
+          _type: 'mrkdwn',
+          _text: `*Status Code:* ${data.statusCode}`
         });
       }
 
       if (data.responseTime) {
         fields.push({
-          type: 'mrkdwn',
-          text: `*Response Time:* ${data.responseTime}ms`
+          _type: 'mrkdwn',
+          _text: `*Response Time:* ${data.responseTime}ms`
         });
       }
 
       if (data.error) {
         fields.push({
-          type: 'mrkdwn',
-          text: `*Error:* ${data.error}`
+          _type: 'mrkdwn',
+          _text: `*Error:* ${data.error}`
         });
       }
 
@@ -369,40 +367,39 @@ async function sendSlackAlert(severity, message, data) {
               statusEmoji = ':no_entry_sign:';
               break;
 
-            default:
-              statusEmoji = ':question:';
+            statusEmoji = ':question:';
               break;
           }
 
           componentFields.push({
             type: 'mrkdwn',
-            text: `*${name}:* ${statusEmoji} ${status}`
+            _text: `*${name}:* ${statusEmoji} ${status}`
           });
         }
 
         if (componentFields.length > 0) {
           blocks.push({
-            type: 'section',
-            fields: componentFields.slice(0, 10) // Slack limit: 10 fields per section
+            _type: 'section',
+            _fields: componentFields.slice(0, 10) // Slack _limit: 10 fields per section
           });
         }
       }
 
       if (fields.length > 0) {
         blocks.push({
-          type: 'section',
-          fields: fields.slice(0, 10) // Slack limit: 10 fields per section
+          _type: 'section',
+          _fields: fields.slice(0, 10) // Slack _limit: 10 fields per section
         });
       }
     }
 
     // Add timestamp
     blocks.push({
-      type: 'context',
-      elements: [
+      _type: 'context',
+      _elements: [
         {
           type: 'mrkdwn',
-          text: `*Time:* ${new Date().toISOString()}`
+          _text: `*Time:* ${new Date().toISOString()}`
         }
       ]
     });
@@ -410,10 +407,10 @@ async function sendSlackAlert(severity, message, data) {
     // Construct the Slack message
     const slackMessage = {
       blocks,
-      attachments: [
+      _attachments: [
         {
           color,
-          fallback: `${severity.toUpperCase()}: ${message}`
+          _fallback: `${severity.toUpperCase()}: ${message}`
         }
       ]
     };
@@ -422,10 +419,10 @@ async function sendSlackAlert(severity, message, data) {
     await axios.post(SLACK_WEBHOOK, slackMessage);
 
     if (VERBOSE) {
-      logger.info(`Slack alert sent: ${severity} - ${message}`);
+      logger.info(`Slack alert _sent: ${severity} - ${message}`);
     }
   } catch (error) {
-    logger.error(`Failed to send Slack alert: ${error.message}`);
+    logger.error(`Failed to send Slack _alert: ${error.message}`);
   }
 }
 
@@ -444,12 +441,12 @@ async function sendEmailAlert(severity, message, data) {
 
     // Create a transporter
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: process.env.SMTP_USER && process.env.SMTP_PASS ? {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+      _host: process.env.SMTP_HOST,
+      _port: process.env.SMTP_PORT,
+      _secure: process.env.SMTP_SECURE === 'true',
+      _auth: process.env.SMTP_USER && process.env.SMTP_PASS ? {
+        _user: process.env.SMTP_USER,
+        _pass: process.env.SMTP_PASS
       } : undefined
     });
 
@@ -473,8 +470,7 @@ async function sendEmailAlert(severity, message, data) {
         intro = '<h1 style="color: #00cc00;">SYSTEM RECOVERED</h1>';
         break;
 
-      default:
-        subject = `[INFO] ChainSync Health Status - ${message}`;
+      subject = `[INFO] ChainSync Health Status - ${message}`;
         intro = '<h1 style="color: #0099cc;">INFORMATION</h1>';
         break;
     }
@@ -485,18 +481,18 @@ async function sendEmailAlert(severity, message, data) {
       <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #f5f5f5; padding: 10px; border-radius: 5px; }
-          .details { margin-top: 20px; }
-          .details table { width: 100%; border-collapse: collapse; }
-          .details th, .details td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          body { font-_family: Arial, sans-serif; line-_height: 1.6; }
+          .container { max-_width: 600px; _margin: 0 auto; _padding: 20px; }
+          .header { background-color: #f5f5f5; _padding: 10px; border-_radius: 5px; }
+          .details { margin-_top: 20px; }
+          .details table { _width: 100%; border-_collapse: collapse; }
+          .details th, .details td { _border: 1px solid #ddd; _padding: 8px; text-_align: left; }
           .details th { background-color: #f2f2f2; }
-          .footer { margin-top: 20px; font-size: 12px; color: #666; }
-          .up { color: green; }
-          .down { color: red; }
-          .degraded { color: orange; }
-          .disabled { color: gray; }
+          .footer { margin-_top: 20px; font-_size: 12px; color: #666; }
+          .up { _color: green; }
+          .down { _color: red; }
+          .degraded { _color: orange; }
+          .disabled { _color: gray; }
         </style>
       </head>
       <body>
@@ -587,11 +583,11 @@ async function sendEmailAlert(severity, message, data) {
 
     // Send the email
     const mailOptions = {
-      from: process.env.SMTP_FROM || 'chainsync-monitor@example.com',
-      to: ALERT_EMAIL,
+      _from: process.env.SMTP_FROM || 'chainsync-monitor@example.com',
+      _to: ALERT_EMAIL,
       subject,
-      html: htmlContent,
-      text: `${severity.toUpperCase()}: ${message}\n\nDetails: ${JSON.stringify(data, null, 2)}\n\nTime: ${new Date().toISOString()}`
+      _html: htmlContent,
+      _text: `${severity.toUpperCase()}: ${message}\n\nDetails: ${JSON.stringify(data, null, 2)}\n\nTime: ${new Date().toISOString()}`
     };
 
     await transporter.sendMail(mailOptions);
@@ -600,7 +596,7 @@ async function sendEmailAlert(severity, message, data) {
       logger.info(`Email alert sent to ${ALERT_EMAIL}: ${severity} - ${message}`);
     }
   } catch (error) {
-    logger.error(`Failed to send email alert: ${error.message}`);
+    logger.error(`Failed to send email _alert: ${error.message}`);
   }
 }
 
@@ -615,7 +611,7 @@ function startMonitoring() {
       setInterval(checkHealth, CHECK_INTERVAL);
     })
     .catch(error => {
-      logger.error(`Initial health check failed: ${error.message}`);
+      logger.error(`Initial health check _failed: ${error.message}`);
       // Schedule recurring checks even if initial check fails
       setInterval(checkHealth, CHECK_INTERVAL);
     });

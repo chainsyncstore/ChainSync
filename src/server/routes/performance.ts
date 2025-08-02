@@ -7,20 +7,20 @@ import { getRedisClient } from '../../cache/redis.js';
 import { getLogger } from '../../logging/index.js';
 
 const router = Router();
-const logger = getLogger().child({ component: 'performance-routes' });
+const logger = getLogger().child({ _component: 'performance-routes' });
 
 /**
  * GET /api/v1/performance/metrics
  * Get Prometheus metrics
  */
-router.get('/metrics', async (req: Request, res: Response) => {
+router.get('/metrics', async(_req: Request, _res: Response) => {
   try {
     const metrics = await getMetrics();
     res.set('Content-Type', 'text/plain');
     res.send(metrics);
   } catch (error) {
-    logger.error('Failed to get metrics', error instanceof Error ? error : new Error(String(error)));
-    res.status(500).json({ error: 'Failed to retrieve metrics' });
+    logger.error('Failed to get metrics', error instanceof Error ? _error : new Error(String(error)));
+    res.status(500).json({ _error: 'Failed to retrieve metrics' });
   }
 });
 
@@ -28,7 +28,7 @@ router.get('/metrics', async (req: Request, res: Response) => {
  * GET /api/v1/performance/health
  * Get comprehensive system health status
  */
-router.get('/health', async (req: Request, res: Response) => {
+router.get('/health', async(_req: Request, _res: Response) => {
   try {
     const resilienceStatus = await getResilienceStatus();
     const pool = getConnectionPool();
@@ -43,11 +43,11 @@ router.get('/health', async (req: Request, res: Response) => {
       try {
         const info = await redis.info();
         redisStats = {
-          connected: true,
-          info: info.substring(0, 500) + '...', // Truncate for response
+          _connected: true,
+          _info: info.substring(0, 500) + '...' // Truncate for response
         };
       } catch {
-        redisStats = { connected: false };
+        redisStats = { _connected: false };
       }
     }
 
@@ -56,31 +56,31 @@ router.get('/health', async (req: Request, res: Response) => {
     const cpuUsage = process.cpuUsage();
 
     const healthStatus = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: {
-        rss: memoryUsage.rss,
-        heapUsed: memoryUsage.heapUsed,
-        heapTotal: memoryUsage.heapTotal,
-        external: memoryUsage.external,
+      _status: 'healthy',
+      _timestamp: new Date().toISOString(),
+      _uptime: process.uptime(),
+      _memory: {
+        _rss: memoryUsage.rss,
+        _heapUsed: memoryUsage.heapUsed,
+        _heapTotal: memoryUsage.heapTotal,
+        _external: memoryUsage.external
       },
-      cpu: {
-        user: cpuUsage.user,
-        system: cpuUsage.system,
+      _cpu: {
+        _user: cpuUsage.user,
+        _system: cpuUsage.system
       },
-      database: {
-        pool: poolStats,
-        healthy: resilienceStatus.systemHealth.database,
+      _database: {
+        _pool: poolStats,
+        _healthy: resilienceStatus.systemHealth.database
       },
-      cache: {
-        redis: redisStats,
-        healthy: resilienceStatus.systemHealth.cache,
+      _cache: {
+        _redis: redisStats,
+        _healthy: resilienceStatus.systemHealth.cache
       },
-      resilience: {
-        degradationLevel: resilienceStatus.degradationLevel,
-        circuitBreakers: resilienceStatus.circuitBreakers,
-      },
+      _resilience: {
+        _degradationLevel: resilienceStatus.degradationLevel,
+        _circuitBreakers: resilienceStatus.circuitBreakers
+      }
     };
 
     // Determine overall health status
@@ -90,11 +90,11 @@ router.get('/health', async (req: Request, res: Response) => {
 
     res.json(healthStatus);
   } catch (error) {
-    logger.error('Failed to get health status', error instanceof Error ? error : new Error(String(error)));
-    res.status(500).json({ 
-      status: 'unhealthy',
-      error: 'Failed to retrieve health status',
-      timestamp: new Date().toISOString(),
+    logger.error('Failed to get health status', error instanceof Error ? _error : new Error(String(error)));
+    res.status(500).json({
+      _status: 'unhealthy',
+      _error: 'Failed to retrieve health status',
+      _timestamp: new Date().toISOString()
     });
   }
 });
@@ -103,16 +103,16 @@ router.get('/health', async (req: Request, res: Response) => {
  * GET /api/v1/performance/resilience
  * Get detailed resilience status
  */
-router.get('/resilience', async (req: Request, res: Response) => {
+router.get('/resilience', async(_req: Request, _res: Response) => {
   try {
     const resilienceStatus = await getResilienceStatus();
     res.json({
-      timestamp: new Date().toISOString(),
-      ...resilienceStatus,
+      _timestamp: new Date().toISOString(),
+      ...resilienceStatus
     });
   } catch (error) {
-    logger.error('Failed to get resilience status', error instanceof Error ? error : new Error(String(error)));
-    res.status(500).json({ error: 'Failed to retrieve resilience status' });
+    logger.error('Failed to get resilience status', error instanceof Error ? _error : new Error(String(error)));
+    res.status(500).json({ _error: 'Failed to retrieve resilience status' });
   }
 });
 
@@ -120,21 +120,21 @@ router.get('/resilience', async (req: Request, res: Response) => {
  * POST /api/v1/performance/backup
  * Create a system backup
  */
-router.post('/backup', async (req: Request, res: Response) => {
+router.post('/backup', async(_req: Request, _res: Response) => {
   try {
     const { getDisasterRecoveryManager } = await import('../../resilience/disaster-recovery.js');
     const disasterRecovery = getDisasterRecoveryManager();
-    
+
     const backup = await disasterRecovery.createBackup();
-    
+
     res.json({
-      success: backup.success,
-      backupId: backup.backupId,
-      timestamp: new Date().toISOString(),
+      _success: backup.success,
+      _backupId: backup.backupId,
+      _timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('Failed to create backup', error instanceof Error ? error : new Error(String(error)));
-    res.status(500).json({ error: 'Failed to create backup' });
+    logger.error('Failed to create backup', error instanceof Error ? _error : new Error(String(error)));
+    res.status(500).json({ _error: 'Failed to create backup' });
   }
 });
 
@@ -142,32 +142,32 @@ router.post('/backup', async (req: Request, res: Response) => {
  * GET /api/v1/performance/database/stats
  * Get database performance statistics
  */
-router.get('/database/stats', async (req: Request, res: Response) => {
+router.get('/database/stats', async(_req: Request, _res: Response) => {
   try {
     const pool = getConnectionPool();
     const poolStats = await getPoolStats();
-    
+
     // Get additional database stats if available
-    let tableStats: any[] = [];
-    let indexStats: any[] = [];
-    
+    const _tableStats: any[] = [];
+    const _indexStats: any[] = [];
+
     try {
       const { DatabaseStats } = await import('../../database/query-optimizer.js');
       tableStats = await DatabaseStats.getTableStats();
       indexStats = await DatabaseStats.getIndexStats();
     } catch (error) {
-      logger.debug('Could not get detailed database stats', error instanceof Error ? error : new Error(String(error)));
+      logger.debug('Could not get detailed database stats', error instanceof Error ? _error : new Error(String(error)));
     }
 
     res.json({
-      timestamp: new Date().toISOString(),
-      pool: poolStats,
-      tables: tableStats,
-      indexes: indexStats,
+      _timestamp: new Date().toISOString(),
+      _pool: poolStats,
+      _tables: tableStats,
+      _indexes: indexStats
     });
   } catch (error) {
-    logger.error('Failed to get database stats', error instanceof Error ? error : new Error(String(error)));
-    res.status(500).json({ error: 'Failed to retrieve database statistics' });
+    logger.error('Failed to get database stats', error instanceof Error ? _error : new Error(String(error)));
+    res.status(500).json({ _error: 'Failed to retrieve database statistics' });
   }
 });
 
@@ -175,15 +175,15 @@ router.get('/database/stats', async (req: Request, res: Response) => {
  * GET /api/v1/performance/cache/stats
  * Get cache performance statistics
  */
-router.get('/cache/stats', async (req: Request, res: Response): Promise<void> => {
+router.get('/cache/stats', async(_req: Request, _res: Response): Promise<void> => {
   try {
     const redis = getRedisClient();
-    
+
     if (!redis) {
       res.json({
-        timestamp: new Date().toISOString(),
-        available: false,
-        message: 'Redis not configured',
+        _timestamp: new Date().toISOString(),
+        _available: false,
+        _message: 'Redis not configured'
       });
       return;
     }
@@ -192,11 +192,11 @@ router.get('/cache/stats', async (req: Request, res: Response): Promise<void> =>
     const info = await redis.info();
             const memory = await redis.memory('STATS');
     const keyspace = await redis.info('keyspace');
-    
+
     // Parse Redis info
     const infoLines = info.split('\r\n');
-    const stats: Record<string, string> = {};
-    
+    const _stats: Record<string, string> = {};
+
     for (const line of infoLines) {
       if (line.includes(':')) {
         const [key, value] = line.split(':');
@@ -207,23 +207,23 @@ router.get('/cache/stats', async (req: Request, res: Response): Promise<void> =>
     }
 
     res.json({
-      timestamp: new Date().toISOString(),
-      available: true,
-      stats: {
-        connected_clients: stats.connected_clients,
-        used_memory_human: stats.used_memory_human,
-        total_commands_processed: stats.total_commands_processed,
-        keyspace_hits: stats.keyspace_hits,
-        keyspace_misses: stats.keyspace_misses,
-        hit_rate: stats.keyspace_hits && stats.keyspace_misses ? 
-          (parseInt(stats.keyspace_hits) / (parseInt(stats.keyspace_hits) + parseInt(stats.keyspace_misses)) * 100).toFixed(2) + '%' : 'N/A',
+      _timestamp: new Date().toISOString(),
+      _available: true,
+      _stats: {
+        _connected_clients: stats.connected_clients,
+        _used_memory_human: stats.used_memory_human,
+        _total_commands_processed: stats.total_commands_processed,
+        _keyspace_hits: stats.keyspace_hits,
+        _keyspace_misses: stats.keyspace_misses,
+        _hit_rate: stats.keyspace_hits && stats.keyspace_misses ?
+          (parseInt(stats.keyspace_hits) / (parseInt(stats.keyspace_hits) + parseInt(stats.keyspace_misses)) * 100).toFixed(2) + '%' : 'N/A'
       },
-      memory: memory,
-      keyspace: keyspace,
+      _memory: memory,
+      _keyspace: keyspace
     });
   } catch (error) {
-    logger.error('Failed to get cache stats', error instanceof Error ? error : new Error(String(error)));
-    res.status(500).json({ error: 'Failed to retrieve cache statistics' });
+    logger.error('Failed to get cache stats', error instanceof Error ? _error : new Error(String(error)));
+    res.status(500).json({ _error: 'Failed to retrieve cache statistics' });
   }
 });
 
@@ -231,21 +231,21 @@ router.get('/cache/stats', async (req: Request, res: Response): Promise<void> =>
  * POST /api/v1/performance/reset-circuit-breakers
  * Reset all circuit breakers
  */
-router.post('/reset-circuit-breakers', async (req: Request, res: Response) => {
+router.post('/reset-circuit-breakers', async(_req: Request, _res: Response) => {
   try {
     const { CircuitBreakerFactory } = await import('../../resilience/circuit-breaker.js');
     CircuitBreakerFactory.resetAll();
-    
+
     logger.info('All circuit breakers reset');
     res.json({
-      success: true,
-      message: 'All circuit breakers reset successfully',
-      timestamp: new Date().toISOString(),
+      _success: true,
+      _message: 'All circuit breakers reset successfully',
+      _timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('Failed to reset circuit breakers', error instanceof Error ? error : new Error(String(error)));
-    res.status(500).json({ error: 'Failed to reset circuit breakers' });
+    logger.error('Failed to reset circuit breakers', error instanceof Error ? _error : new Error(String(error)));
+    res.status(500).json({ _error: 'Failed to reset circuit breakers' });
   }
 });
 
-export default router; 
+export default router;

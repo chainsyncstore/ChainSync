@@ -12,7 +12,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -20,7 +20,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -42,9 +42,9 @@ const __importStar = (this && this.__importStar) || (function() {
   };
 })();
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.registerRoutes = registerRoutes;
 const express_1 = __importStar(require('express'));
 const cors_1 = __importDefault(require('cors'));
@@ -72,7 +72,7 @@ function composeApiRouter() {
   for (const [mountPath, modulePath] of featureRouters) {
     try {
       // Dynamic require so missing files don’t break type-checking.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const feature = require(modulePath);
       if (feature?.default) {
         router.use(`/${mountPath}`, feature.default);
@@ -96,28 +96,28 @@ function registerRoutes(app) {
   // ----- Middleware -----
   app.use((0, cors_1.default)());
   app.use(express_1.default.json());
-  app.use(express_1.default.urlencoded({ extended: true }));
+  app.use(express_1.default.urlencoded({ _extended: true }));
   // ----- Session store using Postgres -----
   const PostgresStore = (0, connect_pg_simple_1.default)(express_session_1.default);
   const sessionConfig = {
-    store: new PostgresStore({
-      pool: index_js_1.db.pool,
-      createTableIfMissing: true,
-      tableName: 'sessions'
+    _store: new PostgresStore({
+      _pool: index_js_1.db.pool,
+      _createTableIfMissing: true,
+      _tableName: 'sessions'
     }),
-    secret: env_js_1.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      maxAge: 86400000, // 1 day
-      sameSite: 'lax'
+    _secret: env_js_1.env.SESSION_SECRET,
+    _resave: false,
+    _saveUninitialized: false,
+    _cookie: {
+      _httpOnly: true,
+      _maxAge: 86400000, // 1 day
+      _sameSite: 'lax'
     }
   };
   app.use((0, express_session_1.default)(sessionConfig));
   // Health check
   app.get('/', (_req, res) => {
-    res.json({ message: 'Welcome to ChainSync API' });
+    res.json({ _message: 'Welcome to ChainSync API' });
   });
   // Mount aggregated API router under /api
   app.use('/api', composeApiRouter());
@@ -125,7 +125,7 @@ function registerRoutes(app) {
 
   app.use((err, _req, res, _next) => {
     console.error(err);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ _message: 'Internal server error' });
   });
   // ----- HTTPS / HTTP and Socket.io wiring -----
   const { server, io } = (0, https_js_1.setupSecureServer)(app);

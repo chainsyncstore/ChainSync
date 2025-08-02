@@ -23,7 +23,7 @@ type NewReferral = ReferralInsert;
 type NewReferralPayment = ReferralPaymentInsert;
 
 // Initialize Flutterwave client if credentials are available
-let flwClient: any = null;
+const _flwClient: any = null;
 try {
   if (process.env.FLW_PUBLIC_KEY && process.env.FLW_SECRET_KEY) {
     flwClient = new Flutterwave(process.env.FLW_PUBLIC_KEY, process.env.FLW_SECRET_KEY);
@@ -32,7 +32,7 @@ try {
     console.log('Flutterwave credentials not found. Payouts will be simulated.');
   }
 } catch (error) {
-  console.error('Failed to initialize Flutterwave client:', error);
+  console.error('Failed to initialize Flutterwave _client:', error);
 }
 
 // Constants
@@ -43,7 +43,7 @@ const REFERRAL_PERIOD_MONTHS = 12; // 12 months
 /**
  * Generate a unique referral code for a user
  */
-export async function generateReferralCode(userId: number): Promise<string> {
+export async function generateReferralCode(_userId: number): Promise<string> {
   try {
     // Get user directly from database since storage method doesn't exist
     const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
@@ -63,7 +63,7 @@ export async function generateReferralCode(userId: number): Promise<string> {
 
     return referralCode;
   } catch (error) {
-    console.error('Error generating referral code:', error);
+    console.error('Error generating referral _code:', error);
     throw error;
   }
 }
@@ -71,7 +71,7 @@ export async function generateReferralCode(userId: number): Promise<string> {
 /**
  * Register a user as an affiliate
  */
-export async function registerAffiliate(userId: number, bankDetails?: any): Promise<schema.Affiliate> {
+export async function registerAffiliate(_userId: number, bankDetails?: any): Promise<schema.Affiliate> {
   try {
     // Check if user is already an affiliate
     const existingAffiliate = await getAffiliateByUserId(userId);
@@ -95,14 +95,14 @@ export async function registerAffiliate(userId: number, bankDetails?: any): Prom
       )
     ) as Partial<Record<typeof allowedBankKeys[number], string>>;
 
-    const affiliateData: NewAffiliate = {
+    const _affiliateData: NewAffiliate = {
       userId,
-      code: referralCode,
-      paymentMethod: (filteredBankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual') || 'paystack',
-      bankName: filteredBankDetails.bankName,
-      bankCode: filteredBankDetails.bankCode,
-      accountNumber: filteredBankDetails.accountNumber,
-      accountName: filteredBankDetails.accountName
+      _code: referralCode,
+      _paymentMethod: (filteredBankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual') || 'paystack',
+      _bankName: filteredBankDetails.bankName,
+      _bankCode: filteredBankDetails.bankCode,
+      _accountNumber: filteredBankDetails.accountNumber,
+      _accountName: filteredBankDetails.accountName
     };
 
     const [newAffiliate] = await db.insert(schema.affiliates).values(affiliateData as any).returning();
@@ -113,7 +113,7 @@ export async function registerAffiliate(userId: number, bankDetails?: any): Prom
 
     return newAffiliate;
   } catch (error) {
-    console.error('Error registering affiliate:', error);
+    console.error('Error registering _affiliate:', error);
     throw error;
   }
 }
@@ -121,7 +121,7 @@ export async function registerAffiliate(userId: number, bankDetails?: any): Prom
 /**
  * Get affiliate by user ID
  */
-export async function getAffiliateByUserId(userId: number): Promise<schema.Affiliate | null> {
+export async function getAffiliateByUserId(_userId: number): Promise<schema.Affiliate | null> {
   try {
     const [affiliate] = await db
       .select()
@@ -130,7 +130,7 @@ export async function getAffiliateByUserId(userId: number): Promise<schema.Affil
       .limit(1);
     return affiliate || null;
   } catch (error) {
-    console.error('Error getting affiliate by user ID:', error);
+    console.error('Error getting affiliate by user _ID:', error);
     throw error;
   }
 }
@@ -138,7 +138,7 @@ export async function getAffiliateByUserId(userId: number): Promise<schema.Affil
 /**
  * Get affiliate by referral code
  */
-export async function getAffiliateByCode(code: string): Promise<schema.Affiliate | null> {
+export async function getAffiliateByCode(_code: string): Promise<schema.Affiliate | null> {
   try {
     const [affiliate] = await db
       .select()
@@ -147,7 +147,7 @@ export async function getAffiliateByCode(code: string): Promise<schema.Affiliate
       .limit(1);
     return affiliate || null;
   } catch (error) {
-    console.error('Error getting affiliate by code:', error);
+    console.error('Error getting affiliate by _code:', error);
     throw error;
   }
 }
@@ -156,25 +156,25 @@ export async function getAffiliateByCode(code: string): Promise<schema.Affiliate
  * Track a referral when a new user signs up using a referral code
  */
 export async function trackReferral(
-  referralCode: string,
-  newUserId: number
+  _referralCode: string,
+  _newUserId: number
 ): Promise<schema.Referral | null> {
   try {
     // Get the affiliate from the referral code
     const affiliate = await getAffiliateByCode(referralCode);
     if (!affiliate) {
-      console.error(`No affiliate found for referral code: ${referralCode}`);
+      console.error(`No affiliate found for referral _code: ${referralCode}`);
       return null;
     }
 
     // Create a new referral
     const referralData = {
-      affiliateId: affiliate.id,
-      referredUserId: newUserId,
-      status: 'pending' as const,
-      discountApplied: false,
-      commissionPaid: false,
-      signupDate: new Date()
+      _affiliateId: affiliate.id,
+      _referredUserId: newUserId,
+      _status: 'pending' as const,
+      _discountApplied: false,
+      _commissionPaid: false,
+      _signupDate: new Date()
     };
 
     const [newReferral] = await db.insert(schema.referrals).values(referralData).returning();
@@ -187,13 +187,13 @@ export async function trackReferral(
     await db
       .update(schema.affiliates)
       .set({
-        code: affiliate.code
+        _code: affiliate.code
       })
       .where(eq(schema.affiliates.id, affiliate.id));
 
     return newReferral;
   } catch (error) {
-    console.error('Error tracking referral:', error);
+    console.error('Error tracking _referral:', error);
     throw error;
   }
 }
@@ -202,21 +202,21 @@ export async function trackReferral(
  * Apply discount to a subscription based on referral code
  */
 export async function applyReferralDiscount(
-  userId: number,
-  referralCode: string,
-  subscriptionAmount: number,
-  currency: string = 'NGN'
+  _userId: number,
+  _referralCode: string,
+  _subscriptionAmount: number,
+  _currency: string = 'NGN'
 ): Promise<{
-  discountedAmount: number;
-  discountAmount: number;
+  _discountedAmount: number;
+  _discountAmount: number;
 }> {
   try {
     // Check if the referral code is valid
     const affiliate = await getAffiliateByCode(referralCode);
     if (!affiliate) {
       return {
-        discountedAmount: subscriptionAmount,
-        discountAmount: 0
+        _discountedAmount: subscriptionAmount,
+        _discountAmount: 0
       };
     }
 
@@ -245,7 +245,7 @@ export async function applyReferralDiscount(
       await db
         .update(schema.referrals)
         .set({
-          affiliateId: referral.affiliateId
+          _affiliateId: referral.affiliateId
         })
         .where(eq(schema.referrals.id, referral.id));
     }
@@ -255,7 +255,7 @@ export async function applyReferralDiscount(
       discountAmount
     };
   } catch (error) {
-    console.error('Error applying referral discount:', error);
+    console.error('Error applying referral _discount:', error);
     throw error;
   }
 }
@@ -264,9 +264,9 @@ export async function applyReferralDiscount(
  * Process affiliate commission when a referred user makes a payment
  */
 export async function processAffiliateCommission(
-  userId: number,
-  paymentAmount: number,
-  currency: string = 'NGN'
+  _userId: number,
+  _paymentAmount: number,
+  _currency: string = 'NGN'
 ): Promise<boolean> {
   try {
     // Find the referral for this user
@@ -299,13 +299,13 @@ export async function processAffiliateCommission(
     await db
       .update(schema.affiliates)
       .set({
-        code: affiliate.code
+        _code: affiliate.code
       })
       .where(eq(schema.affiliates.id, affiliate.id));
 
     return true;
   } catch (error) {
-    console.error('Error processing affiliate commission:', error);
+    console.error('Error processing affiliate _commission:', error);
     throw error;
   }
 }
@@ -328,7 +328,7 @@ export async function processAffiliatePayout(
     // Get eligible affiliates
     const eligibleAffiliates = await db.select().from(schema.affiliates).where(whereClause);
 
-    const payments: schema.ReferralPayment[] = [];
+    const _payments: schema.ReferralPayment[] = [];
 
     for (const affiliate of eligibleAffiliates) {
       // Skip if no payment details
@@ -341,11 +341,11 @@ export async function processAffiliatePayout(
 
       // Create a new payment record
       const paymentData = {
-        affiliateId: affiliate.id,
-        amount: pendingAmount.toString(),
-        currency: 'NGN', // Default to NGN
-        status: 'pending' as const,
-        paymentMethod: (affiliate.paymentMethod || 'paystack') as 'paystack' | 'flutterwave' | 'manual'
+        _affiliateId: affiliate.id,
+        _amount: pendingAmount.toString(),
+        _currency: 'NGN', // Default to NGN
+        _status: 'pending' as const,
+        _paymentMethod: (affiliate.paymentMethod || 'paystack') as 'paystack' | 'flutterwave' | 'manual'
         // createdAt and updatedAt are handled by Drizzle by default for new inserts
       };
 
@@ -362,12 +362,12 @@ export async function processAffiliatePayout(
       try {
         if (flwClient && affiliate.accountNumber && affiliate.bankCode) {
           const payload = {
-            account_bank: affiliate.bankCode,
-            account_number: affiliate.accountNumber,
-            amount: pendingAmount,
-            narration: `ChainSync affiliate payout - ${affiliate.code}`,
-            currency: 'NGN', // Use different currency if needed
-            reference: `aff-pay-${payment.id}-${Date.now()}`
+            _account_bank: affiliate.bankCode,
+            _account_number: affiliate.accountNumber,
+            _amount: pendingAmount,
+            _narration: `ChainSync affiliate payout - ${affiliate.code}`,
+            _currency: 'NGN', // Use different currency if needed
+            _reference: `aff-pay-${payment.id}-${Date.now()}`
           };
 
           const response = await flwClient.Transfer.initiate(payload);
@@ -389,7 +389,7 @@ export async function processAffiliatePayout(
       const updatedPayment = await db
         .update(schema.referralPayments)
         .set({
-          amount: payment.amount
+          _amount: payment.amount
         })
         .where(eq(schema.referralPayments.id, payment.id))
         .returning();
@@ -400,7 +400,7 @@ export async function processAffiliatePayout(
         await db
           .update(schema.affiliates)
           .set({
-            code: affiliate.code
+            _code: affiliate.code
           })
           .where(eq(schema.affiliates.id, affiliate.id));
       }
@@ -412,7 +412,7 @@ export async function processAffiliatePayout(
 
     return payments;
   } catch (error) {
-    console.error('Error processing affiliate payouts:', error);
+    console.error('Error processing affiliate _payouts:', error);
     throw error;
   }
 }
@@ -420,23 +420,23 @@ export async function processAffiliatePayout(
 /**
  * Get affiliate dashboard stats
  */
-export async function getAffiliateDashboardStats(userId: number): Promise<{
-  affiliate: schema.Affiliate;
+export async function getAffiliateDashboardStats(_userId: number): Promise<{
+  _affiliate: schema.Affiliate;
   referrals: {
-    total: number;
-    active: number;
-    pending: number;
+    _total: number;
+    _active: number;
+    _pending: number;
   };
   earnings: {
-    total: string;
-    pending: string;
+    _total: string;
+    _pending: string;
     lastPayment?: {
-      amount: string;
-      date: Date;
+      _amount: string;
+      _date: Date;
     };
   };
-  clicks: number; // This would require additional tracking
-  conversions: number;
+  _clicks: number; // This would require additional tracking
+  _conversions: number;
 }> {
   try {
     // Get the affiliate
@@ -470,26 +470,26 @@ export async function getAffiliateDashboardStats(userId: number): Promise<{
 
     return {
       affiliate,
-      referrals: {
-        total: totalReferrals,
-        active: activeReferrals,
-        pending: pendingReferrals
+      _referrals: {
+        _total: totalReferrals,
+        _active: activeReferrals,
+        _pending: pendingReferrals
       },
-      earnings: {
-        total: affiliate.totalEarnings?.toString() ?? '0',
-        pending: affiliate.pendingEarnings?.toString() ?? '0',
+      _earnings: {
+        _total: affiliate.totalEarnings?.toString() ?? '0',
+        _pending: affiliate.pendingEarnings?.toString() ?? '0',
         ...(lastPayment && {
-          lastPayment: {
-            amount: lastPayment.amount.toString(),
-            date: lastPayment.paymentDate!
+          _lastPayment: {
+            _amount: lastPayment.amount.toString(),
+            _date: lastPayment.paymentDate!
           }
         })
       },
-      clicks: 0, // Would require additional tracking implementation
-      conversions: activeReferrals
+      _clicks: 0, // Would require additional tracking implementation
+      _conversions: activeReferrals
     };
   } catch (error) {
-    console.error('Error getting affiliate dashboard stats:', error);
+    console.error('Error getting affiliate dashboard _stats:', error);
     throw error;
   }
 }
@@ -497,7 +497,7 @@ export async function getAffiliateDashboardStats(userId: number): Promise<{
 /**
  * Get all referrals for an affiliate
  */
-export async function getAffiliateReferrals(userId: number): Promise<any[]> {
+export async function getAffiliateReferrals(_userId: number): Promise<any[]> {
   try {
     const affiliate = await getAffiliateByUserId(userId);
     if (!affiliate) {
@@ -506,13 +506,13 @@ export async function getAffiliateReferrals(userId: number): Promise<any[]> {
 
     const referrals = await db
       .select({
-        id: schema.referrals.id,
-        status: schema.referrals.status,
-        signupDate: schema.referrals.signupDate,
-        activationDate: schema.referrals.activationDate,
-        expiryDate: schema.referrals.expiryDate,
-        username: schema.users.name, // Assuming 'name' is the correct field
-        fullName: schema.users.name // Assuming 'name' is the correct field
+        _id: schema.referrals.id,
+        _status: schema.referrals.status,
+        _signupDate: schema.referrals.signupDate,
+        _activationDate: schema.referrals.activationDate,
+        _expiryDate: schema.referrals.expiryDate,
+        _username: schema.users.name, // Assuming 'name' is the correct field
+        _fullName: schema.users.name // Assuming 'name' is the correct field
       })
       .from(schema.referrals)
       .leftJoin(schema.users, eq(schema.referrals.referredUserId, schema.users.id))
@@ -521,7 +521,7 @@ export async function getAffiliateReferrals(userId: number): Promise<any[]> {
 
     return referrals;
   } catch (error) {
-    console.error('Error getting affiliate referrals:', error);
+    console.error('Error getting affiliate _referrals:', error);
     throw error;
   }
 }
@@ -529,7 +529,7 @@ export async function getAffiliateReferrals(userId: number): Promise<any[]> {
 /**
  * Get all payments for an affiliate
  */
-export async function getAffiliatePayments(userId: number): Promise<schema.ReferralPayment[]> {
+export async function getAffiliatePayments(_userId: number): Promise<schema.ReferralPayment[]> {
   try {
     const affiliate = await getAffiliateByUserId(userId);
     if (!affiliate) {
@@ -544,7 +544,7 @@ export async function getAffiliatePayments(userId: number): Promise<schema.Refer
 
     return payments;
   } catch (error) {
-    console.error('Error getting affiliate payments:', error);
+    console.error('Error getting affiliate _payments:', error);
     throw error;
   }
 }
@@ -552,14 +552,14 @@ export async function getAffiliatePayments(userId: number): Promise<schema.Refer
 /**
  * Track a click on an affiliate link (implementation would require a separate tracking system)
  */
-export async function trackAffiliateClick(referralCode: string, source?: string): Promise<boolean> {
+export async function trackAffiliateClick(_referralCode: string, source?: string): Promise<boolean> {
   try {
     // In a production system, you'd store this in a separate clicks tracking table
     // For the MVP, we'll just log it
-    console.log(`Click tracked for referral code: ${referralCode}, source: ${source || 'unknown'}`);
+    console.log(`Click tracked for referral _code: ${referralCode}, _source: ${source || 'unknown'}`);
     return true;
   } catch (error) {
-    console.error('Error tracking affiliate click:', error);
+    console.error('Error tracking affiliate _click:', error);
     return false;
   }
 }
@@ -568,8 +568,8 @@ export async function trackAffiliateClick(referralCode: string, source?: string)
  * Update affiliate bank details
  */
 export async function updateAffiliateBankDetails(
-  userId: number,
-  bankDetails: {
+  _userId: number,
+  _bankDetails: {
     bankName?: string;
     accountNumber?: string;
     accountName?: string;
@@ -584,8 +584,8 @@ export async function updateAffiliateBankDetails(
     }
 
     // Build update data that satisfies the schema
-    const updateData: Partial<AffiliateRow> = {
-      updatedAt: new Date()
+    const _updateData: Partial<AffiliateRow> = {
+      _updatedAt: new Date()
     };
 
     // Map valid affiliate fields from bankDetails
@@ -611,7 +611,7 @@ export async function updateAffiliateBankDetails(
 
     return updatedAffiliate;
   } catch (error) {
-    console.error('Error updating affiliate bank details:', error);
+    console.error('Error updating affiliate bank _details:', error);
     throw error;
   }
 }

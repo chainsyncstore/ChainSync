@@ -7,12 +7,12 @@ import type { Page } from '@playwright/test';
 export interface TransactionData {
   customerId?: number;
   customerEmail?: string;
-  amount: number;
+  _amount: number;
   items?: Array<{
-    id: number;
-    name: string;
-    quantity: number;
-    price: number;
+    _id: number;
+    _name: string;
+    _quantity: number;
+    _price: number;
   }>;
   paymentMethod: 'cash' | 'card' | 'transfer';
   notes?: string;
@@ -21,7 +21,7 @@ export interface TransactionData {
 /**
  * Create a new transaction
  */
-export async function createTransaction(page: any, data: TransactionData): Promise<string> {
+export async function createTransaction(_page: any, _data: TransactionData): Promise<string> {
   // Navigate to transactions page
   await page.goto('/transactions/new');
   await page.waitForLoadState('networkidle');
@@ -61,36 +61,37 @@ export async function createTransaction(page: any, data: TransactionData): Promi
 
   // Complete transaction
   await page.click('[data-testid="complete-transaction"]');
-  
+
   // Wait for confirmation and extract transaction ID
   await page.waitForSelector('[data-testid="transaction-success"]');
-  
+
   // Extract transaction ID from the success message or UI
   const transactionId = await page.getAttribute('[data-testid="transaction-id"]', 'data-id');
-  
+
   return transactionId || '';
 }
 
 /**
  * Process a refund for a transaction
  */
-export async function refundTransaction(page: any, transactionId: string, fullRefund: boolean = true, amount?: number): Promise<void> {
+export async function refundTransaction(_page: any, _transactionId: string, _fullRefund: boolean
+   =  true, amount?: number): Promise<void> {
   // Navigate to transaction details
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
-  
+
   // Click refund button
   await page.click('[data-testid="refund-transaction"]');
-  
+
   if (!fullRefund && amount) {
     // Select partial refund
     await page.click('[data-testid="partial-refund"]');
     await page.fill('[data-testid="refund-amount"]', amount.toString());
   }
-  
+
   // Confirm refund
   await page.click('[data-testid="confirm-refund"]');
-  
+
   // Wait for refund confirmation
   await page.waitForSelector('[data-testid="refund-success"]');
 }
@@ -98,10 +99,10 @@ export async function refundTransaction(page: any, transactionId: string, fullRe
 /**
  * Check transaction status
  */
-export async function getTransactionStatus(page: any, transactionId: string): Promise<string> {
+export async function getTransactionStatus(_page: any, _transactionId: string): Promise<string> {
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
-  
+
   const statusElement = await page.locator('[data-testid="transaction-status"]');
   return (await statusElement.textContent()) || '';
 }
@@ -109,12 +110,12 @@ export async function getTransactionStatus(page: any, transactionId: string): Pr
 /**
  * Verify loyalty points for a transaction
  */
-export async function getLoyaltyPointsForTransaction(page: any, transactionId: string): Promise<number> {
+export async function getLoyaltyPointsForTransaction(_page: any, _transactionId: string): Promise<number> {
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
-  
+
   const pointsElement = await page.locator('[data-testid="loyalty-points"]');
   const pointsText = await pointsElement.textContent() || '0';
-  
+
   return parseInt(pointsText.replace(/[^0-9]/g, ''), 10);
 }

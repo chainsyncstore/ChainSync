@@ -5,7 +5,7 @@ import { TransactionService } from '../../../server/services/transaction/service
 import {
   CreateTransactionParams,
   PaymentMethod,
-  TransactionType,
+  TransactionType
 } from '../../../server/services/transaction/types';
 import * as schema from '@shared/schema';
 import { makeMockCustomer } from '../../factories/customer';
@@ -18,13 +18,13 @@ import { describe, test } from '../../testTags';
 const transactionService = new TransactionService();
 
 describe.integration('TransactionService Integration', () => {
-  let store: schema.Store;
-  let customer: schema.Customer;
-  let product: schema.Product;
-  let user: schema.User;
-  let category: schema.Category;
+  let _store: schema.Store;
+  let _customer: schema.Customer;
+  let _product: schema.Product;
+  let _user: schema.User;
+  let _category: schema.Category;
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Clean up database
     await db.delete(schema.transactionItems);
     await db.delete(schema.transactions);
@@ -39,30 +39,30 @@ describe.integration('TransactionService Integration', () => {
     [store] = await db.insert(schema.stores).values(makeMockStore()).returning();
     [user] = await db
       .insert(schema.users)
-      .values(makeMockUser({ storeId: store.id }))
+      .values(makeMockUser({ _storeId: store.id }))
       .returning();
     [customer] = await db
       .insert(schema.customers)
-      .values(makeMockCustomer({ storeId: store.id }))
+      .values(makeMockCustomer({ _storeId: store.id }))
       .returning();
     [category] = await db
       .insert(schema.categories)
-      .values({ name: 'Test Category', description: 'A category for testing' })
+      .values({ _name: 'Test Category', _description: 'A category for testing' })
       .returning();
     [product] = await db
       .insert(schema.products)
-      .values(makeMockProduct({ categoryId: category.id }))
+      .values(makeMockProduct({ _categoryId: category.id }))
       .returning();
     await db.insert(schema.inventory).values(
       makeMockInventoryItem({
-        storeId: store.id,
-        productId: product.id,
-        totalQuantity: 10,
+        _storeId: store.id,
+        _productId: product.id,
+        _totalQuantity: 10
       })
     );
   });
 
-  afterEach(async () => {
+  afterEach(async() => {
     // Final cleanup to ensure isolation
     await db.delete(schema.transactionItems);
     await db.delete(schema.transactions);
@@ -76,23 +76,23 @@ describe.integration('TransactionService Integration', () => {
 
   test.integration(
     'should process a sale, update inventory, and record the transaction',
-    async () => {
-      const transactionParams: CreateTransactionParams = {
-        storeId: store.id,
-        userId: user.id,
-        customerId: customer.id,
-        type: TransactionType.SALE,
-        paymentMethod: PaymentMethod.CASH,
-        subtotal: '20.00',
-        tax: '2.00',
-        total: '22.00',
-        items: [
+    async() => {
+      const _transactionParams: CreateTransactionParams = {
+        _storeId: store.id,
+        _userId: user.id,
+        _customerId: customer.id,
+        _type: TransactionType.SALE,
+        _paymentMethod: PaymentMethod.CASH,
+        _subtotal: '20.00',
+        _tax: '2.00',
+        _total: '22.00',
+        _items: [
           {
-            productId: product.id,
-            quantity: 2,
-            unitPrice: '10.00',
-          },
-        ],
+            _productId: product.id,
+            _quantity: 2,
+            _unitPrice: '10.00'
+          }
+        ]
       };
 
       const createdTransaction = await transactionService.createTransaction(transactionParams);
@@ -106,7 +106,7 @@ describe.integration('TransactionService Integration', () => {
 
       // Assert inventory was decremented
       const updatedInventory = await db.query.inventory.findFirst({
-        where: eq(schema.inventory.productId, product.id),
+        _where: eq(schema.inventory.productId, product.id)
       });
       expect(updatedInventory).toBeDefined();
       expect(updatedInventory?.totalQuantity).toBe(8);

@@ -2,7 +2,7 @@
 import { AppError, ErrorCategory, ErrorCode } from '@shared/types/errors';
 
 export class ImportExportRepository {
-  async createImport(userId: number, entityType: string, options?: any): Promise<string> {
+  async createImport(_userId: number, _entityType: string, options?: any): Promise<string> {
     try {
       // Implementation for creating import record
       // This is a placeholder and should be implemented based on your database
@@ -12,7 +12,7 @@ export class ImportExportRepository {
     }
   }
 
-  async getExportData(userId: number, entityType: string, options?: any): Promise<any[]> {
+  async getExportData(_userId: number, _entityType: string, options?: any): Promise<any[]> {
     try {
       // Implementation for getting export data
       // This is a placeholder and should be implemented based on your database
@@ -22,7 +22,7 @@ export class ImportExportRepository {
     }
   }
 
-  async processBatch(data: any[], importId: string): Promise<{ errors: any[] }> {
+  async processBatch(_data: any[], _importId: string): Promise<{ _errors: any[] }> {
     try {
       // Implementation for processing batch
       // This is a placeholder and should be implemented based on your database

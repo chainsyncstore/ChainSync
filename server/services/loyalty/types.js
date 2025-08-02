@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.DatabaseOperationError = exports.InvalidTierError = exports.MemberAlreadyEnrolledError = exports.ProgramAlreadyExistsError = exports.RewardNotFoundError = exports.InsufficientPointsError = exports.LoyaltyMemberNotFoundError = exports.LoyaltyProgramNotFoundError = void 0;
 const errors_1 = require('@shared/types/errors');
 // Error classes
@@ -17,7 +17,7 @@ class LoyaltyMemberNotFoundError extends errors_1.AppError {
 exports.LoyaltyMemberNotFoundError = LoyaltyMemberNotFoundError;
 class InsufficientPointsError extends errors_1.AppError {
   constructor(memberId, requiredPoints) {
-    super(`Member ${memberId} has insufficient points. Required: ${requiredPoints}`, errors_1.ErrorCategory.BUSINESS, errors_1.ErrorCode.INSUFFICIENT_BALANCE, { memberId, requiredPoints }, 400);
+    super(`Member ${memberId} has insufficient points. _Required: ${requiredPoints}`, errors_1.ErrorCategory.BUSINESS, errors_1.ErrorCode.INSUFFICIENT_BALANCE, { memberId, requiredPoints }, 400);
   }
 }
 exports.InsufficientPointsError = InsufficientPointsError;
@@ -47,7 +47,7 @@ class InvalidTierError extends errors_1.AppError {
 exports.InvalidTierError = InvalidTierError;
 class DatabaseOperationError extends errors_1.AppError {
   constructor(operation, error) {
-    super(`Database operation "${operation}" failed`, errors_1.ErrorCategory.DATABASE, errors_1.ErrorCode.DATABASE_ERROR, { error: error?.message }, 500, true // retryable
+    super(`Database operation "${operation}" failed`, errors_1.ErrorCategory.DATABASE, errors_1.ErrorCode.DATABASE_ERROR, { _error: error?.message }, 500, true // retryable
     );
   }
 }

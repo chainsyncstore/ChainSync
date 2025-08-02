@@ -28,9 +28,9 @@ export abstract class EnhancedBaseService extends BaseService {
    * @returns Formatted result or null
    */
   protected async executeSqlWithFormatting<T>(
-    query: string,
-    params: any[] = [],
-    formatter: (row: Record<string, any>) => T
+    _query: string,
+    _params: any[] = [],
+    _formatter: (_row: Record<string, any>) => T
   ): Promise<T | null> {
     try {
       const result = await db.execute(sql.raw(query), params);
@@ -50,14 +50,14 @@ export abstract class EnhancedBaseService extends BaseService {
    * @returns Array of formatted results
    */
   protected async executeSqlWithMultipleResults<T>(
-    query: string,
-    params: any[] = [],
-    formatter: (row: Record<string, any>) => T
+    _query: string,
+    _params: any[] = [],
+    _formatter: (_row: Record<string, any>) => T
   ): Promise<T[]> {
     try {
       const result = await db.execute(sql.raw(query), params);
       const rows = result.rows || [];
-      return rows.map((row: any) => formatter(row));
+      return rows.map((_row: any) => formatter(row));
     } catch (error) {
       throw ServiceErrorHandler.handleError(error, 'executing SQL query with multiple results');
     }
@@ -72,9 +72,9 @@ export abstract class EnhancedBaseService extends BaseService {
    * @returns The inserted record or null
    */
   protected async insertWithFormatting<T>(
-    tableName: string,
-    data: Record<string, any>,
-    formatter: (row: Record<string, any>) => T
+    _tableName: string,
+    _data: Record<string, any>,
+    _formatter: (_row: Record<string, any>) => T
   ): Promise<T | null> {
     try {
       const { query, values } = buildInsertQuery(tableName, data);
@@ -94,10 +94,10 @@ export abstract class EnhancedBaseService extends BaseService {
    * @returns The updated record or null
    */
   protected async updateWithFormatting<T>(
-    tableName: string,
-    data: Record<string, any>,
-    whereCondition: string,
-    formatter: (row: Record<string, any>) => T
+    _tableName: string,
+    _data: Record<string, any>,
+    _whereCondition: string,
+    _formatter: (_row: Record<string, any>) => T
   ): Promise<T | null> {
     try {
       const { query, values } = buildUpdateQuery(tableName, data, whereCondition);
@@ -116,9 +116,9 @@ export abstract class EnhancedBaseService extends BaseService {
    * @returns The inserted record or null
    */
   protected async rawInsertWithFormatting<T>(
-    tableName: string,
-    data: Record<string, any>,
-    formatter: (row: Record<string, any>) => T
+    _tableName: string,
+    _data: Record<string, any>,
+    _formatter: (_row: Record<string, any>) => T
   ): Promise<T | null> {
     try {
       const preparedData = prepareSqlValues(data);
@@ -139,10 +139,10 @@ export abstract class EnhancedBaseService extends BaseService {
    * @returns The updated record or null
    */
   protected async rawUpdateWithFormatting<T>(
-    tableName: string,
-    data: Record<string, any>,
-    whereCondition: string,
-    formatter: (row: Record<string, any>) => T
+    _tableName: string,
+    _data: Record<string, any>,
+    _whereCondition: string,
+    _formatter: (_row: Record<string, any>) => T
   ): Promise<T | null> {
     try {
       const preparedData = prepareSqlValues(data);
@@ -162,9 +162,9 @@ export abstract class EnhancedBaseService extends BaseService {
    * @returns Prepared data
    */
   protected validateAndPrepare<T, U>(
-    data: T,
-    validator: ZodSchema<U>,
-    preparer: (data: U) => Record<string, any>
+    _data: T,
+    _validator: ZodSchema<U>,
+    _preparer: (_data: U) => Record<string, any>
   ): Record<string, any> {
     try {
       const validatedData = validator.parse(data);
@@ -181,7 +181,7 @@ export abstract class EnhancedBaseService extends BaseService {
    * @param operation Description of the operation that failed
    * @returns Always throws, return type is for TypeScript compatibility
    */
-  protected handleError(error: any, operation: string): never {
+  protected handleError(_error: any, _operation: string): never {
     throw ServiceErrorHandler.handleError(error, operation);
   }
 
@@ -192,7 +192,7 @@ export abstract class EnhancedBaseService extends BaseService {
    * @param entityName Name of the entity being checked
    * @returns The result if it exists
    */
-  protected ensureExists<T>(result: T | null | undefined, entityName: string): T {
+  protected ensureExists<T>(_result: T | null | undefined, _entityName: string): T {
     return ServiceErrorHandler.ensureExists(result, entityName);
   }
 }

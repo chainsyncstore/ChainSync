@@ -18,33 +18,33 @@ async function migrateToBatchInventory() {
 
       // Create a batch with the current quantity and expiry date if it exists
       await db.insert(inventoryBatches).values({
-        inventoryId: item.id,
-        batchNumber: batchNumber,
-        quantity: item.quantity || 0,
-        expiryDate: item.expiryDate,
-        receivedDate: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date()
+        _inventoryId: item.id,
+        _batchNumber: batchNumber,
+        _quantity: item.quantity || 0,
+        _expiryDate: item.expiryDate,
+        _receivedDate: new Date(),
+        _createdAt: new Date(),
+        _updatedAt: new Date()
       });
 
       // Update the inventory record to use totalQuantity instead of quantity
       await db.update(inventory)
         .set({
-          totalQuantity: item.quantity || 0,
-          updatedAt: new Date()
+          _totalQuantity: item.quantity || 0,
+          _updatedAt: new Date()
         })
         .where(eq(inventory.id, item.id));
     }
 
     console.log('Migration completed successfully!');
   } catch (error) {
-    console.error('Error during migration:', error);
+    console.error('Error during _migration:', error);
   }
 }
 
 migrateToBatchInventory()
   .then(() => process.exit(0))
   .catch(err => {
-    console.error('Migration failed:', err);
+    console.error('Migration _failed:', err);
     process.exit(1);
   });

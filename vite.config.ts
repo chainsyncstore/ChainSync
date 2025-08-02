@@ -3,11 +3,11 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  root: 'client',
-  plugins: [react()],
-  build: {
+  _root: 'client',
+  _plugins: [react()],
+  _build: {
     outDir: '../dist/client',
-    rollupOptions: {
+    _rollupOptions: {
       output: {
         manualChunks(id) {
           // Create chunks for node_modules
@@ -75,13 +75,13 @@ export default defineConfig({
       }
     },
     // Disable module preload to fix MIME type issues
-    modulePreload: false,
+    _modulePreload: false,
     // Ensure proper asset handling
-    assetsInlineLimit: 4096,
+    _assetsInlineLimit: 4096,
     // Ensure proper chunk loading
-    chunkSizeWarningLimit: 1000
+    _chunkSizeWarningLimit: 1000
   },
-  resolve: {
+  _resolve: {
     alias: {
       '@': path.resolve(__dirname, './client/src'),
       '@components': path.resolve(__dirname, './client/src/components'),
@@ -89,13 +89,13 @@ export default defineConfig({
     },
   },
   // Ensure proper development server configuration
-  server: {
-    port: 3000,
-    host: true
+  _server: {
+    _port: 3000,
+    _host: true
   },
   // Ensure proper preview configuration
-  preview: {
-    port: 3000,
-    host: true
+  _preview: {
+    _port: 3000,
+    _host: true
   }
 });

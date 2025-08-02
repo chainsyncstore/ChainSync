@@ -2,12 +2,12 @@
  * ChainSync Local Print Service
  *
  * This script monitors localStorage for print jobs and sends them to a connected
- * ESC/POS thermal printer. To use:
+ * ESC/POS thermal printer. To _use:
  *
  * 1. Save this file on your POS terminal
  * 2. Install Node.js if not already installed
- * 3. Install dependencies: npm install serialport escpos escpos-usb escpos-network
- * 4. Run with: node local-print-service.js
+ * 3. Install _dependencies: npm install serialport escpos escpos-usb escpos-network
+ * 4. Run _with: node local-print-service.js
  *
  * This service will run in the background and automatically print receipts
  * when triggered from the ChainSync web application.
@@ -23,20 +23,20 @@ escpos.Network = require('escpos-network');
 
 // Supported printer connection types
 const CONNECTION_TYPES = {
-  USB: 'usb',
-  SERIAL: 'serial',
-  NETWORK: 'network'
+  _USB: 'usb',
+  _SERIAL: 'serial',
+  _NETWORK: 'network'
 };
 
 // Default configuration
 const config = {
-  connectionType: CONNECTION_TYPES.USB,
-  serialPort: 'COM1',  // Windows default, use '/dev/ttyUSB0' for Linux
-  baudRate: 9600,
-  networkHost: '192.168.1.100',
-  networkPort: 9100,
-  checkInterval: 2000,  // Check for new print jobs every 2 seconds
-  debug: true
+  _connectionType: CONNECTION_TYPES.USB,
+  _serialPort: 'COM1',  // Windows default, use '/dev/ttyUSB0' for Linux
+  _baudRate: 9600,
+  _networkHost: '192.168.1.100',
+  _networkPort: 9100,
+  _checkInterval: 2000,  // Check for new print jobs every 2 seconds
+  _debug: true
 };
 
 // Storage for processed job IDs to avoid duplicate printing
@@ -72,21 +72,20 @@ async function connectToPrinter() {
         device = new escpos.USB(devices[0]);
         break;
 
-      case CONNECTION_TYPES.SERIAL:
+      case CONNECTION_TYPES._SERIAL:
         device = new escpos.Serial(config.serialPort, {
-          baudRate: config.baudRate
+          _baudRate: config.baudRate
         });
         break;
 
-      case CONNECTION_TYPES.NETWORK:
+      case CONNECTION_TYPES._NETWORK:
         device = new escpos.Network(
           config.networkHost,
           config.networkPort
         );
         break;
 
-      default:
-        throw new Error(`Unsupported connection type: ${config.connectionType}`);
+      throw new Error(`Unsupported connection type: ${config.connectionType}`);
     }
 
     // Create printer instance
@@ -95,7 +94,7 @@ async function connectToPrinter() {
     log(`Successfully connected to printer using ${config.connectionType}`);
     return { device, printer };
   } catch (error) {
-    log(`Error connecting to printer: ${error.message}`);
+    log(`Error connecting to _printer: ${error.message}`);
     return null;
   }
 }
@@ -118,7 +117,7 @@ function startMonitoring() {
       const printJob = mockCheckLocalStorage();
 
       if (printJob && !processedJobs.has(printJob.timestamp)) {
-        log(`New print job detected: ${printJob.timestamp}`);
+        log(`New print job _detected: ${printJob.timestamp}`);
 
         // Process the print job
         await processPrintJob(printJob);
@@ -133,7 +132,7 @@ function startMonitoring() {
         }
       }
     } catch (error) {
-      log(`Error in monitoring loop: ${error.message}`);
+      log(`Error in monitoring _loop: ${error.message}`);
     }
   }, config.checkInterval);
 }
@@ -142,7 +141,7 @@ function startMonitoring() {
  * Process a print job
  */
 async function processPrintJob(printJob) {
-  log(`Processing print job for printer: ${printJob.printerId}`);
+  log(`Processing print job for _printer: ${printJob.printerId}`);
 
   // Decode the base64 commands
   const commands = Buffer.from(printJob.commands, 'base64');
@@ -159,7 +158,7 @@ async function processPrintJob(printJob) {
     // Open device
     device.open((error) => {
       if (error) {
-        log(`Error opening device: ${error.message}`);
+        log(`Error opening _device: ${error.message}`);
         return;
       }
 
@@ -172,7 +171,7 @@ async function processPrintJob(printJob) {
       log('Print job sent successfully');
     });
   } catch (error) {
-    log(`Error processing print job: ${error.message}`);
+    log(`Error processing print _job: ${error.message}`);
     throw error;
   }
 }
@@ -183,7 +182,7 @@ async function processPrintJob(printJob) {
  */
 function mockCheckLocalStorage() {
   // This simulates checking localStorage for a print job
-  // In a real implementation, this would be:
+  // In a real implementation, this would _be:
   // const printJob = JSON.parse(localStorage.getItem('chainsync_print_job'));
   // localStorage.removeItem('chainsync_print_job');
 
@@ -191,9 +190,9 @@ function mockCheckLocalStorage() {
   // and occasionally return a mock print job
   if (Math.random() < 0.05) { // 5% chance of a new job
     return {
-      timestamp: new Date().toISOString(),
-      printerId: 'default',
-      commands: Buffer.from('\x1B@Hello World\n\x1D\x56\x01', 'utf8').toString('base64')
+      _timestamp: new Date().toISOString(),
+      _printerId: 'default',
+      _commands: Buffer.from('\x1B@Hello World\n\x1D\x56\x01', 'utf8').toString('base64')
     };
   }
 

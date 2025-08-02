@@ -4,8 +4,8 @@ const PORT = process.env.PORT || 3000;
 
 // Start the server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🚀 Server is running on _http://localhost:${PORT}`);
+  console.log(`📊 _Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown handling
@@ -27,12 +27,12 @@ process.on('SIGINT', () => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
+  console.error('Uncaught _Exception:', err);
   process.exit(1);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection _at:', promise, 'reason:', reason);
   process.exit(1);
 });

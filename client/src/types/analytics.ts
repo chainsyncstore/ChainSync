@@ -1,38 +1,38 @@
 import { SelectProduct, SelectStore, SelectUser, SelectLoyaltyMember, SelectTransaction } from '@shared/schema';
 
 export interface TopProduct extends SelectProduct {
-  quantity: number;
-  total: number;
+  _quantity: number;
+  _total: number;
 }
 
 export interface StoreMetrics {
-  totalRevenue: number;
-  averageTransaction: number;
-  transactionCount: number;
+  _totalRevenue: number;
+  _averageTransaction: number;
+  _transactionCount: number;
 }
 
 export interface StoreWithMetrics extends SelectStore {
-  metrics: StoreMetrics;
-  topProducts: TopProduct[];
+  _metrics: StoreMetrics;
+  _topProducts: TopProduct[];
 }
 
 export interface GlobalMetrics {
-  totalRevenue: number;
-  averageTransaction: number;
-  transactionCount: number;
+  _totalRevenue: number;
+  _averageTransaction: number;
+  _transactionCount: number;
 }
 
 export interface StorePerformanceResponse {
-  storePerformance: StoreWithMetrics[];
-  globalMetrics: GlobalMetrics;
-  dateRangeDescription: string;
+  _storePerformance: StoreWithMetrics[];
+  _globalMetrics: GlobalMetrics;
+  _dateRangeDescription: string;
 }
 
 export interface TransactionWithDetails extends SelectTransaction {
-  store: SelectStore;
-  cashier: SelectUser;
-  customer: SelectUser;
-  loyaltyMember: SelectLoyaltyMember;
-  pointsEarned: number;
-  transactionId: string;
+  _store: SelectStore;
+  _cashier: SelectUser;
+  _customer: SelectUser;
+  _loyaltyMember: SelectLoyaltyMember;
+  _pointsEarned: number;
+  _transactionId: string;
 }

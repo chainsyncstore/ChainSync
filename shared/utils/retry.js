@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.RetryStrategy = void 0;
 class RetryStrategy {
   constructor(maxRetries = 3, baseDelay = 1000, // 1 second

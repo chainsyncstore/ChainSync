@@ -1,20 +1,20 @@
-import { AppShell } from '@/components/layout/app-shell';
-import { useAuth } from '@/providers/auth-provider';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { useLocation } from 'wouter';
+import { AppShell } from &apos;@/components/layout/app-shell&apos;;
+import { useAuth } from &apos;@/providers/auth-provider&apos;;
+import { useQuery, useMutation, useQueryClient } from &apos;@tanstack/react-query&apos;;
+import { zodResolver } from &apos;@hookform/resolvers/zod&apos;;
+import { useForm } from &apos;react-hook-form&apos;;
+import * as z from &apos;zod&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { useLocation } from &apos;wouter&apos;;
 
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  CardTitle
+} from &apos;@/components/ui/card&apos;;
 import {
   Form,
   FormControl,
@@ -22,33 +22,33 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+  FormMessage
+} from &apos;@/components/ui/form&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Textarea } from &apos;@/components/ui/textarea&apos;;
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Loader2, ArrowLeft } from 'lucide-react';
+  SelectValue
+} from &apos;@/components/ui/select&apos;;
+import { Switch } from &apos;@/components/ui/switch&apos;;
+import { Loader2, ArrowLeft } from &apos;lucide-react&apos;;
 
 // Form schema for adding a new product
 const productFormSchema = z.object({
-  name: z.string().min(2, "Product name must be at least 2 characters"),
-  description: z.string().optional(),
-  barcode: z.string().min(5, "Barcode must be at least 5 characters"),
-  price: z.string().min(1, "Price is required"),
-  cost: z.string().optional(),
-  categoryId: z.string().min(1, "Category is required"),
-  isPerishable: z.boolean().default(false),
-  storeId: z.string().min(1, "Store is required"),
-  quantity: z.coerce.number().min(0, "Initial quantity cannot be negative"),
-  minimumLevel: z.coerce.number().min(0, "Minimum level cannot be negative").default(5)
+  _name: z.string().min(2, &apos;Product name must be at least 2 characters&apos;),
+  _description: z.string().optional(),
+  _barcode: z.string().min(5, &apos;Barcode must be at least 5 characters&apos;),
+  _price: z.string().min(1, &apos;Price is required&apos;),
+  _cost: z.string().optional(),
+  _categoryId: z.string().min(1, &apos;Category is required&apos;),
+  _isPerishable: z.boolean().default(false),
+  _storeId: z.string().min(1, &apos;Store is required&apos;),
+  _quantity: z.coerce.number().min(0, &apos;Initial quantity cannot be negative&apos;),
+  _minimumLevel: z.coerce.number().min(0, &apos;Minimum level cannot be negative&apos;).default(5)
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -58,121 +58,121 @@ export default function AddProductPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  
+
   // Redirect if not manager or admin
-  const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager';
-  
+  const isManagerOrAdmin = user?.role === &apos;admin&apos; || user?.role === &apos;manager&apos;;
+
   if (!isManagerOrAdmin) {
     return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <div className="text-center p-8 bg-destructive/10 rounded-lg max-w-md">
-          <h1 className="text-xl font-semibold mb-4">Access Denied</h1>
-          <p>You don't have permission to access this page.</p>
-          <p className="mt-2 text-sm">Only managers and administrators can add products.</p>
+      <div className=&quot;flex items-center justify-center h-[80vh]&quot;>
+        <div className=&quot;text-center p-8 bg-destructive/10 rounded-lg max-w-md&quot;>
+          <h1 className=&quot;text-xl font-semibold mb-4&quot;>Access Denied</h1>
+          <p>You don&apos;t have permission to access this page.</p>
+          <p className=&quot;mt-2 text-sm&quot;>Only managers and administrators can add products.</p>
         </div>
       </div>
     );
   }
 
   // Fetch categories
-  const { data: categories, isLoading: isLoadingCategories } = useQuery({
-    queryKey: ['/api/products/categories'],
+  const { _data: categories, _isLoading: isLoadingCategories } = useQuery({
+    queryKey: [&apos;/api/products/categories&apos;]
   });
 
   // Fetch stores
-  const { data: stores, isLoading: isLoadingStores } = useQuery({
-    queryKey: ['/api/stores'],
+  const { _data: stores, _isLoading: isLoadingStores } = useQuery({
+    queryKey: [&apos;/api/stores&apos;]
   });
 
   const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productFormSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      barcode: "",
-      price: "",
-      cost: "",
-      categoryId: "",
-      isPerishable: false,
-      storeId: "",
-      quantity: 0,
-      minimumLevel: 5
+    _resolver: zodResolver(productFormSchema),
+    _defaultValues: {
+      name: &apos;&apos;,
+      _description: &apos;&apos;,
+      _barcode: &apos;&apos;,
+      _price: &apos;&apos;,
+      _cost: &apos;&apos;,
+      _categoryId: &apos;&apos;,
+      _isPerishable: false,
+      _storeId: &apos;&apos;,
+      _quantity: 0,
+      _minimumLevel: 5
     }
   });
 
   const createProductMutation = useMutation({
-    mutationFn: async (productData: ProductFormValues) => {
+    _mutationFn: async(_productData: ProductFormValues) => {
       // First create the product
-      const productResponse = await apiRequest("POST", "/api/products", {
-        name: productData.name,
-        description: productData.description || "",
-        barcode: productData.barcode,
-        price: productData.price,
-        cost: productData.cost || "0",
-        categoryId: parseInt(productData.categoryId),
-        isPerishable: productData.isPerishable
+      const productResponse = await apiRequest(&apos;POST&apos;, &apos;/api/products&apos;, {
+        _name: productData.name,
+        _description: productData.description || &apos;&apos;,
+        _barcode: productData.barcode,
+        _price: productData.price,
+        _cost: productData.cost || &apos;0&apos;,
+        _categoryId: parseInt(productData.categoryId),
+        _isPerishable: productData.isPerishable
       });
-      
+
       if (!productResponse.ok) {
         const error = await productResponse.json();
-        throw new Error(error.message || "Failed to create product");
+        throw new Error(error.message || &apos;Failed to create product&apos;);
       }
-      
+
       const newProduct = await productResponse.json();
-      
+
       // Then create inventory entry for this product at the selected store
-      const inventoryResponse = await apiRequest("POST", "/api/inventory", {
-        productId: newProduct.id,
-        storeId: parseInt(productData.storeId),
-        quantity: productData.quantity,
-        minimumLevel: productData.minimumLevel
+      const inventoryResponse = await apiRequest(&apos;POST&apos;, &apos;/api/inventory&apos;, {
+        _productId: newProduct.id,
+        _storeId: parseInt(productData.storeId),
+        _quantity: productData.quantity,
+        _minimumLevel: productData.minimumLevel
       });
-      
+
       if (!inventoryResponse.ok) {
         const error = await inventoryResponse.json();
-        throw new Error(error.message || "Failed to create inventory record");
+        throw new Error(error.message || &apos;Failed to create inventory record&apos;);
       }
-      
+
       return newProduct;
     },
-    onSuccess: () => {
+    _onSuccess: () => {
       toast({
-        title: "Product created successfully",
-        description: "The new product has been added to your inventory.",
+        _title: &apos;Product created successfully&apos;,
+        _description: &apos;The new product has been added to your inventory.&apos;
       });
-      
+
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/products&apos;] });
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/inventory&apos;] });
+
       // Reset form
       form.reset();
-      
+
       // Navigate to inventory page
-      setLocation('/inventory');
+      setLocation(&apos;/inventory&apos;);
     },
-    onError: (error: Error) => {
+    _onError: (_error: Error) => {
       toast({
-        title: "Failed to create product",
-        description: error.message,
-        variant: "destructive"
+        _title: &apos;Failed to create product&apos;,
+        _description: error.message,
+        _variant: &apos;destructive&apos;
       });
     }
   });
 
-  function onSubmit(data: ProductFormValues) {
+  function onSubmit(_data: ProductFormValues) {
     createProductMutation.mutate(data);
   }
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center justify-between">
+      <div className=&quot;mb-6 flex items-center justify-between&quot;>
         <div>
-          <h1 className="text-2xl font-bold text-neutral-800">Add New Product</h1>
-          <p className="text-neutral-500 mt-1">Create a new product in your inventory</p>
+          <h1 className=&quot;text-2xl font-bold text-neutral-800&quot;>Add New Product</h1>
+          <p className=&quot;text-neutral-500 mt-1&quot;>Create a new product in your inventory</p>
         </div>
-        <Button variant="outline" onClick={() => setLocation('/inventory')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+        <Button variant=&quot;outline&quot; onClick={() => setLocation(&apos;/inventory&apos;)}>
+          <ArrowLeft className=&quot;mr-2 h-4 w-4&quot; />
           Back to Inventory
         </Button>
       </div>
@@ -186,17 +186,17 @@ export default function AddProductPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className=&quot;space-y-6&quot;>
+              <div className=&quot;grid grid-cols-1 _md:grid-cols-2 gap-6&quot;>
                 {/* Product name */}
                 <FormField
                   control={form.control}
-                  name="name"
+                  name=&quot;name&quot;
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Product Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Premium Rice" {...field} />
+                        <Input placeholder=&quot;e.g. Premium Rice&quot; {...field} />
                       </FormControl>
                       <FormDescription>
                         The full name of the product as it will appear in the system.
@@ -209,12 +209,12 @@ export default function AddProductPage() {
                 {/* Barcode */}
                 <FormField
                   control={form.control}
-                  name="barcode"
+                  name=&quot;barcode&quot;
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Barcode</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. 5901234123457" {...field} />
+                        <Input placeholder=&quot;e.g. 5901234123457&quot; {...field} />
                       </FormControl>
                       <FormDescription>
                         The unique product barcode for scanning at POS.
@@ -227,7 +227,7 @@ export default function AddProductPage() {
                 {/* Category */}
                 <FormField
                   control={form.control}
-                  name="categoryId"
+                  name=&quot;categoryId&quot;
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
@@ -237,23 +237,23 @@ export default function AddProductPage() {
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
+                            <SelectValue placeholder=&quot;Select a category&quot; />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {isLoadingCategories ? (
-                            <SelectItem value="loading" disabled>
+                            <SelectItem value=&quot;loading&quot; disabled>
                               Loading categories...
                             </SelectItem>
                           ) : (
-                            categories && Array.isArray(categories) && categories.length > 0 ? 
-                              categories.map((category: any) => (
+                            categories && Array.isArray(categories) && categories.length > 0 ?
+                              categories.map((_category: any) => (
                                 <SelectItem key={category.id} value={category.id.toString()}>
                                   {category.name}
                                 </SelectItem>
-                              )) 
-                            : 
-                              <SelectItem value="none" disabled>
+                              ))
+                            :
+                              <SelectItem value=&quot;none&quot; disabled>
                                 Add category in settings
                               </SelectItem>
                           )}
@@ -270,16 +270,16 @@ export default function AddProductPage() {
                 {/* Price */}
                 <FormField
                   control={form.control}
-                  name="price"
+                  name=&quot;price&quot;
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Selling Price</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0.00"
+                          type=&quot;number&quot;
+                          step=&quot;0.01&quot;
+                          min=&quot;0&quot;
+                          placeholder=&quot;0.00&quot;
                           {...field}
                         />
                       </FormControl>
@@ -294,16 +294,16 @@ export default function AddProductPage() {
                 {/* Cost */}
                 <FormField
                   control={form.control}
-                  name="cost"
+                  name=&quot;cost&quot;
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cost Price (Optional)</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0.00"
+                          type=&quot;number&quot;
+                          step=&quot;0.01&quot;
+                          min=&quot;0&quot;
+                          placeholder=&quot;0.00&quot;
                           {...field}
                         />
                       </FormControl>
@@ -318,10 +318,10 @@ export default function AddProductPage() {
                 {/* Is Perishable */}
                 <FormField
                   control={form.control}
-                  name="isPerishable"
+                  name=&quot;isPerishable&quot;
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
+                    <FormItem className=&quot;flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm&quot;>
+                      <div className=&quot;space-y-0.5&quot;>
                         <FormLabel>Perishable Item</FormLabel>
                         <FormDescription>
                           Toggle if this product has an expiry date
@@ -341,13 +341,13 @@ export default function AddProductPage() {
               {/* Description */}
               <FormField
                 control={form.control}
-                name="description"
+                name=&quot;description&quot;
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter a detailed product description..."
+                        placeholder=&quot;Enter a detailed product description...&quot;
                         {...field}
                       />
                     </FormControl>
@@ -356,13 +356,13 @@ export default function AddProductPage() {
                 )}
               />
 
-              <div className="pt-4 pb-2 border-t">
-                <h3 className="text-lg font-medium mb-4">Inventory Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className=&quot;pt-4 pb-2 border-t&quot;>
+                <h3 className=&quot;text-lg font-medium mb-4&quot;>Inventory Information</h3>
+                <div className=&quot;grid grid-cols-1 _md:grid-cols-2 gap-6&quot;>
                   {/* Store */}
                   <FormField
                     control={form.control}
-                    name="storeId"
+                    name=&quot;storeId&quot;
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Store Location</FormLabel>
@@ -372,20 +372,20 @@ export default function AddProductPage() {
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a store" />
+                              <SelectValue placeholder=&quot;Select a store&quot; />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {isLoadingStores ? (
-                              <SelectItem value="loading" disabled>
+                              <SelectItem value=&quot;loading&quot; disabled>
                                 Loading stores...
                               </SelectItem>
                             ) : (
-                              stores && Array.isArray(stores) ? stores.map((store: any) => (
+                              stores && Array.isArray(stores) ? stores.map((_store: any) => (
                                 <SelectItem key={store.id} value={store.id.toString()}>
                                   {store.name}
                                 </SelectItem>
-                              )) : <SelectItem value="none">No stores available</SelectItem>
+                              )) : <SelectItem value=&quot;none&quot;>No stores available</SelectItem>
                             )}
                           </SelectContent>
                         </Select>
@@ -400,15 +400,15 @@ export default function AddProductPage() {
                   {/* Initial Quantity */}
                   <FormField
                     control={form.control}
-                    name="quantity"
+                    name=&quot;quantity&quot;
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Initial Quantity</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            min="0"
-                            step="1"
+                            type=&quot;number&quot;
+                            min=&quot;0&quot;
+                            step=&quot;1&quot;
                             {...field}
                           />
                         </FormControl>
@@ -423,15 +423,15 @@ export default function AddProductPage() {
                   {/* Minimum Level */}
                   <FormField
                     control={form.control}
-                    name="minimumLevel"
+                    name=&quot;minimumLevel&quot;
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Minimum Stock Level</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            min="0"
-                            step="1"
+                            type=&quot;number&quot;
+                            min=&quot;0&quot;
+                            step=&quot;1&quot;
                             {...field}
                           />
                         </FormControl>
@@ -445,15 +445,15 @@ export default function AddProductPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end mt-6">
-                <Button type="submit" disabled={createProductMutation.isPending}>
+              <div className=&quot;flex justify-end mt-6&quot;>
+                <Button type=&quot;submit&quot; disabled={createProductMutation.isPending}>
                   {createProductMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className=&quot;mr-2 h-4 w-4 animate-spin&quot; />
                       Creating...
                     </>
                   ) : (
-                    "Create Product"
+                    &apos;Create Product&apos;
                   )}
                 </Button>
               </div>

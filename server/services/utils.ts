@@ -3,7 +3,7 @@
  * @param length Length of string to generate
  * @returns Random string
  */
-export function generateRandomString(length: number): string {
+export function generateRandomString(_length: number): string {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   const charactersLength = characters.length;

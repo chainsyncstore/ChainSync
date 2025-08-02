@@ -8,5 +8,5 @@ class OTLPTraceExporter {
 
 module.exports = {
   OTLPTraceExporter,
-  default: OTLPTraceExporter
+  _default: OTLPTraceExporter
 };

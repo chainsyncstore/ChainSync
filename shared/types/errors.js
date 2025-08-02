@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.AppError = exports.ErrorCode = exports.RetryableError = exports.ErrorCategory = void 0;
 let ErrorCategory;
 (function(ErrorCategory) {
@@ -148,10 +148,10 @@ class AppError extends Error {
   }
   static fromZodError(error) {
     return new AppError('Validation failed', ErrorCategory.VALIDATION, ErrorCode.VALIDATION_ERROR, {
-      validationErrors: error.errors.map((issue) => ({
-        path: issue.path,
-        message: issue.message,
-        type: issue.code
+      _validationErrors: error.errors.map((issue) => ({
+        _path: issue.path,
+        _message: issue.message,
+        _type: issue.code
       }))
     });
   }
@@ -164,162 +164,161 @@ class AppError extends Error {
   static fromDatabaseError(error) {
     if (AppError.isValidationError(error)) {
       return new AppError('Database validation failed', ErrorCategory.VALIDATION, ErrorCode.INVALID_FIELD_VALUE, {
-        errors: error.errors
+        _errors: error.errors
       });
     }
     if (AppError.isMongoError(error)) {
       if (error.code === 11000) {
         return new AppError('Duplicate entry', ErrorCategory.DATABASE, ErrorCode.DUPLICATE_ENTRY, {
-          keyValue: error.keyValue
+          _keyValue: error.keyValue
         });
       }
       // Handle other MongoDB error codes
       if (error.code === 11001 || error.code === 11002) {
         return new AppError('Duplicate entry', ErrorCategory.DATABASE, ErrorCode.DUPLICATE_ENTRY, {
-          keyValue: error.keyValue
+          _keyValue: error.keyValue
         });
       }
       // Handle foreign key constraint violation
       if (error.code === 11003) {
         return new AppError('Foreign key constraint violation', ErrorCategory.DATABASE, ErrorCode.FOREIGN_KEY_CONSTRAINT_VIOLATION, {
-          keyValue: error.keyValue
+          _keyValue: error.keyValue
         });
       }
       // Handle other database errors
       return new AppError('Database error', ErrorCategory.DATABASE, ErrorCode.DATABASE_ERROR, {
-        message: error.message
+        _message: error.message
       });
     }
     // Handle other database errors
     return new AppError('Database error', ErrorCategory.DATABASE, ErrorCode.DATABASE_ERROR, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromAuthenticationError(error) {
     return new AppError('Authentication error', ErrorCategory.AUTHENTICATION, ErrorCode.UNAUTHORIZED, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromResourceError(error) {
     return new AppError('Resource error', ErrorCategory.RESOURCE, ErrorCode.NOT_FOUND, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromBusinessError(error) {
     return new AppError('Business error', ErrorCategory.BUSINESS, ErrorCode.BAD_REQUEST, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromSystemError(error) {
     return new AppError('System error', ErrorCategory.SYSTEM, ErrorCode.INTERNAL_SERVER_ERROR, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromImportExportError(error) {
     return new AppError('Import/export error', ErrorCategory.IMPORT_EXPORT, ErrorCode.BAD_REQUEST, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromProcessingError(error) {
     return new AppError('Processing error', ErrorCategory.PROCESSING, ErrorCode.INTERNAL_SERVER_ERROR, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromInvalidFormatError(error) {
     return new AppError('Invalid format error', ErrorCategory.INVALID_FORMAT, ErrorCode.BAD_REQUEST, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromExportError(error) {
     return new AppError('Export error', ErrorCategory.EXPORT_ERROR, ErrorCode.INTERNAL_SERVER_ERROR, {
-      message: error.message
+      _message: error.message
     });
   }
   static fromRetryableError(error) {
     return new AppError('Retryable error', ErrorCategory.SYSTEM, ErrorCode.INTERNAL_SERVER_ERROR, {
-      message: error.message
+      _message: error.message
     });
   }
   get status() {
     switch (this.code) {
-      case ErrorCode.INVALID_FIELD_VALUE:
-      case ErrorCode.INVALID_FORMAT:
-      case ErrorCode.INVALID_PERMISSION:
+      case ErrorCode._INVALID_FIELD_VALUE:
+      case ErrorCode._INVALID_FORMAT:
+      case ErrorCode._INVALID_PERMISSION:
         return 400;
-      case ErrorCode.UNAUTHORIZED:
-      case ErrorCode.EXPIRED_TOKEN:
+      case ErrorCode._UNAUTHORIZED:
+      case ErrorCode._EXPIRED_TOKEN:
         return 401;
-      case ErrorCode.FORBIDDEN:
+      case ErrorCode._FORBIDDEN:
         return 403;
-      case ErrorCode.NOT_FOUND:
+      case ErrorCode._NOT_FOUND:
         return 404;
-      case ErrorCode.METHOD_NOT_ALLOWED:
+      case ErrorCode._METHOD_NOT_ALLOWED:
         return 405;
-      case ErrorCode.NOT_ACCEPTABLE:
+      case ErrorCode._NOT_ACCEPTABLE:
         return 406;
-      case ErrorCode.REQUEST_TIMEOUT:
+      case ErrorCode._REQUEST_TIMEOUT:
         return 408;
-      case ErrorCode.CONFLICT:
+      case ErrorCode._CONFLICT:
         return 409;
-      case ErrorCode.GONE:
+      case ErrorCode._GONE:
         return 410;
-      case ErrorCode.LENGTH_REQUIRED:
+      case ErrorCode._LENGTH_REQUIRED:
         return 411;
-      case ErrorCode.PRECONDITION_FAILED:
+      case ErrorCode._PRECONDITION_FAILED:
         return 412;
-      case ErrorCode.PAYLOAD_TOO_LARGE:
+      case ErrorCode._PAYLOAD_TOO_LARGE:
         return 413;
-      case ErrorCode.URI_TOO_LONG:
+      case ErrorCode._URI_TOO_LONG:
         return 414;
-      case ErrorCode.UNSUPPORTED_MEDIA_TYPE:
+      case ErrorCode._UNSUPPORTED_MEDIA_TYPE:
         return 415;
-      case ErrorCode.RANGE_NOT_SATISFIABLE:
+      case ErrorCode._RANGE_NOT_SATISFIABLE:
         return 416;
-      case ErrorCode.EXPECTATION_FAILED:
+      case ErrorCode._EXPECTATION_FAILED:
         return 417;
-      case ErrorCode.IM_A_TEAPOT:
+      case ErrorCode._IM_A_TEAPOT:
         return 418;
-      case ErrorCode.MISDIRECTED_REQUEST:
+      case ErrorCode._MISDIRECTED_REQUEST:
         return 421;
-      case ErrorCode.UNPROCESSABLE_ENTITY:
+      case ErrorCode._UNPROCESSABLE_ENTITY:
         return 422;
-      case ErrorCode.LOCKED:
+      case ErrorCode._LOCKED:
         return 423;
-      case ErrorCode.FAILED_DEPENDENCY:
+      case ErrorCode._FAILED_DEPENDENCY:
         return 424;
-      case ErrorCode.TOO_MANY_REQUESTS:
+      case ErrorCode._TOO_MANY_REQUESTS:
         return 429;
-      case ErrorCode.REQUEST_HEADER_FIELDS_TOO_LARGE:
+      case ErrorCode._REQUEST_HEADER_FIELDS_TOO_LARGE:
         return 431;
-      case ErrorCode.UNAVAILABLE_FOR_LEGAL_REASONS:
+      case ErrorCode._UNAVAILABLE_FOR_LEGAL_REASONS:
         return 451;
-      case ErrorCode.FOREIGN_KEY_CONSTRAINT_VIOLATION:
-      case ErrorCode.DUPLICATE_ENTRY:
+      case ErrorCode._FOREIGN_KEY_CONSTRAINT_VIOLATION:
+      case ErrorCode._DUPLICATE_ENTRY:
         return 400;
-      case ErrorCode.INTERNAL_SERVER_ERROR:
+      case ErrorCode._INTERNAL_SERVER_ERROR:
         return 500;
-      case ErrorCode.NOT_IMPLEMENTED:
+      case ErrorCode._NOT_IMPLEMENTED:
         return 501;
-      case ErrorCode.BAD_GATEWAY:
+      case ErrorCode._BAD_GATEWAY:
         return 502;
-      case ErrorCode.SERVICE_UNAVAILABLE:
+      case ErrorCode._SERVICE_UNAVAILABLE:
         return 503;
-      case ErrorCode.GATEWAY_TIMEOUT:
+      case ErrorCode._GATEWAY_TIMEOUT:
         return 504;
-      case ErrorCode.HTTP_VERSION_NOT_SUPPORTED:
+      case ErrorCode._HTTP_VERSION_NOT_SUPPORTED:
         return 505;
-      case ErrorCode.VARIANT_ALSO_NEGOTIATES:
+      case ErrorCode._VARIANT_ALSO_NEGOTIATES:
         return 506;
-      case ErrorCode.INSUFFICIENT_STORAGE:
+      case ErrorCode._INSUFFICIENT_STORAGE:
         return 507;
-      case ErrorCode.LOOP_DETECTED:
+      case ErrorCode._LOOP_DETECTED:
         return 508;
-      case ErrorCode.NOT_EXTENDED:
+      case ErrorCode._NOT_EXTENDED:
         return 510;
-      case ErrorCode.NETWORK_AUTHENTICATION_REQUIRED:
+      case ErrorCode._NETWORK_AUTHENTICATION_REQUIRED:
         return 511;
-      default:
-        return 500;
+      return 500;
     }
   }
 }

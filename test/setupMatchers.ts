@@ -4,15 +4,15 @@ expect.extend({
     const pass = received.loyaltyPoints === expected;
     return {
       pass,
-      message: () => `expected customer to have ${expected} points, got ${received.loyaltyPoints}`,
+      _message: () => `expected customer to have ${expected} points, got ${received.loyaltyPoints}`
     };
-  },
+  }
 });
 
 declare global {
   namespace jest {
     interface Matchers<R> {
-      toHaveGainedPoints(points: number): R;
+      toHaveGainedPoints(_points: number): R;
     }
   }
 }

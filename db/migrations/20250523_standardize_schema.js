@@ -5,7 +5,7 @@
  * This migration standardizes field names across the database to follow
  * the new naming conventions defined in our schema style guide.
  */
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.up = up;
 exports.down = down;
 const kysely_1 = require('kysely');

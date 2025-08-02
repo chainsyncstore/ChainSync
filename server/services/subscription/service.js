@@ -9,7 +9,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -17,7 +17,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -38,7 +38,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.SubscriptionService = void 0;
 const service_1 = require('../base/service');
 const types_1 = require('./types');
@@ -52,7 +52,7 @@ class SubscriptionService extends service_1.BaseService {
   async createSubscription(params) {
     try {
       const user = await db_1.db.query.users.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.users.id, params.userId)
+        _where: (0, drizzle_orm_1.eq)(schema.users.id, params.userId)
       });
       if (!user) {
         throw types_1.SubscriptionServiceErrors.USER_NOT_FOUND;
@@ -66,18 +66,18 @@ class SubscriptionService extends service_1.BaseService {
       const [newSubscription] = await db_1.db
         .insert(schema.subscriptions)
         .values({
-          userId: params.userId,
-          planId: params.plan,
-          status: 'active',
-          amount: params.amount,
-          currency: params.currency || 'NGN',
-          currentPeriodStart: startDate,
-          currentPeriodEnd: endDate,
-          endDate: endDate,
-          autoRenew: params.autoRenew ?? true,
-          paymentMethod: params.provider || 'manual',
-          referralCode: params.providerReference,
-          metadata: params.metadata
+          _userId: params.userId,
+          _planId: params.plan,
+          _status: 'active',
+          _amount: params.amount,
+          _currency: params.currency || 'NGN',
+          _currentPeriodStart: startDate,
+          _currentPeriodEnd: endDate,
+          _endDate: endDate,
+          _autoRenew: params.autoRenew ?? true,
+          _paymentMethod: params.provider || 'manual',
+          _referralCode: params.providerReference,
+          _metadata: params.metadata
         })
         .returning();
       if (!newSubscription) {
@@ -95,7 +95,7 @@ class SubscriptionService extends service_1.BaseService {
   async updateSubscription(subscriptionId, params) {
     try {
       const existingSubscription = await db_1.db.query.subscriptions.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.subscriptions.id, subscriptionId)
+        _where: (0, drizzle_orm_1.eq)(schema.subscriptions.id, subscriptionId)
       });
       if (!existingSubscription) {
         throw types_1.SubscriptionServiceErrors.SUBSCRIPTION_NOT_FOUND;
@@ -105,7 +105,7 @@ class SubscriptionService extends service_1.BaseService {
       }
       const [updatedSubscription] = await db_1.db
         .update(schema.subscriptions)
-        .set({ ...params, status: params.status, updatedAt: new Date() })
+        .set({ ...params, _status: params.status, _updatedAt: new Date() })
         .where((0, drizzle_orm_1.eq)(schema.subscriptions.id, subscriptionId))
         .returning();
       if (!updatedSubscription) {
@@ -123,7 +123,7 @@ class SubscriptionService extends service_1.BaseService {
   async getSubscriptionById(subscriptionId) {
     try {
       const subscription = await db_1.db.query.subscriptions.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.subscriptions.id, subscriptionId)
+        _where: (0, drizzle_orm_1.eq)(schema.subscriptions.id, subscriptionId)
       });
       return subscription || null;
     }
@@ -137,8 +137,8 @@ class SubscriptionService extends service_1.BaseService {
   async getSubscriptionByUser(userId) {
     try {
       const subscription = await db_1.db.query.subscriptions.findFirst({
-        where: (0, drizzle_orm_1.eq)(schema.subscriptions.userId, userId),
-        orderBy: [(0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)]
+        _where: (0, drizzle_orm_1.eq)(schema.subscriptions.userId, userId),
+        _orderBy: [(0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)]
       });
       return subscription || null;
     }
@@ -168,17 +168,17 @@ class SubscriptionService extends service_1.BaseService {
       if (params.provider)
         conditions.push((0, drizzle_orm_1.eq)(schema.subscriptions.paymentMethod, params.provider));
       const whereClause = (0, drizzle_orm_1.and)(...conditions.filter((c) => !!c));
-      const totalResult = await db_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions).where(whereClause);
+      const totalResult = await db_1.db.select({ _count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions).where(whereClause);
       const total = Number(totalResult[0]?.count || 0);
       const subscriptions = await db_1.db.query.subscriptions.findMany({
-        where: whereClause,
+        _where: whereClause,
         limit,
         offset,
-        orderBy: [(0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)],
-        with: { user: true }
+        _orderBy: [(0, drizzle_orm_1.desc)(schema.subscriptions.createdAt)],
+        _with: { _user: true }
       });
       return {
-        subscriptions: subscriptions,
+        _subscriptions: subscriptions,
         total,
         page,
         limit
@@ -203,15 +203,15 @@ class SubscriptionService extends service_1.BaseService {
       const metadata = subscription.metadata ? subscription.metadata : {};
       const updatedMetadata = {
         ...metadata,
-        cancellationReason: reason || 'User cancelled',
-        cancelledAt: new Date().toISOString()
+        _cancellationReason: reason || 'User cancelled',
+        _cancelledAt: new Date().toISOString()
       };
       const [updatedSubscription] = await db_1.db
         .update(schema.subscriptions)
         .set({
-          status: 'cancelled',
-          updatedAt: new Date(),
-          metadata: updatedMetadata
+          _status: 'cancelled',
+          _updatedAt: new Date(),
+          _metadata: updatedMetadata
         })
         .where((0, drizzle_orm_1.eq)(schema.subscriptions.id, subscriptionId))
         .returning();
@@ -241,11 +241,11 @@ class SubscriptionService extends service_1.BaseService {
       const [updatedSubscription] = await db_1.db
         .update(schema.subscriptions)
         .set({
-          status: 'active',
-          currentPeriodStart: newStartDate,
-          currentPeriodEnd: newEndDate,
-          endDate: newEndDate,
-          updatedAt: new Date()
+          _status: 'active',
+          _currentPeriodStart: newStartDate,
+          _currentPeriodEnd: newEndDate,
+          _endDate: newEndDate,
+          _updatedAt: new Date()
         })
         .where((0, drizzle_orm_1.eq)(schema.subscriptions.id, subscriptionId))
         .returning();
@@ -271,8 +271,7 @@ class SubscriptionService extends service_1.BaseService {
           return this.processPaystackWebhook(params.event, params.data);
         case 'flutterwave':
           return this.processFlutterwaveWebhook(params.event, params.data);
-        default:
-          throw new Error(`Unsupported payment provider: ${params.provider}`);
+        throw new Error(`Unsupported payment provider: ${params.provider}`);
       }
     }
     catch (error) {
@@ -287,8 +286,7 @@ class SubscriptionService extends service_1.BaseService {
         return this.handleChargeSuccess('paystack', data);
       case 'subscription.disable':
         return this.handleSubscriptionCancel('paystack', data);
-      default:
-        console.log(`Unhandled Paystack event: ${event}`);
+      console.log(`Unhandled Paystack event: ${event}`);
         return true;
     }
   }
@@ -300,8 +298,7 @@ class SubscriptionService extends service_1.BaseService {
         return this.handleChargeSuccess('flutterwave', data);
       case 'subscription.cancelled':
         return this.handleSubscriptionCancel('flutterwave', data);
-      default:
-        console.log(`Unhandled Flutterwave event: ${event}`);
+      console.log(`Unhandled Flutterwave event: ${event}`);
         return true;
     }
   }
@@ -313,26 +310,26 @@ class SubscriptionService extends service_1.BaseService {
       plan = data.plan.name.toLowerCase();
       amount = (parseFloat(data.amount) / 100).toString();
       reference = data.reference;
-      metadata = { paystackCode: data.subscription_code, paystackCustomerCode: data.customer.customer_code };
+      metadata = { _paystackCode: data.subscription_code, _paystackCustomerCode: data.customer.customer_code };
     }
     else if (provider === 'flutterwave') {
       userId = parseInt(data.customer.meta.user_id);
       plan = data.plan.toLowerCase();
       amount = data.amount.toString();
       reference = data.reference || data.id;
-      metadata = { flwReference: data.id, flwCustomerId: data.customer.id };
+      metadata = { _flwReference: data.id, _flwCustomerId: data.customer.id };
     }
     else {
       throw new Error(`Unsupported payment provider: ${provider}`);
     }
-    const user = await db_1.db.query.users.findFirst({ where: (0, drizzle_orm_1.eq)(schema.users.id, userId) });
+    const user = await db_1.db.query.users.findFirst({ _where: (0, drizzle_orm_1.eq)(schema.users.id, userId) });
     if (!user)
       throw types_1.SubscriptionServiceErrors.USER_NOT_FOUND;
     const existingSubscription = await this.getActiveSubscription(userId);
     if (existingSubscription) {
       return this.updateExistingSubscription(existingSubscription.id, plan, amount, reference);
     }
-    await this.createSubscription({ userId, plan, amount, provider: provider, providerReference: reference, metadata });
+    await this.createSubscription({ userId, plan, amount, _provider: provider, _providerReference: reference, metadata });
     return true;
   }
   async handleChargeSuccess(provider, data) {
@@ -344,9 +341,9 @@ class SubscriptionService extends service_1.BaseService {
       userId = parseInt(data.customer.meta.user_id);
     }
     else {
-      throw new Error(`Unsupported payment provider: ${provider}`);
+      throw new Error(`Unsupported payment _provider: ${provider}`);
     }
-    const user = await db_1.db.query.users.findFirst({ where: (0, drizzle_orm_1.eq)(schema.users.id, userId) });
+    const user = await db_1.db.query.users.findFirst({ _where: (0, drizzle_orm_1.eq)(schema.users.id, userId) });
     if (!user)
       throw types_1.SubscriptionServiceErrors.USER_NOT_FOUND;
     const subscription = await this.getSubscriptionByUser(userId);
@@ -364,7 +361,7 @@ class SubscriptionService extends service_1.BaseService {
       userId = parseInt(data.customer.meta.user_id);
     }
     else {
-      throw new Error(`Unsupported payment provider: ${provider}`);
+      throw new Error(`Unsupported payment _provider: ${provider}`);
     }
     const subscription = await this.getSubscriptionByUser(userId);
     if (!subscription)
@@ -377,13 +374,13 @@ class SubscriptionService extends service_1.BaseService {
     const endDate = this.calculateEndDate(startDate, plan);
     await db_1.db.update(schema.subscriptions)
       .set({
-        planId: plan,
+        _planId: plan,
         amount,
-        currentPeriodStart: startDate,
-        currentPeriodEnd: endDate,
+        _currentPeriodStart: startDate,
+        _currentPeriodEnd: endDate,
         endDate,
-        status: 'active',
-        updatedAt: new Date()
+        _status: 'active',
+        _updatedAt: new Date()
       })
       .where((0, drizzle_orm_1.eq)(schema.subscriptions.id, subscriptionId));
     return true;
@@ -391,7 +388,7 @@ class SubscriptionService extends service_1.BaseService {
   async getActiveSubscription(userId) {
     const now = new Date();
     const result = await db_1.db.query.subscriptions.findFirst({
-      where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.subscriptions.userId, userId), (0, drizzle_orm_1.eq)(schema.subscriptions.status, 'active'), (0, drizzle_orm_1.gte)(schema.subscriptions.endDate, now))
+      _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.subscriptions.userId, userId), (0, drizzle_orm_1.eq)(schema.subscriptions.status, 'active'), (0, drizzle_orm_1.gte)(schema.subscriptions.endDate, now))
     });
     return result || null;
   }
@@ -426,20 +423,20 @@ class SubscriptionService extends service_1.BaseService {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const totalResult = await db_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions);
+    const totalResult = await db_1.db.select({ _count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions);
     const totalSubscriptions = Number(totalResult[0]?.count || 0);
-    const activeResult = await db_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions).where((0, drizzle_orm_1.eq)(schema.subscriptions.status, 'active'));
+    const activeResult = await db_1.db.select({ _count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions).where((0, drizzle_orm_1.eq)(schema.subscriptions.status, 'active'));
     const activeSubscriptions = Number(activeResult[0]?.count || 0);
-    const thisMonthRevenueResult = await db_1.db.select({ revenue: (0, drizzle_orm_1.sql) `COALESCE(SUM(${schema.subscriptions.amount}), '0')` }).from(schema.subscriptions).where((0, drizzle_orm_1.gte)(schema.subscriptions.createdAt, thisMonthStart));
+    const thisMonthRevenueResult = await db_1.db.select({ _revenue: (0, drizzle_orm_1.sql) `COALESCE(SUM(${schema.subscriptions.amount}), '0')` }).from(schema.subscriptions).where((0, drizzle_orm_1.gte)(schema.subscriptions.createdAt, thisMonthStart));
     const revenueThisMonth = thisMonthRevenueResult[0].revenue;
-    const lastMonthRevenueResult = await db_1.db.select({ revenue: (0, drizzle_orm_1.sql) `COALESCE(SUM(${schema.subscriptions.amount}), '0')` }).from(schema.subscriptions).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.gte)(schema.subscriptions.createdAt, lastMonthStart), (0, drizzle_orm_1.lt)(schema.subscriptions.createdAt, thisMonthStart)));
+    const lastMonthRevenueResult = await db_1.db.select({ _revenue: (0, drizzle_orm_1.sql) `COALESCE(SUM(${schema.subscriptions.amount}), '0')` }).from(schema.subscriptions).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.gte)(schema.subscriptions.createdAt, lastMonthStart), (0, drizzle_orm_1.lt)(schema.subscriptions.createdAt, thisMonthStart)));
     const revenueLastMonth = lastMonthRevenueResult[0].revenue;
-    const byPlanResult = await db_1.db.select({ plan: schema.subscriptions.planId, count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions).groupBy(schema.subscriptions.planId);
+    const byPlanResult = await db_1.db.select({ _plan: schema.subscriptions.planId, _count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions).groupBy(schema.subscriptions.planId);
     const subscriptionsByPlan = byPlanResult.reduce((acc, row) => {
       acc[row.plan] = Number(row.count);
       return acc;
     }, {});
-    const churnedResult = await db_1.db.select({ count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.subscriptions.status, 'cancelled'), (0, drizzle_orm_1.gte)(schema.subscriptions.updatedAt, lastMonthStart)));
+    const churnedResult = await db_1.db.select({ _count: (0, drizzle_orm_1.sql) `count(*)` }).from(schema.subscriptions).where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.subscriptions.status, 'cancelled'), (0, drizzle_orm_1.gte)(schema.subscriptions.updatedAt, lastMonthStart)));
     const churnedCount = Number(churnedResult[0]?.count || 0);
     const churnRate = totalSubscriptions > 0 ? ((churnedCount / totalSubscriptions) * 100).toFixed(2) : '0.00';
     return {
@@ -448,7 +445,7 @@ class SubscriptionService extends service_1.BaseService {
       revenueThisMonth,
       revenueLastMonth,
       subscriptionsByPlan,
-      churnRate: `${churnRate}%`
+      _churnRate: `${churnRate}%`
     };
   }
   validateStatusTransition(currentStatus, newStatus) {

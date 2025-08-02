@@ -2,11 +2,11 @@
 // Minimal Redis client mocks so production-readiness tests can import redis.js without real Redis.
 
 const mockClient = {
-  connect: jest.fn().mockResolvedValue(undefined),
-  quit: jest.fn().mockResolvedValue(undefined),
-  get: jest.fn().mockResolvedValue(null),
-  set: jest.fn().mockResolvedValue('OK'),
-  on: jest.fn()
+  _connect: jest.fn().mockResolvedValue(undefined),
+  _quit: jest.fn().mockResolvedValue(undefined),
+  _get: jest.fn().mockResolvedValue(null),
+  _set: jest.fn().mockResolvedValue('OK'),
+  _on: jest.fn()
 };
 
 function initRedis() {

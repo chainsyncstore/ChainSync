@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 
 export const validateRequest = <T extends z.ZodTypeAny>(
-  schema: T,
-  data: unknown
+  _schema: T,
+  _data: unknown
 ): z.infer<T> => {
   try {
     return schema.parse(data);
@@ -15,15 +15,15 @@ export const validateRequest = <T extends z.ZodTypeAny>(
       'Request validation failed',
       ErrorCategory.VALIDATION,
       ErrorCode.VALIDATION_FAILED,
-      { details: error },
+      { _details: error },
       400
     );
   }
 };
 
 export const validateParams = <T extends z.ZodTypeAny>(
-  schema: T,
-  params: Record<string, unknown>
+  _schema: T,
+  _params: Record<string, unknown>
 ): z.infer<T> => {
   try {
     return schema.parse(params);
@@ -35,15 +35,15 @@ export const validateParams = <T extends z.ZodTypeAny>(
       'Route parameter validation failed',
       ErrorCategory.VALIDATION,
       ErrorCode.VALIDATION_FAILED,
-      { details: error },
+      { _details: error },
       400
     );
   }
 };
 
 export const validateQuery = <T extends z.ZodTypeAny>(
-  schema: T,
-  query: Record<string, unknown>
+  _schema: T,
+  _query: Record<string, unknown>
 ): z.infer<T> => {
   try {
     return schema.parse(query);
@@ -55,7 +55,7 @@ export const validateQuery = <T extends z.ZodTypeAny>(
       'Query parameter validation failed',
       ErrorCategory.VALIDATION,
       ErrorCode.VALIDATION_FAILED,
-      { details: error },
+      { _details: error },
       400
     );
   }

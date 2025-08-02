@@ -1,56 +1,56 @@
-import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Info, Package, Truck, BarChart4 } from 'lucide-react';
-import { queryClient, apiRequest } from '@/lib/queryClient';
-import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
-import { BatchDetails } from '@/components/inventory/batch-details';
-import { BatchImportResult } from '@/components/inventory/batch-import-result';
+import { useState } from &apos;react&apos;;
+import { useQuery, useMutation } from &apos;@tanstack/react-query&apos;;
+import { Button } from &apos;@/components/ui/button&apos;;
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from &apos;@/components/ui/card&apos;;
+import { Input } from &apos;@/components/ui/input&apos;;
+import { Label } from &apos;@/components/ui/label&apos;;
+import { Tabs, TabsContent, TabsList, TabsTrigger } from &apos;@/components/ui/tabs&apos;;
+import { Alert, AlertDescription, AlertTitle } from &apos;@/components/ui/alert&apos;;
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from &apos;@/components/ui/table&apos;;
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from &apos;@/components/ui/select&apos;;
+import { Loader2, Info, Package, Truck, BarChart4 } from &apos;lucide-react&apos;;
+import { queryClient, apiRequest } from &apos;@/lib/queryClient&apos;;
+import { format } from &apos;date-fns&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
+import { BatchDetails } from &apos;@/components/inventory/batch-details&apos;;
+import { BatchImportResult } from &apos;@/components/inventory/batch-import-result&apos;;
 
 // Helper to format dates
-const formatDate = (dateString: string | null | undefined) => {
-  if (!dateString) return 'N/A';
+const formatDate = (_dateString: string | null | undefined) => {
+  if (!dateString) return &apos;N/A&apos;;
   try {
-    return format(new Date(dateString), 'MMM dd, yyyy');
+    return format(new Date(dateString), &apos;MMM dd, yyyy&apos;);
   } catch (e) {
-    return 'Invalid date';
+    return &apos;Invalid date&apos;;
   }
 };
 
 // Helper to determine expiry status (Unused)
-// const getExpiryStatus = (expiryDate: string | null | undefined) => {
-//   if (!expiryDate) return { status: 'no-expiry', label: 'No Expiry Date' };
-  
+// const getExpiryStatus = (_expiryDate: string | null | undefined) => {
+//   if (!expiryDate) return { _status: &apos;no-expiry&apos;, _label: &apos;No Expiry Date&apos; };
+
 //   const today = new Date();
 //   const expiry = new Date(expiryDate);
 //   const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  
+
 //   if (diffDays < 0) {
-//     return { status: 'expired', label: 'Expired' };
+//     return { _status: &apos;expired&apos;, _label: &apos;Expired&apos; };
 //   } else if (diffDays <= 30) {
-//     return { status: 'expiring-soon', label: `Expires in ${diffDays} days` };
+//     return { _status: &apos;expiring-soon&apos;, _label: `Expires in ${diffDays} days` };
 //   } else {
-//     return { status: 'valid', label: formatDate(expiryDate) };
+//     return { status: &apos;valid&apos;, _label: formatDate(expiryDate) };
 //   }
 // };
 
 interface ImportError {
-  row: number;
-  field: string;
-  message: string;
+  _row: number;
+  _field: string;
+  _message: string;
 }
 
 interface BatchImportResponse {
-  message: string;
-  success: boolean;
+  _message: string;
+  _success: boolean;
   processedRows?: number;
   successfulRows?: number;
   failedRows?: number;
@@ -59,207 +59,207 @@ interface BatchImportResponse {
 }
 
 interface Batch {
-  id: number;
-  batchNumber: string;
-  quantity: number;
-  expiryDate: string | null;
-  receivedDate: string;
-  manufacturingDate: string | null;
-  costPerUnit: string | null;
+  _id: number;
+  _batchNumber: string;
+  _quantity: number;
+  _expiryDate: string | null;
+  _receivedDate: string;
+  _manufacturingDate: string | null;
+  _costPerUnit: string | null;
 }
 
 interface Product {
-  id: number;
-  name: string;
-  sku: string;
-  barcode: string | null;
-  price: string;
+  _id: number;
+  _name: string;
+  _sku: string;
+  _barcode: string | null;
+  _price: string;
 }
 
 interface Store {
-  id: number;
-  name: string;
+  _id: number;
+  _name: string;
 }
 
 export default function BatchInventoryPage() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState(&apos;upload&apos;);
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [selectedStore, setSelectedStore] = useState<string>('');
-  const [selectedProduct, setSelectedProduct] = useState<string>('');
-  const [productFilter, setProductFilter] = useState('');
+  const [selectedStore, setSelectedStore] = useState<string>(&apos;&apos;);
+  const [selectedProduct, setSelectedProduct] = useState<string>(&apos;&apos;);
+  const [productFilter, setProductFilter] = useState(&apos;&apos;);
   const [batchData, setBatchData] = useState({
-    batchNumber: '',
-    quantity: 0,
-    expiryDate: '',
-    manufacturingDate: '',
-    costPerUnit: ''
+    _batchNumber: &apos;&apos;,
+    _quantity: 0,
+    _expiryDate: &apos;&apos;,
+    _manufacturingDate: &apos;&apos;,
+    _costPerUnit: &apos;&apos;
   });
 
   // Fetch stores
-  const { data: stores = [] } = useQuery<Store[]>({
-    queryKey: ['/api/stores'],
+  const { _data: stores = [] } = useQuery<Store[]>({
+    queryKey: [&apos;/api/stores&apos;]
   });
 
   // Fetch products
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: ['/api/products'],
+  const { _data: products = [], _isLoading: productsLoading } = useQuery<Product[]>({
+    queryKey: [&apos;/api/products&apos;]
   });
 
   // Fetch batches for a product
-  const { data: batches = [], isLoading: batchesLoading, refetch: refetchBatches } = useQuery<Batch[]>({
-    queryKey: ['/api/inventory/batches', selectedStore, selectedProduct],
-    enabled: !!(selectedStore && selectedProduct),
+  const { _data: batches = [], _isLoading: batchesLoading, _refetch: refetchBatches } = useQuery<Batch[]>({
+    queryKey: [&apos;/api/inventory/batches&apos;, selectedStore, selectedProduct],
+    _enabled: !!(selectedStore && selectedProduct)
   });
 
   // Import batches mutation
   const importMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const response = await fetch('/api/inventory/batches/import', {
-        method: 'POST',
-        body: formData
+    _mutationFn: async(_formData: FormData) => {
+      const response = await fetch(&apos;/api/inventory/batches/import&apos;, {
+        _method: &apos;POST&apos;,
+        _body: formData
       });
       return await response.json() as BatchImportResponse;
     },
-    onSuccess: (data) => {
+    _onSuccess: (data) => {
       if (data.success) {
         toast({
-          title: 'Import Successful',
-          description: data.message,
+          _title: &apos;Import Successful&apos;,
+          _description: data.message
         });
-        queryClient.invalidateQueries({ queryKey: ['/api/inventory/batches'] });
+        queryClient.invalidateQueries({ _queryKey: [&apos;/api/inventory/batches&apos;] });
       } else {
         toast({
-          title: 'Import Failed',
-          description: data.message || 'Failed to import batch data',
-          variant: 'destructive',
+          _title: &apos;Import Failed&apos;,
+          _description: data.message || &apos;Failed to import batch data&apos;,
+          _variant: &apos;destructive&apos;
         });
       }
     },
-    onError: (error: Error) => {
+    _onError: (_error: Error) => {
       toast({
-        title: 'Import Error',
-        description: error.message,
-        variant: 'destructive',
+        _title: &apos;Import Error&apos;,
+        _description: error.message,
+        _variant: &apos;destructive&apos;
       });
-    },
+    }
   });
 
   // Add batch mutation
   const addBatchMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/inventory/batches', data);
+    _mutationFn: async(_data: any) => {
+      const response = await apiRequest(&apos;POST&apos;, &apos;/api/inventory/batches&apos;, data);
       return await response.json();
     },
-    onSuccess: () => {
+    _onSuccess: () => {
       toast({
-        title: 'Batch Added',
-        description: 'New batch added successfully',
+        _title: &apos;Batch Added&apos;,
+        _description: &apos;New batch added successfully&apos;
       });
       setBatchData({
-        batchNumber: '',
-        quantity: 0,
-        expiryDate: '',
-        manufacturingDate: '',
-        costPerUnit: ''
+        _batchNumber: &apos;&apos;,
+        _quantity: 0,
+        _expiryDate: &apos;&apos;,
+        _manufacturingDate: &apos;&apos;,
+        _costPerUnit: &apos;&apos;
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/inventory/batches'] });
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/inventory/batches&apos;] });
       refetchBatches();
     },
-    onError: (error: Error) => {
+    _onError: (_error: Error) => {
       toast({
-        title: 'Error Adding Batch',
-        description: error.message,
-        variant: 'destructive',
+        _title: &apos;Error Adding Batch&apos;,
+        _description: error.message,
+        _variant: &apos;destructive&apos;
       });
-    },
+    }
   });
 
-  const handleCsvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCsvChange = (_e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setCsvFile(e.target.files[0]);
     }
   };
 
-  const handleImport = (e: React.FormEvent) => {
+  const handleImport = (_e: React.FormEvent) => {
     e.preventDefault();
     if (!csvFile) {
       toast({
-        title: 'No File Selected',
-        description: 'Please select a CSV file to import',
-        variant: 'destructive',
+        _title: &apos;No File Selected&apos;,
+        _description: &apos;Please select a CSV file to import&apos;,
+        _variant: &apos;destructive&apos;
       });
       return;
     }
 
     const formData = new FormData();
-    formData.append('file', csvFile);
+    formData.append(&apos;file&apos;, csvFile);
     importMutation.mutate(formData);
   };
 
-  const handleAddBatch = (e: React.FormEvent) => {
+  const handleAddBatch = (_e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStore || !selectedProduct) {
       toast({
-        title: 'Selection Required',
-        description: 'Please select a store and product',
-        variant: 'destructive',
+        _title: &apos;Selection Required&apos;,
+        _description: &apos;Please select a store and product&apos;,
+        _variant: &apos;destructive&apos;
       });
       return;
     }
 
     if (!batchData.batchNumber || batchData.quantity <= 0) {
       toast({
-        title: 'Missing Required Fields',
-        description: 'Batch number and a positive quantity are required',
-        variant: 'destructive',
+        _title: &apos;Missing Required Fields&apos;,
+        _description: &apos;Batch number and a positive quantity are required&apos;,
+        _variant: &apos;destructive&apos;
       });
       return;
     }
 
     addBatchMutation.mutate({
-      storeId: parseInt(selectedStore),
-      productId: parseInt(selectedProduct),
-      batchNumber: batchData.batchNumber,
-      quantity: batchData.quantity,
-      expiryDate: batchData.expiryDate || null,
-      manufacturingDate: batchData.manufacturingDate || null,
-      costPerUnit: batchData.costPerUnit || null
+      _storeId: parseInt(selectedStore),
+      _productId: parseInt(selectedProduct),
+      _batchNumber: batchData.batchNumber,
+      _quantity: batchData.quantity,
+      _expiryDate: batchData.expiryDate || null,
+      _manufacturingDate: batchData.manufacturingDate || null,
+      _costPerUnit: batchData.costPerUnit || null
     });
   };
 
   const filteredProducts = productFilter
-    ? products.filter(p => 
-        p.name.toLowerCase().includes(productFilter.toLowerCase()) || 
+    ? products.filter(p =>
+        p.name.toLowerCase().includes(productFilter.toLowerCase()) ||
         p.sku.toLowerCase().includes(productFilter.toLowerCase()) ||
         (p.barcode && p.barcode.toLowerCase().includes(productFilter.toLowerCase()))
       )
     : products;
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Batch Inventory Management</h1>
-      <p className="text-gray-500 mb-8">
+    <div className=&quot;container mx-auto py-8&quot;>
+      <h1 className=&quot;text-3xl font-bold mb-6&quot;>Batch Inventory Management</h1>
+      <p className=&quot;text-gray-500 mb-8&quot;>
         Track and manage batches of products with different expiry dates for optimal inventory control
       </p>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-3 mb-8">
-          <TabsTrigger value="upload">
-            <Truck className="mr-2 h-4 w-4" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className=&quot;w-full&quot;>
+        <TabsList className=&quot;grid grid-cols-3 mb-8&quot;>
+          <TabsTrigger value=&quot;upload&quot;>
+            <Truck className=&quot;mr-2 h-4 w-4&quot; />
             Import Batches
           </TabsTrigger>
-          <TabsTrigger value="add">
-            <Package className="mr-2 h-4 w-4" />
+          <TabsTrigger value=&quot;add&quot;>
+            <Package className=&quot;mr-2 h-4 w-4&quot; />
             Add Single Batch
           </TabsTrigger>
-          <TabsTrigger value="view">
-            <BarChart4 className="mr-2 h-4 w-4" />
+          <TabsTrigger value=&quot;view&quot;>
+            <BarChart4 className=&quot;mr-2 h-4 w-4&quot; />
             View Batches
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="upload">
+        <TabsContent value=&quot;upload&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Import Batch Inventory</CardTitle>
@@ -269,20 +269,20 @@ export default function BatchInventoryPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleImport}>
-                <div className="grid w-full items-center gap-6">
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="csvFile">CSV File</Label>
+                <div className=&quot;grid w-full items-center gap-6&quot;>
+                  <div className=&quot;flex flex-col space-y-2&quot;>
+                    <Label htmlFor=&quot;csvFile&quot;>CSV File</Label>
                     <Input
-                      id="csvFile"
-                      type="file"
-                      accept=".csv"
+                      id=&quot;csvFile&quot;
+                      type=&quot;file&quot;
+                      accept=&quot;.csv&quot;
                       onChange={handleCsvChange}
                     />
-                    <p className="text-sm text-gray-500">
-                      Please ensure your CSV file follows the required format:
+                    <p className=&quot;text-sm text-gray-500&quot;>
+                      Please ensure your CSV file follows the required _format:
                     </p>
                     <Alert>
-                      <Info className="h-4 w-4" />
+                      <Info className=&quot;h-4 w-4&quot; />
                       <AlertTitle>CSV Format</AlertTitle>
                       <AlertDescription>
                         <code>product_name,sku,category,batch_id,quantity,expiry_date,unit_price,store_id</code>
@@ -290,22 +290,22 @@ export default function BatchInventoryPage() {
                     </Alert>
                   </div>
                 </div>
-                <div className="mt-6">
-                  <Button type="submit" disabled={importMutation.isPending || !csvFile}>
+                <div className=&quot;mt-6&quot;>
+                  <Button type=&quot;submit&quot; disabled={importMutation.isPending || !csvFile}>
                     {importMutation.isPending ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className=&quot;mr-2 h-4 w-4 animate-spin&quot; />
                         Importing...
                       </>
                     ) : (
-                      'Import Batches'
+                      &apos;Import Batches&apos;
                     )}
                   </Button>
                 </div>
               </form>
 
               {importMutation.isSuccess && importMutation.data && (
-                <div className="mt-6">
+                <div className=&quot;mt-6&quot;>
                   <BatchImportResult result={importMutation.data} />
                 </div>
               )}
@@ -313,7 +313,7 @@ export default function BatchInventoryPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="add">
+        <TabsContent value=&quot;add&quot;>
           <Card>
             <CardHeader>
               <CardTitle>Add Single Batch</CardTitle>
@@ -323,12 +323,12 @@ export default function BatchInventoryPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddBatch}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="store">Store</Label>
+                <div className=&quot;grid grid-cols-1 _md:grid-cols-2 gap-6&quot;>
+                  <div className=&quot;flex flex-col space-y-2&quot;>
+                    <Label htmlFor=&quot;store&quot;>Store</Label>
                     <Select value={selectedStore} onValueChange={setSelectedStore}>
-                      <SelectTrigger id="store">
-                        <SelectValue placeholder="Select store" />
+                      <SelectTrigger id=&quot;store&quot;>
+                        <SelectValue placeholder=&quot;Select store&quot; />
                       </SelectTrigger>
                       <SelectContent>
                         {stores.map((store) => (
@@ -340,21 +340,21 @@ export default function BatchInventoryPage() {
                     </Select>
                   </div>
 
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="productFilter">Search Products</Label>
+                  <div className=&quot;flex flex-col space-y-2&quot;>
+                    <Label htmlFor=&quot;productFilter&quot;>Search Products</Label>
                     <Input
-                      id="productFilter"
+                      id=&quot;productFilter&quot;
                       value={productFilter}
                       onChange={(e) => setProductFilter(e.target.value)}
-                      placeholder="Search by name, SKU or barcode"
+                      placeholder=&quot;Search by name, SKU or barcode&quot;
                     />
                   </div>
 
-                  <div className="flex flex-col space-y-2 md:col-span-2">
-                    <Label htmlFor="product">Product</Label>
+                  <div className=&quot;flex flex-col space-y-2 _md:col-span-2&quot;>
+                    <Label htmlFor=&quot;product&quot;>Product</Label>
                     <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                      <SelectTrigger id="product">
-                        <SelectValue placeholder={productsLoading ? "Loading products..." : "Select product"} />
+                      <SelectTrigger id=&quot;product&quot;>
+                        <SelectValue placeholder={productsLoading ? &apos;Loading products...&apos; : &apos;Select product&apos;} />
                       </SelectTrigger>
                       <SelectContent>
                         {filteredProducts.map((product) => (
@@ -366,78 +366,78 @@ export default function BatchInventoryPage() {
                     </Select>
                   </div>
 
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="batchNumber">Batch Number</Label>
+                  <div className=&quot;flex flex-col space-y-2&quot;>
+                    <Label htmlFor=&quot;batchNumber&quot;>Batch Number</Label>
                     <Input
-                      id="batchNumber"
+                      id=&quot;batchNumber&quot;
                       value={batchData.batchNumber}
-                      onChange={(e) => setBatchData({...batchData, batchNumber: e.target.value})}
-                      placeholder="e.g., BATCH001"
+                      onChange={(e) => setBatchData({ ...batchData, _batchNumber: e.target.value })}
+                      placeholder=&quot;e.g., BATCH001&quot;
                     />
                   </div>
 
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="quantity">Quantity</Label>
+                  <div className=&quot;flex flex-col space-y-2&quot;>
+                    <Label htmlFor=&quot;quantity&quot;>Quantity</Label>
                     <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
+                      id=&quot;quantity&quot;
+                      type=&quot;number&quot;
+                      min=&quot;1&quot;
                       value={batchData.quantity}
-                      onChange={(e) => setBatchData({...batchData, quantity: parseInt(e.target.value)})}
+                      onChange={(e) => setBatchData({ ...batchData, _quantity: parseInt(e.target.value) })}
                     />
                   </div>
 
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="expiryDate">Expiry Date</Label>
+                  <div className=&quot;flex flex-col space-y-2&quot;>
+                    <Label htmlFor=&quot;expiryDate&quot;>Expiry Date</Label>
                     <Input
-                      id="expiryDate"
-                      type="date"
+                      id=&quot;expiryDate&quot;
+                      type=&quot;date&quot;
                       value={batchData.expiryDate}
-                      onChange={(e) => setBatchData({...batchData, expiryDate: e.target.value})}
+                      onChange={(e) => setBatchData({ ...batchData, _expiryDate: e.target.value })}
                     />
                   </div>
 
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="manufacturingDate">Manufacturing Date</Label>
+                  <div className=&quot;flex flex-col space-y-2&quot;>
+                    <Label htmlFor=&quot;manufacturingDate&quot;>Manufacturing Date</Label>
                     <Input
-                      id="manufacturingDate"
-                      type="date"
+                      id=&quot;manufacturingDate&quot;
+                      type=&quot;date&quot;
                       value={batchData.manufacturingDate}
-                      onChange={(e) => setBatchData({...batchData, manufacturingDate: e.target.value})}
+                      onChange={(e) => setBatchData({ ...batchData, _manufacturingDate: e.target.value })}
                     />
                   </div>
 
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="costPerUnit">Cost Per Unit</Label>
+                  <div className=&quot;flex flex-col space-y-2&quot;>
+                    <Label htmlFor=&quot;costPerUnit&quot;>Cost Per Unit</Label>
                     <Input
-                      id="costPerUnit"
-                      type="number"
-                      step="0.01"
+                      id=&quot;costPerUnit&quot;
+                      type=&quot;number&quot;
+                      step=&quot;0.01&quot;
                       value={batchData.costPerUnit}
-                      onChange={(e) => setBatchData({...batchData, costPerUnit: e.target.value})}
-                      placeholder="0.00"
+                      onChange={(e) => setBatchData({ ...batchData, _costPerUnit: e.target.value })}
+                      placeholder=&quot;0.00&quot;
                     />
                   </div>
                 </div>
 
-                <div className="mt-6">
-                  <Button 
-                    type="submit" 
+                <div className=&quot;mt-6&quot;>
+                  <Button
+                    type=&quot;submit&quot;
                     disabled={
-                      addBatchMutation.isPending || 
-                      !selectedStore || 
-                      !selectedProduct || 
-                      !batchData.batchNumber || 
+                      addBatchMutation.isPending ||
+                      !selectedStore ||
+                      !selectedProduct ||
+                      !batchData.batchNumber ||
                       batchData.quantity <= 0
                     }
                   >
                     {addBatchMutation.isPending ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className=&quot;mr-2 h-4 w-4 animate-spin&quot; />
                         Adding...
                       </>
                     ) : (
-                      'Add Batch'
+                      &apos;Add Batch&apos;
                     )}
                   </Button>
                 </div>
@@ -446,7 +446,7 @@ export default function BatchInventoryPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="view">
+        <TabsContent value=&quot;view&quot;>
           <Card>
             <CardHeader>
               <CardTitle>View Batches</CardTitle>
@@ -455,12 +455,12 @@ export default function BatchInventoryPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="viewStore">Store</Label>
+              <div className=&quot;grid grid-cols-1 _md:grid-cols-2 gap-6 mb-6&quot;>
+                <div className=&quot;flex flex-col space-y-2&quot;>
+                  <Label htmlFor=&quot;viewStore&quot;>Store</Label>
                   <Select value={selectedStore} onValueChange={setSelectedStore}>
-                    <SelectTrigger id="viewStore">
-                      <SelectValue placeholder="Select store" />
+                    <SelectTrigger id=&quot;viewStore&quot;>
+                      <SelectValue placeholder=&quot;Select store&quot; />
                     </SelectTrigger>
                     <SelectContent>
                       {stores.map((store) => (
@@ -472,11 +472,11 @@ export default function BatchInventoryPage() {
                   </Select>
                 </div>
 
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="viewProduct">Product</Label>
+                <div className=&quot;flex flex-col space-y-2&quot;>
+                  <Label htmlFor=&quot;viewProduct&quot;>Product</Label>
                   <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                    <SelectTrigger id="viewProduct">
-                      <SelectValue placeholder={productsLoading ? "Loading products..." : "Select product"} />
+                    <SelectTrigger id=&quot;viewProduct&quot;>
+                      <SelectValue placeholder={productsLoading ? &apos;Loading products...&apos; : &apos;Select product&apos;} />
                     </SelectTrigger>
                     <SelectContent>
                       {products.map((product) => (
@@ -490,12 +490,12 @@ export default function BatchInventoryPage() {
               </div>
 
               {selectedStore && selectedProduct ? (
-                <div className="mb-4">
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <Info className="h-4 w-4 text-blue-500" />
+                <div className=&quot;mb-4&quot;>
+                  <Alert className=&quot;bg-blue-50 border-blue-200&quot;>
+                    <Info className=&quot;h-4 w-4 text-blue-500&quot; />
                     <AlertTitle>Batch Management</AlertTitle>
                     <AlertDescription>
-                      <ul className="list-disc list-inside text-sm">
+                      <ul className=&quot;list-disc list-inside text-sm&quot;>
                         <li>Expired batches are highlighted in red</li>
                         <li>Batches expiring within 30 days are highlighted in amber</li>
                         <li>Click on a batch card to view details, audit logs, or perform actions</li>
@@ -508,20 +508,20 @@ export default function BatchInventoryPage() {
 
               {selectedStore && selectedProduct ? (
                 batchesLoading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className=&quot;flex justify-center items-center py-12&quot;>
+                    <Loader2 className=&quot;h-8 w-8 animate-spin text-primary&quot; />
                   </div>
                 ) : batches.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className=&quot;grid grid-cols-1 _md:grid-cols-2 _xl:grid-cols-3 gap-4&quot;>
                     {batches.map((batch) => {
                       // Find the associated product
                       const product = products.find(p => p.id === parseInt(selectedProduct));
                       if (!product) return null;
-                      
+
                       return (
-                        <div key={batch.id} className="transition-all duration-200 hover:scale-[1.01]">
-                          <BatchDetails 
-                            batch={batch} 
+                        <div key={batch.id} className=&quot;transition-all duration-200 _hover:scale-[1.01]&quot;>
+                          <BatchDetails
+                            batch={batch}
                             product={product}
                             onBatchUpdated={refetchBatches}
                             isManagerOrAdmin={true} // This should ideally be based on actual user role
@@ -531,15 +531,15 @@ export default function BatchInventoryPage() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="bg-muted/20 rounded-lg p-8">
-                      <p className="text-muted-foreground">No batches found for this product.</p>
-                      <p className="mt-2">Use the 'Add Single Batch' tab to create a new batch.</p>
+                  <div className=&quot;text-center py-8 text-gray-500&quot;>
+                    <div className=&quot;bg-muted/20 rounded-lg p-8&quot;>
+                      <p className=&quot;text-muted-foreground&quot;>No batches found for this product.</p>
+                      <p className=&quot;mt-2&quot;>Use the &apos;Add Single Batch&apos; tab to create a new batch.</p>
                     </div>
                   </div>
                 )
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className=&quot;text-center py-8 text-gray-500&quot;>
                   Please select a store and product to view batches.
                 </div>
               )}

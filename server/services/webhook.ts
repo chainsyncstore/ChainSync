@@ -9,8 +9,8 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const FLUTTERWAVE_WEBHOOK_HASH = process.env.FLUTTERWAVE_WEBHOOK_HASH;
 
 export interface WebhookHandlerResult {
-  success: boolean;
-  message: string;
+  _success: boolean;
+  _message: string;
   orderId?: number;
   reference?: string;
   amount?: number;
@@ -23,13 +23,13 @@ export interface WebhookHandlerResult {
  * @returns Result indicating success or failure
  */
 export async function handlePaystackWebhook(
-  signature: string,
-  payload: string
+  _signature: string,
+  _payload: string
 ): Promise<WebhookHandlerResult> {
   // Validate signature
   if (!PAYSTACK_SECRET_KEY) {
     console.error('Paystack secret key not found in environment');
-    return { success: false, message: 'Payment processor not properly configured' };
+    return { _success: false, _message: 'Payment processor not properly configured' };
   }
 
   const expectedSignature = crypto
@@ -39,7 +39,7 @@ export async function handlePaystackWebhook(
 
   if (signature !== expectedSignature) {
     console.error('Invalid Paystack webhook signature');
-    return { success: false, message: 'Invalid signature' };
+    return { _success: false, _message: 'Invalid signature' };
   }
 
   // Parse the payload
@@ -48,14 +48,14 @@ export async function handlePaystackWebhook(
     event = JSON.parse(payload);
   } catch (error) {
     console.error('Failed to parse Paystack webhook payload', error);
-    return { success: false, message: 'Invalid payload format' };
+    return { _success: false, _message: 'Invalid payload format' };
   }
 
   // We're only interested in charge.success events
   if (event.event !== 'charge.success') {
     return {
-      success: true,
-      message: `Ignored event type: ${event.event}`
+      _success: true,
+      _message: `Ignored event type: ${event.event}`
     };
   }
 
@@ -63,8 +63,8 @@ export async function handlePaystackWebhook(
 
   if (!reference) {
     return {
-      success: false,
-      message: 'No reference provided in webhook payload'
+      _success: false,
+      _message: 'No reference provided in webhook payload'
     };
   }
 
@@ -77,10 +77,10 @@ export async function handlePaystackWebhook(
     const order = results[0];
 
     if (!order) {
-      console.error(`No order found with reference: ${reference}`);
+      console.error(`No order found with _reference: ${reference}`);
       return {
-        success: false,
-        message: 'Order not found',
+        _success: false,
+        _message: 'Order not found',
         reference
       };
     }
@@ -88,9 +88,9 @@ export async function handlePaystackWebhook(
     // If order is already paid, avoid duplicate processing
     if (order.status === 'completed') {
       return {
-        success: true,
-        message: 'Order already marked as paid',
-        orderId: order.id,
+        _success: true,
+        _message: 'Order already marked as paid',
+        _orderId: order.id,
         reference
       };
     }
@@ -103,17 +103,17 @@ export async function handlePaystackWebhook(
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
 
     return {
-      success: true,
-      message: 'Order payment confirmed',
-      orderId: order.id,
+      _success: true,
+      _message: 'Order payment confirmed',
+      _orderId: order.id,
       reference,
-      amount: amount / 100 // Paystack amount is in kobo (smallest currency unit)
+      _amount: amount / 100 // Paystack amount is in kobo (smallest currency unit)
     };
   } catch (error) {
-    console.error('Error processing Paystack webhook:', error);
+    console.error('Error processing Paystack _webhook:', error);
     return {
-      success: false,
-      message: 'Error processing webhook'
+      _success: false,
+      _message: 'Error processing webhook'
     };
   }
 }
@@ -125,18 +125,18 @@ export async function handlePaystackWebhook(
  * @returns Result indicating success or failure
  */
 export async function handleFlutterwaveWebhook(
-  signature: string,
-  payload: string
+  _signature: string,
+  _payload: string
 ): Promise<WebhookHandlerResult> {
   // Validate signature using verif-hash
   if (!FLUTTERWAVE_WEBHOOK_HASH) {
     console.error('Flutterwave webhook hash not found in environment');
-    return { success: false, message: 'Payment processor not properly configured' };
+    return { _success: false, _message: 'Payment processor not properly configured' };
   }
 
   if (signature !== FLUTTERWAVE_WEBHOOK_HASH) {
     console.error('Invalid Flutterwave webhook hash');
-    return { success: false, message: 'Invalid signature' };
+    return { _success: false, _message: 'Invalid signature' };
   }
 
   // Parse the payload
@@ -145,14 +145,14 @@ export async function handleFlutterwaveWebhook(
     event = JSON.parse(payload);
   } catch (error) {
     console.error('Failed to parse Flutterwave webhook payload', error);
-    return { success: false, message: 'Invalid payload format' };
+    return { _success: false, _message: 'Invalid payload format' };
   }
 
   // We're only interested in successful charge events
   if (event.event !== 'charge.completed' || event.data.status !== 'successful') {
     return {
-      success: true,
-      message: `Ignored event: ${event.event} with status: ${event.data?.status}`
+      _success: true,
+      _message: `Ignored event: ${event.event} with status: ${event.data?.status}`
     };
   }
 
@@ -161,8 +161,8 @@ export async function handleFlutterwaveWebhook(
 
   if (!reference) {
     return {
-      success: false,
-      message: 'No reference provided in webhook payload'
+      _success: false,
+      _message: 'No reference provided in webhook payload'
     };
   }
 
@@ -175,10 +175,10 @@ export async function handleFlutterwaveWebhook(
     const order = results[0];
 
     if (!order) {
-      console.error(`No order found with reference: ${reference}`);
+      console.error(`No order found with _reference: ${reference}`);
       return {
-        success: false,
-        message: 'Order not found',
+        _success: false,
+        _message: 'Order not found',
         reference
       };
     }
@@ -186,9 +186,9 @@ export async function handleFlutterwaveWebhook(
     // If order is already paid, avoid duplicate processing
     if (order.status === 'completed') {
       return {
-        success: true,
-        message: 'Order already marked as paid',
-        orderId: order.id,
+        _success: true,
+        _message: 'Order already marked as paid',
+        _orderId: order.id,
         reference
       };
     }
@@ -201,16 +201,16 @@ export async function handleFlutterwaveWebhook(
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
 
     return {
-      success: true,
-      message: 'Order payment confirmed',
-      orderId: order.id,
+      _success: true,
+      _message: 'Order payment confirmed',
+      _orderId: order.id,
       reference,
       amount
     };
   } catch (error) {
-    console.error('Error processing Flutterwave webhook:', error);
+    console.error('Error processing Flutterwave _webhook:', error);
     return {
-      success: false,
+      _success: false,
       message: 'Error processing webhook'
     };
   }

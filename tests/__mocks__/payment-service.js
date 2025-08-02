@@ -18,4 +18,4 @@ class PaymentServiceMock {
     this.logger.info('Loyalty accrued', { transactionId, customerId, status });
   }
 }
-module.exports = { PaymentService: PaymentServiceMock, default: PaymentServiceMock };
+module.exports = { _PaymentService: PaymentServiceMock, _default: PaymentServiceMock };

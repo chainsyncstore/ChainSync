@@ -3,29 +3,29 @@ import { app } from '../../server/app';
 import { setupTestDatabase, teardownTestDatabase } from '../setup/integration-setup';
 
 describe('Security Tests', () => {
-  let testDb: any;
+  let _testDb: any;
 
-  beforeAll(async () => {
+  beforeAll(async() => {
     testDb = await setupTestDatabase();
   });
 
-  afterAll(async () => {
+  afterAll(async() => {
     await teardownTestDatabase(testDb);
   });
 
   describe('Authentication Security', () => {
-    it('should prevent brute force attacks', async () => {
+    it('should prevent brute force attacks', async() => {
       const loginAttempts = [];
-      
+
       // Attempt multiple failed logins
       for (let i = 0; i < 10; i++) {
         const response = await request(app)
           .post('/api/auth/login')
           .send({
-            email: 'test@example.com',
-            password: 'wrongpassword'
+            _email: 'test@example.com',
+            _password: 'wrongpassword'
           });
-        
+
         loginAttempts.push(response.status);
       }
 
@@ -34,7 +34,7 @@ describe('Security Tests', () => {
       expect(blockedAttempts.length).toBeGreaterThan(0);
     });
 
-    it('should enforce strong password requirements', async () => {
+    it('should enforce strong password requirements', async() => {
       const weakPasswords = [
         '123',
         'password',
@@ -47,9 +47,9 @@ describe('Security Tests', () => {
         const response = await request(app)
           .post('/api/auth/register')
           .send({
-            email: 'test@example.com',
-            password: password,
-            name: 'Test User'
+            _email: 'test@example.com',
+            _password: password,
+            _name: 'Test User'
           });
 
         expect(response.status).toBe(400);
@@ -57,7 +57,7 @@ describe('Security Tests', () => {
       }
     });
 
-    it('should prevent SQL injection in login', async () => {
+    it('should prevent SQL injection in login', async() => {
       const sqlInjectionAttempts = [
         "'; DROP TABLE users; --",
         "' OR '1'='1",
@@ -69,15 +69,15 @@ describe('Security Tests', () => {
         const response = await request(app)
           .post('/api/auth/login')
           .send({
-            email: attempt,
-            password: 'password'
+            _email: attempt,
+            _password: 'password'
           });
 
         expect(response.status).toBe(400);
       }
     });
 
-    it('should validate JWT tokens properly', async () => {
+    it('should validate JWT tokens properly', async() => {
       const invalidTokens = [
         'invalid.token.here',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature',
@@ -96,14 +96,14 @@ describe('Security Tests', () => {
   });
 
   describe('Authorization Security', () => {
-    it('should prevent unauthorized access to admin endpoints', async () => {
+    it('should prevent unauthorized access to admin endpoints', async() => {
       // Register regular user
       const userResponse = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'user@example.com',
-          password: 'UserPassword123!',
-          name: 'Regular User'
+          _email: 'user@example.com',
+          _password: 'UserPassword123!',
+          _name: 'Regular User'
         });
 
       const userToken = userResponse.body.token;
@@ -125,22 +125,22 @@ describe('Security Tests', () => {
       }
     });
 
-    it('should prevent user data access by other users', async () => {
+    it('should prevent user data access by other users', async() => {
       // Create two users
       const user1Response = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'user1@example.com',
-          password: 'User1Password123!',
-          name: 'User 1'
+          _email: 'user1@example.com',
+          _password: 'User1Password123!',
+          _name: 'User 1'
         });
 
       const user2Response = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'user2@example.com',
-          password: 'User2Password123!',
-          name: 'User 2'
+          _email: 'user2@example.com',
+          _password: 'User2Password123!',
+          _name: 'User 2'
         });
 
       const user1Token = user1Response.body.token;
@@ -154,14 +154,14 @@ describe('Security Tests', () => {
       expect(response.status).toBe(403);
     });
 
-    it('should validate resource ownership', async () => {
+    it('should validate resource ownership', async() => {
       // Create user and payment
       const userResponse = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'owner@example.com',
-          password: 'OwnerPassword123!',
-          name: 'Resource Owner'
+          _email: 'owner@example.com',
+          _password: 'OwnerPassword123!',
+          _name: 'Resource Owner'
         });
 
       const userToken = userResponse.body.token;
@@ -171,9 +171,9 @@ describe('Security Tests', () => {
         .post('/api/payments/create-intent')
         .set('Authorization', `Bearer ${userToken}`)
         .send({
-          amount: 100,
-          currency: 'USD',
-          paymentMethod: 'credit_card'
+          _amount: 100,
+          _currency: 'USD',
+          _paymentMethod: 'credit_card'
         });
 
       const paymentId = paymentResponse.body.id;
@@ -182,9 +182,9 @@ describe('Security Tests', () => {
       const otherUserResponse = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'other@example.com',
-          password: 'OtherPassword123!',
-          name: 'Other User'
+          _email: 'other@example.com',
+          _password: 'OtherPassword123!',
+          _name: 'Other User'
         });
 
       const otherUserToken = otherUserResponse.body.token;
@@ -199,10 +199,10 @@ describe('Security Tests', () => {
   });
 
   describe('Input Validation Security', () => {
-    it('should prevent XSS attacks', async () => {
+    it('should prevent XSS attacks', async() => {
       const xssPayloads = [
         '<script>alert("XSS")</script>',
-        'javascript:alert("XSS")',
+        '_javascript:alert("XSS")',
         '<img src="x" onerror="alert(\'XSS\')">',
         '"><script>alert("XSS")</script>',
         '&#60;script&#62;alert("XSS")&#60;/script&#62;'
@@ -212,14 +212,14 @@ describe('Security Tests', () => {
         const response = await request(app)
           .post('/api/auth/register')
           .send({
-            email: 'test@example.com',
-            password: 'TestPassword123!',
-            name: payload
+            _email: 'test@example.com',
+            _password: 'TestPassword123!',
+            _name: payload
           });
 
         // Should either reject or sanitize the input
         expect([400, 201]).toContain(response.status);
-        
+
         if (response.status === 201) {
           // If accepted, should be sanitized
           expect(response.body.user.name).not.toContain('<script>');
@@ -228,11 +228,11 @@ describe('Security Tests', () => {
       }
     });
 
-    it('should prevent NoSQL injection', async () => {
+    it('should prevent NoSQL injection', async() => {
       const nosqlInjectionAttempts = [
-        { email: { $ne: '' }, password: { $ne: '' } },
-        { email: { $gt: '' }, password: { $gt: '' } },
-        { email: { $regex: '.*' }, password: { $regex: '.*' } }
+        { _email: { $ne: '' }, _password: { $ne: '' } },
+        { _email: { $gt: '' }, _password: { $gt: '' } },
+        { _email: { $regex: '.*' }, _password: { $regex: '.*' } }
       ];
 
       for (const attempt of nosqlInjectionAttempts) {
@@ -244,12 +244,12 @@ describe('Security Tests', () => {
       }
     });
 
-    it('should validate file uploads', async () => {
+    it('should validate file uploads', async() => {
       const maliciousFiles = [
-        { filename: 'malicious.php', content: '<?php system($_GET["cmd"]); ?>' },
-        { filename: 'malicious.js', content: 'alert("malicious")' },
-        { filename: 'malicious.exe', content: 'binary content' },
-        { filename: 'malicious.sh', content: '#!/bin/bash\nrm -rf /' }
+        { _filename: 'malicious.php', _content: '<?php system($_GET["cmd"]); ?>' },
+        { _filename: 'malicious.js', _content: 'alert("malicious")' },
+        { _filename: 'malicious.exe', _content: 'binary content' },
+        { _filename: 'malicious.sh', _content: '#!/bin/bash\nrm -rf /' }
       ];
 
       for (const file of maliciousFiles) {
@@ -261,7 +261,7 @@ describe('Security Tests', () => {
       }
     });
 
-    it('should prevent path traversal attacks', async () => {
+    it('should prevent path traversal attacks', async() => {
       const pathTraversalAttempts = [
         '../../../etc/passwd',
         '..\\..\\..\\windows\\system32\\config\\sam',
@@ -279,14 +279,14 @@ describe('Security Tests', () => {
   });
 
   describe('API Security', () => {
-    it('should implement rate limiting', async () => {
+    it('should implement rate limiting', async() => {
       const requests = [];
-      
+
       // Make many requests quickly
       for (let i = 0; i < 100; i++) {
         const response = await request(app)
           .get('/api/products');
-        
+
         requests.push(response.status);
       }
 
@@ -295,19 +295,19 @@ describe('Security Tests', () => {
       expect(rateLimited.length).toBeGreaterThan(0);
     });
 
-    it('should prevent CSRF attacks', async () => {
+    it('should prevent CSRF attacks', async() => {
       const response = await request(app)
         .post('/api/payments/process')
         .send({
-          amount: 100,
-          paymentMethod: 'credit_card'
+          _amount: 100,
+          _paymentMethod: 'credit_card'
         })
         .set('Origin', 'https://malicious-site.com');
 
       expect(response.status).toBe(403);
     });
 
-    it('should validate content types', async () => {
+    it('should validate content types', async() => {
       const response = await request(app)
         .post('/api/auth/login')
         .set('Content-Type', 'text/plain')
@@ -316,7 +316,7 @@ describe('Security Tests', () => {
       expect(response.status).toBe(400);
     });
 
-    it('should implement proper CORS', async () => {
+    it('should implement proper CORS', async() => {
       const response = await request(app)
         .options('/api/products')
         .set('Origin', 'https://malicious-site.com')
@@ -327,32 +327,32 @@ describe('Security Tests', () => {
   });
 
   describe('Data Security', () => {
-    it('should encrypt sensitive data', async () => {
+    it('should encrypt sensitive data', async() => {
       const userResponse = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'encrypt@example.com',
-          password: 'EncryptPassword123!',
-          name: 'Encrypt User',
-          phone: '+1234567890'
+          _email: 'encrypt@example.com',
+          _password: 'EncryptPassword123!',
+          _name: 'Encrypt User',
+          _phone: '+1234567890'
         });
 
       // Check database for encrypted data
       const user = await testDb.user.findFirst({
-        where: { email: 'encrypt@example.com' }
+        _where: { email: 'encrypt@example.com' }
       });
 
       expect(user.password).not.toBe('EncryptPassword123!');
       expect(user.password).toMatch(/^\$2[aby]\$\d{1,2}\$[./A-Za-z0-9]{53}$/); // bcrypt hash
     });
 
-    it('should not expose sensitive data in responses', async () => {
+    it('should not expose sensitive data in responses', async() => {
       const userResponse = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'sensitive@example.com',
-          password: 'SensitivePassword123!',
-          name: 'Sensitive User'
+          _email: 'sensitive@example.com',
+          _password: 'SensitivePassword123!',
+          _name: 'Sensitive User'
         });
 
       const user = userResponse.body.user;
@@ -362,12 +362,12 @@ describe('Security Tests', () => {
       expect(user.salt).toBeUndefined();
     });
 
-    it('should implement proper session management', async () => {
+    it('should implement proper session management', async() => {
       const loginResponse = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'session@example.com',
-          password: 'SessionPassword123!'
+          _email: 'session@example.com',
+          _password: 'SessionPassword123!'
         });
 
       const token = loginResponse.body.token;
@@ -375,14 +375,14 @@ describe('Security Tests', () => {
       // Check token expiration
       const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
       const now = Math.floor(Date.now() / 1000);
-      
+
       expect(decodedToken.exp).toBeGreaterThan(now);
       expect(decodedToken.exp - now).toBeLessThanOrEqual(3600); // 1 hour max
     });
   });
 
   describe('Infrastructure Security', () => {
-    it('should have proper security headers', async () => {
+    it('should have proper security headers', async() => {
       const response = await request(app)
         .get('/api/products');
 
@@ -392,7 +392,7 @@ describe('Security Tests', () => {
       expect(response.headers['strict-transport-security']).toContain('max-age=');
     });
 
-    it('should prevent information disclosure', async () => {
+    it('should prevent information disclosure', async() => {
       const response = await request(app)
         .get('/api/non-existent-endpoint');
 
@@ -401,18 +401,18 @@ describe('Security Tests', () => {
       expect(response.body.error).toBe('Not Found');
     });
 
-    it('should validate request size limits', async () => {
+    it('should validate request size limits', async() => {
       const largePayload = 'x'.repeat(1024 * 1024); // 1MB
 
       const response = await request(app)
         .post('/api/auth/register')
         .send({
-          email: 'large@example.com',
-          password: 'LargePassword123!',
-          name: largePayload
+          _email: 'large@example.com',
+          _password: 'LargePassword123!',
+          _name: largePayload
         });
 
       expect(response.status).toBe(413);
     });
   });
-}); 
+});

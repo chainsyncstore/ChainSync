@@ -2,18 +2,18 @@
 // Sentry integration disabled - using no-op implementations
 
 export interface AlertConfig {
-  name: string;
-  threshold: number;
-  window: number; // Time window in minutes
+  _name: string;
+  _threshold: number;
+  _window: number; // Time window in minutes
   severity: 'low' | 'medium' | 'high' | 'critical';
-  enabled: boolean;
+  _enabled: boolean;
 }
 
 export interface AlertContext {
-  timestamp: Date;
-  value: number;
-  threshold: number;
-  severity: string;
+  _timestamp: Date;
+  _value: number;
+  _threshold: number;
+  _severity: string;
   metadata?: Record<string, any>;
 }
 
@@ -23,8 +23,8 @@ export function initializeMonitoring(): void {
 }
 
 export class AlertManager {
-  private alerts: Map<string, AlertConfig> = new Map();
-  private alertHistory: Map<string, AlertContext[]> = new Map();
+  private _alerts: Map<string, AlertConfig> = new Map();
+  private _alertHistory: Map<string, AlertContext[]> = new Map();
   private readonly maxHistorySize = 1000;
 
   constructor() {
@@ -33,35 +33,35 @@ export class AlertManager {
 
   private setupDefaultAlerts(): void {
     // Default alert configurations
-    const defaultAlerts: AlertConfig[] = [
+    const _defaultAlerts: AlertConfig[] = [
       {
         name: 'high_error_rate',
-        threshold: 0.05, // 5% error rate
-        window: 5, // 5 minutes
-        severity: 'high',
-        enabled: true,
+        _threshold: 0.05, // 5% error rate
+        _window: 5, // 5 minutes
+        _severity: 'high',
+        _enabled: true
       },
       {
-        name: 'response_time_spike',
-        threshold: 2000, // 2 seconds
-        window: 5,
-        severity: 'medium',
-        enabled: true,
+        _name: 'response_time_spike',
+        _threshold: 2000, // 2 seconds
+        _window: 5,
+        _severity: 'medium',
+        _enabled: true
       },
       {
-        name: 'memory_usage_high',
-        threshold: 0.85, // 85% memory usage
-        window: 10,
-        severity: 'high',
-        enabled: true,
+        _name: 'memory_usage_high',
+        _threshold: 0.85, // 85% memory usage
+        _window: 10,
+        _severity: 'high',
+        _enabled: true
       },
       {
-        name: 'database_connection_errors',
-        threshold: 5, // 5 connection errors
-        window: 5,
-        severity: 'critical',
-        enabled: true,
-      },
+        _name: 'database_connection_errors',
+        _threshold: 5, // 5 connection errors
+        _window: 5,
+        _severity: 'critical',
+        _enabled: true
+      }
     ];
 
     defaultAlerts.forEach(alert => {
@@ -70,46 +70,46 @@ export class AlertManager {
     });
   }
 
-  public addAlert(config: AlertConfig): void {
+  public addAlert(_config: AlertConfig): void {
     this.alerts.set(config.name, config);
     if (!this.alertHistory.has(config.name)) {
       this.alertHistory.set(config.name, []);
     }
   }
 
-  public removeAlert(name: string): void {
+  public removeAlert(_name: string): void {
     this.alerts.delete(name);
     this.alertHistory.delete(name);
   }
 
-  public checkAlert(name: string, value: number, metadata?: Record<string, any>): boolean {
+  public checkAlert(_name: string, _value: number, metadata?: Record<string, any>): boolean {
     const alert = this.alerts.get(name);
     if (!alert || !alert.enabled) {
       return false;
     }
 
-    const context: AlertContext = {
-      timestamp: new Date(),
+    const _context: AlertContext = {
+      _timestamp: new Date(),
       value,
-      threshold: alert.threshold,
-      severity: alert.severity,
-      ...(metadata && { metadata }),
+      _threshold: alert.threshold,
+      _severity: alert.severity,
+      ...(metadata && { metadata })
     };
 
     // Add to history
     const history = this.alertHistory.get(name) || [];
     history.push(context);
-    
+
     // Trim history if needed
     if (history.length > this.maxHistorySize) {
       history.splice(0, history.length - this.maxHistorySize);
     }
-    
+
     this.alertHistory.set(name, history);
 
     // Check if alert should be triggered
     const shouldAlert = this.evaluateAlert(alert, value);
-    
+
     if (shouldAlert) {
       this.triggerAlert(name, context);
     }
@@ -117,24 +117,24 @@ export class AlertManager {
     return shouldAlert;
   }
 
-  private evaluateAlert(alert: AlertConfig, value: number): boolean {
+  private evaluateAlert(_alert: AlertConfig, _value: number): boolean {
     // Simple threshold-based evaluation
     return value > alert.threshold;
   }
 
-  private triggerAlert(name: string, context: AlertContext): void {
-    console.warn(`🚨 ALERT TRIGGERED: ${name}`, {
-      value: context.value,
-      threshold: context.threshold,
-      severity: context.severity,
-      timestamp: context.timestamp,
-      metadata: context.metadata,
+  private triggerAlert(_name: string, _context: AlertContext): void {
+    console.warn(`🚨 ALERT _TRIGGERED: ${name}`, {
+      _value: context.value,
+      _threshold: context.threshold,
+      _severity: context.severity,
+      _timestamp: context.timestamp,
+      _metadata: context.metadata
     });
 
     // Sentry disabled - no-op
   }
 
-  public getAlertHistory(name: string, limit?: number): AlertContext[] {
+  public getAlertHistory(_name: string, limit?: number): AlertContext[] {
     const history = this.alertHistory.get(name) || [];
     if (limit) {
       return history.slice(-limit);
@@ -146,11 +146,11 @@ export class AlertManager {
     return Array.from(this.alerts.values());
   }
 
-  public getAlertStats(name: string, windowMinutes: number = 60): {
-    count: number;
-    avgValue: number;
-    maxValue: number;
-    minValue: number;
+  public getAlertStats(_name: string, _windowMinutes: number = 60): {
+    _count: number;
+    _avgValue: number;
+    _maxValue: number;
+    _minValue: number;
   } | null {
     const history = this.alertHistory.get(name);
     if (!history || history.length === 0) {
@@ -159,18 +159,18 @@ export class AlertManager {
 
     const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
     const recentAlerts = history.filter(alert => alert.timestamp >= cutoff);
-    
+
     if (recentAlerts.length === 0) {
       return null;
     }
 
     const values = recentAlerts.map(alert => alert.value);
-    
+
     return {
-      count: recentAlerts.length,
-      avgValue: values.reduce((sum, val) => sum + val, 0) / values.length,
-      maxValue: Math.max(...values),
-      minValue: Math.min(...values),
+      _count: recentAlerts.length,
+      _avgValue: values.reduce((sum, val) => sum + val, 0) / values.length,
+      _maxValue: Math.max(...values),
+      _minValue: Math.min(...values)
     };
   }
 }

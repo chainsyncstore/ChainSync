@@ -9,358 +9,358 @@ export { customers };
 
 // Users table
 export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  email: text('email').notNull().unique(),
-  name: text('name').notNull(),
-  password: text('password').notNull(),
-  role: text('role', { enum: ['admin', 'manager', 'cashier'] }).default('cashier'),
-  storeId: integer('store_id'),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _email: text('email').notNull().unique(),
+  _name: text('name').notNull(),
+  _password: text('password').notNull(),
+  _role: text('role', { _enum: ['admin', 'manager', 'cashier'] }).default('cashier'),
+  _storeId: integer('store_id'),
+  _isActive: boolean('is_active').default(true),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 // Stores table
 export const stores = pgTable('stores', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  location: text('location').notNull(),
-  address: text('address'),
-  city: text('city'),
-  state: text('state'),
-  country: text('country'),
-  phone: text('phone'),
-  email: text('email'),
-  timezone: text('timezone'),
-  status: text('status').default('active'),
-  managerId: integer('manager_id'),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _name: text('name').notNull(),
+  _location: text('location').notNull(),
+  _address: text('address'),
+  _city: text('city'),
+  _state: text('state'),
+  _country: text('country'),
+  _phone: text('phone'),
+  _email: text('email'),
+  _timezone: text('timezone'),
+  _status: text('status').default('active'),
+  _managerId: integer('manager_id'),
+  _isActive: boolean('is_active').default(true),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 // Products table
 export const products = pgTable('products', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  barcode: text('barcode').unique(),
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  cost: decimal('cost', { precision: 10, scale: 2 }),
-  categoryId: integer('category_id'),
-  brandId: integer('brand_id'),
-  unit: text('unit').default('pcs'),
-  isActive: boolean('is_active').default(true),
-  isPerishable: boolean('is_perishable').default(false),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-  storeId: integer('store_id').notNull(),
-  imageUrl: text('image_url'),
-  attributes: json('attributes'),
-  sku: text('sku').notNull(),
+  _id: serial('id').primaryKey(),
+  _name: text('name').notNull(),
+  _description: text('description'),
+  _barcode: text('barcode').unique(),
+  _price: decimal('price', { _precision: 10, _scale: 2 }).notNull(),
+  _cost: decimal('cost', { _precision: 10, _scale: 2 }),
+  _categoryId: integer('category_id'),
+  _brandId: integer('brand_id'),
+  _unit: text('unit').default('pcs'),
+  _isActive: boolean('is_active').default(true),
+  _isPerishable: boolean('is_perishable').default(false),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow(),
+  _storeId: integer('store_id').notNull(),
+  _imageUrl: text('image_url'),
+  _attributes: json('attributes'),
+  _sku: text('sku').notNull()
 });
 
 // Categories table
 export const categories = pgTable('categories', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull().unique(),
-  description: text('description'),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _name: text('name').notNull().unique(),
+  _description: text('description'),
+  _isActive: boolean('is_active').default(true),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 // Return Reasons table
 export const returnReasons = pgTable('return_reasons', {
-  id: serial('id').primaryKey(),
-  reason: text('reason').notNull(),
-  description: text('description'),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _reason: text('reason').notNull(),
+  _description: text('description'),
+  _isActive: boolean('is_active').default(true),
+  _createdAt: timestamp('created_at').defaultNow()
 });
 
 // Inventory table
 export const inventory = pgTable('inventory', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull(),
-  storeId: integer('store_id').notNull(),
-  quantity: integer('quantity').default(0),
-  minStock: integer('min_stock').default(0),
-  maxStock: integer('max_stock'),
-  lastRestocked: timestamp('last_restocked'),
-  updatedAt: timestamp('updated_at').defaultNow(),
-  batchTracking: boolean('batch_tracking').default(false),
-  currentUtilization: integer('current_utilization').default(0),
+  _id: serial('id').primaryKey(),
+  _productId: integer('product_id').notNull(),
+  _storeId: integer('store_id').notNull(),
+  _quantity: integer('quantity').default(0),
+  _minStock: integer('min_stock').default(0),
+  _maxStock: integer('max_stock'),
+  _lastRestocked: timestamp('last_restocked'),
+  _updatedAt: timestamp('updated_at').defaultNow(),
+  _batchTracking: boolean('batch_tracking').default(false),
+  _currentUtilization: integer('current_utilization').default(0),
   // Aliases expected by legacy services ----------------------------------------------------------
-  totalQuantity: integer('total_quantity').default(0),
-  availableQuantity: integer('available_quantity').default(0),
-  minimumLevel: integer('minimum_level').default(0),
+  _totalQuantity: integer('total_quantity').default(0),
+  _availableQuantity: integer('available_quantity').default(0),
+  _minimumLevel: integer('minimum_level').default(0)
 });
 
 // Transactions table
 export const transactions = pgTable('transactions', {
-  id: serial('id').primaryKey(),
-  storeId: integer('store_id').notNull(),
-  userId: integer('user_id').notNull(),
-  customerId: integer('customer_id'),
-  total: decimal('total', { precision: 10, scale: 2 }).notNull(),
-  subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
-  tax: decimal('tax', { precision: 10, scale: 2 }).default('0'),
-  discount: decimal('discount', { precision: 10, scale: 2 }).default('0'),
-  paymentMethod: text('payment_method', { enum: ['cash', 'card', 'mobile'] }).notNull(),
-  status: text('status', { enum: ['pending', 'completed', 'cancelled'] }).default('pending'),
-  items: json('items'), // Store transaction items as JSON
-  createdAt: timestamp('created_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _storeId: integer('store_id').notNull(),
+  _userId: integer('user_id').notNull(),
+  _customerId: integer('customer_id'),
+  _total: decimal('total', { _precision: 10, _scale: 2 }).notNull(),
+  _subtotal: decimal('subtotal', { _precision: 10, _scale: 2 }).notNull(),
+  _tax: decimal('tax', { _precision: 10, _scale: 2 }).default('0'),
+  _discount: decimal('discount', { _precision: 10, _scale: 2 }).default('0'),
+  _paymentMethod: text('payment_method', { _enum: ['cash', 'card', 'mobile'] }).notNull(),
+  _status: text('status', { _enum: ['pending', 'completed', 'cancelled'] }).default('pending'),
+  _items: json('items'), // Store transaction items as JSON
+  _createdAt: timestamp('created_at').defaultNow()
 });
 
 // Returns table
 export const returns = pgTable('returns', {
-  id: serial('id').primaryKey(),
-  refundId: text('refund_id').notNull(),
-  total: decimal('total', { precision: 10, scale: 2 }).notNull(),
-  refundMethod: text('refund_method', { enum: ['cash', 'credit_card', 'store_credit'] }).default('cash'),
-  status: text('status', { enum: ['pending', 'processed'] }).default('pending'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _refundId: text('refund_id').notNull(),
+  _total: decimal('total', { _precision: 10, _scale: 2 }).notNull(),
+  _refundMethod: text('refund_method', { _enum: ['cash', 'credit_card', 'store_credit'] }).default('cash'),
+  _status: text('status', { _enum: ['pending', 'processed'] }).default('pending'),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 // Return Items table
 export const returnItems = pgTable('return_items', {
-  id: serial('id').primaryKey(),
-  returnId: integer('return_id').notNull(),
-  productId: integer('product_id').notNull(),
-  quantity: integer('quantity').notNull(),
-  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  _id: serial('id').primaryKey(),
+  _returnId: integer('return_id').notNull(),
+  _productId: integer('product_id').notNull(),
+  _quantity: integer('quantity').notNull(),
+  _unitPrice: decimal('unit_price', { _precision: 10, _scale: 2 }).notNull()
 });
 
 // Loyalty Programs table
 export const loyaltyPrograms = pgTable('loyalty_programs', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-  storeId: integer('store_id').notNull(),
-  active: boolean('active').default(true),
+  _id: serial('id').primaryKey(),
+  _name: text('name').notNull(),
+  _description: text('description'),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow(),
+  _storeId: integer('store_id').notNull(),
+  _active: boolean('active').default(true)
 });
 
 // Loyalty Members table
 export const loyaltyMembers = pgTable('loyalty_members', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull(),
-  loyaltyId: text('loyalty_id').notNull(),
-  currentPoints: decimal('current_points', { precision: 10, scale: 2 }).default('0'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-  programId: integer('program_id').notNull(),
-  customerId: integer('customer_id').notNull(),
-  points: integer('points').default(0),
+  _id: serial('id').primaryKey(),
+  _userId: integer('user_id').notNull(),
+  _loyaltyId: text('loyalty_id').notNull(),
+  _currentPoints: decimal('current_points', { _precision: 10, _scale: 2 }).default('0'),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow(),
+  _programId: integer('program_id').notNull(),
+  _customerId: integer('customer_id').notNull(),
+  _points: integer('points').default(0)
 });
 
 // Loyalty Transactions table
 export const loyaltyTransactions = pgTable('loyalty_transactions', {
-  id: serial('id').primaryKey(),
-  memberId: integer('member_id').notNull(),
-  programId: integer('program_id').notNull(),
-  pointsEarned: integer('points_earned').default(0),
-  pointsRedeemed: integer('points_redeemed').default(0),
-  pointsBalance: integer('points_balance').notNull(),
-  transactionType: text('transaction_type', { enum: ['earn', 'redeem'] }).notNull(),
-  source: text('source').notNull(),
-  transactionId: integer('transaction_id'),
-  description: text('description'),
-  createdAt: timestamp('created_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _memberId: integer('member_id').notNull(),
+  _programId: integer('program_id').notNull(),
+  _pointsEarned: integer('points_earned').default(0),
+  _pointsRedeemed: integer('points_redeemed').default(0),
+  _pointsBalance: integer('points_balance').notNull(),
+  _transactionType: text('transaction_type', { _enum: ['earn', 'redeem'] }).notNull(),
+  _source: text('source').notNull(),
+  _transactionId: integer('transaction_id'),
+  _description: text('description'),
+  _createdAt: timestamp('created_at').defaultNow()
 });
 
 // Loyalty Tiers table
 export const loyaltyTiers = pgTable('loyalty_tiers', {
-  id: serial('id').primaryKey(),
-  programId: integer('program_id').notNull(),
-  name: text('name').notNull(),
-  requiredPoints: integer('required_points').notNull(),
-  multiplier: decimal('multiplier', { precision: 5, scale: 2 }).default('1.00'),
-  active: boolean('active').default(true),
+  _id: serial('id').primaryKey(),
+  _programId: integer('program_id').notNull(),
+  _name: text('name').notNull(),
+  _requiredPoints: integer('required_points').notNull(),
+  _multiplier: decimal('multiplier', { _precision: 5, _scale: 2 }).default('1.00'),
+  _active: boolean('active').default(true)
 });
 
 // Loyalty Rewards table
 export const loyaltyRewards = pgTable('loyalty_rewards', {
-  id: serial('id').primaryKey(),
-  programId: integer('program_id').notNull(),
-  name: text('name').notNull(),
-  description: text('description'),
-  pointsRequired: integer('points_required').notNull(),
-  active: boolean('active').default(true),
+  _id: serial('id').primaryKey(),
+  _programId: integer('program_id').notNull(),
+  _name: text('name').notNull(),
+  _description: text('description'),
+  _pointsRequired: integer('points_required').notNull(),
+  _active: boolean('active').default(true)
 });
 
 // Transaction Items table
 export const transactionItems = pgTable('transaction_items', {
-  id: serial('id').primaryKey(),
-  transactionId: integer('transaction_id').notNull(),
-  productId: integer('product_id').notNull(),
-  quantity: integer('quantity').notNull(),
-  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  _id: serial('id').primaryKey(),
+  _transactionId: integer('transaction_id').notNull(),
+  _productId: integer('product_id').notNull(),
+  _quantity: integer('quantity').notNull(),
+  _unitPrice: decimal('unit_price', { _precision: 10, _scale: 2 }).notNull()
 });
 
 // Transaction Payments table
 export const transactionPayments = pgTable('transaction_payments', {
-  id: serial('id').primaryKey(),
-  transactionId: integer('transaction_id').notNull(),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-  method: text('method', { enum: ['cash', 'card', 'mobile'] }).notNull(),
+  _id: serial('id').primaryKey(),
+  _transactionId: integer('transaction_id').notNull(),
+  _amount: decimal('amount', { _precision: 10, _scale: 2 }).notNull(),
+  _method: text('method', { _enum: ['cash', 'card', 'mobile'] }).notNull()
 });
 
 // Subscriptions table
 export const subscriptions = pgTable('subscriptions', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull(),
-  planId: text('plan_id').notNull(),
-  status: text('status', { enum: ['active', 'cancelled', 'expired'] }).default('active'),
-  currentPeriodStart: timestamp('current_period_start'),
-  currentPeriodEnd: timestamp('current_period_end'),
-  endDate: timestamp('end_date'),
-  metadata: json('metadata'),
-  paymentMethod: text('payment_method'),
-  amount: decimal('amount', { precision: 10, scale: 2 }),
-  currency: text('currency').default('USD'),
-  referralCode: text('referral_code'),
-  autoRenew: boolean('auto_renew').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _userId: integer('user_id').notNull(),
+  _planId: text('plan_id').notNull(),
+  _status: text('status', { _enum: ['active', 'cancelled', 'expired'] }).default('active'),
+  _currentPeriodStart: timestamp('current_period_start'),
+  _currentPeriodEnd: timestamp('current_period_end'),
+  _endDate: timestamp('end_date'),
+  _metadata: json('metadata'),
+  _paymentMethod: text('payment_method'),
+  _amount: decimal('amount', { _precision: 10, _scale: 2 }),
+  _currency: text('currency').default('USD'),
+  _referralCode: text('referral_code'),
+  _autoRenew: boolean('auto_renew').default(true),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 // Password Reset Tokens table
 export const passwordResetTokens = pgTable('password_reset_tokens', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull(),
-  token: text('token').notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
+  _id: serial('id').primaryKey(),
+  _userId: integer('user_id').notNull(),
+  _token: text('token').notNull(),
+  _expiresAt: timestamp('expires_at').notNull()
 });
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+  _id: true,
+  _createdAt: true,
+  _updatedAt: true
 });
 
 export const insertStoreSchema = createInsertSchema(stores).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+  _id: true,
+  _createdAt: true,
+  _updatedAt: true
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+  _id: true,
+  _createdAt: true,
+  _updatedAt: true
 });
 
 export const insertInventorySchema = createInsertSchema(inventory).omit({
-  id: true,
-  updatedAt: true,
+  _id: true,
+  _updatedAt: true
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
-  id: true,
-  createdAt: true,
+  _id: true,
+  _createdAt: true
 });
 
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+  _id: true,
+  _createdAt: true,
+  _updatedAt: true
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+  _id: true,
+  _createdAt: true,
+  _updatedAt: true
 });
 
 export const insertReturnReasonSchema = createInsertSchema(returnReasons).omit({
-  id: true,
-  createdAt: true,
+  _id: true,
+  _createdAt: true
 });
 
 export const insertLoyaltyTierSchema = createInsertSchema(loyaltyTiers).omit({
-  id: true,
+  _id: true
 });
 
 export const insertLoyaltyRewardSchema = createInsertSchema(loyaltyRewards).omit({
-  id: true,
+  _id: true
 });
 
 export const inventoryBatches = pgTable('inventory_batches', {
-  id: serial('id').primaryKey(),
-  inventoryId: integer('inventory_id').notNull(),
-  batchNumber: text('batch_number'),
-  expiryDate: timestamp('expiry_date'),
-  quantity: integer('quantity').notNull(),
-  receivedDate: timestamp('received_date'),
-  manufacturingDate: timestamp('manufacturing_date'),
-  costPerUnit: decimal('cost_per_unit', { precision: 10, scale: 2 }),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _inventoryId: integer('inventory_id').notNull(),
+  _batchNumber: text('batch_number'),
+  _expiryDate: timestamp('expiry_date'),
+  _quantity: integer('quantity').notNull(),
+  _receivedDate: timestamp('received_date'),
+  _manufacturingDate: timestamp('manufacturing_date'),
+  _costPerUnit: decimal('cost_per_unit', { _precision: 10, _scale: 2 }),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 export const inventoryItems = pgTable('inventory_items', {
-  id: serial('id').primaryKey(),
-  inventoryId: integer('inventory_id').notNull(),
-  productId: integer('product_id').notNull().references(() => products.id),
-  quantity: integer('quantity').notNull(),
-  sku: text('sku'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-  metadata: json('metadata'),
-  receivedDate: timestamp('received_date'),
-  reorderLevel: integer('reorder_level'),
-  reorderQuantity: integer('reorder_quantity'),
+  _id: serial('id').primaryKey(),
+  _inventoryId: integer('inventory_id').notNull(),
+  _productId: integer('product_id').notNull().references(() => products.id),
+  _quantity: integer('quantity').notNull(),
+  _sku: text('sku'),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow(),
+  _metadata: json('metadata'),
+  _receivedDate: timestamp('received_date'),
+  _reorderLevel: integer('reorder_level'),
+  _reorderQuantity: integer('reorder_quantity')
 });
 
 export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
-  product: one(products, {
-    fields: [inventoryItems.productId],
-    references: [products.id],
-  }),
+  _product: one(products, {
+    _fields: [inventoryItems.productId],
+    _references: [products.id]
+  })
 }));
 
 export const inventoryTransactions = pgTable('inventory_transactions', {
-  id: serial('id').primaryKey(),
-  inventoryId: integer('inventory_id').notNull(),
-  itemId: integer('item_id'),
-  quantity: integer('quantity').notNull(),
-  type: text('type', { enum: ['in', 'out'] }).notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _inventoryId: integer('inventory_id').notNull(),
+  _itemId: integer('item_id'),
+  _quantity: integer('quantity').notNull(),
+  _type: text('type', { _enum: ['in', 'out'] }).notNull(),
+  _createdAt: timestamp('created_at').defaultNow()
 });
 
 export const webhooks = pgTable('webhooks', {
-  id: serial('id').primaryKey(),
-  url: text('url').notNull(),
-  secret: text('secret'),
-  events: json('events'),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-  storeId: integer('store_id').notNull(),
+  _id: serial('id').primaryKey(),
+  _url: text('url').notNull(),
+  _secret: text('secret'),
+  _events: json('events'),
+  _isActive: boolean('is_active').default(true),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow(),
+  _storeId: integer('store_id').notNull()
 });
 
 export const webhookEvents = pgTable('webhook_events', {
-  id: serial('id').primaryKey(),
-  webhookId: integer('webhook_id').notNull(),
-  event: text('event').notNull(),
-  payload: json('payload'),
-  createdAt: timestamp('created_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _webhookId: integer('webhook_id').notNull(),
+  _event: text('event').notNull(),
+  _payload: json('payload'),
+  _createdAt: timestamp('created_at').defaultNow()
 });
 
 export const webhookDeliveries = pgTable('webhook_deliveries', {
-  id: serial('id').primaryKey(),
-  webhookId: integer('webhook_id').notNull(),
-  eventId: integer('event_id').notNull(),
-  status: text('status', { enum: ['pending', 'success', 'failed', 'delivered', 'retrying'] }).default('pending'),
-  attempt: integer('attempt').default(1),
-  response: text('response'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _webhookId: integer('webhook_id').notNull(),
+  _eventId: integer('event_id').notNull(),
+  _status: text('status', { _enum: ['pending', 'success', 'failed', 'delivered', 'retrying'] }).default('pending'),
+  _attempt: integer('attempt').default(1),
+  _response: text('response'),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 // --- Compatibility type aliases for frontend ---
@@ -417,29 +417,29 @@ export const Customers = customers;
 /* ------------------------------------------------------------------ */
 
 export const affiliates = pgTable('affiliates', {
-  id:          serial('id').primaryKey(),
-  userId:      integer('user_id').notNull().references(() => users.id),
-  code:        text('code').notNull().unique(),
-  totalReferrals: integer('total_referrals').default(0),
-  totalEarnings:  decimal('total_earnings',  { precision: 12, scale: 2 }).default('0'),
-  pendingEarnings:decimal('pending_earnings',{ precision: 12, scale: 2 }).default('0'),
+  _id: serial('id').primaryKey(),
+  _userId: integer('user_id').notNull().references(() => users.id),
+  _code: text('code').notNull().unique(),
+  _totalReferrals: integer('total_referrals').default(0),
+  _totalEarnings: decimal('total_earnings',  { _precision: 12, _scale: 2 }).default('0'),
+  _pendingEarnings: decimal('pending_earnings', { _precision: 12, _scale: 2 }).default('0'),
 
   /* optional payout / bank-detail fields */
-  bankName:     text('bank_name'),
-  bankCode:     text('bank_code'),
-  accountNumber:text('account_number'),
-  accountName:  text('account_name'),
-  paymentMethod:text('payment_method', { enum: ['paystack', 'flutterwave', 'manual'] }),
+  _bankName: text('bank_name'),
+  _bankCode: text('bank_code'),
+  _accountNumber: text('account_number'),
+  _accountName: text('account_name'),
+  _paymentMethod: text('payment_method', { _enum: ['paystack', 'flutterwave', 'manual'] }),
 
-  createdAt:    timestamp('created_at').defaultNow(),
-  updatedAt:    timestamp('updated_at').defaultNow(),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 /* Zod insert schema */
 export const insertAffiliateSchema = createInsertSchema(affiliates).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+  _id: true,
+  _createdAt: true,
+  _updatedAt: true
 });
 
 /* Type aliases */
@@ -448,23 +448,23 @@ export type AffiliateInsert = z.infer<typeof insertAffiliateSchema>;
 /* ------------------------------------------------------------------ */
 
 export const referrals = pgTable('referrals', {
-  id:             serial('id').primaryKey(),
-  affiliateId:    integer('affiliate_id').notNull().references(() => affiliates.id),
-  referredUserId: integer('referred_user_id').notNull().references(() => users.id),
-  status:         text('status', { enum: ['pending','active','expired'] }).default('pending'),
-  discountApplied:boolean('discount_applied').default(false),
-  commissionPaid: boolean('commission_paid').default(false),
-  signupDate:     timestamp('signup_date').defaultNow(),
-  activationDate: timestamp('activation_date'),
-  expiryDate:     timestamp('expiry_date'),
-  createdAt:      timestamp('created_at').defaultNow(),
-  updatedAt:      timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _affiliateId: integer('affiliate_id').notNull().references(() => affiliates.id),
+  _referredUserId: integer('referred_user_id').notNull().references(() => users.id),
+  _status: text('status', { _enum: ['pending', 'active', 'expired'] }).default('pending'),
+  _discountApplied: boolean('discount_applied').default(false),
+  _commissionPaid: boolean('commission_paid').default(false),
+  _signupDate: timestamp('signup_date').defaultNow(),
+  _activationDate: timestamp('activation_date'),
+  _expiryDate: timestamp('expiry_date'),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 export const insertReferralSchema = createInsertSchema(referrals).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+  _id: true,
+  _createdAt: true,
+  _updatedAt: true
 });
 
 export type Referral       = typeof referrals.$inferSelect;
@@ -473,22 +473,22 @@ export type ReferralInsert = z.infer<typeof insertReferralSchema>;
 /* ------------------------------------------------------------------ */
 
 export const referralPayments = pgTable('referral_payments', {
-  id:          serial('id').primaryKey(),
-  affiliateId: integer('affiliate_id').notNull().references(() => affiliates.id),
-  amount:      decimal('amount', { precision: 12, scale: 2 }).notNull(),
-  currency:    text('currency').default('NGN'),
-  status:      text('status', { enum: ['pending','completed','failed'] }).default('pending'),
-  paymentMethod: text('payment_method', { enum: ['paystack','flutterwave','manual'] }).default('paystack'),
-  transactionReference: text('transaction_reference'),
-  paymentDate: timestamp('payment_date'),
-  createdAt:   timestamp('created_at').defaultNow(),
-  updatedAt:   timestamp('updated_at').defaultNow(),
+  _id: serial('id').primaryKey(),
+  _affiliateId: integer('affiliate_id').notNull().references(() => affiliates.id),
+  _amount: decimal('amount', { _precision: 12, _scale: 2 }).notNull(),
+  _currency: text('currency').default('NGN'),
+  _status: text('status', { _enum: ['pending', 'completed', 'failed'] }).default('pending'),
+  _paymentMethod: text('payment_method', { _enum: ['paystack', 'flutterwave', 'manual'] }).default('paystack'),
+  _transactionReference: text('transaction_reference'),
+  _paymentDate: timestamp('payment_date'),
+  _createdAt: timestamp('created_at').defaultNow(),
+  _updatedAt: timestamp('updated_at').defaultNow()
 });
 
 export const insertReferralPaymentSchema = createInsertSchema(referralPayments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+  _id: true,
+  _createdAt: true,
+  _updatedAt: true
 });
 
 export type ReferralPayment       = typeof referralPayments.$inferSelect;

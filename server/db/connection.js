@@ -7,7 +7,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -15,7 +15,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -36,10 +36,10 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.schema = exports.pool = exports.db = void 0;
 const db_1 = require('../../db');
-Object.defineProperty(exports, 'db', { enumerable: true, get: function() { return db_1.db; } });
-Object.defineProperty(exports, 'pool', { enumerable: true, get: function() { return db_1.pool; } });
+Object.defineProperty(exports, 'db', { _enumerable: true, _get: function() { return db_1.db; } });
+Object.defineProperty(exports, 'pool', { _enumerable: true, _get: function() { return db_1.pool; } });
 const schema = __importStar(require('../../shared/schema'));
 exports.schema = schema;

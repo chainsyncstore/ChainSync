@@ -1,5 +1,5 @@
 import { ImportExportConfig } from './types';
 
-export const defaultImportExportConfig: ImportExportConfig = {
-  batchSize: 100
+export const _defaultImportExportConfig: ImportExportConfig = {
+  _batchSize: 100
 };

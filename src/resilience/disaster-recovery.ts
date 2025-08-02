@@ -3,13 +3,13 @@ import { getLogger } from '../logging/index.js';
 import { getConnectionPool } from '../database/connection-pool.js';
 import { getRedisClient } from '../cache/redis.js';
 
-const logger = getLogger().child({ component: 'disaster-recovery' });
+const logger = getLogger().child({ _component: 'disaster-recovery' });
 
 /**
  * Disaster recovery manager
  */
 export class DisasterRecoveryManager {
-  private static instance: DisasterRecoveryManager;
+  private static _instance: DisasterRecoveryManager;
 
   private constructor() {}
 
@@ -23,18 +23,18 @@ export class DisasterRecoveryManager {
   /**
    * Create database backup
    */
-  async createBackup(): Promise<{ success: boolean; backupId: string }> {
+  async createBackup(): Promise<{ _success: boolean; _backupId: string }> {
     const backupId = `backup_${Date.now()}`;
-    
+
     try {
       const pool = getConnectionPool();
       await pool.query('SELECT 1'); // Test connection
-      
+
       logger.info('Backup created successfully', { backupId });
-      return { success: true, backupId };
+      return { _success: true, backupId };
     } catch (error) {
-      logger.error('Backup failed', error instanceof Error ? error : new Error(String(error)));
-      return { success: false, backupId };
+      logger.error('Backup failed', error instanceof Error ? _error : new Error(String(error)));
+      return { _success: false, backupId };
     }
   }
 
@@ -42,9 +42,9 @@ export class DisasterRecoveryManager {
    * Get system health status
    */
   async getSystemHealth(): Promise<{
-    database: boolean;
-    cache: boolean;
-    overall: boolean;
+    _database: boolean;
+    _cache: boolean;
+    _overall: boolean;
   }> {
     const pool = getConnectionPool();
     const redis = getRedisClient();
@@ -69,13 +69,13 @@ export class DisasterRecoveryManager {
     }
 
     return {
-      database: databaseHealthy,
-      cache: cacheHealthy,
-      overall: databaseHealthy && cacheHealthy,
+      _database: databaseHealthy,
+      _cache: cacheHealthy,
+      _overall: databaseHealthy && cacheHealthy
     };
   }
 }
 
 export function getDisasterRecoveryManager(): DisasterRecoveryManager {
   return DisasterRecoveryManager.getInstance();
-} 
+}

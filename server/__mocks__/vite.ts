@@ -1,6 +1,6 @@
 // Jest mock for server/vite.ts
 module.exports = {
-  setupVite: () => {},
-  serveStatic: () => {},
-  log: () => {}
+  _setupVite: () => {},
+  _serveStatic: () => {},
+  _log: () => {}
 };

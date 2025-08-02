@@ -11,7 +11,7 @@ describe.integration('Store Integration', () => {
   });
 
   test.integration('should create and fetch a store', async() => {
-    const mockStore = makeMockStore({ name: 'Main Store', email: 'main@store.com' });
+    const mockStore = makeMockStore({ _name: 'Main Store', _email: 'main@store.com' });
     const [created] = await db.insert(schema.stores).values(mockStore).returning();
 
     expect(created).toBeDefined();

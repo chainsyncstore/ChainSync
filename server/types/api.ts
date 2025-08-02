@@ -1,43 +1,43 @@
 export interface ApiResponse<T> {
-  success: boolean;
+  _success: boolean;
   data?: T;
   error?: {
-    code: string;
-    message: string;
+    _code: string;
+    _message: string;
     details?: Record<string, unknown>;
   };
 }
 
 export interface ApiError {
-  code: string;
-  message: string;
+  _code: string;
+  _message: string;
   details?: Record<string, unknown>;
 }
 
 export interface PaginationParams {
-  page: number;
-  limit: number;
+  _page: number;
+  _limit: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
 
 export interface PaginationResponse<T> extends ApiResponse<T> {
-  data: T;
+  _data: T;
   meta: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
+    _currentPage: number;
+    _totalPages: number;
+    _totalItems: number;
+    _itemsPerPage: number;
   };
 }
 
 export interface HealthCheckResponse {
   status: 'healthy' | 'unhealthy';
-  timestamp: string;
-  version: string;
+  _timestamp: string;
+  _version: string;
   services: {
-    database: boolean;
-    cache: boolean;
-    externalServices: Record<string, boolean>;
+    _database: boolean;
+    _cache: boolean;
+    _externalServices: Record<string, boolean>;
   };
 }

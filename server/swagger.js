@@ -1,348 +1,348 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.setupSwagger = setupSwagger;
 // server/swagger.ts
 const swagger_jsdoc_1 = __importDefault(require('swagger-jsdoc'));
 const swagger_ui_express_1 = __importDefault(require('swagger-ui-express'));
 const logging_1 = require('../src/logging');
-const logger = (0, logging_1.getLogger)().child({ component: 'swagger' });
+const logger = (0, logging_1.getLogger)().child({ _component: 'swagger' });
 /**
  * Swagger definition
  */
 const swaggerOptions = {
-  definition: {
+  _definition: {
     openapi: '3.0.0',
-    info: {
+    _info: {
       title: 'ChainSync API Documentation',
-      version: '1.0.0',
-      description: 'API documentation for the ChainSync platform',
-      license: {
+      _version: '1.0.0',
+      _description: 'API documentation for the ChainSync platform',
+      _license: {
         name: 'Private',
-        url: 'https://chainsync.com/license'
+        _url: 'https://chainsync.com/license'
       },
-      contact: {
+      _contact: {
         name: 'ChainSync Support',
-        url: 'https://chainsync.com/support',
-        email: 'support@chainsync.com'
+        _url: 'https://chainsync.com/support',
+        _email: 'support@chainsync.com'
       }
     },
-    servers: [
+    _servers: [
       {
         url: '/api/v1',
-        description: 'ChainSync API v1'
+        _description: 'ChainSync API v1'
       }
     ],
-    components: {
+    _components: {
       securitySchemes: {
         cookieAuth: {
           type: 'apiKey',
-          in: 'cookie',
-          name: 'connect.sid'
+          _in: 'cookie',
+          _name: 'connect.sid'
         },
-        csrfToken: {
+        _csrfToken: {
           type: 'apiKey',
-          in: 'header',
-          name: 'X-CSRF-Token'
+          _in: 'header',
+          _name: 'X-CSRF-Token'
         }
       },
-      schemas: {
+      _schemas: {
         Error: {
           type: 'object',
-          properties: {
+          _properties: {
             error: {
               type: 'string',
-              description: 'Error message'
+              _description: 'Error message'
             },
-            code: {
+            _code: {
               type: 'string',
-              description: 'Error code'
+              _description: 'Error code'
             },
-            stack: {
+            _stack: {
               type: 'string',
-              description: 'Error stack trace (only in development)'
+              _description: 'Error stack trace (only in development)'
             }
           },
-          required: ['error', 'code']
+          _required: ['error', 'code']
         },
-        Customer: {
+        _Customer: {
           type: 'object',
-          properties: {
+          _properties: {
             id: {
               type: 'string',
-              format: 'uuid',
-              description: 'Customer unique identifier'
+              _format: 'uuid',
+              _description: 'Customer unique identifier'
             },
-            name: {
+            _name: {
               type: 'string',
-              description: 'Customer name'
+              _description: 'Customer name'
             },
-            email: {
+            _email: {
               type: 'string',
-              format: 'email',
-              description: 'Customer email address'
+              _format: 'email',
+              _description: 'Customer email address'
             },
-            phone: {
+            _phone: {
               type: 'string',
-              description: 'Customer phone number'
+              _description: 'Customer phone number'
             },
-            loyaltyPoints: {
+            _loyaltyPoints: {
               type: 'integer',
-              description: 'Current loyalty points balance'
+              _description: 'Current loyalty points balance'
             },
-            createdAt: {
+            _createdAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Customer creation timestamp'
+              _format: 'date-time',
+              _description: 'Customer creation timestamp'
             },
-            updatedAt: {
+            _updatedAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Customer last update timestamp'
+              _format: 'date-time',
+              _description: 'Customer last update timestamp'
             }
           },
-          required: ['id', 'name', 'email', 'loyaltyPoints', 'createdAt', 'updatedAt']
+          _required: ['id', 'name', 'email', 'loyaltyPoints', 'createdAt', 'updatedAt']
         },
-        Transaction: {
+        _Transaction: {
           type: 'object',
-          properties: {
+          _properties: {
             id: {
               type: 'string',
-              format: 'uuid',
-              description: 'Transaction unique identifier'
+              _format: 'uuid',
+              _description: 'Transaction unique identifier'
             },
-            customerId: {
+            _customerId: {
               type: 'string',
-              format: 'uuid',
-              description: 'Customer unique identifier'
+              _format: 'uuid',
+              _description: 'Customer unique identifier'
             },
-            storeId: {
+            _storeId: {
               type: 'string',
-              format: 'uuid',
-              description: 'Store unique identifier'
+              _format: 'uuid',
+              _description: 'Store unique identifier'
             },
-            amount: {
+            _amount: {
               type: 'number',
-              format: 'float',
-              description: 'Transaction amount'
+              _format: 'float',
+              _description: 'Transaction amount'
             },
-            type: {
+            _type: {
               type: 'string',
-              enum: ['purchase', 'refund', 'adjustment'],
-              description: 'Transaction type'
+              _enum: ['purchase', 'refund', 'adjustment'],
+              _description: 'Transaction type'
             },
-            status: {
+            _status: {
               type: 'string',
-              enum: ['pending', 'completed', 'failed', 'canceled'],
-              description: 'Transaction status'
+              _enum: ['pending', 'completed', 'failed', 'canceled'],
+              _description: 'Transaction status'
             },
-            loyaltyPointsEarned: {
+            _loyaltyPointsEarned: {
               type: 'integer',
-              description: 'Loyalty points earned in this transaction'
+              _description: 'Loyalty points earned in this transaction'
             },
-            createdAt: {
+            _createdAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Transaction creation timestamp'
+              _format: 'date-time',
+              _description: 'Transaction creation timestamp'
             },
-            updatedAt: {
+            _updatedAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Transaction last update timestamp'
+              _format: 'date-time',
+              _description: 'Transaction last update timestamp'
             }
           },
-          required: ['id', 'customerId', 'storeId', 'amount', 'type', 'status', 'createdAt', 'updatedAt']
+          _required: ['id', 'customerId', 'storeId', 'amount', 'type', 'status', 'createdAt', 'updatedAt']
         },
-        Store: {
+        _Store: {
           type: 'object',
-          properties: {
+          _properties: {
             id: {
               type: 'string',
-              format: 'uuid',
-              description: 'Store unique identifier'
+              _format: 'uuid',
+              _description: 'Store unique identifier'
             },
-            name: {
+            _name: {
               type: 'string',
-              description: 'Store name'
+              _description: 'Store name'
             },
-            address: {
+            _address: {
               type: 'string',
-              description: 'Store address'
+              _description: 'Store address'
             },
-            manager: {
+            _manager: {
               type: 'string',
-              description: 'Store manager name'
+              _description: 'Store manager name'
             },
-            createdAt: {
+            _createdAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Store creation timestamp'
+              _format: 'date-time',
+              _description: 'Store creation timestamp'
             },
-            updatedAt: {
+            _updatedAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Store last update timestamp'
+              _format: 'date-time',
+              _description: 'Store last update timestamp'
             }
           },
-          required: ['id', 'name', 'address', 'createdAt', 'updatedAt']
+          _required: ['id', 'name', 'address', 'createdAt', 'updatedAt']
         },
-        Subscription: {
+        _Subscription: {
           type: 'object',
-          properties: {
+          _properties: {
             id: {
               type: 'string',
-              format: 'uuid',
-              description: 'Subscription unique identifier'
+              _format: 'uuid',
+              _description: 'Subscription unique identifier'
             },
-            userId: {
+            _userId: {
               type: 'string',
-              format: 'uuid',
-              description: 'User unique identifier'
+              _format: 'uuid',
+              _description: 'User unique identifier'
             },
-            planId: {
+            _planId: {
               type: 'string',
-              description: 'Subscription plan identifier'
+              _description: 'Subscription plan identifier'
             },
-            status: {
+            _status: {
               type: 'string',
-              enum: ['active', 'canceled', 'expired', 'pending', 'failed'],
-              description: 'Current subscription status'
+              _enum: ['active', 'canceled', 'expired', 'pending', 'failed'],
+              _description: 'Current subscription status'
             },
-            startDate: {
+            _startDate: {
               type: 'string',
-              format: 'date-time',
-              description: 'Subscription start date'
+              _format: 'date-time',
+              _description: 'Subscription start date'
             },
-            endDate: {
+            _endDate: {
               type: 'string',
-              format: 'date-time',
-              description: 'Subscription end date'
+              _format: 'date-time',
+              _description: 'Subscription end date'
             },
-            renewalDate: {
+            _renewalDate: {
               type: 'string',
-              format: 'date-time',
-              description: 'Next renewal date'
+              _format: 'date-time',
+              _description: 'Next renewal date'
             },
-            paymentMethod: {
+            _paymentMethod: {
               type: 'string',
-              enum: ['card', 'bank', 'paystack', 'flutterwave'],
-              description: 'Payment method used for the subscription'
+              _enum: ['card', 'bank', 'paystack', 'flutterwave'],
+              _description: 'Payment method used for the subscription'
             },
-            amount: {
+            _amount: {
               type: 'number',
-              format: 'float',
-              description: 'Subscription amount'
+              _format: 'float',
+              _description: 'Subscription amount'
             },
-            currency: {
+            _currency: {
               type: 'string',
-              description: 'Currency code (e.g., USD, NGN)'
+              _description: 'Currency code (e.g., USD, NGN)'
             },
-            paymentReference: {
+            _paymentReference: {
               type: 'string',
-              description: 'Reference from payment provider'
+              _description: 'Reference from payment provider'
             },
-            metadata: {
+            _metadata: {
               type: 'object',
-              description: 'Additional subscription metadata'
+              _description: 'Additional subscription metadata'
             },
-            createdAt: {
+            _createdAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Subscription creation timestamp'
+              _format: 'date-time',
+              _description: 'Subscription creation timestamp'
             },
-            updatedAt: {
+            _updatedAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Subscription last update timestamp'
+              _format: 'date-time',
+              _description: 'Subscription last update timestamp'
             }
           },
-          required: ['id', 'userId', 'planId', 'status', 'startDate', 'endDate', 'amount', 'currency', 'createdAt', 'updatedAt']
+          _required: ['id', 'userId', 'planId', 'status', 'startDate', 'endDate', 'amount', 'currency', 'createdAt', 'updatedAt']
         },
-        LoyaltyUpdate: {
+        _LoyaltyUpdate: {
           type: 'object',
-          properties: {
+          _properties: {
             id: {
               type: 'string',
-              format: 'uuid',
-              description: 'Loyalty update unique identifier'
+              _format: 'uuid',
+              _description: 'Loyalty update unique identifier'
             },
-            customerId: {
+            _customerId: {
               type: 'string',
-              format: 'uuid',
-              description: 'Customer unique identifier'
+              _format: 'uuid',
+              _description: 'Customer unique identifier'
             },
-            transactionId: {
+            _transactionId: {
               type: 'string',
-              format: 'uuid',
-              description: 'Associated transaction ID (if applicable)'
+              _format: 'uuid',
+              _description: 'Associated transaction ID (if applicable)'
             },
-            points: {
+            _points: {
               type: 'integer',
-              description: 'Points added or subtracted'
+              _description: 'Points added or subtracted'
             },
-            type: {
+            _type: {
               type: 'string',
-              enum: ['earn', 'redeem', 'adjust', 'expire'],
-              description: 'Type of loyalty update'
+              _enum: ['earn', 'redeem', 'adjust', 'expire'],
+              _description: 'Type of loyalty update'
             },
-            reason: {
+            _reason: {
               type: 'string',
-              description: 'Reason for update'
+              _description: 'Reason for update'
             },
-            createdAt: {
+            _createdAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'Update timestamp'
+              _format: 'date-time',
+              _description: 'Update timestamp'
             }
           },
-          required: ['id', 'customerId', 'points', 'type', 'createdAt']
+          _required: ['id', 'customerId', 'points', 'type', 'createdAt']
         },
-        User: {
+        _User: {
           type: 'object',
-          properties: {
+          _properties: {
             id: {
               type: 'string',
-              format: 'uuid',
-              description: 'User unique identifier'
+              _format: 'uuid',
+              _description: 'User unique identifier'
             },
-            username: {
+            _username: {
               type: 'string',
-              description: 'Username'
+              _description: 'Username'
             },
-            email: {
+            _email: {
               type: 'string',
-              format: 'email',
-              description: 'User email address'
+              _format: 'email',
+              _description: 'User email address'
             },
-            role: {
+            _role: {
               type: 'string',
-              enum: ['admin', 'manager', 'cashier', 'customer'],
-              description: 'User role'
+              _enum: ['admin', 'manager', 'cashier', 'customer'],
+              _description: 'User role'
             },
-            storeId: {
+            _storeId: {
               type: 'string',
-              format: 'uuid',
-              description: 'Associated store ID (for store staff)'
+              _format: 'uuid',
+              _description: 'Associated store ID (for store staff)'
             },
-            createdAt: {
+            _createdAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'User creation timestamp'
+              _format: 'date-time',
+              _description: 'User creation timestamp'
             },
-            updatedAt: {
+            _updatedAt: {
               type: 'string',
-              format: 'date-time',
-              description: 'User last update timestamp'
+              _format: 'date-time',
+              _description: 'User last update timestamp'
             }
           },
-          required: ['id', 'username', 'email', 'role', 'createdAt', 'updatedAt']
+          _required: ['id', 'username', 'email', 'role', 'createdAt', 'updatedAt']
         }
       }
     }
   },
-  apis: [
+  _apis: [
     './server/routes/*.ts',
     './server/routes/**/*.ts',
     './server/app.ts'
@@ -360,10 +360,10 @@ function setupSwagger(app) {
   }
   // Serve swagger docs
   app.use('/api/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'ChainSync API Documentation',
-    swaggerOptions: {
-      persistAuthorization: true
+    _customCss: '.swagger-ui .topbar { _display: none }',
+    _customSiteTitle: 'ChainSync API Documentation',
+    _swaggerOptions: {
+      _persistAuthorization: true
     }
   }));
   // Serve swagger spec as JSON

@@ -1,18 +1,18 @@
 // src/components/ErrorBoundary.tsx
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import * as Sentry from '@sentry/react';
+import React, { Component, ErrorInfo, ReactNode } from &apos;react&apos;;
+import * as Sentry from &apos;@sentry/react&apos;;
 
 interface Props {
-  children: ReactNode;
+  _children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  onError?: (_error: Error, _errorInfo: ErrorInfo) => void;
   showReset?: boolean;
 }
 
 interface State {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  _hasError: boolean;
+  _error: Error | null;
+  _errorInfo: ErrorInfo | null;
 }
 
 /**
@@ -20,40 +20,40 @@ interface State {
  * Prevents the entire application from crashing when an error occurs
  */
 class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props, context?: any) {
+  constructor(_props: Props, context?: any) {
     super(props, context);
     this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null
+      _hasError: false,
+      _error: null,
+      _errorInfo: null
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(_error: Error): State {
     // Update state so the next render shows the fallback UI
     return {
-      hasError: true,
+      _hasError: true,
       error,
-      errorInfo: null
+      _errorInfo: null
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  componentDidCatch(_error: Error, _errorInfo: ErrorInfo): void {
     // Log the error to an error reporting service
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === &apos;production&apos;) {
       Sentry.captureException(error);
     }
-    
+
     // Log error details to console in development
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
-    
+    console.error(&apos;Error caught by _ErrorBoundary:&apos;, error, errorInfo);
+
     // Store error info for rendering
     this.setState({
-      hasError: true,
+      _hasError: true,
       error,
       errorInfo
     });
-    
+
     // Call onError prop if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
@@ -62,9 +62,9 @@ class ErrorBoundary extends Component<Props, State> {
 
   resetErrorBoundary = (): void => {
     this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null
+      _hasError: false,
+      _error: null,
+      _errorInfo: null
     });
   };
 
@@ -74,25 +74,25 @@ class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) {
         return this.props.fallback;
       }
-      
+
       // Otherwise, render our default error UI
       return (
-        <div className="error-boundary">
-          <div className="error-boundary-container">
+        <div className=&quot;error-boundary&quot;>
+          <div className=&quot;error-boundary-container&quot;>
             <h2>Something went wrong</h2>
-            <p>We've encountered an error and our team has been notified.</p>
-            
-            {process.env.NODE_ENV !== 'production' && (
-              <details className="error-details">
+            <p>We&apos;ve encountered an error and our team has been notified.</p>
+
+            {process.env.NODE_ENV !== &apos;production&apos; && (
+              <details className=&quot;error-details&quot;>
                 <summary>View error details</summary>
                 <pre>{this.state.error?.toString()}</pre>
                 <pre>{this.state.errorInfo?.componentStack}</pre>
               </details>
             )}
-            
+
             {this.props.showReset && (
               <button
-                className="error-boundary-reset"
+                className=&quot;error-boundary-reset&quot;
                 onClick={this.resetErrorBoundary}
               >
                 Try Again
@@ -103,7 +103,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // When there's no error, render children normally
+    // When there&apos;s no error, render children normally
     return this.props.children;
   }
 }
@@ -114,47 +114,47 @@ export default ErrorBoundary;
  * Higher-order component to wrap components with an ErrorBoundary
  */
 export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<Props, 'children'>
+  _Component: React.ComponentType<P>,
+  errorBoundaryProps?: Omit<Props, &apos;children&apos;>
 ): React.ComponentType<P> {
-  const displayName = (Component as any).displayName || (Component as any).name || 'Component';
-  
-  const WrappedComponent = (props: P): React.ReactElement => (
+  const displayName = (Component as any).displayName || (Component as any).name || &apos;Component&apos;;
+
+  const WrappedComponent = (_props: P): React.ReactElement => (
     <ErrorBoundary {...errorBoundaryProps}>
       <Component {...props} />
     </ErrorBoundary>
   );
-  
+
   (WrappedComponent as any).displayName = `withErrorBoundary(${displayName})`;
-  
+
   return WrappedComponent;
 }
 
 /**
  * Custom hook for handling errors in function components
  */
-export function useErrorHandler(): (error: unknown) => void {
-  return (error: unknown): void => {
+export function useErrorHandler(): (_error: unknown) => void {
+  return (_error: unknown): void => {
     if (error instanceof Error) {
       // Report to Sentry in production
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === &apos;production&apos;) {
         Sentry.captureException(error);
       }
-      
+
       // Re-throw to be caught by the nearest error boundary
       throw error;
     } else if (error) {
       // Convert non-Error objects to Error
       const convertedError = new Error(
-        typeof error === 'string' ? error : 'An unknown error occurred'
+        typeof error === &apos;string&apos; ? _error : &apos;An unknown error occurred&apos;
       );
-      
-      if (process.env.NODE_ENV === 'production') {
+
+      if (process.env.NODE_ENV === &apos;production&apos;) {
         Sentry.captureException(convertedError, {
-          extra: { originalError: error }
+          _extra: { _originalError: error }
         });
       }
-      
+
       throw convertedError;
     }
   };

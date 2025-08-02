@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import crypto from 'crypto';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'production-security' });
+const logger = getLogger().child({ _component: 'production-security' });
 
 // Security threat levels
 export enum ThreatLevel {
@@ -24,16 +24,16 @@ export enum SecurityEventType {
 
 // Security event interface
 export interface SecurityEvent {
-  id: string;
-  type: SecurityEventType;
-  threatLevel: ThreatLevel;
-  timestamp: Date;
-  source: string;
-  description: string;
-  metadata: Record<string, any>;
+  _id: string;
+  _type: SecurityEventType;
+  _threatLevel: ThreatLevel;
+  _timestamp: Date;
+  _source: string;
+  _description: string;
+  _metadata: Record<string, any>;
   ipAddress?: string;
   userId?: string;
-  resolved: boolean;
+  _resolved: boolean;
   resolvedAt?: Date;
   resolvedBy?: string;
 }
@@ -41,78 +41,78 @@ export interface SecurityEvent {
 // Security configuration
 export interface SecurityConfig {
   auth: {
-    maxLoginAttempts: number;
-    lockoutDuration: number;
+    _maxLoginAttempts: number;
+    _lockoutDuration: number;
     passwordPolicy: {
-      minLength: number;
-      requireUppercase: boolean;
-      requireLowercase: boolean;
-      requireNumbers: boolean;
-      requireSpecialChars: boolean;
+      _minLength: number;
+      _requireUppercase: boolean;
+      _requireLowercase: boolean;
+      _requireNumbers: boolean;
+      _requireSpecialChars: boolean;
     };
-    sessionTimeout: number;
+    _sessionTimeout: number;
   };
   network: {
-    allowedIPs: string[];
-    blockedIPs: string[];
-    rateLimitWindow: number;
-    rateLimitMax: number;
+    _allowedIPs: string[];
+    _blockedIPs: string[];
+    _rateLimitWindow: number;
+    _rateLimitMax: number;
   };
   data: {
-    encryptionEnabled: boolean;
-    keyRotationInterval: number;
+    _encryptionEnabled: boolean;
+    _keyRotationInterval: number;
   };
   monitoring: {
     alertThresholds: {
-      failedLogins: number;
-      suspiciousActivities: number;
+      _failedLogins: number;
+      _suspiciousActivities: number;
     };
   };
 }
 
 // Default configuration
-const defaultConfig: SecurityConfig = {
+const _defaultConfig: SecurityConfig = {
   auth: {
-    maxLoginAttempts: 5,
-    lockoutDuration: 15 * 60 * 1000, // 15 minutes
-    passwordPolicy: {
-      minLength: 12,
-      requireUppercase: true,
-      requireLowercase: true,
-      requireNumbers: true,
-      requireSpecialChars: true,
+    _maxLoginAttempts: 5,
+    _lockoutDuration: 15 * 60 * 1000, // 15 minutes
+    _passwordPolicy: {
+      _minLength: 12,
+      _requireUppercase: true,
+      _requireLowercase: true,
+      _requireNumbers: true,
+      _requireSpecialChars: true
     },
-    sessionTimeout: 8 * 60 * 60 * 1000, // 8 hours
+    _sessionTimeout: 8 * 60 * 60 * 1000 // 8 hours
   },
-  network: {
+  _network: {
     allowedIPs: [],
-    blockedIPs: [],
-    rateLimitWindow: 15 * 60 * 1000, // 15 minutes
-    rateLimitMax: 100,
+    _blockedIPs: [],
+    _rateLimitWindow: 15 * 60 * 1000, // 15 minutes
+    _rateLimitMax: 100
   },
-  data: {
-    encryptionEnabled: true,
-    keyRotationInterval: 30, // 30 days
+  _data: {
+    _encryptionEnabled: true,
+    _keyRotationInterval: 30 // 30 days
   },
-  monitoring: {
+  _monitoring: {
     alertThresholds: {
-      failedLogins: 10,
-      suspiciousActivities: 5,
-    },
-  },
+      _failedLogins: 10,
+      _suspiciousActivities: 5
+    }
+  }
 };
 
 /**
  * Production Security System
  */
 export class ProductionSecurity extends EventEmitter {
-  private config: SecurityConfig;
-  private securityEvents: Map<string, SecurityEvent> = new Map();
-  private failedLoginAttempts: Map<string, { count: number; lastAttempt: Date }> = new Map();
-  private blockedIPs: Set<string> = new Set();
-  private rateLimitCounters: Map<string, { count: number; resetTime: Date }> = new Map();
+  private _config: SecurityConfig;
+  private _securityEvents: Map<string, SecurityEvent> = new Map();
+  private _failedLoginAttempts: Map<string, { _count: number; _lastAttempt: Date }> = new Map();
+  private _blockedIPs: Set<string> = new Set();
+  private _rateLimitCounters: Map<string, { _count: number; _resetTime: Date }> = new Map();
 
-  constructor(config: Partial<SecurityConfig> = {}) {
+  constructor(_config: Partial<SecurityConfig> = {}) {
     super();
     this.config = { ...defaultConfig, ...config };
     this.initializeSecurity();
@@ -130,8 +130,8 @@ export class ProductionSecurity extends EventEmitter {
   /**
    * Validate password against security policy
    */
-  validatePassword(password: string): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
+  validatePassword(_password: string): { _valid: boolean; _errors: string[] } {
+    const _errors: string[] = [];
     const policy = this.config.auth.passwordPolicy;
 
     if (password.length < policy.minLength) {
@@ -154,28 +154,28 @@ export class ProductionSecurity extends EventEmitter {
       errors.push('Password must contain at least one special character');
     }
 
-    return { valid: errors.length === 0, errors };
+    return { _valid: errors.length === 0, errors };
   }
 
   /**
    * Check if IP is blocked
    */
-  isIPBlocked(ipAddress: string): boolean {
+  isIPBlocked(_ipAddress: string): boolean {
     return this.blockedIPs.has(ipAddress);
   }
 
   /**
    * Block IP address
    */
-  blockIP(ipAddress: string, reason?: string): void {
+  blockIP(_ipAddress: string, reason?: string): void {
     this.blockedIPs.add(ipAddress);
-    
+
     this.createSecurityEvent({
-      type: SecurityEventType.UNAUTHORIZED_ACCESS,
-      threatLevel: ThreatLevel.MEDIUM,
-      source: 'security-system',
-      description: `IP address ${ipAddress} blocked${reason ? `: ${reason}` : ''}`,
-      metadata: { ipAddress, reason },
+      _type: SecurityEventType.UNAUTHORIZED_ACCESS,
+      _threatLevel: ThreatLevel.MEDIUM,
+      _source: 'security-system',
+      _description: `IP address ${ipAddress} blocked${reason ? `: ${reason}` : ''}`,
+      _metadata: { ipAddress, reason }
     });
 
     logger.warn('IP address blocked', { ipAddress, reason });
@@ -184,55 +184,55 @@ export class ProductionSecurity extends EventEmitter {
   /**
    * Check rate limit for IP
    */
-  checkRateLimit(ipAddress: string): { allowed: boolean; remaining: number; resetTime: Date } {
+  checkRateLimit(_ipAddress: string): { _allowed: boolean; _remaining: number; _resetTime: Date } {
     const now = new Date();
     const counter = this.rateLimitCounters.get(ipAddress);
 
     if (!counter || now > counter.resetTime) {
       const resetTime = new Date(now.getTime() + this.config.network.rateLimitWindow);
-      this.rateLimitCounters.set(ipAddress, { count: 1, resetTime });
-      return { allowed: true, remaining: this.config.network.rateLimitMax - 1, resetTime };
+      this.rateLimitCounters.set(ipAddress, { _count: 1, resetTime });
+      return { _allowed: true, _remaining: this.config.network.rateLimitMax - 1, resetTime };
     }
 
     if (counter.count >= this.config.network.rateLimitMax) {
       this.createSecurityEvent({
-        type: SecurityEventType.RATE_LIMIT_EXCEEDED,
-        threatLevel: ThreatLevel.MEDIUM,
-        source: 'rate-limiter',
-        description: `Rate limit exceeded for IP ${ipAddress}`,
-        metadata: { ipAddress, count: counter.count, limit: this.config.network.rateLimitMax },
-        ipAddress,
+        _type: SecurityEventType.RATE_LIMIT_EXCEEDED,
+        _threatLevel: ThreatLevel.MEDIUM,
+        _source: 'rate-limiter',
+        _description: `Rate limit exceeded for IP ${ipAddress}`,
+        _metadata: { ipAddress, _count: counter.count, _limit: this.config.network.rateLimitMax },
+        ipAddress
       });
 
-      return { allowed: false, remaining: 0, resetTime: counter.resetTime };
+      return { _allowed: false, _remaining: 0, _resetTime: counter.resetTime };
     }
 
     counter.count++;
-    return { allowed: true, remaining: this.config.network.rateLimitMax - counter.count, resetTime: counter.resetTime };
+    return { _allowed: true, _remaining: this.config.network.rateLimitMax - counter.count, _resetTime: counter.resetTime };
   }
 
   /**
    * Record failed login attempt
    */
-  recordFailedLogin(ipAddress: string, userId?: string): void {
+  recordFailedLogin(_ipAddress: string, userId?: string): void {
     const key = `${ipAddress}:${userId || 'unknown'}`;
-    const attempt = this.failedLoginAttempts.get(key) || { count: 0, lastAttempt: new Date() };
+    const attempt = this.failedLoginAttempts.get(key) || { _count: 0, _lastAttempt: new Date() };
 
     attempt.count++;
     attempt.lastAttempt = new Date();
     this.failedLoginAttempts.set(key, attempt);
 
     if (attempt.count >= this.config.auth.maxLoginAttempts) {
-      this.blockIP(ipAddress, `Too many failed login attempts: ${attempt.count}`);
-      
+      this.blockIP(ipAddress, `Too many failed login _attempts: ${attempt.count}`);
+
       this.createSecurityEvent({
-        type: SecurityEventType.BRUTE_FORCE_ATTEMPT,
-        threatLevel: ThreatLevel.HIGH,
-        source: 'auth-system',
-        description: `Brute force attempt detected for ${userId || 'unknown user'} from ${ipAddress}`,
-        metadata: { ipAddress, userId, attemptCount: attempt.count },
+        _type: SecurityEventType.BRUTE_FORCE_ATTEMPT,
+        _threatLevel: ThreatLevel.HIGH,
+        _source: 'auth-system',
+        _description: `Brute force attempt detected for ${userId || 'unknown user'} from ${ipAddress}`,
+        _metadata: { ipAddress, userId, _attemptCount: attempt.count },
         ipAddress,
-        userId: userId || '',
+        _userId: userId || ''
       });
     }
   }
@@ -240,7 +240,7 @@ export class ProductionSecurity extends EventEmitter {
   /**
    * Reset failed login attempts
    */
-  resetFailedLoginAttempts(ipAddress: string, userId?: string): void {
+  resetFailedLoginAttempts(_ipAddress: string, userId?: string): void {
     const key = `${ipAddress}:${userId || 'unknown'}`;
     this.failedLoginAttempts.delete(key);
   }
@@ -248,25 +248,25 @@ export class ProductionSecurity extends EventEmitter {
   /**
    * Check if login is locked out
    */
-  isLoginLockedOut(ipAddress: string, userId?: string): boolean {
+  isLoginLockedOut(_ipAddress: string, userId?: string): boolean {
     const key = `${ipAddress}:${userId || 'unknown'}`;
     const attempt = this.failedLoginAttempts.get(key);
-    
+
     if (!attempt) return false;
 
     const timeSinceLastAttempt = Date.now() - attempt.lastAttempt.getTime();
-    return attempt.count >= this.config.auth.maxLoginAttempts && 
+    return attempt.count >= this.config.auth.maxLoginAttempts &&
            timeSinceLastAttempt < this.config.auth.lockoutDuration;
   }
 
   /**
    * Detect SQL injection attempt
    */
-  detectSQLInjection(input: string): boolean {
+  detectSQLInjection(_input: string): boolean {
     const sqlPatterns = [
       /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b)/i,
       /(--|\/\*|\*\/|;)/,
-      /(\b(and|or)\b\s+\d+\s*=\s*\d+)/i,
+      /(\b(and|or)\b\s+\d+\s*=\s*\d+)/i
     ];
 
     return sqlPatterns.some(pattern => pattern.test(input));
@@ -275,11 +275,11 @@ export class ProductionSecurity extends EventEmitter {
   /**
    * Detect XSS attempt
    */
-  detectXSS(input: string): boolean {
+  detectXSS(_input: string): boolean {
     const xssPatterns = [
       /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
       /javascript:/gi,
-      /on\w+\s*=/gi,
+      /on\w+\s*=/gi
     ];
 
     return xssPatterns.some(pattern => pattern.test(input));
@@ -288,8 +288,8 @@ export class ProductionSecurity extends EventEmitter {
   /**
    * Validate input for security threats
    */
-  validateInput(input: string, context: string): { valid: boolean; threats: string[] } {
-    const threats: string[] = [];
+  validateInput(_input: string, _context: string): { _valid: boolean; _threats: string[] } {
+    const _threats: string[] = [];
 
     if (this.detectSQLInjection(input)) {
       threats.push('SQL_INJECTION');
@@ -301,36 +301,36 @@ export class ProductionSecurity extends EventEmitter {
 
     if (threats.length > 0) {
       this.createSecurityEvent({
-        type: threats.includes('SQL_INJECTION') ? SecurityEventType.SQL_INJECTION_ATTEMPT : SecurityEventType.XSS_ATTEMPT,
-        threatLevel: ThreatLevel.HIGH,
-        source: 'input-validation',
-        description: `Security threat detected in ${context}: ${threats.join(', ')}`,
-        metadata: { input: input.substring(0, 100), context, threats },
+        _type: threats.includes('SQL_INJECTION') ? SecurityEventType._SQL_INJECTION_ATTEMPT : SecurityEventType.XSS_ATTEMPT,
+        _threatLevel: ThreatLevel.HIGH,
+        _source: 'input-validation',
+        _description: `Security threat detected in ${context}: ${threats.join(', ')}`,
+        _metadata: { _input: input.substring(0, 100), context, threats }
       });
     }
 
-    return { valid: threats.length === 0, threats };
+    return { _valid: threats.length === 0, threats };
   }
 
   /**
    * Create security event
    */
-  createSecurityEvent(eventData: Omit<SecurityEvent, 'id' | 'timestamp' | 'resolved'>): SecurityEvent {
-    const event: SecurityEvent = {
+  createSecurityEvent(_eventData: Omit<SecurityEvent, 'id' | 'timestamp' | 'resolved'>): SecurityEvent {
+    const _event: SecurityEvent = {
       ...eventData,
-      id: this.generateEventId(),
-      timestamp: new Date(),
-      resolved: false,
+      _id: this.generateEventId(),
+      _timestamp: new Date(),
+      _resolved: false
     };
 
     this.securityEvents.set(event.id, event);
     this.emit('security-event', event);
     this.checkAlertThresholds(event);
 
-    logger.warn('Security event created', { 
-      eventId: event.id, 
-      type: event.type, 
-      threatLevel: event.threatLevel 
+    logger.warn('Security event created', {
+      _eventId: event.id,
+      _type: event.type,
+      _threatLevel: event.threatLevel
     });
 
     return event;
@@ -339,26 +339,26 @@ export class ProductionSecurity extends EventEmitter {
   /**
    * Check alert thresholds
    */
-  private checkAlertThresholds(event: SecurityEvent): void {
+  private checkAlertThresholds(_event: SecurityEvent): void {
     const recentEvents = this.getRecentEvents(15 * 60 * 1000); // Last 15 minutes
     const thresholds = this.config.monitoring.alertThresholds;
 
     const failedLogins = recentEvents.filter(e => e.type === SecurityEventType.BRUTE_FORCE_ATTEMPT).length;
     if (failedLogins >= thresholds.failedLogins) {
       this.emit('security-alert', {
-        type: 'failed_logins_threshold',
-        message: `High number of failed login attempts: ${failedLogins}`,
+        _type: 'failed_logins_threshold',
+        _message: `High number of failed login attempts: ${failedLogins}`
       });
     }
 
-    const suspiciousActivities = recentEvents.filter(e => 
-      e.type === SecurityEventType.SQL_INJECTION_ATTEMPT || 
+    const suspiciousActivities = recentEvents.filter(e =>
+      e.type === SecurityEventType.SQL_INJECTION_ATTEMPT ||
       e.type === SecurityEventType.XSS_ATTEMPT
     ).length;
     if (suspiciousActivities >= thresholds.suspiciousActivities) {
       this.emit('security-alert', {
-        type: 'suspicious_activities_threshold',
-        message: `High number of suspicious activities: ${suspiciousActivities}`,
+        _type: 'suspicious_activities_threshold',
+        _message: `High number of suspicious activities: ${suspiciousActivities}`
       });
     }
   }
@@ -366,7 +366,7 @@ export class ProductionSecurity extends EventEmitter {
   /**
    * Get recent security events
    */
-  getRecentEvents(timeWindow: number): SecurityEvent[] {
+  getRecentEvents(_timeWindow: number): SecurityEvent[] {
     const cutoff = new Date(Date.now() - timeWindow);
     return Array.from(this.securityEvents.values())
       .filter(event => event.timestamp > cutoff);
@@ -381,18 +381,18 @@ export class ProductionSecurity extends EventEmitter {
     const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     return {
-      totalEvents: events.length,
-      eventsLast24Hours: events.filter(e => e.timestamp > last24Hours).length,
-      byType: Object.values(SecurityEventType).reduce((acc, type) => {
+      _totalEvents: events.length,
+      _eventsLast24Hours: events.filter(e => e.timestamp > last24Hours).length,
+      _byType: Object.values(SecurityEventType).reduce((acc, type) => {
         acc[type] = events.filter(e => e.type === type).length;
         return acc;
       }, {} as Record<SecurityEventType, number>),
-      byThreatLevel: Object.values(ThreatLevel).reduce((acc, level) => {
+      _byThreatLevel: Object.values(ThreatLevel).reduce((acc, level) => {
         acc[level] = events.filter(e => e.threatLevel === level).length;
         return acc;
       }, {} as Record<ThreatLevel, number>),
-      blockedIPs: this.blockedIPs.size,
-      activeRateLimits: this.rateLimitCounters.size,
+      _blockedIPs: this.blockedIPs.size,
+      _activeRateLimits: this.rateLimitCounters.size
     };
   }
 
@@ -443,4 +443,4 @@ export class ProductionSecurity extends EventEmitter {
 }
 
 // Export default instance
-export const productionSecurity = new ProductionSecurity(); 
+export const productionSecurity = new ProductionSecurity();

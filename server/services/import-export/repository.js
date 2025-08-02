@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ImportExportRepository = void 0;
 // import { ImportExportResult } from './types'; // Unused
 const errors_1 = require('@shared/types/errors');
@@ -28,7 +28,7 @@ class ImportExportRepository {
     try {
       // Implementation for processing batch
       // This is a placeholder and should be implemented based on your database
-      return { errors: [] };
+      return { _errors: [] };
     }
     catch (error) {
       throw new errors_1.AppError('Failed to process batch', errors_1.ErrorCategory.IMPORT_EXPORT, errors_1.ErrorCode.INTERNAL_SERVER_ERROR);

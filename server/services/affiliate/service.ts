@@ -8,13 +8,13 @@ import { db } from '../../../db/index.js';
 import Flutterwave from 'flutterwave-node-v3';
 
 // Initialize Flutterwave client if credentials are available
-let flwClient: Flutterwave | null = null;
+const _flwClient: Flutterwave | null = null;
 try {
   if (process.env.FLW_PUBLIC_KEY && process.env.FLW_SECRET_KEY) {
     flwClient = new Flutterwave(process.env.FLW_PUBLIC_KEY, process.env.FLW_SECRET_KEY);
   }
 } catch (error) {
-  console.error('Failed to initialize Flutterwave client:', error);
+  console.error('Failed to initialize Flutterwave _client:', error);
 }
 
 export class AffiliateService extends BaseService implements IAffiliateService {
@@ -26,7 +26,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
     super();
   }
 
-  async generateReferralCode(userId: number): Promise<string> {
+  async generateReferralCode(_userId: number): Promise<string> {
     try {
       const user = await storage.getUserById(userId);
       if (!user) {
@@ -43,7 +43,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
     }
   }
 
-  async registerAffiliate(userId: number): Promise<schema.Affiliate> {
+  async registerAffiliate(_userId: number): Promise<schema.Affiliate> {
     try {
       const user = await storage.getUserById(userId);
       if (!user) {
@@ -55,24 +55,24 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .insert(schema.affiliates)
         .values({
           userId,
-          code: referralCode
+          _code: referralCode
         })
         .returning();
-      
+
       if (!affiliate) {
         throw new Error('Failed to create affiliate');
       }
-      
+
       return affiliate;
     } catch (error) {
       this.handleError(error, 'Registering affiliate');
     }
   }
 
-  async getAffiliateByUserId(userId: number): Promise<schema.Affiliate | null> {
+  async getAffiliateByUserId(_userId: number): Promise<schema.Affiliate | null> {
     try {
       const affiliate = await db.query.affiliates.findFirst({
-        where: eq(schema.affiliates.userId, userId)
+        _where: eq(schema.affiliates.userId, userId)
       });
       return affiliate ?? null;
     } catch (error) {
@@ -80,10 +80,10 @@ export class AffiliateService extends BaseService implements IAffiliateService {
     }
   }
 
-  async getAffiliateByCode(code: string): Promise<schema.Affiliate | null> {
+  async getAffiliateByCode(_code: string): Promise<schema.Affiliate | null> {
     try {
       const affiliate = await db.query.affiliates.findFirst({
-        where: eq(schema.affiliates.code, code)
+        _where: eq(schema.affiliates.code, code)
       });
       return affiliate ?? null;
     } catch (error) {
@@ -91,7 +91,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
     }
   }
 
-  async trackReferral(referralCode: string, newUserId: number): Promise<schema.Referral | null> {
+  async trackReferral(_referralCode: string, _newUserId: number): Promise<schema.Referral | null> {
     try {
       const affiliate = await this.getAffiliateByCode(referralCode);
       if (!affiliate) {
@@ -99,7 +99,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }
 
       const existingReferral = await db.query.referrals.findFirst({
-        where: eq(schema.referrals.affiliateId, affiliate.id)
+        _where: eq(schema.referrals.affiliateId, affiliate.id)
       });
 
       if (existingReferral) {
@@ -107,8 +107,8 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }
 
       const referral = await db.insert(schema.referrals).values({
-        affiliateId: affiliate.id,
-        referredUserId: newUserId
+        _affiliateId: affiliate.id,
+        _referredUserId: newUserId
       }).returning();
 
       if (!referral[0]) {
@@ -122,11 +122,11 @@ export class AffiliateService extends BaseService implements IAffiliateService {
   }
 
   async applyReferralDiscount(
-    userId: number,
-    referralCode: string,
-    subscriptionAmount: number,
-    currency: string
-  ): Promise<{ discountedAmount: number; discountAmount: number }> {
+    _userId: number,
+    _referralCode: string,
+    _subscriptionAmount: number,
+    _currency: string
+  ): Promise<{ _discountedAmount: number; _discountAmount: number }> {
     try {
       const affiliate = await this.getAffiliateByCode(referralCode);
       if (!affiliate) {
@@ -146,9 +146,9 @@ export class AffiliateService extends BaseService implements IAffiliateService {
   }
 
   async processAffiliateCommission(
-    userId: number,
-    paymentAmount: number,
-    currency: string
+    _userId: number,
+    _paymentAmount: number,
+    _currency: string
   ): Promise<boolean> {
     try {
       const affiliate = await this.getAffiliateByUserId(userId);
@@ -160,15 +160,15 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       const [payment] = await db
         .insert(schema.referralPayments)
         .values({
-          affiliateId: affiliate.id,
-          amount: commissionAmount.toString()
+          _affiliateId: affiliate.id,
+          _amount: commissionAmount.toString()
         })
         .returning();
       // update pending earnings tally
       await db
         .update(schema.affiliates)
         .set({
-          code: affiliate.code
+          _code: affiliate.code
         })
         .where(eq(schema.affiliates.id, affiliate.id));
       return !!payment;
@@ -189,7 +189,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .from(schema.referralPayments)
         .where(and(...whereClauses))
         .orderBy(desc(schema.referralPayments.paymentDate));
-      const processed: schema.ReferralPayment[] = [];
+      const _processed: schema.ReferralPayment[] = [];
 
       for (const paymentRow of pendingPayments) {
         if (!flwClient) {
@@ -206,28 +206,28 @@ export class AffiliateService extends BaseService implements IAffiliateService {
           // Simulate payout
           const payment = await this.withRetry(
             () => flwClient!.Transfer.initiate({
-              account_bank: affiliate.bankCode!,
-              account_number: affiliate.accountNumber!,
-              amount: Number(paymentRow.amount),
-              currency: paymentRow.currency ?? 'NGN',
-              narration: `Affiliate Payout for ${affiliate.code}`,
-              reference: `payout_${paymentRow.id}_${Date.now()}`
+              _account_bank: affiliate.bankCode!,
+              _account_number: affiliate.accountNumber!,
+              _amount: Number(paymentRow.amount),
+              _currency: paymentRow.currency ?? 'NGN',
+              _narration: `Affiliate Payout for ${affiliate.code}`,
+              _reference: `payout_${paymentRow.id}_${Date.now()}`
             }),
             'Processing payout'
-          ) as { status: string; data: any };
+          ) as { _status: string; _data: any };
 
           if (payment.status === 'success') {
             // mark as paid locally
             await db.update(schema.referralPayments)
-              .set({ amount: paymentRow.amount })
+              .set({ _amount: paymentRow.amount })
               .where(eq(schema.referralPayments.id, paymentRow.id));
 
             // reduce pending earnings
             await db.update(schema.affiliates)
-              .set({ code: affiliate.code })
+              .set({ _code: affiliate.code })
               .where(eq(schema.affiliates.id, paymentRow.affiliateId));
 
-            processed.push({ ...paymentRow, status: 'completed', paymentDate: new Date() } as any);
+            processed.push({ ...paymentRow, _status: 'completed', _paymentDate: new Date() } as any);
           }
         } catch (error) {
           // Log but continue processing other payouts
@@ -241,23 +241,23 @@ export class AffiliateService extends BaseService implements IAffiliateService {
     }
   }
 
-  async getAffiliateDashboardStats(userId: number): Promise<{
-    affiliate: schema.Affiliate;
+  async getAffiliateDashboardStats(_userId: number): Promise<{
+    _affiliate: schema.Affiliate;
     referrals: {
-      total: number;
-      active: number;
-      pending: number;
+      _total: number;
+      _active: number;
+      _pending: number;
     };
     earnings: {
-      total: string;
-      pending: string;
+      _total: string;
+      _pending: string;
       lastPayment?: {
-        amount: string;
-        date: Date;
+        _amount: string;
+        _date: Date;
       };
     };
-    clicks: number;
-    conversions: number;
+    _clicks: number;
+    _conversions: number;
   }> {
     try {
       const affiliate = await this.getAffiliateByUserId(userId);
@@ -266,33 +266,34 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       }
 
       const referralRows = await db
-        .select({ status: schema.referrals.status })
+        .select({ _status: schema.referrals.status })
         .from(schema.referrals)
         .where(eq(schema.referrals.affiliateId, affiliate.id));
 
       const referrals = {
-        total: referralRows.length,
-        active: referralRows.filter(r => r.status === 'active').length,
-        pending: referralRows.filter(r => r.status === 'pending').length
+        _total: referralRows.length,
+        _active: referralRows.filter(r => r.status === 'active').length,
+        _pending: referralRows.filter(r => r.status === 'pending').length
       };
 
       const earningsRows = await db
         .select({
-          total: sql<number>`coalesce(sum(${schema.referralPayments.amount}),0)`.as('total'),
-          pending: sql<number>`coalesce(sum(${schema.referralPayments.amount}) filter (where ${schema.referralPayments.status} = 'pending'),0)`.as('pending')
+          _total: sql<number>`coalesce(sum(${schema.referralPayments.amount}),0)`.as('total'),
+          _pending: sql<number>`coalesce(sum(${schema.referralPayments.amount}) filter (where ${schema.referralPayments.status}
+   =  'pending'),0)`.as('pending')
         })
         .from(schema.referralPayments)
         .where(eq(schema.referralPayments.affiliateId, affiliate.id));
 
       const earnings = {
-        total: earningsRows[0]?.total?.toString() ?? '0',
-        pending: earningsRows[0]?.pending?.toString() ?? '0'
+        _total: earningsRows[0]?.total?.toString() ?? '0',
+        _pending: earningsRows[0]?.pending?.toString() ?? '0'
       };
 
       const lastPaymentRows = await db
         .select({
-          amount: schema.referralPayments.amount,
-          date: schema.referralPayments.paymentDate
+          _amount: schema.referralPayments.amount,
+          _date: schema.referralPayments.paymentDate
         })
         .from(schema.referralPayments)
         .where(
@@ -305,25 +306,25 @@ export class AffiliateService extends BaseService implements IAffiliateService {
         .limit(1);
 
       const lastPayment = lastPaymentRows[0]
-        ? { amount: lastPaymentRows[0].amount.toString(), date: lastPaymentRows[0].date as Date }
+        ? { _amount: lastPaymentRows[0].amount.toString(), _date: lastPaymentRows[0].date as Date }
         : undefined;
 
       return {
         affiliate,
         referrals,
-        earnings: { 
-          ...earnings, 
+        _earnings: {
+          ...earnings,
           ...(lastPayment && { lastPayment })
         },
-        clicks: 0,
-        conversions: referrals.total
+        _clicks: 0,
+        _conversions: referrals.total
       };
     } catch (error) {
       this.handleError(error, 'Getting affiliate dashboard stats');
     }
   }
 
-  async getAffiliateReferrals(userId: number): Promise<schema.Referral[]> {
+  async getAffiliateReferrals(_userId: number): Promise<schema.Referral[]> {
     try {
       const affiliate = await this.getAffiliateByUserId(userId);
       if (!affiliate) throw AffiliateServiceErrors.USER_NOT_FOUND;
@@ -337,7 +338,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
     }
   }
 
-  async getAffiliatePayments(userId: number): Promise<schema.ReferralPayment[]> {
+  async getAffiliatePayments(_userId: number): Promise<schema.ReferralPayment[]> {
     try {
       const affiliate = await this.getAffiliateByUserId(userId);
       if (!affiliate) throw AffiliateServiceErrors.USER_NOT_FOUND;
@@ -351,7 +352,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
     }
   }
 
-  async trackAffiliateClick(referralCode: string, source?: string): Promise<boolean> {
+  async trackAffiliateClick(_referralCode: string, source?: string): Promise<boolean> {
     try {
       const affiliate = await this.getAffiliateByCode(referralCode);
       if (!affiliate) {
@@ -366,8 +367,8 @@ export class AffiliateService extends BaseService implements IAffiliateService {
   }
 
   async updateAffiliateBankDetails(
-    userId: number,
-    bankDetails: {
+    _userId: number,
+    _bankDetails: {
       bankName?: string;
       accountNumber?: string;
       accountName?: string;
@@ -384,7 +385,7 @@ export class AffiliateService extends BaseService implements IAffiliateService {
       const updated = await db
         .update(schema.affiliates)
         .set({
-          code: affiliate.code
+          _code: affiliate.code
         })
         .where(eq(schema.affiliates.userId, userId))
         .returning();

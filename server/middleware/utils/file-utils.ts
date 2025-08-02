@@ -4,17 +4,17 @@ import sanitize from 'sanitize-filename';
 import crypto from 'crypto';
 
 export const FileUtils = {
-    VALID_FILENAME_REGEX: /^[a-zA-Z0-9._-]+$/,
+    _VALID_FILENAME_REGEX: /^[a-zA-Z0-9._-]+$/,
 
-    sanitizeFilename: (filename: string): string => {
+    _sanitizeFilename: (_filename: string): string => {
         return sanitize(filename);
     },
 
-    validateFilename: (filename: string): boolean => {
+    _validateFilename: (_filename: string): boolean => {
         return FileUtils.VALID_FILENAME_REGEX.test(filename);
     },
 
-    validateFileExtension: async(mimeType: string): Promise<boolean> => {
+    _validateFileExtension: async(_mimeType: string): Promise<boolean> => {
         const allowedMimeTypes = [
             'application/pdf',
             'application/msword',
@@ -37,11 +37,11 @@ export const FileUtils = {
         return allowedMimeTypes.includes(mimeType);
     },
 
-    calculateFileSize: (buffer: Buffer): number => {
+    _calculateFileSize: (_buffer: Buffer): number => {
         return buffer.byteLength;
     },
 
-    calculateFileHash: async(buffer: Buffer): Promise<string> => {
+    _calculateFileHash: async(_buffer: Buffer): Promise<string> => {
         return new Promise((resolve, reject) => {
             const hash = crypto.createHash('sha256');
             hash.update(buffer);

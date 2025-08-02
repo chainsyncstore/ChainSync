@@ -2,7 +2,7 @@
 import { getLogger } from '../logging/index.js';
 import { EventEmitter } from 'events';
 
-const logger = getLogger().child({ component: 'circuit-breaker' });
+const logger = getLogger().child({ _component: 'circuit-breaker' });
 
 /**
  * Circuit breaker states
@@ -17,21 +17,21 @@ export enum CircuitState {
  * Circuit breaker configuration
  */
 export interface CircuitBreakerConfig {
-  failureThreshold: number;     // Number of failures before opening
-  recoveryTimeout: number;      // Time to wait before trying half-open (ms)
-  expectedException: (error: Error) => boolean; // Which errors count as failures
-  monitorInterval: number;      // How often to check circuit state (ms)
-  volumeThreshold: number;      // Minimum requests before circuit can open
+  _failureThreshold: number;     // Number of failures before opening
+  _recoveryTimeout: number;      // Time to wait before trying half-open (ms)
+  _expectedException: (_error: Error) => boolean; // Which errors count as failures
+  _monitorInterval: number;      // How often to check circuit state (ms)
+  _volumeThreshold: number;      // Minimum requests before circuit can open
 }
 
 /**
  * Circuit breaker statistics
  */
 export interface CircuitStats {
-  state: CircuitState;
-  failureCount: number;
-  successCount: number;
-  totalRequests: number;
+  _state: CircuitState;
+  _failureCount: number;
+  _successCount: number;
+  _totalRequests: number;
   lastFailureTime?: number;
   lastSuccessTime?: number;
   nextAttemptTime?: number;
@@ -41,17 +41,17 @@ export interface CircuitStats {
  * Circuit breaker implementation
  */
 export class CircuitBreaker extends EventEmitter {
-  private state: CircuitState = CircuitState.CLOSED;
-  private failureCount: number = 0;
-  private successCount: number = 0;
+  private _state: CircuitState = CircuitState.CLOSED;
+  private _failureCount: number = 0;
+  private _successCount: number = 0;
   private lastFailureTime?: number;
   private lastSuccessTime?: number;
   private nextAttemptTime?: number;
   private monitorTimer?: NodeJS.Timeout;
 
   constructor(
-    private readonly name: string,
-    private readonly config: CircuitBreakerConfig
+    private readonly _name: string,
+    private readonly _config: CircuitBreakerConfig
   ) {
     super();
     this.startMonitoring();
@@ -84,31 +84,31 @@ export class CircuitBreaker extends EventEmitter {
   private onSuccess(): void {
     this.successCount++;
     this.lastSuccessTime = Date.now();
-    
+
     if (this.state === CircuitState.HALF_OPEN) {
       this.transitionToClosed();
     }
-    
-    this.emit('success', { name: this.name, timestamp: Date.now() });
+
+    this.emit('success', { _name: this.name, _timestamp: Date.now() });
   }
 
   /**
    * Handle failed operation
    */
-  private onFailure(error: Error): void {
+  private onFailure(_error: Error): void {
     this.failureCount++;
     this.lastFailureTime = Date.now();
-    
-    if (this.config.expectedException(error) && 
+
+    if (this.config.expectedException(error) &&
         this.failureCount >= this.config.failureThreshold &&
         this.getTotalRequests() >= this.config.volumeThreshold) {
       this.transitionToOpen();
     }
-    
-    this.emit('failure', { 
-      name: this.name, 
-      error: error.message, 
-      timestamp: Date.now() 
+
+    this.emit('failure', {
+      _name: this.name,
+      _error: error.message,
+      _timestamp: Date.now()
     });
   }
 
@@ -116,15 +116,15 @@ export class CircuitBreaker extends EventEmitter {
    * Transition to closed state
    */
   private transitionToClosed(): void {
-    logger.info('Circuit breaker transitioning to CLOSED', { name: this.name });
+    logger.info('Circuit breaker transitioning to CLOSED', { _name: this.name });
     this.state = CircuitState.CLOSED;
     this.failureCount = 0;
     this.successCount = 0;
     this.nextAttemptTime = 0;
-    this.emit('stateChange', { 
-      name: this.name, 
-      state: CircuitState.CLOSED, 
-      timestamp: Date.now() 
+    this.emit('stateChange', {
+      _name: this.name,
+      _state: CircuitState.CLOSED,
+      _timestamp: Date.now()
     });
   }
 
@@ -132,16 +132,16 @@ export class CircuitBreaker extends EventEmitter {
    * Transition to open state
    */
   private transitionToOpen(): void {
-    logger.warn('Circuit breaker transitioning to OPEN', { 
-      name: this.name, 
-      failureCount: this.failureCount 
+    logger.warn('Circuit breaker transitioning to OPEN', {
+      _name: this.name,
+      _failureCount: this.failureCount
     });
     this.state = CircuitState.OPEN;
     this.nextAttemptTime = Date.now() + this.config.recoveryTimeout;
-    this.emit('stateChange', { 
-      name: this.name, 
-      state: CircuitState.OPEN, 
-      timestamp: Date.now() 
+    this.emit('stateChange', {
+      _name: this.name,
+      _state: CircuitState.OPEN,
+      _timestamp: Date.now()
     });
   }
 
@@ -149,12 +149,12 @@ export class CircuitBreaker extends EventEmitter {
    * Transition to half-open state
    */
   private transitionToHalfOpen(): void {
-    logger.info('Circuit breaker transitioning to HALF_OPEN', { name: this.name });
+    logger.info('Circuit breaker transitioning to HALF_OPEN', { _name: this.name });
     this.state = CircuitState.HALF_OPEN;
-    this.emit('stateChange', { 
-      name: this.name, 
-      state: CircuitState.HALF_OPEN, 
-      timestamp: Date.now() 
+    this.emit('stateChange', {
+      _name: this.name,
+      _state: CircuitState.HALF_OPEN,
+      _timestamp: Date.now()
     });
   }
 
@@ -179,13 +179,13 @@ export class CircuitBreaker extends EventEmitter {
    */
   getStats(): CircuitStats {
     return {
-      state: this.state,
-      failureCount: this.failureCount,
-      successCount: this.successCount,
-      totalRequests: this.getTotalRequests(),
-      ...(this.lastFailureTime !== undefined && { lastFailureTime: this.lastFailureTime }),
-      ...(this.lastSuccessTime !== undefined && { lastSuccessTime: this.lastSuccessTime }),
-      ...(this.nextAttemptTime !== undefined && { nextAttemptTime: this.nextAttemptTime }),
+      _state: this.state,
+      _failureCount: this.failureCount,
+      _successCount: this.successCount,
+      _totalRequests: this.getTotalRequests(),
+      ...(this.lastFailureTime !== undefined && { _lastFailureTime: this.lastFailureTime }),
+      ...(this.lastSuccessTime !== undefined && { _lastSuccessTime: this.lastSuccessTime }),
+      ...(this.nextAttemptTime !== undefined && { _nextAttemptTime: this.nextAttemptTime })
     };
   }
 
@@ -211,7 +211,7 @@ export class CircuitBreaker extends EventEmitter {
  * Circuit breaker error
  */
 export class CircuitBreakerOpenError extends Error {
-  constructor(circuitName: string) {
+  constructor(_circuitName: string) {
     super(`Circuit breaker '${circuitName}' is open`);
     this.name = 'CircuitBreakerOpenError';
   }
@@ -227,30 +227,30 @@ export class CircuitBreakerFactory {
    * Create or get a circuit breaker instance
    */
   static create(
-    name: string,
-    config: Partial<CircuitBreakerConfig> = {}
+    _name: string,
+    _config: Partial<CircuitBreakerConfig> = {}
   ): CircuitBreaker {
     if (this.breakers.has(name)) {
       return this.breakers.get(name)!;
     }
 
-    const defaultConfig: CircuitBreakerConfig = {
-      failureThreshold: 5,
-      recoveryTimeout: 60000, // 1 minute
-      expectedException: (error: Error) => {
+    const _defaultConfig: CircuitBreakerConfig = {
+      _failureThreshold: 5,
+      _recoveryTimeout: 60000, // 1 minute
+      _expectedException: (_error: Error) => {
         // Consider network errors, timeouts, and 5xx errors as failures
         return error.name === 'TimeoutError' ||
                error.message.includes('ECONNREFUSED') ||
                error.message.includes('ENOTFOUND') ||
                error.message.includes('ETIMEDOUT');
       },
-      monitorInterval: 10000, // 10 seconds
-      volumeThreshold: 10,
+      _monitorInterval: 10000, // 10 seconds
+      _volumeThreshold: 10
     };
 
     const finalConfig = { ...defaultConfig, ...config };
     const breaker = new CircuitBreaker(name, finalConfig);
-    
+
     this.breakers.set(name, breaker);
     return breaker;
   }
@@ -266,7 +266,7 @@ export class CircuitBreakerFactory {
    * Get circuit breaker statistics
    */
   static getStats(): Record<string, CircuitStats> {
-    const stats: Record<string, CircuitStats> = {};
+    const _stats: Record<string, CircuitStats> = {};
     for (const [name, breaker] of this.breakers) {
       stats[name] = breaker.getStats();
     }
@@ -291,4 +291,4 @@ export class CircuitBreakerFactory {
     }
     this.breakers.clear();
   }
-} 
+}

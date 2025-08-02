@@ -1,11 +1,11 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useLocation } from 'wouter';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import React, { createContext, useContext, ReactNode } from &apos;react&apos;;
+import { useLocation } from &apos;wouter&apos;;
+import { useQuery, useMutation, useQueryClient } from &apos;@tanstack/react-query&apos;;
+import { apiRequest } from &apos;@/lib/queryClient&apos;;
+import { useToast } from &apos;@/hooks/use-toast&apos;;
 // AuthResponse interface for API response
 interface AuthResponse {
-  authenticated: boolean;
+  _authenticated: boolean;
   user?: User;
   message?: string;
 }
@@ -13,265 +13,265 @@ interface AuthResponse {
 // Define User interface for the auth context
 // We remove password for security reasons
 export interface User {
-  id: number;
-  username: string;
-  fullName: string;
-  email: string;
-  role: 'admin' | 'manager' | 'cashier' | 'affiliate';
+  _id: number;
+  _username: string;
+  _fullName: string;
+  _email: string;
+  role: &apos;admin&apos; | &apos;manager&apos; | &apos;cashier&apos; | &apos;affiliate&apos;;
   storeId?: number;
   lastLogin?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  _createdAt: Date;
+  _updatedAt: Date;
 }
 
 // Define login credentials type
 export interface LoginCredentials {
-  username: string;
-  password: string;
+  _username: string;
+  _password: string;
   rememberMe?: boolean;
 }
 
 // Define context type
 interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<User>;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<User | null>;
-  error: Error | null;
+  _user: User | null;
+  _isLoading: boolean;
+  _isAuthenticated: boolean;
+  login: (_credentials: LoginCredentials) => Promise<User>;
+  _logout: () => Promise<void>;
+  _checkAuth: () => Promise<User | null>;
+  _error: Error | null;
 }
 
 // Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { _children: ReactNode }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
   // Query to check authentication status
-  const { 
-    data: authData,
-    isLoading: authLoading,
-    error: authError,
-    refetch: refetchAuth,
+  const {
+    _data: authData,
+    _isLoading: authLoading,
+    _error: authError,
+    _refetch: refetchAuth
   } = useQuery<AuthResponse>({
-    queryKey: ['/api/auth/me'],
-    retry: 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    refetchInterval: false,
-    queryFn: async () => {
+    queryKey: [&apos;/api/auth/me&apos;],
+    _retry: 1,
+    _staleTime: 5 * 60 * 1000, // 5 minutes
+    _refetchOnMount: true,
+    _refetchOnWindowFocus: true,
+    _refetchOnReconnect: true,
+    _refetchInterval: false,
+    _queryFn: async() => {
       try {
-        const res = await fetch('/api/auth/me', {
-          credentials: "include",
-          headers: {
-            "Accept": "application/json",
-            "Cache-Control": "no-cache, no-store",
-            "Pragma": "no-cache"
+        const res = await fetch(&apos;/api/auth/me&apos;, {
+          _credentials: &apos;include&apos;,
+          _headers: {
+            &apos;Accept&apos;: &apos;application/json&apos;,
+            &apos;Cache-Control&apos;: &apos;no-cache, no-store&apos;,
+            &apos;Pragma&apos;: &apos;no-cache&apos;
           },
-          cache: "no-store"
+          _cache: &apos;no-store&apos;
         });
-        
+
         // Return null when not authenticated (401)
         if (res.status === 401) {
-          console.log("401 response in query, returning null as configured");
-          return { authenticated: false, user: null };
+          console.log(&apos;401 response in query, returning null as configured&apos;);
+          return { _authenticated: false, _user: null };
         }
-        
+
         if (!res.ok) {
           throw new Error(`${res.status}: ${res.statusText}`);
         }
-        
+
         return await res.json();
       } catch (error) {
-        console.error("Error fetching auth status:", error);
-        return { authenticated: false, user: null };
+        console.error(&apos;Error fetching auth _status:&apos;, error);
+        return { _authenticated: false, _user: null };
       }
     }
   });
 
   // Extract and convert user from auth data
-  const user: User | null = (() => {
+  const _user: User | null = (() => {
     if (authData?.authenticated && authData?.user) {
-      // Get role and ensure it's one of our valid types
+      // Get role and ensure it&apos;s one of our valid types
       const role = authData.user.role as string;
-      const validRole = ['admin', 'manager', 'cashier', 'affiliate'].includes(role) 
-          ? role as 'admin' | 'manager' | 'cashier' | 'affiliate'
-          : 'cashier'; // Default role as fallback
+      const validRole = [&apos;admin&apos;, &apos;manager&apos;, &apos;cashier&apos;, &apos;affiliate&apos;].includes(role)
+          ? role as &apos;admin&apos; | &apos;manager&apos; | &apos;cashier&apos; | &apos;affiliate&apos;
+          : &apos;cashier&apos;; // Default role as fallback
 
       // Convert possibly null values to undefined
-      const storeId = authData.user.storeId === null ? undefined : authData.user.storeId;
-      const lastLogin = authData.user.lastLogin === null ? undefined : authData.user.lastLogin;
-      
+      const storeId = authData.user.storeId === null ? _undefined : authData.user.storeId;
+      const lastLogin = authData.user.lastLogin === null ? _undefined : authData.user.lastLogin;
+
       return {
-        id: authData.user.id,
-        username: authData.user.username,
-        fullName: authData.user.fullName,
-        email: authData.user.email,
-        role: validRole,
+        _id: authData.user.id,
+        _username: authData.user.username,
+        _fullName: authData.user.fullName,
+        _email: authData.user.email,
+        _role: validRole,
         storeId,
         lastLogin,
-        createdAt: authData.user.createdAt,
-        updatedAt: authData.user.updatedAt
+        _createdAt: authData.user.createdAt,
+        _updatedAt: authData.user.updatedAt
       };
     }
     return null;
   })();
-  
+
   const isAuthenticated = !!user;
-  
+
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginCredentials): Promise<User> => {
+    _mutationFn: async(_credentials: LoginCredentials): Promise<User> => {
       // Extract rememberMe if present
       const { rememberMe, ...loginCredentials } = credentials;
-      
+
       // Send rememberMe as query param if true
-      const endpoint = rememberMe 
-        ? `/api/auth/login?remember=true` 
-        : '/api/auth/login';
-      
-      const data = await apiRequest('POST', endpoint, loginCredentials);
-      
+      const endpoint = rememberMe
+        ? &apos;/api/auth/login?remember=true&apos;
+        : &apos;/api/auth/login&apos;;
+
+      const data = await apiRequest(&apos;POST&apos;, endpoint, loginCredentials);
+
       if (!data.authenticated || !data.user) {
-        throw new Error(data.message || 'Authentication failed');
+        throw new Error(data.message || &apos;Authentication failed&apos;);
       }
-      
+
       // Transform the user data to match our User interface
       const user = data.user;
-      
-      // Get role and ensure it's one of our valid types
+
+      // Get role and ensure it&apos;s one of our valid types
       const role = user.role as string;
-      const validRole = ['admin', 'manager', 'cashier', 'affiliate'].includes(role) 
-          ? role as 'admin' | 'manager' | 'cashier' | 'affiliate'
-          : 'cashier'; // Default role as fallback
+      const validRole = [&apos;admin&apos;, &apos;manager&apos;, &apos;cashier&apos;, &apos;affiliate&apos;].includes(role)
+          ? role as &apos;admin&apos; | &apos;manager&apos; | &apos;cashier&apos; | &apos;affiliate&apos;
+          : &apos;cashier&apos;; // Default role as fallback
 
       // Convert possibly null values to undefined
-      const storeId = user.storeId === null ? undefined : user.storeId;
-      const lastLogin = user.lastLogin === null ? undefined : user.lastLogin;
-      
+      const storeId = user.storeId === null ? _undefined : user.storeId;
+      const lastLogin = user.lastLogin === null ? _undefined : user.lastLogin;
+
       // Return properly typed user object
       return {
-        id: user.id,
-        username: user.username,
-        fullName: user.fullName,
-        email: user.email,
-        role: validRole,
+        _id: user.id,
+        _username: user.username,
+        _fullName: user.fullName,
+        _email: user.email,
+        _role: validRole,
         storeId,
         lastLogin,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
+        _createdAt: user.createdAt,
+        _updatedAt: user.updatedAt
       };
     },
-    onSuccess: (userData) => {
+    _onSuccess: (userData) => {
       // Invalidate and refetch auth query
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/auth/me&apos;] });
+
       // Show success toast
       toast({
-        title: 'Login successful',
-        description: `Welcome back, ${userData.fullName || userData.username}!`,
-        duration: 3000,
+        _title: &apos;Login successful&apos;,
+        _description: `Welcome back, ${userData.fullName || userData.username}!`,
+        _duration: 3000
       });
-      
+
       // Redirect based on user role
-      if (userData.role === 'cashier') {
-        setLocation('/pos');
-      } else if (userData.role === 'affiliate') {
-        setLocation('/affiliates');
+      if (userData.role === &apos;cashier&apos;) {
+        setLocation(&apos;/pos&apos;);
+      } else if (userData.role === &apos;affiliate&apos;) {
+        setLocation(&apos;/affiliates&apos;);
       } else {
-        setLocation('/dashboard');
+        setLocation(&apos;/dashboard&apos;);
       }
     },
-    onError: (error: Error) => {
-      const errorMessage = error.message?.includes('401:') ? 
-        'Invalid Username or Password' : 
-        (error.message || 'Invalid Username or Password');
-        
+    _onError: (_error: Error) => {
+      const errorMessage = error.message?.includes(&apos;401:&apos;) ?
+        &apos;Invalid Username or Password&apos; :
+        (error.message || &apos;Invalid Username or Password&apos;);
+
       toast({
-        title: 'Login failed',
-        description: errorMessage,
-        variant: 'destructive',
-        duration: 5000,
+        _title: &apos;Login failed&apos;,
+        _description: errorMessage,
+        _variant: &apos;destructive&apos;,
+        _duration: 5000
       });
-    },
+    }
   });
 
   // Logout mutation
   const logoutMutation = useMutation({
-    mutationFn: async (): Promise<void> => {
-      await apiRequest('POST', '/api/auth/logout');
+    _mutationFn: async(): Promise<void> => {
+      await apiRequest(&apos;POST&apos;, &apos;/api/auth/logout&apos;);
     },
-    onSuccess: () => {
+    _onSuccess: () => {
       // Clear auth data from cache
-      queryClient.setQueryData(['/api/auth/me'], { authenticated: false, user: null });
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      
+      queryClient.setQueryData([&apos;/api/auth/me&apos;], { _authenticated: false, _user: null });
+      queryClient.invalidateQueries({ _queryKey: [&apos;/api/auth/me&apos;] });
+
       // Show success toast
       toast({
-        title: 'Logged out',
-        description: 'You have been successfully logged out.',
-        duration: 3000,
+        _title: &apos;Logged out&apos;,
+        _description: &apos;You have been successfully logged out.&apos;,
+        _duration: 3000
       });
-      
+
       // Redirect to login page
-      setLocation('/login');
+      setLocation(&apos;/login&apos;);
     },
-    onError: (error: Error) => {
+    _onError: (_error: Error) => {
       toast({
-        title: 'Logout failed',
-        description: error.message || 'Failed to log out. Please try again.',
-        variant: 'destructive',
-        duration: 5000,
+        _title: &apos;Logout failed&apos;,
+        _description: error.message || &apos;Failed to log out. Please try again.&apos;,
+        _variant: &apos;destructive&apos;,
+        _duration: 5000
       });
-    },
+    }
   });
 
   // Login function wrapper
-  const login = async (credentials: LoginCredentials): Promise<User> => {
+  const login = async(_credentials: LoginCredentials): Promise<User> => {
     return await loginMutation.mutateAsync(credentials);
   };
 
   // Logout function wrapper
-  const logout = async (): Promise<void> => {
+  const logout = async(): Promise<void> => {
     await logoutMutation.mutateAsync();
   };
 
   // Auth check function wrapper that returns the user (or null)
-  const checkAuth = async (): Promise<User | null> => {
+  const checkAuth = async(): Promise<User | null> => {
     const result = await refetchAuth();
     const data = result.data;
-    
+
     if (data?.authenticated && data?.user) {
-      // Get role and ensure it's one of our valid types
+      // Get role and ensure it&apos;s one of our valid types
       const role = data.user.role as string;
-      const validRole = ['admin', 'manager', 'cashier', 'affiliate'].includes(role) 
-          ? role as 'admin' | 'manager' | 'cashier' | 'affiliate'
-          : 'cashier'; // Default role as fallback
+      const validRole = [&apos;admin&apos;, &apos;manager&apos;, &apos;cashier&apos;, &apos;affiliate&apos;].includes(role)
+          ? role as &apos;admin&apos; | &apos;manager&apos; | &apos;cashier&apos; | &apos;affiliate&apos;
+          : &apos;cashier&apos;; // Default role as fallback
 
       // Convert possibly null values to undefined
-      const storeId = data.user.storeId === null ? undefined : data.user.storeId;
-      const lastLogin = data.user.lastLogin === null ? undefined : data.user.lastLogin;
-      
+      const storeId = data.user.storeId === null ? _undefined : data.user.storeId;
+      const lastLogin = data.user.lastLogin === null ? _undefined : data.user.lastLogin;
+
       // Type conversion to match our User interface
-      const user: User = {
-        id: data.user.id,
-        username: data.user.username,
-        fullName: data.user.fullName,
-        email: data.user.email,
-        role: validRole,
+      const _user: User = {
+        _id: data.user.id,
+        _username: data.user.username,
+        _fullName: data.user.fullName,
+        _email: data.user.email,
+        _role: validRole,
         storeId,
         lastLogin,
-        createdAt: data.user.createdAt,
-        updatedAt: data.user.updatedAt
+        _createdAt: data.user.createdAt,
+        _updatedAt: data.user.updatedAt
       };
       return user;
     }
-    
+
     return null;
   };
 
@@ -279,12 +279,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isLoading: authLoading || loginMutation.isPending || logoutMutation.isPending,
+        _isLoading: authLoading || loginMutation.isPending || logoutMutation.isPending,
         isAuthenticated,
         login,
         logout,
         checkAuth,
-        error: authError as Error,
+        _error: authError as Error
       }}
     >
       {children}
@@ -296,7 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error(&apos;useAuth must be used within an AuthProvider&apos;);
   }
   return context;
 }

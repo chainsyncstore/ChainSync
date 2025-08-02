@@ -10,10 +10,10 @@ const validateRequest = (schema, data) => {
       throw AppError.fromZodError(error);
     }
     throw new AppError(
-      'Request validation failed', 
-      ErrorCategory.VALIDATION, 
-      ErrorCode.VALIDATION_FAILED, 
-      { details: error }, 
+      'Request validation failed',
+      ErrorCategory.VALIDATION,
+      ErrorCode.VALIDATION_FAILED,
+      { _details: error },
       400
     );
   }
@@ -27,10 +27,10 @@ const validateParams = (schema, params) => {
       throw AppError.fromZodError(error);
     }
     throw new AppError(
-      'Route parameter validation failed', 
-      ErrorCategory.VALIDATION, 
-      ErrorCode.VALIDATION_FAILED, 
-      { details: error }, 
+      'Route parameter validation failed',
+      ErrorCategory.VALIDATION,
+      ErrorCode.VALIDATION_FAILED,
+      { _details: error },
       400
     );
   }
@@ -44,10 +44,10 @@ const validateQuery = (schema, query) => {
       throw AppError.fromZodError(error);
     }
     throw new AppError(
-      'Query parameter validation failed', 
-      ErrorCategory.VALIDATION, 
-      ErrorCode.VALIDATION_FAILED, 
-      { details: error }, 
+      'Query parameter validation failed',
+      ErrorCategory.VALIDATION,
+      ErrorCode.VALIDATION_FAILED,
+      { _details: error },
       400
     );
   }

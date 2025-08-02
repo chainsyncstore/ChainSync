@@ -8,15 +8,15 @@ const myFormat = printf(({ level, message, label, timestamp }) => {
 });
 
 export const logger = createLogger({
-  level: env.LOG_LEVEL,
-  format: combine(
+  _level: env.LOG_LEVEL,
+  _format: combine(
     label({ label: 'ChainSync' }),
     timestamp(),
     myFormat
   ),
-  transports: [
+  _transports: [
     new transports.Console(),
-    new transports.File({ filename: 'error.log', level: 'error' }),
-    new transports.File({ filename: 'combined.log' })
+    new transports.File({ _filename: 'error.log', _level: 'error' }),
+    new transports.File({ _filename: 'combined.log' })
   ]
 });

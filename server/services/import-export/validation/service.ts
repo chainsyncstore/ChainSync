@@ -8,12 +8,12 @@ import { ValidationService as ValidationServiceInterface } from './types';
 import { ValidationOptions } from './types';
 
 export class ValidationService implements ValidationServiceInterface {
-  private cache: Map<string, any>;
+  private _cache: Map<string, any>;
   private _cacheTTL: number;
-  private strictMode: boolean;
-  private parent: ImportExportService;
+  private _strictMode: boolean;
+  private _parent: ImportExportService;
 
-  constructor(parent: ImportExportService) {
+  constructor(_parent: ImportExportService) {
     this.parent = parent;
     this.cache = new Map();
     this._cacheTTL = 3600000; // 1 hour
@@ -24,39 +24,39 @@ export class ValidationService implements ValidationServiceInterface {
     return this._cacheTTL;
   }
 
-  set cacheTTL(value: number) {
+  set cacheTTL(_value: number) {
     this._cacheTTL = value;
   }
 
-  private getCacheKey(data: any, type: 'products' | 'users' | 'transactions'): string {
+  private getCacheKey(_data: any, _type: 'products' | 'users' | 'transactions'): string {
     const schemaType = this.toSchemaType(type);
     return `${schemaType}-${JSON.stringify(data)}`;
   }
 
-  private isCacheValid(key: string): boolean {
+  private isCacheValid(_key: string): boolean {
     const cacheEntry = this.cache.get(key);
     if (!cacheEntry) return false;
     return Date.now() - cacheEntry.timestamp < this._cacheTTL;
   }
 
   private toSchemaType(type: 'products' | 'users' | 'transactions'): 'product' | 'order' | 'customer' {
-    const typeMapping: { [key: string]: 'product' | 'order' | 'customer' } = {
+    const _typeMapping: { [_key: string]: 'product' | 'order' | 'customer' } = {
       products: 'product',
-      users: 'customer',
-      transactions: 'order'
+      _users: 'customer',
+      _transactions: 'order'
     };
     const schemaType = typeMapping[type];
     if (!schemaType) {
-      throw new Error(`Invalid type: ${type}`);
+      throw new Error(`Invalid _type: ${type}`);
     }
     return schemaType;
   }
 
-  async validate(data: any, type: 'products' | 'users' | 'transactions'): Promise<any> {
+  async validate(_data: any, _type: 'products' | 'users' | 'transactions'): Promise<any> {
     const schemaType = this.toSchemaType(type);
     const schema = schemas[schemaType];
     if (!schema) {
-      throw new Error(`No validation schema found for type: ${type}`);
+      throw new Error(`No validation schema found for _type: ${type}`);
     }
 
     const cacheKey = this.getCacheKey(data, type);
@@ -69,8 +69,8 @@ export class ValidationService implements ValidationServiceInterface {
         throw new AppError(
           ErrorCategory.IMPORT_EXPORT,
           ImportExportErrorCodes.INVALID_FORMAT,
-          `Validation failed: ${this.extractErrors(cachedResult.error).join(', ')}`,
-          { errors: this.extractErrors(cachedResult.error) },
+          `Validation _failed: ${this.extractErrors(cachedResult.error).join(', ')}`,
+          { _errors: this.extractErrors(cachedResult.error) },
           400
         );
       }
@@ -79,41 +79,41 @@ export class ValidationService implements ValidationServiceInterface {
     try {
       const validatedData = await schema.parseAsync(data);
       this.cache.set(cacheKey, {
-        timestamp: Date.now(),
-        success: true,
-        data: validatedData
+        _timestamp: Date.now(),
+        _success: true,
+        _data: validatedData
       });
       return validatedData;
     } catch (error) {
       const errorMessages = this.extractErrors(error);
       this.cache.set(cacheKey, {
-        timestamp: Date.now(),
-        success: false,
+        _timestamp: Date.now(),
+        _success: false,
         error
       });
       throw new AppError(
         ErrorCategory.IMPORT_EXPORT,
         ImportExportErrorCodes.INVALID_FORMAT,
-        `Validation failed: ${errorMessages.join(', ')}`,
-        { errors: errorMessages },
+        `Validation _failed: ${errorMessages.join(', ')}`,
+        { _errors: errorMessages },
         400
       );
     }
   }
 
-  async validateBatch(data: any[], type: 'products' | 'users' | 'transactions'): Promise<{
-    valid: any[];
-    invalid: { index: number; errors: string[] }[];
+  async validateBatch(_data: any[], _type: 'products' | 'users' | 'transactions'): Promise<{
+    _valid: any[];
+    invalid: { _index: number; _errors: string[] }[];
   }> {
     const schemaType = this.toSchemaType(type);
     const schema = schemas[schemaType];
     if (!schema) {
-      throw new Error(`No validation schema found for type: ${type}`);
+      throw new Error(`No validation schema found for _type: ${type}`);
     }
 
     const results = {
-      valid: [] as any[],
-      invalid: [] as { index: number; errors: string[] }[]
+      _valid: [] as any[],
+      _invalid: [] as { _index: number; _errors: string[] }[]
     };
 
     for (let i = 0; i < data.length; i++) {
@@ -125,8 +125,8 @@ export class ValidationService implements ValidationServiceInterface {
           results.valid.push(cachedResult.data);
         } else {
           results.invalid.push({
-            index: i,
-            errors: this.extractErrors(cachedResult.error)
+            _index: i,
+            _errors: this.extractErrors(cachedResult.error)
           });
         }
         continue;
@@ -135,20 +135,20 @@ export class ValidationService implements ValidationServiceInterface {
       try {
         const validated = await schema.parseAsync(data[i]);
         this.cache.set(cacheKey, {
-          timestamp: Date.now(),
-          success: true,
-          data: validated
+          _timestamp: Date.now(),
+          _success: true,
+          _data: validated
         });
         results.valid.push(validated);
       } catch (error) {
         const errors = this.extractErrors(error);
         this.cache.set(cacheKey, {
-          timestamp: Date.now(),
-          success: false,
+          _timestamp: Date.now(),
+          _success: false,
           error
         });
         results.invalid.push({
-          index: i,
+          _index: i,
           errors
         });
         if (this.strictMode) {
@@ -156,7 +156,7 @@ export class ValidationService implements ValidationServiceInterface {
             ErrorCategory.IMPORT_EXPORT,
             ImportExportErrorCodes.INVALID_FORMAT,
             `Validation failed for item at index ${i}`,
-            { index: i, errors },
+            { _index: i, errors },
             400
           );
         }
@@ -166,9 +166,9 @@ export class ValidationService implements ValidationServiceInterface {
     return results;
   }
 
-  private extractErrors(error: unknown): string[] {
+  private extractErrors(_error: unknown): string[] {
     if (error instanceof z.ZodError) {
-      return (error as any).errors?.map((err: any) => {
+      return (error as any).errors?.map((_err: any) => {
         const path = err.path?.join('.') || '';
         return `${path}: ${err.message || 'Unknown error'}`;
       });
@@ -183,7 +183,7 @@ export class ValidationService implements ValidationServiceInterface {
     this.cache.clear();
   }
 
-  clearCacheForData(data: any, type: 'products' | 'users' | 'transactions'): void {
+  clearCacheForData(_data: any, _type: 'products' | 'users' | 'transactions'): void {
     const cacheKey = this.getCacheKey(data, type);
     this.cache.delete(cacheKey);
   }

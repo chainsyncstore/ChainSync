@@ -35,16 +35,16 @@ declare module '@opentelemetry/exporter-trace-otlp-http' {
 declare module '@opentelemetry/resources' {
   export class Resource {
     static default(): Resource;
-    constructor(attributes: Record<string, any>);
-    merge(resource: Resource): Resource;
+    constructor(_attributes: Record<string, any>);
+    merge(_resource: Resource): Resource;
   }
 }
 
 declare module '@opentelemetry/semantic-conventions' {
-  export const SemanticResourceAttributes: {
-    SERVICE_NAME: string;
-    SERVICE_VERSION: string;
-    DEPLOYMENT_ENVIRONMENT: string;
+  export const _SemanticResourceAttributes: {
+    _SERVICE_NAME: string;
+    _SERVICE_VERSION: string;
+    _DEPLOYMENT_ENVIRONMENT: string;
   };
 }
 
@@ -73,12 +73,12 @@ declare module '@opentelemetry/instrumentation-redis' {
 }
 
 declare module '@opentelemetry/api' {
-  export const trace: {
-    getTracer(name: string): any;
-    getSpan(context: any): any;
+  export const _trace: {
+    getTracer(_name: string): any;
+    getSpan(_context: any): any;
   };
   
-  export const context: {
+  export const _context: {
     active(): any;
   };
 }

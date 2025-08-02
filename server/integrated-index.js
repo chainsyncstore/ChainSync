@@ -1,8 +1,8 @@
 'use strict';
 const __importDefault = (this && this.__importDefault) || function(mod) {
-  return (mod && mod.__esModule) ? mod : { 'default': mod };
+  return (mod && mod.__esModule) ? _mod : { 'default': mod };
 };
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 const express_1 = __importDefault(require('express'));
 const http_1 = require('http');
 const routes_js_1 = require('./routes.js');
@@ -15,17 +15,17 @@ const server = (0, http_1.createServer)(app);
 // Request logging middleware
 app.use((req, _res, next) => {
   const timestamp = new Date().toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
+    _hour: 'numeric',
+    _minute: '2-digit',
+    _second: '2-digit',
+    _hour12: true
   });
   console.log(`${timestamp} [express] ${req.method} ${req.url}`);
   next();
 });
 // Basic middleware
 app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: false }));
+app.use(express_1.default.urlencoded({ _extended: false }));
 // CORS middleware
 app.use((_req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -50,14 +50,14 @@ if (process.env.NODE_ENV !== 'production') {
   // For development, serve the client index.html for all non-API routes
   app.get('*', async(req, res) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-      return res.status(404).json({ error: 'Not found' });
+      return res.status(404).json({ _error: 'Not found' });
     }
     try {
       // In development, serve the index.html directly
       res.sendFile(clientIndexPath);
     }
     catch (error) {
-      console.error('Error serving client:', error);
+      console.error('Error serving _client:', error);
       res.status(500).send(`
         <html>
           <head><title>ChainSync - Loading Error</title></head>
@@ -76,11 +76,11 @@ if (process.env.NODE_ENV !== 'production') {
 // Health check route
 app.get('/health', (_req, res) => {
   res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'ChainSync Integrated Server',
-    frontend: process.env.NODE_ENV !== 'production' ? 'development' : 'production',
-    backend: 'running'
+    _status: 'ok',
+    _timestamp: new Date().toISOString(),
+    _service: 'ChainSync Integrated Server',
+    _frontend: process.env.NODE_ENV !== 'production' ? 'development' : 'production',
+    _backend: 'running'
   });
 });
 // Error handling middleware
@@ -91,21 +91,21 @@ app.use((err, _req, res, _next) => {
     console.error(err.stack);
   }
   res.status(500).json({
-    success: false,
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    _success: false,
+    _error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
 });
 const PORT = process.env.PORT || 5000;
 async function startServer() {
   server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`🚀 ChainSync Integrated Server running on port ${PORT}`);
-    console.log(`   Frontend: http://localhost:${PORT}/`);
-    console.log(`   API: http://localhost:${PORT}/api/*`);
-    console.log(`   Health: http://localhost:${PORT}/health`);
-    console.log(`   Mode: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`   _Frontend: http://localhost:${PORT}/`);
+    console.log(`   _API: http://localhost:${PORT}/api/*`);
+    console.log(`   _Health: http://localhost:${PORT}/health`);
+    console.log(`   _Mode: ${process.env.NODE_ENV || 'development'}`);
   });
 }
 startServer().catch((error) => {
-  console.error(`Failed to start server: ${error}`);
+  console.error(`Failed to start _server: ${error}`);
   process.exit(1);
 });

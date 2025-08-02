@@ -29,10 +29,10 @@ export async function getStorePerformanceComparison(
 
   // Get transaction metrics by store
   const storeMetrics = await db.select({
-    storeId: schema.transactions.storeId,
-    totalRevenue: sql`SUM(${schema.transactions.total})`,
-    averageTransaction: sql`AVG(${schema.transactions.total})`,
-    transactionCount: count()
+    _storeId: schema.transactions.storeId,
+    _totalRevenue: sql`SUM(${schema.transactions.total})`,
+    _averageTransaction: sql`AVG(${schema.transactions.total})`,
+    _transactionCount: count()
   })
   .from(schema.transactions)
   .where(transactionWhereClause)
@@ -45,10 +45,10 @@ export async function getStorePerformanceComparison(
       try {
         // For transaction items, we need to join with transactions to apply the date filtering
         const topProducts = await db.select({
-          productId: schema.transactionItems.productId,
-          productName: schema.products.name,
-          quantity: sql`SUM(${schema.transactionItems.quantity})`,
-          total: sql`SUM(${schema.transactionItems.unitPrice} * ${schema.transactionItems.quantity})`
+          _productId: schema.transactionItems.productId,
+          _productName: schema.products.name,
+          _quantity: sql`SUM(${schema.transactionItems.quantity})`,
+          _total: sql`SUM(${schema.transactionItems.unitPrice} * ${schema.transactionItems.quantity})`
         })
         .from(schema.transactionItems)
         .leftJoin(schema.products, eq(schema.transactionItems.productId, schema.products.id))
@@ -61,14 +61,14 @@ export async function getStorePerformanceComparison(
         .limit(5);
 
         return {
-          storeId: store.id,
+          _storeId: store.id,
           topProducts
         };
       } catch (error) {
         console.error(`Error fetching top products for store ${store.id}:`, error);
         return {
-          storeId: store.id,
-          topProducts: []
+          _storeId: store.id,
+          _topProducts: []
         };
       }
     })
@@ -77,19 +77,19 @@ export async function getStorePerformanceComparison(
   // Combine store metadata with performance metrics
   const storePerformance = stores.map(store => {
     const metrics = storeMetrics.find(m => m.storeId === store.id) || {
-      totalRevenue: 0,
-      averageTransaction: 0,
-      transactionCount: 0
+      _totalRevenue: 0,
+      _averageTransaction: 0,
+      _transactionCount: 0
     };
 
     const topProducts = topProductsByStore.find(p => p.storeId === store.id)?.topProducts || [];
 
     return {
       ...store,
-      metrics: {
-        totalRevenue: parseFloat(metrics.totalRevenue as string) || 0,
-        averageTransaction: parseFloat(metrics.averageTransaction as string) || 0,
-        transactionCount: Number(metrics.transactionCount) || 0
+      _metrics: {
+        _totalRevenue: parseFloat(metrics.totalRevenue as string) || 0,
+        _averageTransaction: parseFloat(metrics.averageTransaction as string) || 0,
+        _transactionCount: Number(metrics.transactionCount) || 0
       },
       topProducts
     };
@@ -102,20 +102,20 @@ export async function getStorePerformanceComparison(
       acc.transactionCount += Number(curr.transactionCount) || 0;
       return acc;
     },
-    { totalRevenue: 0, transactionCount: 0 }
+    { _totalRevenue: 0, _transactionCount: 0 }
   );
 
   // Calculate global average transaction value
   const globalAvgTransaction = globalTotal.transactionCount > 0
-    ? globalTotal.totalRevenue / globalTotal.transactionCount
+    ? globalTotal.totalRevenue / globalTotal._transactionCount
     : 0;
 
   return {
     storePerformance,
-    globalMetrics: {
-      totalRevenue: globalTotal.totalRevenue,
-      averageTransaction: globalAvgTransaction,
-      transactionCount: globalTotal.transactionCount
+    _globalMetrics: {
+      _totalRevenue: globalTotal.totalRevenue,
+      _averageTransaction: globalAvgTransaction,
+      _transactionCount: globalTotal.transactionCount
     }
   };
 }
@@ -131,12 +131,12 @@ export function getDateRangeDescription(startDate?: Date, endDate?: Date): strin
     return 'All time';
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (_date: Date) => {
     return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      timeZone: 'UTC' // Ensuring consistent timezone
+      _year: 'numeric',
+      _month: 'short',
+      _day: 'numeric',
+      _timeZone: 'UTC' // Ensuring consistent timezone
     });
   };
 

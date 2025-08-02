@@ -12,11 +12,11 @@ import { log } from '../vite';
  * @returns HTTP or HTTPS server
  */
 export function setupSecureServer(
-  app: express.Express
-): { server: http.Server | https.Server; io: SocketIOServer } {
+  _app: express.Express
+): { _server: http.Server | https.Server; _io: SocketIOServer } {
   // Check environment
   const isProduction = process.env.NODE_ENV === 'production';
-  let server: http.Server | https.Server;
+  let _server: http.Server | https.Server;
   if (isProduction) {
     try {
       // In production, attempt to load SSL certificates
@@ -35,8 +35,8 @@ export function setupSecureServer(
         log('Starting HTTPS server in production mode');
         server = https.createServer(
           {
-            key: privateKey,
-            cert: certificate
+            _key: privateKey,
+            _cert: certificate
           },
           app
         );
@@ -45,7 +45,7 @@ export function setupSecureServer(
         server = http.createServer(app);
       }
     } catch (error) {
-      console.error('Error setting up HTTPS server:', error);
+      console.error('Error setting up HTTPS _server:', error);
       log('Failed to set up HTTPS server, falling back to HTTP');
       server = http.createServer(app);
     }
@@ -55,9 +55,9 @@ export function setupSecureServer(
     server = http.createServer(app);
   }
   const io = new SocketIOServer(server, {
-    cors: {
+    _cors: {
       origin: '*',
-      methods: ['GET', 'POST']
+      _methods: ['GET', 'POST']
     }
   });
 
@@ -67,7 +67,7 @@ export function setupSecureServer(
 /**
  * Function to enforce HTTPS for payment-related routes in production
  */
-export function enforceHttpsForPaymentRoutes(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function enforceHttpsForPaymentRoutes(_req: express.Request, _res: express.Response, _next: express.NextFunction) {
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Check if this is a payment-related route

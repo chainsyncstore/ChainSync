@@ -11,10 +11,10 @@ const server = createServer(app);
 // Request logging middleware
 app.use((req, _res, next) => {
   const timestamp = new Date().toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
+    _hour: 'numeric',
+    _minute: '2-digit',
+    _second: '2-digit',
+    _hour12: true
   });
   console.log(`${timestamp} [express] ${req.method} ${req.url}`);
   next();
@@ -22,7 +22,7 @@ app.use((req, _res, next) => {
 
 // Basic middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ _extended: false }));
 
 // CORS middleware
 app.use((_req, res, next) => {
@@ -51,7 +51,7 @@ if (process.env.NODE_ENV !== 'production') {
   // For development, serve the client index.html for all non-API routes
   app.get('*', async(req, res): Promise<void> => {
     if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-      res.status(404).json({ error: 'Not found' });
+      res.status(404).json({ _error: 'Not found' });
       return;
     }
 
@@ -59,7 +59,7 @@ if (process.env.NODE_ENV !== 'production') {
       // In development, serve the index.html directly
       res.sendFile(clientIndexPath);
     } catch (error) {
-      console.error('Error serving client:', error);
+      console.error('Error serving _client:', error);
       res.status(500).send(`
         <html>
           <head><title>ChainSync - Loading Error</title></head>
@@ -79,24 +79,24 @@ if (process.env.NODE_ENV !== 'production') {
 // Health check route
 app.get('/health', (_req, res) => {
   res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'ChainSync Integrated Server',
-    frontend: process.env.NODE_ENV !== 'production' ? 'development' : 'production',
-    backend: 'running'
+    _status: 'ok',
+    _timestamp: new Date().toISOString(),
+    _service: 'ChainSync Integrated Server',
+    _frontend: process.env.NODE_ENV !== 'production' ? 'development' : 'production',
+    _backend: 'running'
   });
 });
 
 // Error handling middleware
 // @ts-ignore
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+app.use((_err: Error, _req: Request, _res: Response, _next: NextFunction) => {
   console.error(`Error: ${err.message}`);
   if (process.env.NODE_ENV === 'development') {
     console.error(err.stack);
   }
   res.status(500).json({
-    success: false,
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    _success: false,
+    _error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
 });
 
@@ -105,14 +105,14 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
   server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`🚀 ChainSync Integrated Server running on port ${PORT}`);
-    console.log(`   Frontend: http://localhost:${PORT}/`);
-    console.log(`   API: http://localhost:${PORT}/api/*`);
-    console.log(`   Health: http://localhost:${PORT}/health`);
-    console.log(`   Mode: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`   _Frontend: http://localhost:${PORT}/`);
+    console.log(`   _API: http://localhost:${PORT}/api/*`);
+    console.log(`   _Health: http://localhost:${PORT}/health`);
+    console.log(`   _Mode: ${process.env.NODE_ENV || 'development'}`);
   });
 }
 
 startServer().catch((error) => {
-  console.error(`Failed to start server: ${error}`);
+  console.error(`Failed to start _server: ${error}`);
   process.exit(1);
 });

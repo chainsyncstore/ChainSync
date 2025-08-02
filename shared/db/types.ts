@@ -13,13 +13,13 @@ type Supplier = import('./suppliers').Supplier;
 
 // Global type augmentations
 declare global {
-  var stores: any; // Will be populated at runtime
-  var users: any;   // Will be populated at runtime
-  var products: any; // Will be populated at runtime
-  var categories: any; // Will be populated at runtime
-  var inventory: any; // Will be populated at runtime
-  var inventoryBatches: any; // Will be populated at runtime
-  var suppliers: any; // Will be populated at runtime
+  var _stores: any; // Will be populated at runtime
+  var _users: any;   // Will be populated at runtime
+  var _products: any; // Will be populated at runtime
+  var _categories: any; // Will be populated at runtime
+  var _inventory: any; // Will be populated at runtime
+  var _inventoryBatches: any; // Will be populated at runtime
+  var _suppliers: any; // Will be populated at runtime
 }
 
 // Initialize global references

@@ -3,16 +3,16 @@
 import * as crypto from 'crypto';
 import { getLogger } from '../../src/logging/index.js';
 
-const logger = getLogger().child({ component: 'encryption-service' });
+const logger = getLogger().child({ _component: 'encryption-service' });
 
 // Encryption configuration
 const ENCRYPTION_CONFIG = {
-  algorithm: 'aes-256-gcm',
-  keyLength: 32, // 256 bits
-  ivLength: 16, // 128 bits
-  tagLength: 16, // 128 bits
-  saltLength: 32, // 256 bits
-  iterations: 100000 // PBKDF2 iterations
+  _algorithm: 'aes-256-gcm',
+  _keyLength: 32, // 256 bits
+  _ivLength: 16, // 128 bits
+  _tagLength: 16, // 128 bits
+  _saltLength: 32, // 256 bits
+  _iterations: 100000 // PBKDF2 iterations
 };
 
 /**
@@ -20,7 +20,7 @@ const ENCRYPTION_CONFIG = {
  * Provides methods for encrypting and decrypting data at rest
  */
 export class EncryptionService {
-  private masterKey: Buffer;
+  private _masterKey: Buffer;
 
   constructor(masterKey?: string) {
     // Use environment variable or generate a new key
@@ -50,7 +50,7 @@ export class EncryptionService {
    * @param context - Optional context for key derivation
    * @returns Encrypted data as base64 string
    */
-  encrypt(data: string, context?: string): string {
+  encrypt(_data: string, context?: string): string {
     try {
       // Generate a random IV
       const iv = crypto.randomBytes(ENCRYPTION_CONFIG.ivLength);
@@ -69,8 +69,8 @@ export class EncryptionService {
       const result = Buffer.concat([iv, Buffer.from(encrypted, 'hex')]);
 
       logger.debug('Data encrypted successfully', {
-        dataLength: data.length,
-        context: context || 'default'
+        _dataLength: data.length,
+        _context: context || 'default'
       });
 
       return result.toString('base64');
@@ -86,7 +86,7 @@ export class EncryptionService {
    * @param context - Optional context for key derivation (must match encryption context)
    * @returns Decrypted data
    */
-  decrypt(encryptedData: string, context?: string): string {
+  decrypt(_encryptedData: string, context?: string): string {
     try {
       // Convert from base64
       const data = Buffer.from(encryptedData, 'base64');
@@ -107,8 +107,8 @@ export class EncryptionService {
       decrypted += decipher.final('utf8');
 
       logger.debug('Data decrypted successfully', {
-        dataLength: decrypted.length,
-        context: context || 'default'
+        _dataLength: decrypted.length,
+        _context: context || 'default'
       });
 
       return decrypted;
@@ -147,13 +147,13 @@ export class EncryptionService {
    * @param salt - Optional salt
    * @returns Hashed data
    */
-  static hash(data: string, salt?: string): { hash: string; salt: string } {
+  static hash(_data: string, salt?: string): { _hash: string; _salt: string } {
     const generatedSalt = salt || crypto.randomBytes(ENCRYPTION_CONFIG.saltLength).toString('hex');
     const hash = crypto.pbkdf2Sync(data, generatedSalt, ENCRYPTION_CONFIG.iterations, 64, 'sha512');
 
     return {
-      hash: hash.toString('hex'),
-      salt: generatedSalt
+      _hash: hash.toString('hex'),
+      _salt: generatedSalt
     };
   }
 
@@ -164,7 +164,7 @@ export class EncryptionService {
    * @param salt - Stored salt
    * @returns True if data matches hash
    */
-  static verifyHash(data: string, hash: string, salt: string): boolean {
+  static verifyHash(_data: string, _hash: string, _salt: string): boolean {
     const computedHash = crypto.pbkdf2Sync(data, salt, ENCRYPTION_CONFIG.iterations, 64, 'sha512');
     return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), computedHash);
   }
@@ -174,7 +174,7 @@ export class EncryptionService {
    * @param length - Token length in bytes
    * @returns Random token
    */
-  static generateToken(length: number = 32): string {
+  static generateToken(_length: number = 32): string {
     return crypto.randomBytes(length).toString('hex');
   }
 
@@ -183,7 +183,7 @@ export class EncryptionService {
    * @param length - Password length
    * @returns Random password
    */
-  static generatePassword(length: number = 16): string {
+  static generatePassword(_length: number = 16): string {
     const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let password = '';
 

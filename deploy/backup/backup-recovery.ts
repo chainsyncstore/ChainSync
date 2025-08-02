@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getLogger } from '../../src/logging';
 
-const logger = getLogger().child({ component: 'backup-recovery' });
+const logger = getLogger().child({ _component: 'backup-recovery' });
 
 // Backup types
 export enum BackupType {
@@ -23,14 +23,14 @@ export enum BackupStatus {
 
 // Backup interface
 export interface Backup {
-  id: string;
-  type: BackupType;
-  status: BackupStatus;
-  timestamp: Date;
-  size: number;
-  location: string;
-  checksum: string;
-  metadata: Record<string, any>;
+  _id: string;
+  _type: BackupType;
+  _status: BackupStatus;
+  _timestamp: Date;
+  _size: number;
+  _location: string;
+  _checksum: string;
+  _metadata: Record<string, any>;
   error?: string;
   verifiedAt?: Date;
   verifiedBy?: string;
@@ -38,107 +38,107 @@ export interface Backup {
 
 // Recovery interface
 export interface Recovery {
-  id: string;
-  backupId: string;
+  _id: string;
+  _backupId: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  timestamp: Date;
-  targetLocation: string;
-  metadata: Record<string, any>;
+  _timestamp: Date;
+  _targetLocation: string;
+  _metadata: Record<string, any>;
   error?: string;
 }
 
 // Backup configuration
 export interface BackupConfig {
-  schedule: {
-    full: string; // cron expression
-    incremental: string; // cron expression
+  _schedule: {
+    _full: string; // cron expression
+    _incremental: string; // cron expression
     retention: {
-      full: number; // days
-      incremental: number; // days
+      _full: number; // days
+      _incremental: number; // days
     };
   };
   storage: {
     local: {
-      enabled: boolean;
-      path: string;
-      maxSize: number; // bytes
+      _enabled: boolean;
+      _path: string;
+      _maxSize: number; // bytes
     };
     remote: {
-      enabled: boolean;
+      _enabled: boolean;
       type: 's3' | 'gcs' | 'azure';
-      bucket: string;
-      region: string;
+      _bucket: string;
+      _region: string;
       credentials: {
-        accessKey: string;
-        secretKey: string;
+        _accessKey: string;
+        _secretKey: string;
       };
     };
   };
   compression: {
-    enabled: boolean;
+    _enabled: boolean;
     algorithm: 'gzip' | 'bzip2' | 'lz4';
   };
   encryption: {
-    enabled: boolean;
+    _enabled: boolean;
     algorithm: 'AES-256' | 'ChaCha20';
   };
   verification: {
-    enabled: boolean;
-    autoVerify: boolean;
+    _enabled: boolean;
+    _autoVerify: boolean;
   };
 }
 
 // Default configuration
-const defaultConfig: BackupConfig = {
+const _defaultConfig: BackupConfig = {
   schedule: {
     full: '0 2 * * 0', // Weekly on Sunday at 2 AM
-    incremental: '0 2 * * 1-6', // Daily at 2 AM (except Sunday)
-    retention: {
-      full: 30, // 30 days
-      incremental: 7, // 7 days
-    },
+    _incremental: '0 2 * * 1-6', // Daily at 2 AM (except Sunday)
+    _retention: {
+      _full: 30, // 30 days
+      _incremental: 7 // 7 days
+    }
   },
-  storage: {
+  _storage: {
     local: {
-      enabled: true,
-      path: './backups',
-      maxSize: 10 * 1024 * 1024 * 1024, // 10GB
+      _enabled: true,
+      _path: './backups',
+      _maxSize: 10 * 1024 * 1024 * 1024 // 10GB
     },
-    remote: {
-      enabled: false,
-      type: 's3',
-      bucket: '',
-      region: '',
-      credentials: {
+    _remote: {
+      _enabled: false,
+      _type: 's3',
+      _bucket: '',
+      _region: '',
+      _credentials: {
         accessKey: '',
-        secretKey: '',
-      },
-    },
+        _secretKey: ''
+      }
+    }
   },
-  compression: {
-    enabled: true,
-    algorithm: 'gzip',
+  _compression: {
+    _enabled: true,
+    _algorithm: 'gzip'
   },
-  encryption: {
-    enabled: true,
-    algorithm: 'AES-256',
+  _encryption: {
+    _enabled: true,
+    _algorithm: 'AES-256'
   },
-  verification: {
-    enabled: true,
-    autoVerify: true,
-  },
+  _verification: {
+    _enabled: true,
+    _autoVerify: true
+  }
 };
 
 /**
  * Backup and Recovery System
  */
 export class BackupRecovery extends EventEmitter {
-  private config: BackupConfig;
-  private backups: Map<string, Backup> = new Map();
-  private recoveries: Map<string, Recovery> = new Map();
-  private backupInProgress: boolean = false;
+  private _config: BackupConfig;
+  private _backups: Map<string, Backup> = new Map();
+  private _recoveries: Map<string, Recovery> = new Map();
+  private _backupInProgress: boolean = false;
 
-  constructor(config: Partial<BackupConfig> = {}) {
+  constructor(_config: Partial<BackupConfig> = {}) {
     super();
     this.config = { ...defaultConfig, ...config };
     this.initializeBackupSystem();
@@ -151,15 +151,15 @@ export class BackupRecovery extends EventEmitter {
   private async initializeBackupSystem(): Promise<void> {
     try {
       if (this.config.storage.local.enabled) {
-        await fs.mkdir(this.config.storage.local.path, { recursive: true });
+        await fs.mkdir(this.config.storage.local.path, { _recursive: true });
       }
-      
+
       // Load existing backups
       await this.loadExistingBackups();
-      
+
       // Start scheduled backups
       this.startScheduledBackups();
-      
+
       logger.info('Backup system initialized successfully');
     } catch (error) {
       logger.error('Failed to initialize backup system', { error });
@@ -175,18 +175,18 @@ export class BackupRecovery extends EventEmitter {
 
     try {
       const files = await fs.readdir(this.config.storage.local.path);
-      
+
       for (const file of files) {
         if (file.endsWith('.json')) {
           const filePath = path.join(this.config.storage.local.path, file);
           const content = await fs.readFile(filePath, 'utf8');
           const backup = JSON.parse(content) as Backup;
-          
+
           this.backups.set(backup.id, backup);
         }
       }
-      
-      logger.info('Loaded existing backups', { count: this.backups.size });
+
+      logger.info('Loaded existing backups', { _count: this.backups.size });
     } catch (error) {
       logger.error('Failed to load existing backups', { error });
     }
@@ -210,7 +210,7 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Run scheduled backup
    */
-  private async runScheduledBackup(type: BackupType): Promise<void> {
+  private async runScheduledBackup(_type: BackupType): Promise<void> {
     if (this.backupInProgress) {
       logger.warn('Backup already in progress, skipping scheduled backup');
       return;
@@ -226,29 +226,29 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Create a new backup
    */
-  async createBackup(type: BackupType, metadata?: Record<string, any>): Promise<Backup> {
+  async createBackup(_type: BackupType, metadata?: Record<string, any>): Promise<Backup> {
     if (this.backupInProgress) {
       throw new Error('Backup already in progress');
     }
 
     this.backupInProgress = true;
 
-    const backup: Backup = {
-      id: this.generateBackupId(),
+    const _backup: Backup = {
+      _id: this.generateBackupId(),
       type,
-      status: BackupStatus.PENDING,
-      timestamp: new Date(),
-      size: 0,
-      location: '',
-      checksum: '',
-      metadata: metadata || {},
+      _status: BackupStatus.PENDING,
+      _timestamp: new Date(),
+      _size: 0,
+      _location: '',
+      _checksum: '',
+      _metadata: metadata || {}
     };
 
     this.backups.set(backup.id, backup);
     this.emit('backup-started', backup);
 
     try {
-      logger.info('Starting backup', { backupId: backup.id, type });
+      logger.info('Starting backup', { _backupId: backup.id, type });
 
       // Update status to in progress
       backup.status = BackupStatus.IN_PROGRESS;
@@ -256,7 +256,7 @@ export class BackupRecovery extends EventEmitter {
 
       // Perform backup
       const result = await this.performBackup(backup);
-      
+
       // Update backup with results
       Object.assign(backup, result);
       backup.status = BackupStatus.COMPLETED;
@@ -270,16 +270,16 @@ export class BackupRecovery extends EventEmitter {
       await this.cleanupOldBackups();
 
       this.emit('backup-completed', backup);
-      logger.info('Backup completed successfully', { backupId: backup.id, size: backup.size });
+      logger.info('Backup completed successfully', { _backupId: backup.id, _size: backup.size });
 
       return backup;
     } catch (error) {
       backup.status = BackupStatus.FAILED;
       backup.error = error instanceof Error ? error.message : 'Unknown error';
-      
+
       this.emit('backup-failed', backup);
-      logger.error('Backup failed', { backupId: backup.id, error });
-      
+      logger.error('Backup failed', { _backupId: backup.id, error });
+
       throw error;
     } finally {
       this.backupInProgress = false;
@@ -289,7 +289,7 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Perform the actual backup
    */
-  private async performBackup(backup: Backup): Promise<Partial<Backup>> {
+  private async performBackup(_backup: Backup): Promise<Partial<Backup>> {
     const backupFileName = `${backup.id}-${backup.type}-${backup.timestamp.toISOString().split('T')[0]}.tar.gz`;
     const backupPath = path.join(this.config.storage.local.path, backupFileName);
 
@@ -302,15 +302,15 @@ export class BackupRecovery extends EventEmitter {
 
     return {
       size,
-      location: backupPath,
-      checksum,
+      _location: backupPath,
+      checksum
     };
   }
 
   /**
    * Verify backup integrity
    */
-  async verifyBackup(backupId: string): Promise<boolean> {
+  async verifyBackup(_backupId: string): Promise<boolean> {
     const backup = this.backups.get(backupId);
     if (!backup) {
       throw new Error(`Backup ${backupId} not found`);
@@ -350,7 +350,7 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Restore from backup
    */
-  async restoreFromBackup(backupId: string, targetLocation: string): Promise<Recovery> {
+  async restoreFromBackup(_backupId: string, _targetLocation: string): Promise<Recovery> {
     const backup = this.backups.get(backupId);
     if (!backup) {
       throw new Error(`Backup ${backupId} not found`);
@@ -360,20 +360,20 @@ export class BackupRecovery extends EventEmitter {
       throw new Error(`Cannot restore from backup in ${backup.status} status`);
     }
 
-    const recovery: Recovery = {
-      id: this.generateRecoveryId(),
+    const _recovery: Recovery = {
+      _id: this.generateRecoveryId(),
       backupId,
-      status: 'pending',
-      timestamp: new Date(),
+      _status: 'pending',
+      _timestamp: new Date(),
       targetLocation,
-      metadata: {},
+      _metadata: {}
     };
 
     this.recoveries.set(recovery.id, recovery);
     this.emit('recovery-started', recovery);
 
     try {
-      logger.info('Starting recovery', { recoveryId: recovery.id, backupId });
+      logger.info('Starting recovery', { _recoveryId: recovery.id, backupId });
 
       recovery.status = 'in_progress';
       this.emit('recovery-progress', recovery);
@@ -384,7 +384,7 @@ export class BackupRecovery extends EventEmitter {
       recovery.status = 'completed';
       this.emit('recovery-completed', recovery);
 
-      logger.info('Recovery completed successfully', { recoveryId: recovery.id });
+      logger.info('Recovery completed successfully', { _recoveryId: recovery.id });
 
       return recovery;
     } catch (error) {
@@ -392,7 +392,7 @@ export class BackupRecovery extends EventEmitter {
       recovery.error = error instanceof Error ? error.message : 'Unknown error';
 
       this.emit('recovery-failed', recovery);
-      logger.error('Recovery failed', { recoveryId: recovery.id, error });
+      logger.error('Recovery failed', { _recoveryId: recovery.id, error });
 
       throw error;
     }
@@ -401,7 +401,7 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Perform the actual recovery
    */
-  private async performRecovery(recovery: Recovery, backup: Backup): Promise<void> {
+  private async performRecovery(_recovery: Recovery, _backup: Backup): Promise<void> {
     // Simulate recovery process
     await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds
 
@@ -411,10 +411,10 @@ export class BackupRecovery extends EventEmitter {
     }
 
     // Simulate file extraction and restoration
-    logger.info('Recovery process completed', { 
-      recoveryId: recovery.id, 
-      backupLocation: backup.location,
-      targetLocation: recovery.targetLocation 
+    logger.info('Recovery process completed', {
+      _recoveryId: recovery.id,
+      _backupLocation: backup.location,
+      _targetLocation: recovery.targetLocation
     });
   }
 
@@ -423,12 +423,12 @@ export class BackupRecovery extends EventEmitter {
    */
   private async cleanupOldBackups(): Promise<void> {
     const now = new Date();
-    const backupsToDelete: string[] = [];
+    const _backupsToDelete: string[] = [];
 
     for (const [id, backup] of this.backups) {
       const ageInDays = (now.getTime() - backup.timestamp.getTime()) / (1000 * 60 * 60 * 24);
-      const retentionDays = backup.type === BackupType.FULL 
-        ? this.config.schedule.retention.full 
+      const retentionDays = backup.type === BackupType.FULL
+        ? this.config.schedule.retention._full
         : this.config.schedule.retention.incremental;
 
       if (ageInDays > retentionDays) {
@@ -441,14 +441,14 @@ export class BackupRecovery extends EventEmitter {
     }
 
     if (backupsToDelete.length > 0) {
-      logger.info('Cleaned up old backups', { deletedCount: backupsToDelete.length });
+      logger.info('Cleaned up old backups', { _deletedCount: backupsToDelete.length });
     }
   }
 
   /**
    * Delete backup
    */
-  async deleteBackup(backupId: string): Promise<void> {
+  async deleteBackup(_backupId: string): Promise<void> {
     const backup = this.backups.get(backupId);
     if (!backup) {
       throw new Error(`Backup ${backupId} not found`);
@@ -474,7 +474,7 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Get backup by ID
    */
-  getBackup(backupId: string): Backup | undefined {
+  getBackup(_backupId: string): Backup | undefined {
     return this.backups.get(backupId);
   }
 
@@ -488,7 +488,7 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Get recent backups
    */
-  getRecentBackups(limit: number = 10): Backup[] {
+  getRecentBackups(_limit: number = 10): Backup[] {
     return Array.from(this.backups.values())
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, limit);
@@ -497,14 +497,14 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Get backups by type
    */
-  getBackupsByType(type: BackupType): Backup[] {
+  getBackupsByType(_type: BackupType): Backup[] {
     return Array.from(this.backups.values()).filter(backup => backup.type === type);
   }
 
   /**
    * Get recovery by ID
    */
-  getRecovery(recoveryId: string): Recovery | undefined {
+  getRecovery(_recoveryId: string): Recovery | undefined {
     return this.recoveries.get(recoveryId);
   }
 
@@ -523,19 +523,19 @@ export class BackupRecovery extends EventEmitter {
     const now = new Date();
 
     return {
-      total: backups.length,
-      byType: Object.values(BackupType).reduce((acc, type) => {
+      _total: backups.length,
+      _byType: Object.values(BackupType).reduce((acc, type) => {
         acc[type] = backups.filter(b => b.type === type).length;
         return acc;
       }, {} as Record<BackupType, number>),
-      byStatus: Object.values(BackupStatus).reduce((acc, status) => {
+      _byStatus: Object.values(BackupStatus).reduce((acc, status) => {
         acc[status] = backups.filter(b => b.status === status).length;
         return acc;
       }, {} as Record<BackupStatus, number>),
-      totalSize: backups.reduce((sum, backup) => sum + backup.size, 0),
-      averageSize: backups.length > 0 ? backups.reduce((sum, backup) => sum + backup.size, 0) / backups.length : 0,
-      lastBackup: backups.length > 0 ? Math.max(...backups.map(b => b.timestamp.getTime())) : null,
-      recoveries: this.recoveries.size,
+      _totalSize: backups.reduce((sum, backup) => sum + backup.size, 0),
+      _averageSize: backups.length > 0 ? backups.reduce((sum, backup) => sum + backup.size, 0) / backups._length : 0,
+      _lastBackup: backups.length > 0 ? Math.max(...backups.map(b => b.timestamp.getTime())) : null,
+      _recoveries: this.recoveries.size
     };
   }
 
@@ -556,7 +556,7 @@ export class BackupRecovery extends EventEmitter {
   /**
    * Generate checksum
    */
-  private generateChecksum(data: string): string {
+  private generateChecksum(_data: string): string {
     const crypto = require('crypto');
     return crypto.createHash('sha256').update(data).digest('hex');
   }
@@ -566,16 +566,16 @@ export class BackupRecovery extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     logger.info('Shutting down Backup and Recovery System');
-    
+
     // Wait for any in-progress backup to complete
     if (this.backupInProgress) {
       logger.info('Waiting for in-progress backup to complete');
       // In a real implementation, you might want to wait or cancel the backup
     }
-    
+
     this.removeAllListeners();
   }
 }
 
 // Export default instance
-export const backupRecovery = new BackupRecovery(); 
+export const backupRecovery = new BackupRecovery();

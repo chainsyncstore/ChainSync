@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.addBatch = addBatch;
 exports.getBatches = getBatches;
 exports.getBatchById = getBatchById;
@@ -50,30 +50,30 @@ const drizzle_orm_1 = require('drizzle-orm');
 async function addBatch(batchData) {
   try {
     let inventory = await db_1.db.query.inventory.findFirst({
-      where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.inventory.storeId, batchData.storeId), (0, drizzle_orm_1.eq)(schema.inventory.productId, batchData.productId))
+      _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.inventory.storeId, batchData.storeId), (0, drizzle_orm_1.eq)(schema.inventory.productId, batchData.productId))
     });
     if (!inventory) {
       [inventory] = await db_1.db.insert(schema.inventory).values({
-        storeId: batchData.storeId,
-        productId: batchData.productId,
-        quantity: 0,
-        minStock: 5
+        _storeId: batchData.storeId,
+        _productId: batchData.productId,
+        _quantity: 0,
+        _minStock: 5
       }).returning();
     }
     const [batch] = await db_1.db.insert(schema.inventoryBatches).values({
-      inventoryId: inventory.id,
-      batchNumber: batchData.batchNumber,
-      quantity: batchData.quantity,
-      expiryDate: batchData.expiryDate ? new Date(batchData.expiryDate) : null,
-      receivedDate: new Date(),
-      manufacturingDate: batchData.manufacturingDate ? new Date(batchData.manufacturingDate) : null,
-      costPerUnit: batchData.costPerUnit?.toString() || null
+      _inventoryId: inventory.id,
+      _batchNumber: batchData.batchNumber,
+      _quantity: batchData.quantity,
+      _expiryDate: batchData.expiryDate ? new Date(batchData.expiryDate) : null,
+      _receivedDate: new Date(),
+      _manufacturingDate: batchData.manufacturingDate ? new Date(batchData.manufacturingDate) : null,
+      _costPerUnit: batchData.costPerUnit?.toString() || null
     }).returning();
     await updateInventoryTotalQuantity(inventory.id);
     return batch;
   }
   catch (error) {
-    console.error('Error adding batch:', error);
+    console.error('Error adding _batch:', error);
     throw new Error('Failed to add inventory batch');
   }
 }
@@ -83,7 +83,7 @@ async function addBatch(batchData) {
 async function getBatches(storeId, productId, includeExpired = false) {
   try {
     const inventory = await db_1.db.query.inventory.findFirst({
-      where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.inventory.storeId, storeId), (0, drizzle_orm_1.eq)(schema.inventory.productId, productId))
+      _where: (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema.inventory.storeId, storeId), (0, drizzle_orm_1.eq)(schema.inventory.productId, productId))
     });
     if (!inventory) {
       return [];
@@ -93,12 +93,12 @@ async function getBatches(storeId, productId, includeExpired = false) {
       conditions.push((0, drizzle_orm_1.isNull)(schema.inventoryBatches.expiryDate));
     }
     return await db_1.db.query.inventoryBatches.findMany({
-      where: (0, drizzle_orm_1.and)(...conditions),
-      orderBy: [(0, drizzle_orm_1.desc)(schema.inventoryBatches.expiryDate)]
+      _where: (0, drizzle_orm_1.and)(...conditions),
+      _orderBy: [(0, drizzle_orm_1.desc)(schema.inventoryBatches.expiryDate)]
     });
   }
   catch (error) {
-    console.error('Error getting batches:', error);
+    console.error('Error getting _batches:', error);
     throw new Error('Failed to retrieve inventory batches');
   }
 }
@@ -108,11 +108,11 @@ async function getBatches(storeId, productId, includeExpired = false) {
 async function getBatchById(batchId) {
   try {
     return await db_1.db.query.inventoryBatches.findFirst({
-      where: (0, drizzle_orm_1.eq)(schema.inventoryBatches.id, batchId)
+      _where: (0, drizzle_orm_1.eq)(schema.inventoryBatches.id, batchId)
     });
   }
   catch (error) {
-    console.error('Error getting batch by ID:', error);
+    console.error('Error getting batch by _ID:', error);
     throw new Error('Failed to retrieve inventory batch');
   }
 }
@@ -140,7 +140,7 @@ async function updateBatch(batchId, updateData) {
     return await getBatchById(batchId);
   }
   catch (error) {
-    console.error('Error updating batch:', error);
+    console.error('Error updating _batch:', error);
     throw new Error('Failed to update inventory batch');
   }
 }
@@ -157,12 +157,12 @@ async function adjustBatchStock(adjustment) {
     if (newQuantity < 0) {
       throw new Error('Adjustment would result in negative stock');
     }
-    await db_1.db.update(schema.inventoryBatches).set({ quantity: newQuantity }).where((0, drizzle_orm_1.eq)(schema.inventoryBatches.id, adjustment.batchId));
+    await db_1.db.update(schema.inventoryBatches).set({ _quantity: newQuantity }).where((0, drizzle_orm_1.eq)(schema.inventoryBatches.id, adjustment.batchId));
     await updateInventoryTotalQuantity(currentBatch.inventoryId);
     return await getBatchById(adjustment.batchId);
   }
   catch (error) {
-    console.error('Error adjusting batch stock:', error);
+    console.error('Error adjusting batch _stock:', error);
     throw new Error('Failed to adjust batch stock');
   }
 }
@@ -173,12 +173,12 @@ async function sellFromBatch(batchId, quantity) {
   try {
     return await adjustBatchStock({
       batchId,
-      quantity: -Math.abs(quantity), // Ensure quantity is negative for selling
-      reason: 'Sale'
+      _quantity: -Math.abs(quantity), // Ensure quantity is negative for selling
+      _reason: 'Sale'
     });
   }
   catch (error) {
-    console.error('Error selling from batch:', error);
+    console.error('Error selling from _batch:', error);
     throw new Error('Failed to sell from batch');
   }
 }
@@ -189,12 +189,12 @@ async function returnToBatch(batchId, quantity) {
   try {
     return await adjustBatchStock({
       batchId,
-      quantity: Math.abs(quantity), // Ensure quantity is positive for returns
-      reason: 'Return'
+      _quantity: Math.abs(quantity), // Ensure quantity is positive for returns
+      _reason: 'Return'
     });
   }
   catch (error) {
-    console.error('Error returning to batch:', error);
+    console.error('Error returning to _batch:', error);
     throw new Error('Failed to process return to batch');
   }
 }
@@ -227,20 +227,20 @@ async function sellFromBatchesFIFO(storeId, productId, quantity) {
       }
     }
     if (remainingQty > 0) {
-      throw new Error(`Insufficient stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`);
+      throw new Error(`Insufficient _stock: ${quantity - remainingQty} units sold, ${remainingQty} units remaining`);
     }
     return updatedBatches;
   }
   catch (error) {
-    console.error('Error selling with FIFO logic:', error);
+    console.error('Error selling with FIFO _logic:', error);
     throw new Error('Failed to process sale with FIFO logic');
   }
 }
 async function updateInventoryTotalQuantity(inventoryId) {
   const result = await db_1.db
-    .select({ total: (0, drizzle_orm_1.sum)(schema.inventoryBatches.quantity) })
+    .select({ _total: (0, drizzle_orm_1.sum)(schema.inventoryBatches.quantity) })
     .from(schema.inventoryBatches)
     .where((0, drizzle_orm_1.eq)(schema.inventoryBatches.inventoryId, inventoryId));
   const totalQuantity = Number(result[0].total) || 0;
-  await db_1.db.update(schema.inventory).set({ quantity: totalQuantity }).where((0, drizzle_orm_1.eq)(schema.inventory.id, inventoryId));
+  await db_1.db.update(schema.inventory).set({ _quantity: totalQuantity }).where((0, drizzle_orm_1.eq)(schema.inventory.id, inventoryId));
 }

@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.storage = void 0;
 // In-memory storage implementation for development
 class MemStorage {
@@ -9,18 +9,18 @@ class MemStorage {
     this.products = new Map();
     this.inventory = new Map();
     this.transactions = new Map();
-    this.nextId = { users: 1, stores: 1, products: 1, inventory: 1, transactions: 1 };
+    this.nextId = { _users: 1, _stores: 1, _products: 1, _inventory: 1, _transactions: 1 };
   }
   // User operations
   async createUser(user) {
     const newUser = {
       ...user,
-      id: this.nextId.users++,
-      role: user.role || 'cashier',
-      storeId: user.storeId || null,
-      isActive: user.isActive || true,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      _id: this.nextId.users++,
+      _role: user.role || 'cashier',
+      _storeId: user.storeId || null,
+      _isActive: user.isActive || true,
+      _createdAt: new Date(),
+      _updatedAt: new Date()
     };
     this.users.set(newUser.id, newUser);
     return newUser;
@@ -39,7 +39,7 @@ class MemStorage {
     const user = this.users.get(id);
     if (!user)
       return null;
-    const updatedUser = { ...user, ...updates, updatedAt: new Date() };
+    const updatedUser = { ...user, ...updates, _updatedAt: new Date() };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -53,19 +53,19 @@ class MemStorage {
   async createStore(store) {
     const newStore = {
       ...store,
-      id: this.nextId.stores++,
-      managerId: store.managerId || null,
-      isActive: store.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      address: store.address ?? null,
-      city: store.city ?? null,
-      state: store.state ?? null,
-      country: store.country ?? null,
-      phone: store.phone ?? null,
-      email: store.email ?? null,
-      timezone: store.timezone ?? null,
-      status: store.status ?? 'active'
+      _id: this.nextId.stores++,
+      _managerId: store.managerId || null,
+      _isActive: store.isActive ?? true,
+      _createdAt: new Date(),
+      _updatedAt: new Date(),
+      _address: store.address ?? null,
+      _city: store.city ?? null,
+      _state: store.state ?? null,
+      _country: store.country ?? null,
+      _phone: store.phone ?? null,
+      _email: store.email ?? null,
+      _timezone: store.timezone ?? null,
+      _status: store.status ?? 'active'
     };
     this.stores.set(newStore.id, newStore);
     return newStore;
@@ -80,7 +80,7 @@ class MemStorage {
     const store = this.stores.get(id);
     if (!store)
       return null;
-    const updatedStore = { ...store, ...updates, updatedAt: new Date() };
+    const updatedStore = { ...store, ...updates, _updatedAt: new Date() };
     this.stores.set(id, updatedStore);
     return updatedStore;
   }
@@ -91,19 +91,19 @@ class MemStorage {
   async createProduct(product) {
     const newProduct = {
       ...product,
-      id: this.nextId.products++,
-      description: product.description ?? null,
-      barcode: product.barcode ?? null,
-      cost: product.cost ?? null,
-      categoryId: product.categoryId ?? null,
-      brandId: product.brandId ?? null,
-      unit: product.unit ?? 'pcs',
-      isActive: product.isActive ?? true,
-      isPerishable: product.isPerishable ?? false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      imageUrl: product.imageUrl ?? null,
-      attributes: product.attributes ?? null
+      _id: this.nextId.products++,
+      _description: product.description ?? null,
+      _barcode: product.barcode ?? null,
+      _cost: product.cost ?? null,
+      _categoryId: product.categoryId ?? null,
+      _brandId: product.brandId ?? null,
+      _unit: product.unit ?? 'pcs',
+      _isActive: product.isActive ?? true,
+      _isPerishable: product.isPerishable ?? false,
+      _createdAt: new Date(),
+      _updatedAt: new Date(),
+      _imageUrl: product.imageUrl ?? null,
+      _attributes: product.attributes ?? null
     };
     this.products.set(newProduct.id, newProduct);
     return newProduct;
@@ -136,7 +136,7 @@ class MemStorage {
     const product = this.products.get(id);
     if (!product)
       return null;
-    const updatedProduct = { ...product, ...updates, updatedAt: new Date() };
+    const updatedProduct = { ...product, ...updates, _updatedAt: new Date() };
     this.products.set(id, updatedProduct);
     return updatedProduct;
   }
@@ -147,17 +147,17 @@ class MemStorage {
   async createInventoryItem(inventory) {
     const newInventory = {
       ...inventory,
-      id: this.nextId.inventory++,
-      quantity: inventory.quantity ?? 0,
-      minStock: inventory.minStock ?? 0,
-      maxStock: inventory.maxStock ?? null,
-      lastRestocked: inventory.lastRestocked ?? null,
-      updatedAt: new Date(),
-      batchTracking: inventory.batchTracking ?? false,
-      currentUtilization: inventory.currentUtilization ?? 0,
-      totalQuantity: inventory.totalQuantity ?? inventory.quantity ?? 0,
-      availableQuantity: inventory.availableQuantity ?? inventory.quantity ?? 0,
-      minimumLevel: inventory.minimumLevel ?? inventory.minStock ?? 0
+      _id: this.nextId.inventory++,
+      _quantity: inventory.quantity ?? 0,
+      _minStock: inventory.minStock ?? 0,
+      _maxStock: inventory.maxStock ?? null,
+      _lastRestocked: inventory.lastRestocked ?? null,
+      _updatedAt: new Date(),
+      _batchTracking: inventory.batchTracking ?? false,
+      _currentUtilization: inventory.currentUtilization ?? 0,
+      _totalQuantity: inventory.totalQuantity ?? inventory.quantity ?? 0,
+      _availableQuantity: inventory.availableQuantity ?? inventory.quantity ?? 0,
+      _minimumLevel: inventory.minimumLevel ?? inventory.minStock ?? 0
     };
     this.inventory.set(newInventory.id, newInventory);
     return newInventory;
@@ -175,14 +175,14 @@ class MemStorage {
     const inventory = this.inventory.get(id);
     if (!inventory)
       return null;
-    const updatedInventory = { ...inventory, ...updates, updatedAt: new Date() };
+    const updatedInventory = { ...inventory, ...updates, _updatedAt: new Date() };
     this.inventory.set(id, updatedInventory);
     return updatedInventory;
   }
   async updateInventoryQuantity(productId, storeId, quantity) {
     for (const [id, item] of this.inventory) {
       if (item.productId === productId && item.storeId === storeId) {
-        const updatedInventory = { ...item, quantity, updatedAt: new Date() };
+        const updatedInventory = { ...item, quantity, _updatedAt: new Date() };
         this.inventory.set(id, updatedInventory);
         return updatedInventory;
       }
@@ -192,20 +192,20 @@ class MemStorage {
   async getLowStockItems(storeId) {
     return Array.from(this.inventory.values()).filter(item => {
       const isLowStock = item.quantity !== null && item.minStock !== null && item.quantity <= item.minStock;
-      return isLowStock && (storeId ? item.storeId === storeId : true);
+      return isLowStock && (storeId ? item.storeId === _storeId : true);
     });
   }
   // Transaction operations
   async createTransaction(transaction) {
     const newTransaction = {
       ...transaction,
-      id: this.nextId.transactions++,
-      customerId: transaction.customerId ?? null,
-      tax: transaction.tax ?? '0',
-      discount: transaction.discount ?? '0',
-      status: transaction.status ?? 'pending',
-      items: transaction.items ?? null,
-      createdAt: new Date()
+      _id: this.nextId.transactions++,
+      _customerId: transaction.customerId ?? null,
+      _tax: transaction.tax ?? '0',
+      _discount: transaction.discount ?? '0',
+      _status: transaction.status ?? 'pending',
+      _items: transaction.items ?? null,
+      _createdAt: new Date()
     };
     this.transactions.set(newTransaction.id, newTransaction);
     return newTransaction;

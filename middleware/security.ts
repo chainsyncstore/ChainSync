@@ -5,123 +5,123 @@ import { RequestHandler, Application } from 'express';
 
 // Security headers configuration
 const securityHeaders = helmet({
-  contentSecurityPolicy: {
+  _contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
-      connectSrc: ["'self'", "https:", "http:"],
-      frameSrc: ["'self'"],
-      fontSrc: ["'self'", "https:", "http:"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'", "https:", "http:"],
-      childSrc: ["'self'"],
-      formAction: ["'self'"],
-      baseUri: ["'self'"],
-      upgradeInsecureRequests: [],
-      blockAllMixedContent: []
+      _scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https:', 'http:'],
+      _styleSrc: ["'self'", "'unsafe-inline'"],
+      _imgSrc: ["'self'", 'data:', 'https:', 'http:'],
+      _connectSrc: ["'self'", 'https:', 'http:'],
+      _frameSrc: ["'self'"],
+      _fontSrc: ["'self'", 'https:', 'http:'],
+      _objectSrc: ["'none'"],
+      _mediaSrc: ["'self'", 'https:', 'http:'],
+      _childSrc: ["'self'"],
+      _formAction: ["'self'"],
+      _baseUri: ["'self'"],
+      _upgradeInsecureRequests: [],
+      _blockAllMixedContent: []
     }
   },
-  crossOriginEmbedderPolicy: false,
-  crossOriginOpenerPolicy: false,
-  crossOriginResourcePolicy: false,
-  dnsPrefetchControl: false,
-  frameguard: { action: 'sameorigin' },
-  hidePoweredBy: true,
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
+  _crossOriginEmbedderPolicy: false,
+  _crossOriginOpenerPolicy: false,
+  _crossOriginResourcePolicy: false,
+  _dnsPrefetchControl: false,
+  _frameguard: { action: 'sameorigin' },
+  _hidePoweredBy: true,
+  _hsts: {
+    _maxAge: 31536000,
+    _includeSubDomains: true,
+    _preload: true
   },
-  ieNoOpen: true,
-  noSniff: true,
-  originAgentCluster: false,
-  permittedCrossDomainPolicies: false,
-  referrerPolicy: { policy: 'same-origin' },
-  xssFilter: false
+  _ieNoOpen: true,
+  _noSniff: true,
+  _originAgentCluster: false,
+  _permittedCrossDomainPolicies: false,
+  _referrerPolicy: { policy: 'same-origin' },
+  _xssFilter: false
 });
 
 // General rate limiter
 const generalRateLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX_REQUESTS,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  message: {
-    success: false,
-    error: {
+  _windowMs: env.RATE_LIMIT_WINDOW_MS,
+  _max: env.RATE_LIMIT_MAX_REQUESTS,
+  _standardHeaders: true,
+  _legacyHeaders: false,
+  _skipSuccessfulRequests: true,
+  _message: {
+    _success: false,
+    _error: {
       message: 'Too many requests from this IP, please try again later.',
-      details: 'Rate limit exceeded'
+      _details: 'Rate limit exceeded'
     }
   }
 });
 
 // Setup security middleware
-export const setupSecurity = (app: Application) => {
+export const setupSecurity = (_app: Application) => {
   app.use(securityHeaders);
   app.use(generalRateLimiter);
-  
+
   // Add helmet middleware
   app.use(helmet());
-  
+
   // Add content security policy
   app.use(helmet.contentSecurityPolicy({
-    directives: {
+    _directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
-      connectSrc: ["'self'", "https:", "http:"],
-      frameSrc: ["'self'"],
-      fontSrc: ["'self'", "https:", "http:"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'", "https:", "http:"],
-      childSrc: ["'self'"],
-      formAction: ["'self'"],
-      baseUri: ["'self'"],
-      upgradeInsecureRequests: [],
-      blockAllMixedContent: []
+      _scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https:', 'http:'],
+      _styleSrc: ["'self'", "'unsafe-inline'"],
+      _imgSrc: ["'self'", 'data:', 'https:', 'http:'],
+      _connectSrc: ["'self'", 'https:', 'http:'],
+      _frameSrc: ["'self'"],
+      _fontSrc: ["'self'", 'https:', 'http:'],
+      _objectSrc: ["'none'"],
+      _mediaSrc: ["'self'", 'https:', 'http:'],
+      _childSrc: ["'self'"],
+      _formAction: ["'self'"],
+      _baseUri: ["'self'"],
+      _upgradeInsecureRequests: [],
+      _blockAllMixedContent: []
     }
   }));
-  
+
   // Add HSTS
   app.use(helmet.hsts({
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
+    _maxAge: 31536000,
+    _includeSubDomains: true,
+    _preload: true
   }));
-  
+
   // Add X-Frame-Options
-  app.use(helmet.frameguard({ action: 'sameorigin' }));
-  
+  app.use(helmet.frameguard({ _action: 'sameorigin' }));
+
   // Add X-Content-Type-Options
   app.use(helmet.noSniff());
-  
+
   // Add X-XSS-Protection
   app.use(helmet.xssFilter());
-  
+
   // Add Referrer Policy
-  app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
-  
+  app.use(helmet.referrerPolicy({ _policy: 'same-origin' }));
+
   // Add CSP
   app.use(helmet.contentSecurityPolicy({
-    directives: {
+    _directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
-      connectSrc: ["'self'", "https:", "http:"],
-      frameSrc: ["'self'"],
-      fontSrc: ["'self'", "https:", "http:"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'", "https:", "http:"],
-      childSrc: ["'self'"],
-      formAction: ["'self'"],
-      baseUri: ["'self'"],
-      upgradeInsecureRequests: [],
-      blockAllMixedContent: []
+      _scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https:', 'http:'],
+      _styleSrc: ["'self'", "'unsafe-inline'"],
+      _imgSrc: ["'self'", 'data:', 'https:', 'http:'],
+      _connectSrc: ["'self'", 'https:', 'http:'],
+      _frameSrc: ["'self'"],
+      _fontSrc: ["'self'", 'https:', 'http:'],
+      _objectSrc: ["'none'"],
+      _mediaSrc: ["'self'", 'https:', 'http:'],
+      _childSrc: ["'self'"],
+      _formAction: ["'self'"],
+      _baseUri: ["'self'"],
+      _upgradeInsecureRequests: [],
+      _blockAllMixedContent: []
     }
   }));
-}
+};

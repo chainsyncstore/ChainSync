@@ -1,108 +1,108 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import React from &apos;react&apos;;
+import { useQuery } from &apos;@tanstack/react-query&apos;;
+import { format } from &apos;date-fns&apos;;
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  TableRow
+} from &apos;@/components/ui/table&apos;;
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Info } from "lucide-react";
+  TooltipTrigger
+} from &apos;@/components/ui/tooltip&apos;;
+import { Badge } from &apos;@/components/ui/badge&apos;;
+import { ScrollArea } from &apos;@/components/ui/scroll-area&apos;;
+import { Loader2, Info } from &apos;lucide-react&apos;;
 
 interface BatchAuditLog {
-  id: number;
-  batchId: number;
-  userId: number;
-  action: string;
-  details: any;
+  _id: number;
+  _batchId: number;
+  _userId: number;
+  _action: string;
+  _details: any;
   quantityBefore?: number;
   quantityAfter?: number;
-  createdAt: string;
+  _createdAt: string;
   user?: {
-    id: number;
-    username: string;
+    _id: number;
+    _username: string;
     name?: string;
   };
 }
 
 interface BatchAuditLogProps {
-  batchId: number;
+  _batchId: number;
 }
 
 export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
-  const { data: logs, isLoading, error } = useQuery<BatchAuditLog[]>({
-    queryKey: [`/api/inventory/batches/${batchId}/audit-logs`],
-    enabled: !!batchId,
+  const { _data: logs, isLoading, error } = useQuery<BatchAuditLog[]>({
+    _queryKey: [`/api/inventory/batches/${batchId}/audit-logs`],
+    _enabled: !!batchId
   });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-4 min-h-[200px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className=&quot;flex items-center justify-center p-4 min-h-[200px]&quot;>
+        <Loader2 className=&quot;h-8 w-8 animate-spin text-primary&quot; />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-destructive p-4 text-center">
-        Error loading audit logs: {error instanceof Error ? error.message : 'Unknown error'}
+      <div className=&quot;text-destructive p-4 text-center&quot;>
+        Error loading audit _logs: {error instanceof Error ? error.message : &apos;Unknown error&apos;}
       </div>
     );
   }
 
   if (!logs || logs.length === 0) {
     return (
-      <div className="text-muted-foreground p-4 text-center">
+      <div className=&quot;text-muted-foreground p-4 text-center&quot;>
         No audit logs found for this batch.
       </div>
     );
   }
 
-  const getActionBadge = (action: string) => {
+  const getActionBadge = (_action: string) => {
     switch (action.toLowerCase()) {
-      case 'create':
-        return <Badge className="bg-green-500 hover:bg-green-600">Created</Badge>;
-      case 'update':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Updated</Badge>;
-      case 'delete':
-        return <Badge className="bg-red-500 hover:bg-red-600">Deleted</Badge>;
-      case 'adjust':
-        return <Badge className="bg-amber-500 hover:bg-amber-600">Adjusted</Badge>;
-      default:
+      case &apos;create&apos;:
+        return <Badge className=&quot;bg-green-500 _hover:bg-green-600&quot;>Created</Badge>;
+      case &apos;update&apos;:
+        return <Badge className=&quot;bg-blue-500 _hover:bg-blue-600&quot;>Updated</Badge>;
+      case &apos;delete&apos;:
+        return <Badge className=&quot;bg-red-500 _hover:bg-red-600&quot;>Deleted</Badge>;
+      case &apos;adjust&apos;:
+        return <Badge className=&quot;bg-amber-500 _hover:bg-amber-600&quot;>Adjusted</Badge>;
+      _default:
         return <Badge>{action}</Badge>;
     }
   };
 
-  const formatChanges = (details: any) => {
+  const formatChanges = (_details: any) => {
     if (details.changes && Array.isArray(details.changes)) {
-      return details.changes.map((change: any, index: number) => (
-        <div key={index} className="text-sm mb-1">
-          <span className="font-medium">{change.field}:</span>{' '}
-          <span className="line-through text-muted-foreground">{formatValue(change.oldValue)}</span>{' '}
-          <span className="text-primary">→</span>{' '}
+      return details.changes.map((_change: any, _index: number) => (
+        <div key={index} className=&quot;text-sm mb-1&quot;>
+          <span className=&quot;font-medium&quot;>{change.field}:</span>{&apos; &apos;}
+          <span className=&quot;line-through text-muted-foreground&quot;>{formatValue(change.oldValue)}</span>{&apos; &apos;}
+          <span className=&quot;text-primary&quot;>→</span>{&apos; &apos;}
           <span>{formatValue(change.newValue)}</span>
         </div>
       ));
     }
-    
+
     return (
-      <div className="text-sm">
-        {details.batchNumber && <div><span className="font-medium">Batch:</span> {details.batchNumber}</div>}
-        {details.productName && <div><span className="font-medium">Product:</span> {details.productName}</div>}
+      <div className=&quot;text-sm&quot;>
+        {details.batchNumber && <div><span className=&quot;font-medium&quot;>Batch:</span> {details.batchNumber}</div>}
+        {details.productName && <div><span className=&quot;font-medium&quot;>Product:</span> {details.productName}</div>}
         {details.wasForceDeleted !== undefined && (
-          <div className="text-amber-500">
-            {details.wasForceDeleted ? 'Force deleted' : 'Normal deletion'}
+          <div className=&quot;text-amber-500&quot;>
+            {details.wasForceDeleted ? &apos;Force deleted&apos; : &apos;Normal deletion&apos;}
             {details.quantityLost > 0 && ` (lost ${details.quantityLost} units)`}
           </div>
         )}
@@ -110,16 +110,16 @@ export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
     );
   };
 
-  const formatValue = (value: any) => {
-    if (value === null || value === undefined) return 'None';
-    if (value === true) return 'Yes';
-    if (value === false) return 'No';
-    if (typeof value === 'object' && value instanceof Date) return format(new Date(value), 'PPP');
+  const formatValue = (_value: any) => {
+    if (value === null || value === undefined) return &apos;None&apos;;
+    if (value === true) return &apos;Yes&apos;;
+    if (value === false) return &apos;No&apos;;
+    if (typeof value === &apos;object&apos; && value instanceof Date) return format(new Date(value), &apos;PPP&apos;);
     return String(value);
   };
 
   return (
-    <ScrollArea className="h-[400px]">
+    <ScrollArea className=&quot;h-[400px]&quot;>
       <Table>
         <TableHeader>
           <TableRow>
@@ -133,8 +133,8 @@ export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
         <TableBody>
           {logs.map((log) => (
             <TableRow key={log.id}>
-              <TableCell className="whitespace-nowrap">
-                {format(new Date(log.createdAt), 'PPp')}
+              <TableCell className=&quot;whitespace-nowrap&quot;>
+                {format(new Date(log.createdAt), &apos;PPp&apos;)}
               </TableCell>
               <TableCell>{getActionBadge(log.action)}</TableCell>
               <TableCell>{log.user?.name || log.user?.username || `User #${log.userId}`}</TableCell>
@@ -144,13 +144,13 @@ export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center">
-                          <span className={`${log.quantityAfter > log.quantityBefore ? 'text-green-500' : 
-                                           log.quantityAfter < log.quantityBefore ? 'text-red-500' : ''}`}>
+                        <div className=&quot;flex items-center&quot;>
+                          <span className={`${log.quantityAfter > log.quantityBefore ? &apos;text-green-500&apos; :
+                                           log.quantityAfter < log.quantityBefore ? &apos;text-red-500&apos; : &apos;&apos;}`}>
                             {log.quantityBefore} → {log.quantityAfter}
                           </span>
                           {log.quantityBefore !== log.quantityAfter && (
-                            <Info className="h-4 w-4 ml-1 text-muted-foreground" />
+                            <Info className=&quot;h-4 w-4 ml-1 text-muted-foreground&quot; />
                           )}
                         </div>
                       </TooltipTrigger>
@@ -160,7 +160,7 @@ export function BatchAuditLog({ batchId }: BatchAuditLogProps) {
                             ? `Added ${log.quantityAfter - log.quantityBefore} units`
                             : log.quantityAfter < log.quantityBefore
                             ? `Removed ${log.quantityBefore - log.quantityAfter} units`
-                            : 'No quantity change'}
+                            : &apos;No quantity change&apos;}
                         </p>
                       </TooltipContent>
                     </Tooltip>

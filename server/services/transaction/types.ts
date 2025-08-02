@@ -49,38 +49,38 @@ export enum TransactionStatus {
 }
 
 export interface CreateTransactionParams {
-  storeId: number;
+  _storeId: number;
   customerId?: number;
-  userId: number;
-  type: TransactionType;
-  subtotal: string;
-  tax: string;
+  _userId: number;
+  _type: TransactionType;
+  _subtotal: string;
+  _tax: string;
   discount?: string;
-  total: string;
-  paymentMethod: PaymentMethod;
+  _total: string;
+  _paymentMethod: PaymentMethod;
   notes?: string;
   reference?: string;
-  items: Array<{
-    productId: number;
-    quantity: number;
-    unitPrice: string;
+  _items: Array<{
+    _productId: number;
+    _quantity: number;
+    _unitPrice: string;
     discount?: string;
     notes?: string;
   }>;
   payments?: Array<{
-    amount: string;
-    method: PaymentMethod;
+    _amount: string;
+    _method: PaymentMethod;
     reference?: string;
   }>;
   loyaltyPoints?: {
-    earned: number;
-    redeemed: number;
+    _earned: number;
+    _redeemed: number;
   };
 }
 
 export interface UpdateTransactionParams {
-  userId: number;
-  transactionId: number;
+  _userId: number;
+  _transactionId: number;
   customerId?: number;
   type?: TransactionType;
   status?: TransactionStatus;
@@ -89,7 +89,7 @@ export interface UpdateTransactionParams {
 }
 
 export interface TransactionSearchParams {
-  storeId: number;
+  _storeId: number;
   keyword?: string;
   startDate?: Date;
   endDate?: Date;
@@ -108,17 +108,17 @@ export interface TransactionSearchParams {
 }
 
 export interface RefundParams {
-  transactionId: number;
+  _transactionId: number;
   customerId?: number;
-  reason: string;
-  userId: number;
-  refundMethod: PaymentMethod;
+  _reason: string;
+  _userId: number;
+  _refundMethod: PaymentMethod;
   fullRefund?: boolean;
   items?: Array<{
-    productId: number;
-    transactionItemId: number;
-    quantity: number;
-    unitPrice: string;
+    _productId: number;
+    _transactionItemId: number;
+    _quantity: number;
+    _unitPrice: string;
     isRestocked?: boolean;
   }>;
   amount?: string;
@@ -126,31 +126,31 @@ export interface RefundParams {
 }
 
 export interface TransactionServiceErrors {
-  TRANSACTION_NOT_FOUND: Error;
-  TRANSACTION_ITEM_NOT_FOUND: Error;
-  STORE_NOT_FOUND: Error;
-  PRODUCT_NOT_FOUND: Error;
-  CUSTOMER_NOT_FOUND: Error;
-  USER_NOT_FOUND: Error;
-  INVALID_REFUND: Error;
-  INSUFFICIENT_STOCK: Error;
-  PAYMENT_VALIDATION_FAILED: Error;
-  INVALID_PAYMENT_AMOUNT: Error;
-  INVALID_TRANSACTION_STATUS: Error;
-  INVALID_REFUND_AMOUNT: Error;
+  _TRANSACTION_NOT_FOUND: Error;
+  _TRANSACTION_ITEM_NOT_FOUND: Error;
+  _STORE_NOT_FOUND: Error;
+  _PRODUCT_NOT_FOUND: Error;
+  _CUSTOMER_NOT_FOUND: Error;
+  _USER_NOT_FOUND: Error;
+  _INVALID_REFUND: Error;
+  _INSUFFICIENT_STOCK: Error;
+  _PAYMENT_VALIDATION_FAILED: Error;
+  _INVALID_PAYMENT_AMOUNT: Error;
+  _INVALID_TRANSACTION_STATUS: Error;
+  _INVALID_REFUND_AMOUNT: Error;
 }
 
-export const TransactionServiceErrors: TransactionServiceErrors = {
-  TRANSACTION_NOT_FOUND: new Error('Transaction not found'),
-  TRANSACTION_ITEM_NOT_FOUND: new Error('Transaction item not found'),
-  STORE_NOT_FOUND: new Error('Store not found'),
-  PRODUCT_NOT_FOUND: new Error('Product not found'),
-  CUSTOMER_NOT_FOUND: new Error('Customer not found'),
-  USER_NOT_FOUND: new Error('User not found'),
-  INVALID_REFUND: new Error('Invalid refund operation'),
-  INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
-  PAYMENT_VALIDATION_FAILED: new Error('Payment validation failed'),
-  INVALID_PAYMENT_AMOUNT: new Error('Invalid payment amount'),
-  INVALID_TRANSACTION_STATUS: new Error('Invalid transaction status'),
-  INVALID_REFUND_AMOUNT: new Error('Invalid refund amount')
+export const _TransactionServiceErrors: TransactionServiceErrors = {
+  _TRANSACTION_NOT_FOUND: new Error('Transaction not found'),
+  _TRANSACTION_ITEM_NOT_FOUND: new Error('Transaction item not found'),
+  _STORE_NOT_FOUND: new Error('Store not found'),
+  _PRODUCT_NOT_FOUND: new Error('Product not found'),
+  _CUSTOMER_NOT_FOUND: new Error('Customer not found'),
+  _USER_NOT_FOUND: new Error('User not found'),
+  _INVALID_REFUND: new Error('Invalid refund operation'),
+  _INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
+  _PAYMENT_VALIDATION_FAILED: new Error('Payment validation failed'),
+  _INVALID_PAYMENT_AMOUNT: new Error('Invalid payment amount'),
+  _INVALID_TRANSACTION_STATUS: new Error('Invalid transaction status'),
+  _INVALID_REFUND_AMOUNT: new Error('Invalid refund amount')
 };

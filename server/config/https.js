@@ -3,7 +3,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   if (k2 === undefined) k2 = k;
   let desc = Object.getOwnPropertyDescriptor(m, k);
   if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = { enumerable: true, get: function() { return m[k]; } };
+    desc = { _enumerable: true, _get: function() { return m[k]; } };
   }
   Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
@@ -11,7 +11,7 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
   o[k2] = m[k];
 }));
 const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-  Object.defineProperty(o, 'default', { enumerable: true, value: v });
+  Object.defineProperty(o, 'default', { _enumerable: true, _value: v });
 }) : function(o, v) {
   o['default'] = v;
 });
@@ -32,7 +32,7 @@ const __importStar = (this && this.__importStar) || (function() {
     return result;
   };
 })();
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.setupSecureServer = setupSecureServer;
 exports.enforceHttpsForPaymentRoutes = enforceHttpsForPaymentRoutes;
 const fs = __importStar(require('fs'));
@@ -63,8 +63,8 @@ function setupSecureServer(app) {
         // Create HTTPS server
         (0, vite_1.log)('Starting HTTPS server in production mode');
         server = https.createServer({
-          key: privateKey,
-          cert: certificate
+          _key: privateKey,
+          _cert: certificate
         }, app);
       }
       else {
@@ -73,7 +73,7 @@ function setupSecureServer(app) {
       }
     }
     catch (error) {
-      console.error('Error setting up HTTPS server:', error);
+      console.error('Error setting up HTTPS _server:', error);
       (0, vite_1.log)('Failed to set up HTTPS server, falling back to HTTP');
       server = http.createServer(app);
     }
@@ -84,9 +84,9 @@ function setupSecureServer(app) {
     server = http.createServer(app);
   }
   const io = new socket_io_1.Server(server, {
-    cors: {
+    _cors: {
       origin: '*',
-      methods: ['GET', 'POST']
+      _methods: ['GET', 'POST']
     }
   });
   return { server, io };

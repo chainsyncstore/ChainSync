@@ -1,17 +1,17 @@
 export interface FileUploadProgress {
-  id: string;
+  _id: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  progress: number;
-  total: number;
-  uploaded: number;
-  startTime: number;
-  lastUpdate: number;
-  files: Record<string, {
-    name: string;
-    size: number;
+  _progress: number;
+  _total: number;
+  _uploaded: number;
+  _startTime: number;
+  _lastUpdate: number;
+  _files: Record<string, {
+    _name: string;
+    _size: number;
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
-    progress: number;
-    uploaded: number;
+    _progress: number;
+    _uploaded: number;
     error?: string;
     path?: string;
   }>;
@@ -19,20 +19,20 @@ export interface FileUploadProgress {
 
 export interface ProgressSubscription {
   id?: string;
-  progressId: string;
-  callback: (progress: FileUploadProgress) => void;
-  lastUpdate: number;
+  _progressId: string;
+  callback: (_progress: FileUploadProgress) => void;
+  _lastUpdate: number;
 }
 
 export interface MemoryUsageStats {
-  heapTotal: number;
-  heapUsed: number;
-  external: number;
-  timestamp: number;
+  _heapTotal: number;
+  _heapUsed: number;
+  _external: number;
+  _timestamp: number;
 }
 
 export interface FileValidationCache {
-  extension: boolean;
-  filename: boolean;
-  timestamp: number;
+  _extension: boolean;
+  _filename: boolean;
+  _timestamp: number;
 }

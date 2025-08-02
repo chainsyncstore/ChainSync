@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ValidationService = void 0;
 const errors_1 = require('@shared/types/errors');
 class ValidationService {
@@ -15,7 +15,7 @@ class ValidationService {
         if (typeof record !== 'object' || record === null) {
           invalidRecords.push({
             record,
-            errors: ['Invalid record format']
+            _errors: ['Invalid record format']
           });
           continue;
         }
@@ -25,7 +25,7 @@ class ValidationService {
         for (const field of requiredFields) {
           if (!record[field]) {
             isValid = false;
-            validationErrors.push(`Missing required field: ${field}`);
+            validationErrors.push(`Missing required _field: ${field}`);
           }
         }
         // Apply filters
@@ -41,13 +41,13 @@ class ValidationService {
         else {
           invalidRecords.push({
             record,
-            errors: validationErrors
+            _errors: validationErrors
           });
         }
       }
       return {
-        validCount: validRecords.length,
-        invalidCount: invalidRecords.length,
+        _validCount: validRecords.length,
+        _invalidCount: invalidRecords.length,
         validRecords,
         invalidRecords
       };

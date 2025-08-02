@@ -8,39 +8,39 @@ import { nanoid } from 'nanoid';
 
 const viteLogger = createLogger();
 
-export function log(message: string, source = 'express') {
+export function log(_message: string, source = 'express') {
   const formattedTime = new Date().toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
+    _hour: 'numeric',
+    _minute: '2-digit',
+    _second: '2-digit',
+    _hour12: true
   });
 
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-export async function setupVite(app: Express, server: Server) {
+export async function setupVite(_app: Express, _server: Server) {
   const serverOptions = {
-    middlewareMode: true,
-    hmr: {
+    _middlewareMode: true,
+    _hmr: {
       server
     },
     // Explicitly set allowedHosts to true as per Vite ServerOptions type
-    allowedHosts: true as const
+    _allowedHosts: true as const
   };
 
   const vite = await createViteServer({
     ...viteConfig,
-    configFile: false,
-    customLogger: {
+    _configFile: false,
+    _customLogger: {
       ...viteLogger,
-      error: (msg, options) => {
+      _error: (msg, options) => {
         viteLogger.error(msg, options);
         process.exit(1);
       }
     },
-    server: serverOptions,
-    appType: 'custom'
+    _server: serverOptions,
+    _appType: 'custom'
   });
 
   app.use(vite.middlewares);
@@ -62,12 +62,12 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
-export function serveStatic(app: Express) {
+export function serveStatic(_app: Express) {
   const distPath = path.resolve(__dirname, 'public');
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
+      `Could not find the build _directory: ${distPath}, make sure to build the client first`
     );
   }
 

@@ -3,8 +3,8 @@
 export interface AIService {
   // Text Generation
   generateCompletion(
-    userId: string,
-    prompt: string,
+    _userId: string,
+    _prompt: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -16,10 +16,10 @@ export interface AIService {
   ): Promise<string>;
 
   generateChat(
-    userId: string,
-    messages: Array<{
+    _userId: string,
+    _messages: Array<{
       role: 'user' | 'assistant' | 'system';
-      content: string;
+      _content: string;
     }>,
     options?: {
       temperature?: number;
@@ -33,8 +33,8 @@ export interface AIService {
 
   // Code Generation
   generateCode(
-    userId: string,
-    prompt: string,
+    _userId: string,
+    _prompt: string,
     language?: string,
     options?: {
       temperature?: number;
@@ -44,9 +44,9 @@ export interface AIService {
   ): Promise<string>;
 
   generateCodeReview(
-    userId: string,
-    code: string,
-    language: string,
+    _userId: string,
+    _code: string,
+    _language: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -55,8 +55,8 @@ export interface AIService {
 
   // Image Generation
   generateImage(
-    userId: string,
-    prompt: string,
+    _userId: string,
+    _prompt: string,
     options?: {
       n?: number;
       size?: '256x256' | '512x512' | '1024x1024';
@@ -65,9 +65,9 @@ export interface AIService {
   ): Promise<string | string[]>;
 
   generateImageEdit(
-    userId: string,
-    image: string,
-    prompt: string,
+    _userId: string,
+    _image: string,
+    _prompt: string,
     mask?: string,
     options?: {
       n?: number;
@@ -77,8 +77,8 @@ export interface AIService {
 
   // Document Processing
   generateSummary(
-    userId: string,
-    text: string,
+    _userId: string,
+    _text: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -86,9 +86,9 @@ export interface AIService {
   ): Promise<string>;
 
   generateTranslation(
-    userId: string,
-    text: string,
-    targetLanguage: string,
+    _userId: string,
+    _text: string,
+    _targetLanguage: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -97,9 +97,9 @@ export interface AIService {
 
   // Code Analysis
   analyzeCode(
-    userId: string,
-    code: string,
-    language: string,
+    _userId: string,
+    _code: string,
+    _language: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -107,9 +107,9 @@ export interface AIService {
   ): Promise<string>;
 
   generateDocumentation(
-    userId: string,
-    code: string,
-    language: string,
+    _userId: string,
+    _code: string,
+    _language: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -118,9 +118,9 @@ export interface AIService {
 
   // Data Analysis
   analyzeData(
-    userId: string,
-    data: string,
-    question: string,
+    _userId: string,
+    _data: string,
+    _question: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -128,9 +128,9 @@ export interface AIService {
   ): Promise<string>;
 
   generateVisualization(
-    userId: string,
-    data: string,
-    question: string,
+    _userId: string,
+    _data: string,
+    _question: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -139,8 +139,8 @@ export interface AIService {
 
   // Content Generation
   generateBlogPost(
-    userId: string,
-    topic: string,
+    _userId: string,
+    _topic: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -149,9 +149,9 @@ export interface AIService {
   ): Promise<string>;
 
   generateSocialMediaPost(
-    userId: string,
-    topic: string,
-    platform: string,
+    _userId: string,
+    _topic: string,
+    _platform: string,
     options?: {
       temperature?: number;
       maxTokens?: number;
@@ -160,31 +160,31 @@ export interface AIService {
 
   // Usage Tracking
   getUsageStats(
-    userId: string
+    _userId: string
   ): Promise<{
-    totalRequests: number;
-    averageDuration: number;
-    lastRequest: number;
+    _totalRequests: number;
+    _averageDuration: number;
+    _lastRequest: number;
     rateLimit: {
-      maxRequests: number;
-      window: number;
-      remaining: number;
+      _maxRequests: number;
+      _window: number;
+      _remaining: number;
     };
   }>;
 
   // Cache Management
   clearCache(
-    userId: string
+    _userId: string
   ): Promise<void>;
 
   // Model Management
   listAvailableModels(): Promise<string[]>;
 
   getModelCapabilities(
-    model: string
+    _model: string
   ): Promise<{
-    maxTokens: number;
+    _maxTokens: number;
     temperatureRange: [number, number];
-    supportedFeatures: string[];
+    _supportedFeatures: string[];
   }>;
 }

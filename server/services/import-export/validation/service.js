@@ -1,5 +1,5 @@
 'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
+Object.defineProperty(exports, '__esModule', { _value: true });
 exports.ValidationService = void 0;
 const zod_1 = require('zod');
 const schema_1 = require('./schema');
@@ -30,13 +30,13 @@ class ValidationService {
   }
   toSchemaType(type) {
     const typeMapping = {
-      products: 'product',
-      users: 'customer',
-      transactions: 'order'
+      _products: 'product',
+      _users: 'customer',
+      _transactions: 'order'
     };
     const schemaType = typeMapping[type];
     if (!schemaType) {
-      throw new Error(`Invalid type: ${type}`);
+      throw new Error(`Invalid _type: ${type}`);
     }
     return schemaType;
   }
@@ -44,7 +44,7 @@ class ValidationService {
     const schemaType = this.toSchemaType(type);
     const schema = schema_1.schemas[schemaType];
     if (!schema) {
-      throw new Error(`No validation schema found for type: ${type}`);
+      throw new Error(`No validation schema found for _type: ${type}`);
     }
     const cacheKey = this.getCacheKey(data, type);
     const cachedResult = this.cache.get(cacheKey);
@@ -53,37 +53,37 @@ class ValidationService {
         return cachedResult.data;
       }
       else {
-        throw new errors_1.AppError(errors_1.ErrorCategory.IMPORT_EXPORT, import_export_errors_1.ImportExportErrorCodes.INVALID_FORMAT, `Validation failed: ${this.extractErrors(cachedResult.error).join(', ')}`, { errors: this.extractErrors(cachedResult.error) }, 400);
+        throw new errors_1.AppError(errors_1.ErrorCategory.IMPORT_EXPORT, import_export_errors_1.ImportExportErrorCodes.INVALID_FORMAT, `Validation _failed: ${this.extractErrors(cachedResult.error).join(', ')}`, { _errors: this.extractErrors(cachedResult.error) }, 400);
       }
     }
     try {
       const validatedData = await schema.parseAsync(data);
       this.cache.set(cacheKey, {
-        timestamp: Date.now(),
-        success: true,
-        data: validatedData
+        _timestamp: Date.now(),
+        _success: true,
+        _data: validatedData
       });
       return validatedData;
     }
     catch (error) {
       const errorMessages = this.extractErrors(error);
       this.cache.set(cacheKey, {
-        timestamp: Date.now(),
-        success: false,
+        _timestamp: Date.now(),
+        _success: false,
         error
       });
-      throw new errors_1.AppError(errors_1.ErrorCategory.IMPORT_EXPORT, import_export_errors_1.ImportExportErrorCodes.INVALID_FORMAT, `Validation failed: ${errorMessages.join(', ')}`, { errors: errorMessages }, 400);
+      throw new errors_1.AppError(errors_1.ErrorCategory.IMPORT_EXPORT, import_export_errors_1.ImportExportErrorCodes.INVALID_FORMAT, `Validation _failed: ${errorMessages.join(', ')}`, { _errors: errorMessages }, 400);
     }
   }
   async validateBatch(data, type) {
     const schemaType = this.toSchemaType(type);
     const schema = schema_1.schemas[schemaType];
     if (!schema) {
-      throw new Error(`No validation schema found for type: ${type}`);
+      throw new Error(`No validation schema found for _type: ${type}`);
     }
     const results = {
-      valid: [],
-      invalid: []
+      _valid: [],
+      _invalid: []
     };
     for (let i = 0; i < data.length; i++) {
       const cacheKey = this.getCacheKey(data[i], type);
@@ -94,8 +94,8 @@ class ValidationService {
         }
         else {
           results.invalid.push({
-            index: i,
-            errors: this.extractErrors(cachedResult.error)
+            _index: i,
+            _errors: this.extractErrors(cachedResult.error)
           });
         }
         continue;
@@ -103,25 +103,25 @@ class ValidationService {
       try {
         const validated = await schema.parseAsync(data[i]);
         this.cache.set(cacheKey, {
-          timestamp: Date.now(),
-          success: true,
-          data: validated
+          _timestamp: Date.now(),
+          _success: true,
+          _data: validated
         });
         results.valid.push(validated);
       }
       catch (error) {
         const errors = this.extractErrors(error);
         this.cache.set(cacheKey, {
-          timestamp: Date.now(),
-          success: false,
+          _timestamp: Date.now(),
+          _success: false,
           error
         });
         results.invalid.push({
-          index: i,
+          _index: i,
           errors
         });
         if (this.strictMode) {
-          throw new errors_1.AppError(errors_1.ErrorCategory.IMPORT_EXPORT, import_export_errors_1.ImportExportErrorCodes.INVALID_FORMAT, `Validation failed for item at index ${i}`, { index: i, errors }, 400);
+          throw new errors_1.AppError(errors_1.ErrorCategory.IMPORT_EXPORT, import_export_errors_1.ImportExportErrorCodes.INVALID_FORMAT, `Validation failed for item at index ${i}`, { _index: i, errors }, 400);
         }
       }
     }

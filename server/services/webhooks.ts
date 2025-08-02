@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 // import { AffiliateService } from "./affiliate/service"; // Unused
 // import { PaymentService } from "./payment/service"; // Unused
 // Helper function to prepare subscription data
-function prepareSubscriptionData(data: any) {
+function prepareSubscriptionData(_data: any) {
   return data; // Simple pass-through for now
 }
 import {
@@ -16,7 +16,7 @@ import * as crypto from 'crypto';
 /**
  * Verify Paystack webhook signature
  */
-function verifyPaystackSignature(signature: string, payload: string): boolean {
+function verifyPaystackSignature(_signature: string, _payload: string): boolean {
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
     if (!secret) {
@@ -27,7 +27,7 @@ function verifyPaystackSignature(signature: string, payload: string): boolean {
     const hash = crypto.createHmac('sha512', secret).update(payload).digest('hex');
     return hash === signature;
   } catch (error) {
-    console.error('Error verifying Paystack signature:', error);
+    console.error('Error verifying Paystack _signature:', error);
     return false;
   }
 }
@@ -35,7 +35,7 @@ function verifyPaystackSignature(signature: string, payload: string): boolean {
 /**
  * Verify Flutterwave webhook signature
  */
-function verifyFlutterwaveSignature(signature: string, payload: string): boolean {
+function verifyFlutterwaveSignature(_signature: string, _payload: string): boolean {
   try {
     const secret = process.env.FLW_SECRET_HASH;
     if (!secret) {
@@ -46,7 +46,7 @@ function verifyFlutterwaveSignature(signature: string, payload: string): boolean
     const hash = crypto.createHmac('sha512', secret).update(payload).digest('hex');
     return hash === signature;
   } catch (error) {
-    console.error('Error verifying Flutterwave signature:', error);
+    console.error('Error verifying Flutterwave _signature:', error);
     return false;
   }
 }
@@ -54,7 +54,7 @@ function verifyFlutterwaveSignature(signature: string, payload: string): boolean
 /**
  * Handle Paystack webhook events
  */
-export async function handlePaystackWebhook(signature: string, rawPayload: string): Promise<boolean> {
+export async function handlePaystackWebhook(_signature: string, _rawPayload: string): Promise<boolean> {
   try {
     // Verify the webhook signature
     if (!verifyPaystackSignature(signature, rawPayload)) {
@@ -79,12 +79,11 @@ export async function handlePaystackWebhook(signature: string, rawPayload: strin
         // Subscription cancelled or expired
         return await handlePaystackSubscriptionDisable(payload.data);
 
-      default:
-        console.log(`Unhandled Paystack event: ${event}`);
+      console.log(`Unhandled Paystack event: ${event}`);
         return true;
     }
   } catch (error) {
-    console.error('Error handling Paystack webhook:', error);
+    console.error('Error handling Paystack _webhook:', error);
     return false;
   }
 }
@@ -92,7 +91,7 @@ export async function handlePaystackWebhook(signature: string, rawPayload: strin
 /**
  * Handle Flutterwave webhook events
  */
-export async function handleFlutterwaveWebhook(signature: string, rawPayload: string): Promise<boolean> {
+export async function handleFlutterwaveWebhook(_signature: string, _rawPayload: string): Promise<boolean> {
   try {
     // Verify the webhook signature
     if (!verifyFlutterwaveSignature(signature, rawPayload)) {
@@ -117,12 +116,11 @@ export async function handleFlutterwaveWebhook(signature: string, rawPayload: st
         // Subscription cancelled
         return await handleFlutterwaveSubscriptionCancelled(payload.data);
 
-      default:
-        console.log(`Unhandled Flutterwave event: ${event}`);
+      console.log(`Unhandled Flutterwave event: ${event}`);
         return true;
     }
   } catch (error) {
-    console.error('Error handling Flutterwave webhook:', error);
+    console.error('Error handling Flutterwave _webhook:', error);
     return false;
   }
 }
@@ -130,7 +128,7 @@ export async function handleFlutterwaveWebhook(signature: string, rawPayload: st
 /**
  * Handle Paystack subscription create event
  */
-async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
+async function handlePaystackSubscriptionCreate(_data: any): Promise<boolean> {
   try {
     // Extract user and subscription details
     const userId = data.customer.metadata.user_id;
@@ -162,21 +160,21 @@ async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
     }
 
     // Create subscription record
-    const subscriptionData: schema.SubscriptionInsert = {
+    const _subscriptionData: schema.SubscriptionInsert = {
       userId,
-      planId: plan,
-      status: 'active',
-      amount: discountedAmount.toString(),
+      _planId: plan,
+      _status: 'active',
+      _amount: discountedAmount.toString(),
       currency,
-      referralCode: referralCode || undefined,
-      currentPeriodStart: startDate,
-      currentPeriodEnd: endDate,
-      autoRenew: true,
-      paymentMethod: 'paystack',
-      metadata: JSON.stringify({
-        paymentReference: data.reference,
-        paystackCode: data.subscription_code,
-        paystackCustomerCode: data.customer.customer_code
+      _referralCode: referralCode || undefined,
+      _currentPeriodStart: startDate,
+      _currentPeriodEnd: endDate,
+      _autoRenew: true,
+      _paymentMethod: 'paystack',
+      _metadata: JSON.stringify({
+        _paymentReference: data.reference,
+        _paystackCode: data.subscription_code,
+        _paystackCustomerCode: data.customer.customer_code
       })
     };
 
@@ -192,7 +190,7 @@ async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error handling Paystack subscription create:', error);
+    console.error('Error handling Paystack subscription _create:', error);
     return false;
   }
 }
@@ -200,7 +198,7 @@ async function handlePaystackSubscriptionCreate(data: any): Promise<boolean> {
 /**
  * Handle Paystack charge success event
  */
-async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
+async function handlePaystackChargeSuccess(_data: any): Promise<boolean> {
   try {
     // This handles one-time payments and subscription renewals
     const metadata = data.metadata || {};
@@ -217,8 +215,8 @@ async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
       const [subscription] = await db.select()
         .from(schema.subscriptions)
         .where(eq(schema.subscriptions.metadata, JSON.stringify({
-          paystackCode: metadata.subscription_code,
-          paystackCustomerCode: data.customer.customer_code
+          _paystackCode: metadata.subscription_code,
+          _paystackCustomerCode: data.customer.customer_code
         })))
         .limit(1);
 
@@ -249,7 +247,7 @@ async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error handling Paystack charge success:', error);
+    console.error('Error handling Paystack charge _success:', error);
     return false;
   }
 }
@@ -257,14 +255,14 @@ async function handlePaystackChargeSuccess(data: any): Promise<boolean> {
 /**
  * Handle Paystack subscription disable event
  */
-async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
+async function handlePaystackSubscriptionDisable(_data: any): Promise<boolean> {
   try {
     // Find the subscription
     const [subscription] = await db.select()
       .from(schema.subscriptions)
       .where(eq(schema.subscriptions.metadata, JSON.stringify({
-        paystackCode: data.subscription_code,
-        paystackCustomerCode: data.customer.customer_code
+        _paystackCode: data.subscription_code,
+        _paystackCustomerCode: data.customer.customer_code
       })))
       .limit(1);
 
@@ -279,7 +277,7 @@ async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error handling Paystack subscription disable:', error);
+    console.error('Error handling Paystack subscription _disable:', error);
     return false;
   }
 }
@@ -287,7 +285,7 @@ async function handlePaystackSubscriptionDisable(data: any): Promise<boolean> {
 /**
  * Handle Flutterwave subscription create event
  */
-async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> {
+async function handleFlutterwaveSubscriptionCreate(_data: any): Promise<boolean> {
   try {
     // Extract user and subscription details
     const userId = data.customer?.meta?.user_id;
@@ -318,21 +316,21 @@ async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> 
     }
 
     // Create subscription record
-    const subscriptionData: schema.SubscriptionInsert = {
+    const _subscriptionData: schema.SubscriptionInsert = {
       userId,
-      planId: plan,
-      status: 'active',
-      amount: discountedAmount.toString(),
+      _planId: plan,
+      _status: 'active',
+      _amount: discountedAmount.toString(),
       currency,
-      referralCode: referralCode || undefined,
-      currentPeriodStart: startDate,
-      currentPeriodEnd: endDate,
-      autoRenew: true,
-      paymentMethod: 'flutterwave',
-      metadata: JSON.stringify({
-        paymentReference: data.tx_ref,
-        flwSubscriptionId: data.id,
-        flwCustomerId: data.customer?.id
+      _referralCode: referralCode || undefined,
+      _currentPeriodStart: startDate,
+      _currentPeriodEnd: endDate,
+      _autoRenew: true,
+      _paymentMethod: 'flutterwave',
+      _metadata: JSON.stringify({
+        _paymentReference: data.tx_ref,
+        _flwSubscriptionId: data.id,
+        _flwCustomerId: data.customer?.id
       })
     };
 
@@ -348,7 +346,7 @@ async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> 
 
     return true;
   } catch (error) {
-    console.error('Error handling Flutterwave subscription create:', error);
+    console.error('Error handling Flutterwave subscription _create:', error);
     return false;
   }
 }
@@ -356,7 +354,7 @@ async function handleFlutterwaveSubscriptionCreate(data: any): Promise<boolean> 
 /**
  * Handle Flutterwave charge completed event
  */
-async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
+async function handleFlutterwaveChargeCompleted(_data: any): Promise<boolean> {
   try {
     // Extract metadata
     const meta = data.meta || {};
@@ -373,8 +371,8 @@ async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
       const [subscription] = await db.select()
         .from(schema.subscriptions)
         .where(eq(schema.subscriptions.metadata, JSON.stringify({
-          flwSubscriptionId: meta.subscription_id,
-          flwCustomerId: data.customer?.id
+          _flwSubscriptionId: meta.subscription_id,
+          _flwCustomerId: data.customer?.id
         })))
         .limit(1);
 
@@ -405,7 +403,7 @@ async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error handling Flutterwave charge completed:', error);
+    console.error('Error handling Flutterwave charge _completed:', error);
     return false;
   }
 }
@@ -413,14 +411,14 @@ async function handleFlutterwaveChargeCompleted(data: any): Promise<boolean> {
 /**
  * Handle Flutterwave subscription cancelled event
  */
-async function handleFlutterwaveSubscriptionCancelled(data: any): Promise<boolean> {
+async function handleFlutterwaveSubscriptionCancelled(_data: any): Promise<boolean> {
   try {
     // Find the subscription
     const [subscription] = await db.select()
       .from(schema.subscriptions)
       .where(eq(schema.subscriptions.metadata, JSON.stringify({
-        flwSubscriptionId: data.id,
-        flwCustomerId: data.customer?.id
+        _flwSubscriptionId: data.id,
+        _flwCustomerId: data.customer?.id
       })))
       .limit(1);
 
@@ -435,7 +433,7 @@ async function handleFlutterwaveSubscriptionCancelled(data: any): Promise<boolea
 
     return true;
   } catch (error) {
-    console.error('Error handling Flutterwave subscription cancelled:', error);
+    console.error('Error handling Flutterwave subscription _cancelled:', error);
     return false;
   }
 }

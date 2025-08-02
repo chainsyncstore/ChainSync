@@ -11,7 +11,7 @@ describe.integration('InventoryItem Integration', () => {
   });
 
   test.integration('should create and fetch an inventory item', async() => {
-    const mockItem = makeMockInventoryItem({ totalQuantity: 42, minimumLevel: 5 });
+    const mockItem = makeMockInventoryItem({ _totalQuantity: 42, _minimumLevel: 5 });
     const [created] = await db.insert(schema.inventory).values(mockItem).returning();
 
     expect(created).toBeDefined();

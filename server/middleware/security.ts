@@ -21,28 +21,28 @@ interface SessionWithCsrf {
 }
 
 // Get centralized logger for security middleware
-const logger = getLogger().child({ component: 'security-middleware' });
+const logger = getLogger().child({ _component: 'security-middleware' });
 
 // Password policy configuration
 const PASSWORD_POLICY = {
-  minLength: 12,
-  requireUppercase: true,
-  requireLowercase: true,
-  requireNumbers: true,
-  requireSpecialChars: true,
-  maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days in milliseconds
-  preventReuse: 5, // Prevent reuse of last 5 passwords
-  lockoutThreshold: 5, // Lock account after 5 failed attempts
-  lockoutDuration: 15 * 60 * 1000 // 15 minutes in milliseconds
+  _minLength: 12,
+  _requireUppercase: true,
+  _requireLowercase: true,
+  _requireNumbers: true,
+  _requireSpecialChars: true,
+  _maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days in milliseconds
+  _preventReuse: 5, // Prevent reuse of last 5 passwords
+  _lockoutThreshold: 5, // Lock account after 5 failed attempts
+  _lockoutDuration: 15 * 60 * 1000 // 15 minutes in milliseconds
 };
 
 // MFA configuration
 const MFA_CONFIG = {
   issuer: 'ChainSync',
-  algorithm: 'sha1',
-  digits: 6,
-  period: 30, // 30 seconds
-  window: 2 // Allow 2 time steps for clock skew
+  _algorithm: 'sha1',
+  _digits: 6,
+  _period: 30, // 30 seconds
+  _window: 2 // Allow 2 time steps for clock skew
 };
 
 /**
@@ -54,49 +54,49 @@ const MFA_CONFIG = {
  * - CSP (Content Security Policy)
  */
 export const securityHeaders = helmet({
-  contentSecurityPolicy: {
+  _contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'], // Add any CDNs you need
-      styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com', 'cdn.jsdelivr.net'],
-      imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
-      connectSrc: ["'self'", 'api.chainsync.com', 'localhost:*'],
-      fontSrc: ["'self'", 'fonts.gstatic.com', 'data:'],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"], // Restricts base URIs that can be used
-      formAction: ["'self'"], // Restricts where forms can submit to
-      frameAncestors: ["'none'"], // Prevents embedding in iframes (alternative to X-Frame-Options)
-      mediaSrc: ["'self'"],
-      workerSrc: ["'self'", 'blob:'], // For web workers
-      manifestSrc: ["'self'"],
-      upgradeInsecureRequests: []
+      _scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'], // Add any CDNs you need
+      _styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com', 'cdn.jsdelivr.net'],
+      _imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
+      _connectSrc: ["'self'", 'api.chainsync.com', 'localhost:*'],
+      _fontSrc: ["'self'", 'fonts.gstatic.com', 'data:'],
+      _objectSrc: ["'none'"],
+      _baseUri: ["'self'"], // Restricts base URIs that can be used
+      _formAction: ["'self'"], // Restricts where forms can submit to
+      _frameAncestors: ["'none'"], // Prevents embedding in iframes (alternative to X-Frame-Options)
+      _mediaSrc: ["'self'"],
+      _workerSrc: ["'self'", 'blob:'], // For web workers
+      _manifestSrc: ["'self'"],
+      _upgradeInsecureRequests: []
     },
-    reportOnly: process.env.NODE_ENV === 'development' // Use CSP in report-only mode during development
+    _reportOnly: process.env.NODE_ENV === 'development' // Use CSP in report-only mode during development
   },
-  crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production' ? true : false, // Stricter in production
-  crossOriginOpenerPolicy: { policy: 'same-origin' },
-  crossOriginResourcePolicy: { policy: 'same-site' },
-  dnsPrefetchControl: { allow: false },
-  frameguard: { action: 'deny' }, // Prevent clickjacking
-  hsts: {
-    maxAge: 63072000, // 2 years in seconds
-    includeSubDomains: true,
-    preload: true
+  _crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production' ? _true : false, // Stricter in production
+  _crossOriginOpenerPolicy: { policy: 'same-origin' },
+  _crossOriginResourcePolicy: { policy: 'same-site' },
+  _dnsPrefetchControl: { _allow: false },
+  _frameguard: { action: 'deny' }, // Prevent clickjacking
+  _hsts: {
+    _maxAge: 63072000, // 2 years in seconds
+    _includeSubDomains: true,
+    _preload: true
   },
-  ieNoOpen: true,
-  noSniff: true, // Prevent MIME type sniffing
-  originAgentCluster: true, // Improves isolation between sites
-  permittedCrossDomainPolicies: { permittedPolicies: 'none' }, // Restricts Adobe Flash and Acrobat
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // More secure referrer policy
-  xssFilter: true // Provides basic XSS protection
+  _ieNoOpen: true,
+  _noSniff: true, // Prevent MIME type sniffing
+  _originAgentCluster: true, // Improves isolation between sites
+  _permittedCrossDomainPolicies: { permittedPolicies: 'none' }, // Restricts Adobe Flash and Acrobat
+  _referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // More secure referrer policy
+  _xssFilter: true // Provides basic XSS protection
 });
 
 /**
  * Password validation middleware
  * Enforces strong password policies
  */
-export const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
-  const errors: string[] = [];
+export const validatePassword = (_password: string): { _isValid: boolean; _errors: string[] } => {
+  const _errors: string[] = [];
 
   if (password.length < PASSWORD_POLICY.minLength) {
     errors.push(`Password must be at least ${PASSWORD_POLICY.minLength} characters long`);
@@ -125,7 +125,7 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
   }
 
   return {
-    isValid: errors.length === 0,
+    _isValid: errors.length === 0,
     errors
   };
 };
@@ -144,7 +144,7 @@ export class MFAService {
   /**
    * Generate QR code URL for MFA setup
    */
-  static generateQRUrl(email: string, secret: string): string {
+  static generateQRUrl(_email: string, _secret: string): string {
     const otpauth = `otpauth://totp/${encodeURIComponent(MFA_CONFIG.issuer)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(MFA_CONFIG.issuer)}&algorithm=${MFA_CONFIG.algorithm}&digits=${MFA_CONFIG.digits}&period=${MFA_CONFIG.period}`;
     return `https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=${encodeURIComponent(otpauth)}`;
   }
@@ -152,7 +152,7 @@ export class MFAService {
   /**
    * Validate MFA token
    */
-  static validateToken(token: string, secret: string): boolean {
+  static validateToken(_token: string, _secret: string): boolean {
     // This is a simplified implementation
     // In production, use a proper TOTP library like 'speakeasy'
     const now = Math.floor(Date.now() / 1000);
@@ -171,7 +171,7 @@ export class MFAService {
  * Account lockout middleware
  * Prevents brute force attacks
  */
-export const accountLockoutMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const accountLockoutMiddleware = (_req: Request, _res: Response, _next: NextFunction) => {
   const session = req.session as SessionWithCsrf;
   const reqLogger = (req as any).logger || logger;
 
@@ -190,15 +190,15 @@ export const accountLockoutMiddleware = (req: Request, res: Response, next: Next
       const remainingTime = Math.ceil((PASSWORD_POLICY.lockoutDuration - timeSinceLockout) / 1000 / 60);
 
       reqLogger.warn('Account access blocked due to lockout', {
-        userId: session.userId,
-        remainingMinutes: remainingTime,
-        ip: req.ip
+        _userId: session.userId,
+        _remainingMinutes: remainingTime,
+        _ip: req.ip
       });
 
       return res.status(423).json({
-        error: 'Account temporarily locked due to multiple failed login attempts',
-        code: 'ACCOUNT_LOCKED',
-        remainingMinutes: remainingTime
+        _error: 'Account temporarily locked due to multiple failed login attempts',
+        _code: 'ACCOUNT_LOCKED',
+        _remainingMinutes: remainingTime
       });
     } else {
       // Reset lockout after duration expires
@@ -214,29 +214,29 @@ export const accountLockoutMiddleware = (req: Request, res: Response, next: Next
  * MFA verification middleware
  * Ensures MFA is completed for sensitive operations
  */
-export const requireMFA = (req: Request, res: Response, next: NextFunction): void => {
+export const requireMFA = (_req: Request, _res: Response, _next: NextFunction): void => {
   const session = req.session as SessionWithCsrf;
   const reqLogger = (req as any).logger || logger;
 
   if (!session.userId) {
     res.status(401).json({
-      error: 'Authentication required',
-      code: 'UNAUTHORIZED'
+      _error: 'Authentication required',
+      _code: 'UNAUTHORIZED'
     });
     return;
   }
 
   if (session.mfaRequired && !session.mfaVerified) {
     reqLogger.warn('MFA verification required', {
-      userId: session.userId,
-      path: req.path,
-      method: req.method,
-      ip: req.ip
+      _userId: session.userId,
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip
     });
 
     res.status(403).json({
-      error: 'Multi-factor authentication required',
-      code: 'MFA_REQUIRED'
+      _error: 'Multi-factor authentication required',
+      _code: 'MFA_REQUIRED'
     });
     return;
   }
@@ -248,10 +248,10 @@ export const requireMFA = (req: Request, res: Response, next: NextFunction): voi
  * Security event logging middleware
  * Logs security-relevant events for monitoring and compliance
  */
-export const securityEventLogger = (eventType: string, details: any) => {
+export const securityEventLogger = (_eventType: string, _details: any) => {
   logger.info('Security event', {
     eventType,
-    timestamp: new Date().toISOString(),
+    _timestamp: new Date().toISOString(),
     ...details
   });
 };
@@ -260,7 +260,7 @@ export const securityEventLogger = (eventType: string, details: any) => {
  * Enhanced CSRF protection middleware
  * Protects against Cross-Site Request Forgery attacks
  */
-export const csrfProtection = (req: Request, res: Response, next: NextFunction): void => {
+export const csrfProtection = (_req: Request, _res: Response, _next: NextFunction): void => {
   const reqLogger = (req as any).logger || logger;
 
   // Skip CSRF check for API endpoints that use token auth instead of cookies
@@ -280,25 +280,25 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction):
   // Compare with session token
   if (!csrfToken || csrfToken !== (req.session as any).csrfToken) {
     securityEventLogger('CSRF_ATTEMPT', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      hasSessionToken: !!(req.session as any).csrfToken,
-      hasRequestToken: !!csrfToken,
-      userAgent: req.headers['user-agent']
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
+      _hasSessionToken: !!(req.session as any).csrfToken,
+      _hasRequestToken: !!csrfToken,
+      _userAgent: req.headers['user-agent']
     });
 
     reqLogger.warn('CSRF validation failed', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      hasSessionToken: !!(req.session as any).csrfToken,
-      hasRequestToken: !!csrfToken
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
+      _hasSessionToken: !!(req.session as any).csrfToken,
+      _hasRequestToken: !!csrfToken
     });
 
     res.status(403).json({
-      message: 'CSRF validation failed. Please refresh the page and try again.',
-      code: 'CSRF_ERROR'
+      _message: 'CSRF validation failed. Please refresh the page and try again.',
+      _code: 'CSRF_ERROR'
     });
     return;
   }
@@ -310,7 +310,7 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction):
  * Generate CSRF token and add it to the response
  * This is called on login and when serving the frontend
  */
-export const generateCsrfToken = (req: Request, res: Response, next: NextFunction) => {
+export const generateCsrfToken = (_req: Request, _res: Response, _next: NextFunction) => {
   // Generate random token if not already set
   if (!(req.session as any).csrfToken) {
     const crypto = require('crypto');
@@ -333,7 +333,7 @@ export const generateCsrfToken = (req: Request, res: Response, next: NextFunctio
  * Used for webhook endpoints and external API access
  * Enhanced with timing-safe comparison to prevent timing attacks
  */
-export const validateApiKey = (req: Request, res: Response, next: NextFunction): void => {
+export const validateApiKey = (_req: Request, _res: Response, _next: NextFunction): void => {
   const reqLogger = (req as any).logger || logger;
 
   // Extract and validate API key using secure utility
@@ -341,30 +341,30 @@ export const validateApiKey = (req: Request, res: Response, next: NextFunction):
 
   if (!keyPrefix) {
     reqLogger.warn('API request missing API key', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip
     });
 
     res.status(401).json({
-      message: 'API key is required',
-      code: 'API_KEY_MISSING'
+      _message: 'API key is required',
+      _code: 'API_KEY_MISSING'
     });
     return;
   }
 
   if (!isValid) {
     reqLogger.warn('Invalid API key used', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
+      _path: req.path,
+      _method: req.method,
+      _ip: req.ip,
       keyPrefix, // Log just prefix for debugging
       keySource  // Log where the key was found (header, query, body)
     });
 
     res.status(403).json({
-      message: 'Invalid API key',
-      code: 'API_KEY_INVALID'
+      _message: 'Invalid API key',
+      _code: 'API_KEY_INVALID'
     });
     return;
   }
@@ -373,14 +373,14 @@ export const validateApiKey = (req: Request, res: Response, next: NextFunction):
   (req as any).apiClient = {
     keyPrefix,
     keySource,
-    isAuthorized: true,
-    timestamp: new Date().toISOString()
+    _isAuthorized: true,
+    _timestamp: new Date().toISOString()
   };
 
   // Log successful API key validation
   reqLogger.info('API key validated successfully', {
-    path: req.path,
-    method: req.method,
+    _path: req.path,
+    _method: req.method,
     keyPrefix,
     keySource
   });
@@ -392,8 +392,8 @@ export const validateApiKey = (req: Request, res: Response, next: NextFunction):
  * Content type validation middleware
  * Ensures that requests have the appropriate content type
  */
-export const validateContentType = (allowedTypes: string[] = ['application/json']) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const validateContentType = (_allowedTypes: string[] = ['application/json']) => {
+  return (_req: Request, _res: Response, _next: NextFunction) => {
     // Skip for GET, HEAD, OPTIONS requests that don't typically have a body
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       return next();
@@ -403,8 +403,8 @@ export const validateContentType = (allowedTypes: string[] = ['application/json'
 
     if (!contentType) {
       return res.status(415).json({
-        message: 'Content-Type header is missing',
-        code: 'CONTENT_TYPE_MISSING'
+        _message: 'Content-Type header is missing',
+        _code: 'CONTENT_TYPE_MISSING'
       });
     }
 
@@ -415,8 +415,8 @@ export const validateContentType = (allowedTypes: string[] = ['application/json'
 
     if (!isValidContentType) {
       return res.status(415).json({
-        message: `Unsupported Content-Type. Supported types: ${allowedTypes.join(', ')}`,
-        code: 'CONTENT_TYPE_UNSUPPORTED'
+        _message: `Unsupported Content-Type. Supported types: ${allowedTypes.join(', ')}`,
+        _code: 'CONTENT_TYPE_UNSUPPORTED'
       });
     }
 

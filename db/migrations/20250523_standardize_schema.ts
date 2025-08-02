@@ -1,13 +1,13 @@
 /**
  * Database Migration for Schema Standardization
- * 
+ *
  * This migration standardizes field names across the database to follow
  * the new naming conventions defined in our schema style guide.
  */
 
 import { Kysely, sql } from 'kysely';
 
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(_db: Kysely<any>): Promise<void> {
   // Standardize loyalty module field names
   await db.schema
     .alterTable('loyalty_tiers')
@@ -63,7 +63,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   }
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(_db: Kysely<any>): Promise<void> {
   // Revert loyalty module field names
   await db.schema
     .alterTable('loyalty_tiers')

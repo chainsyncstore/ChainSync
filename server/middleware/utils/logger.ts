@@ -7,43 +7,43 @@ const customFormat = printf(({ level, message, timestamp, ...meta }) => {
 });
 
 export const logger = createLogger({
-  level: 'info',
-  format: combine(
+  _level: 'info',
+  _format: combine(
     timestamp(),
     customFormat
   ),
-  transports: [
+  _transports: [
     new transports.Console(),
-    new transports.File({ filename: 'uploads.log' })
+    new transports.File({ _filename: 'uploads.log' })
   ]
 });
 
 export interface UploadMetrics {
-  totalRequests: number;
-  successfulUploads: number;
-  failedUploads: number;
-  averageUploadTime: number;
-  currentMemoryUsage: number;
-  maxMemoryUsage: number;
-  cacheHits: number;
-  cacheMisses: number;
+  _totalRequests: number;
+  _successfulUploads: number;
+  _failedUploads: number;
+  _averageUploadTime: number;
+  _currentMemoryUsage: number;
+  _maxMemoryUsage: number;
+  _cacheHits: number;
+  _cacheMisses: number;
 }
 
 export class UploadMetricsTracker {
-  private static instance: UploadMetricsTracker;
-  private metrics: UploadMetrics;
-  private startTime: number;
+  private static _instance: UploadMetricsTracker;
+  private _metrics: UploadMetrics;
+  private _startTime: number;
 
   private constructor() {
     this.metrics = {
-      totalRequests: 0,
-      successfulUploads: 0,
-      failedUploads: 0,
-      averageUploadTime: 0,
-      currentMemoryUsage: 0,
-      maxMemoryUsage: 0,
-      cacheHits: 0,
-      cacheMisses: 0
+      _totalRequests: 0,
+      _successfulUploads: 0,
+      _failedUploads: 0,
+      _averageUploadTime: 0,
+      _currentMemoryUsage: 0,
+      _maxMemoryUsage: 0,
+      _cacheHits: 0,
+      _cacheMisses: 0
     };
     this.startTime = Date.now();
   }
@@ -67,7 +67,7 @@ export class UploadMetricsTracker {
     this.metrics.failedUploads++;
   }
 
-  trackMemoryUsage(memoryUsage: number): void {
+  trackMemoryUsage(_memoryUsage: number): void {
     this.metrics.currentMemoryUsage = memoryUsage;
     this.metrics.maxMemoryUsage = Math.max(this.metrics.maxMemoryUsage, memoryUsage);
   }
@@ -90,8 +90,8 @@ export class UploadMetricsTracker {
     logger.info('Upload Metrics Report', {
       uptime,
       ...metrics,
-      successRate: metrics.totalRequests > 0
-        ? (metrics.successfulUploads / metrics.totalRequests) * 100
+      _successRate: metrics.totalRequests > 0
+        ? (metrics.successfulUploads / metrics.totalRequests) * _100
         : 0
     });
   }

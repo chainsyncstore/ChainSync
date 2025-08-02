@@ -4,7 +4,7 @@ import { getLogger } from '../../src/logging/index.js';
 import { Pool } from 'pg';
 import { Request } from 'express';
 
-const logger = getLogger().child({ component: 'security-monitoring' });
+const logger = getLogger().child({ _component: 'security-monitoring' });
 
 // Security event types
 export enum SecurityEventType {
@@ -37,26 +37,26 @@ export enum SecurityRiskLevel {
 
 // Intrusion detection patterns
 const INTRUSION_PATTERNS = {
-  sqlInjection: [
+  _sqlInjection: [
     /(\b(union|select|insert|update|delete|drop|create|alter)\b.*\b(from|into|where|table|database)\b)/i,
     /(\b(exec|execute|sp_|xp_)\b)/i,
     /(\b(script|javascript|vbscript|onload|onerror)\b)/i,
     /(\b(union.*select|select.*union)\b)/i
   ],
-  xss: [
+  _xss: [
     /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
     /javascript:/gi,
     /on\w+\s*=/gi,
     /<iframe\b[^>]*>/gi,
     /<object\b[^>]*>/gi
   ],
-  pathTraversal: [
+  _pathTraversal: [
     /\.\.\//g,
     /\.\.\\/g,
     /%2e%2e%2f/gi,
     /%2e%2e%5c/gi
   ],
-  commandInjection: [
+  _commandInjection: [
     /(\b(cmd|command|exec|system|shell)\b)/i,
     /(\b(ping|nslookup|traceroute|netstat)\b)/i,
     /(\b(rm|del|erase|format)\b)/i
@@ -68,11 +68,11 @@ const INTRUSION_PATTERNS = {
  * Detects and logs security events and potential intrusions
  */
 export class SecurityMonitoringService {
-  private db: Pool;
-  private alertThresholds: Map<string, number>;
-  private suspiciousIPs: Map<string, { count: number; lastSeen: number }>;
+  private _db: Pool;
+  private _alertThresholds: Map<string, number>;
+  private _suspiciousIPs: Map<string, { _count: number; _lastSeen: number }>;
 
-  constructor(db: Pool) {
+  constructor(_db: Pool) {
     this.db = db;
     this.alertThresholds = new Map();
     this.suspiciousIPs = new Map();
@@ -90,9 +90,9 @@ export class SecurityMonitoringService {
    * @param riskLevel - Risk level of the event
    */
   async logSecurityEvent(
-    eventType: SecurityEventType,
-    details: any,
-    riskLevel: SecurityRiskLevel = SecurityRiskLevel.LOW
+    _eventType: SecurityEventType,
+    _details: any,
+    _riskLevel: SecurityRiskLevel = SecurityRiskLevel.LOW
   ): Promise<void> {
     try {
       await this.db.query(
@@ -120,21 +120,21 @@ export class SecurityMonitoringService {
    * @param req - Express request object
    * @returns Analysis result
    */
-  analyzeRequest(req: Request): {
-    isThreat: boolean;
+  analyzeRequest(_req: Request): {
+    _isThreat: boolean;
     threatType?: string;
-    riskLevel: SecurityRiskLevel;
-    details: any;
+    _riskLevel: SecurityRiskLevel;
+    _details: any;
   } {
     const analysis: {
-      isThreat: boolean;
+      _isThreat: boolean;
       threatType?: string;
-      riskLevel: SecurityRiskLevel;
-      details: any;
+      _riskLevel: SecurityRiskLevel;
+      _details: any;
     } = {
-      isThreat: false,
-      riskLevel: SecurityRiskLevel.LOW,
-      details: {}
+      _isThreat: false,
+      _riskLevel: SecurityRiskLevel.LOW,
+      _details: {}
     };
 
     // Check for SQL injection patterns
@@ -142,7 +142,7 @@ export class SecurityMonitoringService {
       analysis.isThreat = true;
       analysis.threatType = 'SQL_INJECTION';
       analysis.riskLevel = SecurityRiskLevel.HIGH;
-      analysis.details = { patterns: this.extractSuspiciousPatterns(req, 'sqlInjection') };
+      analysis.details = { _patterns: this.extractSuspiciousPatterns(req, 'sqlInjection') };
     }
 
     // Check for XSS patterns
@@ -150,7 +150,7 @@ export class SecurityMonitoringService {
       analysis.isThreat = true;
       analysis.threatType = 'XSS';
       analysis.riskLevel = SecurityRiskLevel.HIGH;
-      analysis.details = { patterns: this.extractSuspiciousPatterns(req, 'xss') };
+      analysis.details = { _patterns: this.extractSuspiciousPatterns(req, 'xss') };
     }
 
     // Check for path traversal
@@ -158,7 +158,7 @@ export class SecurityMonitoringService {
       analysis.isThreat = true;
       analysis.threatType = 'PATH_TRAVERSAL';
       analysis.riskLevel = SecurityRiskLevel.MEDIUM;
-      analysis.details = { patterns: this.extractSuspiciousPatterns(req, 'pathTraversal') };
+      analysis.details = { _patterns: this.extractSuspiciousPatterns(req, 'pathTraversal') };
     }
 
     // Check for command injection
@@ -166,7 +166,7 @@ export class SecurityMonitoringService {
       analysis.isThreat = true;
       analysis.threatType = 'COMMAND_INJECTION';
       analysis.riskLevel = SecurityRiskLevel.CRITICAL;
-      analysis.details = { patterns: this.extractSuspiciousPatterns(req, 'commandInjection') };
+      analysis.details = { _patterns: this.extractSuspiciousPatterns(req, 'commandInjection') };
     }
 
     return analysis;
@@ -177,10 +177,10 @@ export class SecurityMonitoringService {
    * @param userId - User ID to analyze
    * @returns Suspicious activity report
    */
-  async detectSuspiciousActivity(userId: string): Promise<{
-    isSuspicious: boolean;
-    patterns: string[];
-    riskScore: number;
+  async detectSuspiciousActivity(_userId: string): Promise<{
+    _isSuspicious: boolean;
+    _patterns: string[];
+    _riskScore: number;
   }> {
     try {
       // Get recent activity for user
@@ -193,7 +193,7 @@ export class SecurityMonitoringService {
         [userId]
       );
 
-      const patterns: string[] = [];
+      const _patterns: string[] = [];
       let riskScore = 0;
 
       // Analyze patterns
@@ -222,7 +222,7 @@ export class SecurityMonitoringService {
       }
 
       return {
-        isSuspicious: riskScore > 50,
+        _isSuspicious: riskScore > 50,
         patterns,
         riskScore
       };
@@ -230,9 +230,9 @@ export class SecurityMonitoringService {
     } catch (error) {
       logger.error('Failed to detect suspicious activity', { userId, error });
       return {
-        isSuspicious: false,
-        patterns: [],
-        riskScore: 0
+        _isSuspicious: false,
+        _patterns: [],
+        _riskScore: 0
       };
     }
   }
@@ -242,7 +242,7 @@ export class SecurityMonitoringService {
    * @param timeframe - Timeframe for report (in hours)
    * @returns Security report
    */
-  async generateSecurityReport(timeframe: number = 24): Promise<any> {
+  async generateSecurityReport(_timeframe: number = 24): Promise<any> {
     try {
       const cutoff = new Date(Date.now() - timeframe * 60 * 60 * 1000);
 
@@ -275,15 +275,15 @@ export class SecurityMonitoringService {
       );
 
       return {
-        timeframe: `${timeframe} hours`,
-        generatedAt: new Date().toISOString(),
-        summary: {
-          totalEvents: eventCounts.rows.reduce((sum, row) => sum + parseInt(row.count), 0),
-          uniqueIPs: parseInt(uniqueIPs.rows[0].unique_ips),
-          highRiskEvents: highRiskEvents.rows.length
+        _timeframe: `${timeframe} hours`,
+        _generatedAt: new Date().toISOString(),
+        _summary: {
+          _totalEvents: eventCounts.rows.reduce((sum, row) => sum + parseInt(row.count), 0),
+          _uniqueIPs: parseInt(uniqueIPs.rows[0].unique_ips),
+          _highRiskEvents: highRiskEvents.rows.length
         },
-        eventBreakdown: eventCounts.rows,
-        highRiskEvents: highRiskEvents.rows
+        _eventBreakdown: eventCounts.rows,
+        _highRiskEvents: highRiskEvents.rows
       };
 
     } catch (error) {
@@ -297,12 +297,12 @@ export class SecurityMonitoringService {
    * @param eventType - Type of event
    * @param details - Event details
    */
-  private async checkAlertThresholds(eventType: SecurityEventType, details: any): Promise<void> {
+  private async checkAlertThresholds(_eventType: SecurityEventType, _details: any): Promise<void> {
     const ip = details.ip;
     if (!ip) return;
 
     // Update suspicious IP tracking
-    const current = this.suspiciousIPs.get(ip) || { count: 0, lastSeen: 0 };
+    const current = this.suspiciousIPs.get(ip) || { _count: 0, _lastSeen: 0 };
     current.count++;
     current.lastSeen = Date.now();
     this.suspiciousIPs.set(ip, current);
@@ -313,8 +313,8 @@ export class SecurityMonitoringService {
     if (current.count >= threshold) {
       await this.triggerAlert('SUSPICIOUS_IP', {
         ip,
-        eventCount: current.count,
-        lastEvent: eventType,
+        _eventCount: current.count,
+        _lastEvent: eventType,
         details
       });
     }
@@ -325,7 +325,7 @@ export class SecurityMonitoringService {
    * @param alertType - Type of alert
    * @param details - Alert details
    */
-  private async triggerAlert(alertType: string, details: any): Promise<void> {
+  private async triggerAlert(_alertType: string, _details: any): Promise<void> {
     try {
       await this.db.query(
         `INSERT INTO security_alerts (alert_type, details, created_at)
@@ -338,7 +338,7 @@ export class SecurityMonitoringService {
         details
       });
 
-      // TODO: Send notifications (email, Slack, etc.)
+      // _TODO: Send notifications (email, Slack, etc.)
 
     } catch (error) {
       logger.error('Failed to trigger security alert', { alertType, error });
@@ -346,23 +346,23 @@ export class SecurityMonitoringService {
   }
 
   // Detection methods
-  private detectSQLInjection(req: Request): boolean {
+  private detectSQLInjection(_req: Request): boolean {
     return this.checkPatterns(req, INTRUSION_PATTERNS.sqlInjection);
   }
 
-  private detectXSS(req: Request): boolean {
+  private detectXSS(_req: Request): boolean {
     return this.checkPatterns(req, INTRUSION_PATTERNS.xss);
   }
 
-  private detectPathTraversal(req: Request): boolean {
+  private detectPathTraversal(_req: Request): boolean {
     return this.checkPatterns(req, INTRUSION_PATTERNS.pathTraversal);
   }
 
-  private detectCommandInjection(req: Request): boolean {
+  private detectCommandInjection(_req: Request): boolean {
     return this.checkPatterns(req, INTRUSION_PATTERNS.commandInjection);
   }
 
-  private checkPatterns(req: Request, patterns: RegExp[]): boolean {
+  private checkPatterns(_req: Request, _patterns: RegExp[]): boolean {
     const dataToCheck = [
       req.url,
       JSON.stringify(req.query),
@@ -373,7 +373,7 @@ export class SecurityMonitoringService {
     return patterns.some(pattern => pattern.test(dataToCheck));
   }
 
-  private extractSuspiciousPatterns(req: Request, patternType: keyof typeof INTRUSION_PATTERNS): string[] {
+  private extractSuspiciousPatterns(_req: Request, _patternType: keyof typeof INTRUSION_PATTERNS): string[] {
     const patterns = INTRUSION_PATTERNS[patternType];
     const dataToCheck = [
       req.url,
@@ -382,7 +382,7 @@ export class SecurityMonitoringService {
       JSON.stringify(req.headers)
     ].join(' ');
 
-    const matches: string[] = [];
+    const _matches: string[] = [];
     patterns.forEach(pattern => {
       const found = dataToCheck.match(pattern);
       if (found) {
