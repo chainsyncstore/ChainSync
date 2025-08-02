@@ -140,7 +140,6 @@ export default [
       'jest/expect-expect': 'warn',
       'jest/no-commented-out-tests': 'warn',
       'jest/no-duplicate-hooks': 'error',
-      'jest/no-if': 'error',
       'jest/no-restricted-matchers': 'error',
       'jest/no-standalone-expect': 'error',
       'jest/no-test-prefixes': 'error',

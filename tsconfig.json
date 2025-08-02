@@ -81,7 +81,8 @@
     "test/**/*.ts",
     "test/**/*.tsx",
     "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "tests/**/*.tsx",
+    "types/**/*.d.ts"
   ],
   "exclude": [
     "client/**/*",

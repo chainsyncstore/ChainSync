@@ -1,7 +1,7 @@
 declare module 'express-csrf' {
   import { RequestHandler } from 'express';
   
-  export function csrf(options?: {
+  interface CSRFOptions {
     ignoreMethods?: string[];
     ignorePaths?: string[];
     cookie?: boolean;
@@ -16,5 +16,14 @@ declare module 'express-csrf' {
     tokenLength?: number;
     ignoreIPs?: string[];
     ignoreUserAgents?: string[];
-  }): RequestHandler;
+  }
+  
+  export function csrf(options?: CSRFOptions): RequestHandler;
+  
+  // Also export as default for compatibility
+  const csrfMiddleware: {
+    (options?: CSRFOptions): RequestHandler;
+  };
+  
+  export default csrfMiddleware;
 } 

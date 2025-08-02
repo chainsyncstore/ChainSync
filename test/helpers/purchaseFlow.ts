@@ -1,13 +1,13 @@
 // test/helpers/purchaseFlow.ts
-import { PrismaClient } from '@prisma/client';
+import { db, stores, customers, products } from '../../db/index.js';
 import { makeMockCustomer } from '../../tests/factories/customer';
 import { makeMockStore } from '../../tests/factories/store';
 import { makeMockProduct } from '../../tests/factories/product';
 
-export async function setupFullPurchaseFlow(prisma: PrismaClient, amount: number, initialPoints = 0) {
-  const store = await prisma.store.create({ data: makeMockStore() });
-  const customer = await prisma.customer.create({ data: makeMockCustomer({ loyaltyPoints: initialPoints }) });
-  const product = await prisma.product.create({ data: makeMockProduct() });
+export async function setupFullPurchaseFlow(dbClient: typeof db, amount: number, initialPoints = 0) {
+  const [store] = await dbClient.insert(stores).values(makeMockStore()).returning();
+  const [customer] = await dbClient.insert(customers).values(makeMockCustomer({ loyaltyPoints: initialPoints })).returning();
+  const [product] = await dbClient.insert(products).values(makeMockProduct()).returning();
   // Add inventory if needed (not shown)
   return { store, customer, product };
 }
