@@ -2,11 +2,11 @@
  * Unit tests for field mapping utilities
  */
 import { describe, it, expect } from '@jest/globals';
-import { 
-  toDatabaseFields, 
-  fromDatabaseFields, 
+import {
+  toDatabaseFields,
+  fromDatabaseFields,
   pickFields,
-  hasField 
+  hasField
 } from '@shared/utils/field-mapping';
 
 describe('Field Mapping Utilities', () => {
@@ -19,7 +19,7 @@ describe('Field Mapping Utilities', () => {
         emailAddress: 'john.doe@example.com',
         isActive: true
       };
-      
+
       const expected = {
         user_id: 1,
         first_name: 'John',
@@ -27,29 +27,29 @@ describe('Field Mapping Utilities', () => {
         email_address: 'john.doe@example.com',
         is_active: true
       };
-      
+
       expect(toDatabaseFields(input)).toEqual(expected);
     });
-    
+
     it('should handle empty objects', () => {
       expect(toDatabaseFields({})).toEqual({});
     });
-    
+
     it('should handle null or undefined input', () => {
       expect(toDatabaseFields(null)).toEqual({});
       expect(toDatabaseFields(undefined)).toEqual({});
     });
-    
+
     it('should preserve non-camelCase keys', () => {
       const input = {
         normal: 'value',
         'with-dash': 'value',
         'with_underscore': 'value'
       };
-      
+
       expect(toDatabaseFields(input)).toEqual(input);
     });
-    
+
     it('should handle nested properties correctly', () => {
       const input = {
         userId: 1,
@@ -58,7 +58,7 @@ describe('Field Mapping Utilities', () => {
           lastName: 'Doe'
         }
       };
-      
+
       // Note: The function doesn't recursively transform nested objects
       const expected = {
         user_id: 1,
@@ -67,11 +67,11 @@ describe('Field Mapping Utilities', () => {
           lastName: 'Doe'
         }
       };
-      
+
       expect(toDatabaseFields(input)).toEqual(expected);
     });
   });
-  
+
   describe('fromDatabaseFields', () => {
     it('should convert snake_case to camelCase', () => {
       const input = {
@@ -81,7 +81,7 @@ describe('Field Mapping Utilities', () => {
         email_address: 'john.doe@example.com',
         is_active: true
       };
-      
+
       const expected = {
         userId: 1,
         firstName: 'John',
@@ -89,29 +89,29 @@ describe('Field Mapping Utilities', () => {
         emailAddress: 'john.doe@example.com',
         isActive: true
       };
-      
+
       expect(fromDatabaseFields(input)).toEqual(expected);
     });
-    
+
     it('should handle empty objects', () => {
       expect(fromDatabaseFields({})).toEqual({});
     });
-    
+
     it('should handle null or undefined input', () => {
       expect(fromDatabaseFields(null)).toEqual({});
       expect(fromDatabaseFields(undefined)).toEqual({});
     });
-    
+
     it('should preserve non-snake_case keys', () => {
       const input = {
         normal: 'value',
         'with-dash': 'value',
         camelCase: 'value'
       };
-      
+
       expect(fromDatabaseFields(input)).toEqual(input);
     });
-    
+
     it('should handle nested properties correctly', () => {
       const input = {
         user_id: 1,
@@ -120,7 +120,7 @@ describe('Field Mapping Utilities', () => {
           last_name: 'Doe'
         }
       };
-      
+
       // Note: The function doesn't recursively transform nested objects
       const expected = {
         userId: 1,
@@ -129,11 +129,11 @@ describe('Field Mapping Utilities', () => {
           last_name: 'Doe'
         }
       };
-      
+
       expect(fromDatabaseFields(input)).toEqual(expected);
     });
   });
-  
+
   describe('pickFields', () => {
     it('should pick only specified fields', () => {
       const input = {
@@ -143,33 +143,33 @@ describe('Field Mapping Utilities', () => {
         age: 30,
         address: '123 Main St'
       };
-      
+
       const fields = ['id', 'name', 'email'];
       const expected = {
         id: 1,
         name: 'John',
         email: 'john@example.com'
       };
-      
+
       expect(pickFields(input, fields)).toEqual(expected);
     });
-    
+
     it('should handle empty fields array', () => {
       const input = { id: 1, name: 'John' };
       expect(pickFields(input, [])).toEqual({});
     });
-    
+
     it('should handle fields that do not exist', () => {
       const input = { id: 1, name: 'John' };
       expect(pickFields(input, ['id', 'unknown'])).toEqual({ id: 1 });
     });
-    
+
     it('should handle null or undefined input', () => {
       expect(pickFields(null, ['id'])).toEqual({});
       expect(pickFields(undefined, ['id'])).toEqual({});
     });
   });
-  
+
   describe('hasField', () => {
     it('should return true if field exists', () => {
       const input = { id: 1, name: 'John', value: null };
@@ -177,17 +177,17 @@ describe('Field Mapping Utilities', () => {
       expect(hasField(input, 'name')).toBe(true);
       expect(hasField(input, 'value')).toBe(true);
     });
-    
+
     it('should return false if field does not exist', () => {
       const input = { id: 1, name: 'John' };
       expect(hasField(input, 'unknown')).toBe(false);
     });
-    
+
     it('should return false if field is undefined', () => {
       const input = { id: 1, name: undefined };
       expect(hasField(input, 'name')).toBe(false);
     });
-    
+
     it('should handle null or undefined input', () => {
       expect(hasField(null, 'id')).toBe(false);
       expect(hasField(undefined, 'id')).toBe(false);

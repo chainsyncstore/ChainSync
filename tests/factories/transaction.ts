@@ -12,11 +12,9 @@ export function makeMockTransaction(
     userId: 1,
     customerId: 1,
     status: 'completed',
-    totalAmount: '110.00',
-    paymentStatus: 'paid',
+    total: '110.00',
+    subtotal: '100.00',
     paymentMethod: 'cash',
-    notes: 'Test transaction',
-    referenceNumber: `TXN-${Date.now()}`,
     ...overrides,
   };
   return data;

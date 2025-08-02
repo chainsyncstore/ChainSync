@@ -36,7 +36,7 @@ function composeApiRouter(): Router {
     ['stores', './routes/stores.js'],
     ['products', './routes/products.js'],
     ['inventory', './routes/inventory.js'],
-    ['transactions', './routes/transactions.js'],
+    ['transactions', './routes/transactions.js']
   ];
 
   for (const [mountPath, modulePath] of featureRouters) {
@@ -78,7 +78,7 @@ export function registerRoutes(app: Application): {
     store: new PostgresStore({
       pool: (db as unknown as Database).pool,
       createTableIfMissing: true,
-      tableName: 'sessions',
+      tableName: 'sessions'
     }),
     secret: env.SESSION_SECRET,
     resave: false,
@@ -86,8 +86,8 @@ export function registerRoutes(app: Application): {
     cookie: {
       httpOnly: true,
       maxAge: 86_400_000, // 1 day
-      sameSite: 'lax',
-    },
+      sameSite: 'lax'
+    }
   } as const;
   app.use(session(sessionConfig));
 
@@ -100,7 +100,7 @@ export function registerRoutes(app: Application): {
   app.use('/api', composeApiRouter());
 
   // Generic error handler (last)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });

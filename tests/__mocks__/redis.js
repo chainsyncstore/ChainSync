@@ -6,7 +6,7 @@ const mockClient = {
   quit: jest.fn().mockResolvedValue(undefined),
   get: jest.fn().mockResolvedValue(null),
   set: jest.fn().mockResolvedValue('OK'),
-  on: jest.fn(),
+  on: jest.fn()
 };
 
 function initRedis() {

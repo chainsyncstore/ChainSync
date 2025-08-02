@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useAuth } from '@/providers/auth-provider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

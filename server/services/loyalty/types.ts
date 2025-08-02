@@ -3,7 +3,7 @@ import {
   loyaltyPrograms,
   loyaltyRewards,
   loyaltyTiers,
-  loyaltyTransactions,
+  loyaltyTransactions
 } from '@shared/schema';
 import { AppError, ErrorCode, ErrorCategory } from '@shared/types/errors';
 

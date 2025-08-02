@@ -21,7 +21,7 @@ const AlertSeverity = {
   LOW: 'low',
   MEDIUM: 'medium',
   HIGH: 'high',
-  CRITICAL: 'critical',
+  CRITICAL: 'critical'
 };
 
 // Alert types
@@ -35,7 +35,7 @@ const AlertType = {
   REDIS_CONNECTION_ISSUE: 'redis_connection_issue',
   SSL_CERTIFICATE_EXPIRING: 'ssl_certificate_expiring',
   BACKUP_FAILURE: 'backup_failure',
-  SECURITY_BREACH: 'security_breach',
+  SECURITY_BREACH: 'security_breach'
 };
 
 // Monitoring configuration
@@ -46,19 +46,19 @@ const config = {
     responseTime: 2000, // 2 seconds
     cpuUsage: 0.8, // 80%
     memoryUsage: 0.85, // 85%
-    diskUsage: 0.9, // 90%
+    diskUsage: 0.9 // 90%
   },
   notificationChannels: {
     email: false,
     slack: false,
-    pagerDuty: false,
+    pagerDuty: false
   },
   escalationPolicy: {
     lowTimeout: 300000, // 5 minutes
     mediumTimeout: 180000, // 3 minutes
     highTimeout: 60000, // 1 minute
-    criticalTimeout: 30000, // 30 seconds
-  },
+    criticalTimeout: 30000 // 30 seconds
+  }
 };
 
 // Production monitoring system
@@ -73,7 +73,7 @@ class ProductionMonitor extends EventEmitter {
 
   startMonitoring() {
     log('Starting production monitoring system');
-    
+
     // Start health checks
     this.performHealthChecks();
     this.monitoringInterval = setInterval(() => {
@@ -93,11 +93,11 @@ class ProductionMonitor extends EventEmitter {
 
   async performHealthChecks() {
     log('Performing health checks...');
-    
+
     const services = [
       { name: 'api', url: 'http://localhost:3000/api/health' },
       { name: 'database', url: process.env.DATABASE_URL },
-      { name: 'redis', url: process.env.REDIS_URL },
+      { name: 'redis', url: process.env.REDIS_URL }
     ];
 
     for (const service of services) {
@@ -127,13 +127,13 @@ class ProductionMonitor extends EventEmitter {
         }
 
         const responseTime = Date.now() - startTime;
-        
+
         this.healthChecks.set(service.name, {
           service: service.name,
           status,
           responseTime,
           lastCheck: new Date(),
-          error,
+          error
         });
 
         if (status === 'unhealthy') {
@@ -142,7 +142,7 @@ class ProductionMonitor extends EventEmitter {
             severity: AlertSeverity.HIGH,
             title: `${service.name} service is down`,
             message: `${service.name} service is not responding: ${error}`,
-            metadata: { service: service.name, error },
+            metadata: { service: service.name, error }
           });
         }
 
@@ -166,7 +166,7 @@ class ProductionMonitor extends EventEmitter {
           severity: AlertSeverity.MEDIUM,
           title: 'High CPU usage detected',
           message: `CPU usage is ${(cpuUsage * 100).toFixed(1)}%`,
-          metadata: { cpuUsage },
+          metadata: { cpuUsage }
         });
       }
 
@@ -176,7 +176,7 @@ class ProductionMonitor extends EventEmitter {
           severity: AlertSeverity.HIGH,
           title: 'High memory usage detected',
           message: `Memory usage is ${(memoryUsage * 100).toFixed(1)}%`,
-          metadata: { memoryUsage },
+          metadata: { memoryUsage }
         });
       }
 
@@ -186,7 +186,7 @@ class ProductionMonitor extends EventEmitter {
           severity: AlertSeverity.HIGH,
           title: 'Low disk space detected',
           message: `Disk usage is ${(diskUsage * 100).toFixed(1)}%`,
-          metadata: { diskUsage },
+          metadata: { diskUsage }
         });
       }
 
@@ -203,17 +203,17 @@ class ProductionMonitor extends EventEmitter {
       ...alertData,
       timestamp: new Date(),
       resolved: false,
-      acknowledged: false,
+      acknowledged: false
     };
 
     this.alerts.set(alertId, alert);
     this.emit('alert', alert);
-    
+
     log(`Alert created: ${alert.title} (${alert.severity})`, 'warn');
-    
+
     // Send notifications
     this.sendNotifications(alert);
-    
+
     return alertId;
   }
 
@@ -226,7 +226,7 @@ class ProductionMonitor extends EventEmitter {
     alert.resolved = true;
     alert.resolvedAt = new Date();
     this.alerts.set(alertId, alert);
-    
+
     log(`Alert resolved: ${alert.title} by ${resolvedBy}`);
     return true;
   }
@@ -241,14 +241,14 @@ class ProductionMonitor extends EventEmitter {
     alert.acknowledgedAt = new Date();
     alert.acknowledgedBy = acknowledgedBy;
     this.alerts.set(alertId, alert);
-    
+
     log(`Alert acknowledged: ${alert.title} by ${acknowledgedBy}`);
     return true;
   }
 
   checkAlertEscalations() {
     const now = new Date();
-    
+
     for (const [alertId, alert] of this.alerts) {
       if (alert.resolved || alert.acknowledged) {
         continue;
@@ -256,7 +256,7 @@ class ProductionMonitor extends EventEmitter {
 
       const timeout = this.getEscalationTimeout(alert.severity);
       const timeSinceCreation = now.getTime() - alert.timestamp.getTime();
-      
+
       if (timeSinceCreation > timeout) {
         this.escalateAlert(alert);
       }
@@ -285,15 +285,15 @@ class ProductionMonitor extends EventEmitter {
 
   async sendNotifications(alert) {
     log(`Sending notification for alert: ${alert.title}`);
-    
+
     if (config.notificationChannels.email) {
       await this.sendEmailNotification(alert);
     }
-    
+
     if (config.notificationChannels.slack) {
       await this.sendSlackNotification(alert);
     }
-    
+
     if (config.notificationChannels.pagerDuty) {
       await this.sendPagerDutyNotification(alert);
     }
@@ -355,12 +355,12 @@ class ProductionMonitor extends EventEmitter {
     const activeAlerts = this.getActiveAlerts();
     const healthChecks = this.getHealthChecks();
     const unhealthyServices = healthChecks.filter(check => check.status !== 'healthy');
-    
+
     return {
       status: unhealthyServices.length > 0 ? 'degraded' : 'healthy',
       activeAlerts: activeAlerts.length,
       unhealthyServices: unhealthyServices.length,
-      lastCheck: new Date(),
+      lastCheck: new Date()
     };
   }
 }
@@ -390,13 +390,13 @@ async function main() {
       case 'start':
         log('Production monitoring system started');
         log('Press Ctrl+C to stop');
-        
+
         // Keep the process running
         setInterval(() => {
           const status = monitor.getStatus();
           log(`System status: ${status.status} (${status.activeAlerts} active alerts, ${status.unhealthyServices} unhealthy services)`);
         }, 60000); // Status update every minute
-        
+
         break;
 
       case 'status':
@@ -406,7 +406,7 @@ async function main() {
         console.log(`Active Alerts: ${status.activeAlerts}`);
         console.log(`Unhealthy Services: ${status.unhealthyServices}`);
         console.log(`Last Check: ${status.lastCheck}`);
-        
+
         const alerts = monitor.getActiveAlerts();
         if (alerts.length > 0) {
           console.log('\n=== Active Alerts ===');
@@ -414,7 +414,7 @@ async function main() {
             console.log(`[${alert.severity.toUpperCase()}] ${alert.title}: ${alert.message}`);
           });
         }
-        
+
         const healthChecks = monitor.getHealthChecks();
         if (healthChecks.length > 0) {
           console.log('\n=== Health Checks ===');
@@ -443,4 +443,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { ProductionMonitor, AlertSeverity, AlertType }; 
+module.exports = { ProductionMonitor, AlertSeverity, AlertType };

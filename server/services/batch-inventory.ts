@@ -19,7 +19,7 @@ interface BatchImportRow {
 function isValidDate(dateString: string): boolean {
   if (!dateString || dateString.trim() === '') return true; // Allow empty dates
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
-  
+
   const date = new Date(dateString);
   return !isNaN(date.getTime());
 }
@@ -33,7 +33,7 @@ export async function getProductBatches(storeId: number, productId: number, incl
     if (!inventory) {
       return [];
     }
-    
+
     return await storage.getInventoryByProduct(productId);
   } catch (error) {
     console.error('Error getting product batches:', error);
@@ -53,14 +53,14 @@ export async function validateBatchImportFile(filePath: string) {
       skip_empty_lines: true,
       trim: true
     });
-    
+
     const requiredColumns = ['storeId', 'productId', 'batchNumber', 'quantity'];
     // const optionalColumns = ['expiryDate', 'manufacturingDate', 'costPerUnit']; // Unused
-    
+
     // Check if file has required columns
     const headers = Object.keys(records[0] || {});
     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-    
+
     if (missingColumns.length > 0) {
       return {
         valid: false,
@@ -70,32 +70,32 @@ export async function validateBatchImportFile(filePath: string) {
         }]
       };
     }
-    
+
     // Validate each row
     const errors: { row: number; errors: string[] }[] = [];
     const validData: BatchImportRow[] = [];
-    
+
     for (let i = 0; i < records.length; i++) {
       const row = records[i];
       const rowErrors: string[] = [];
-      
+
       // Validate required fields
       for (const field of requiredColumns) {
         if (!row[field] || String(row[field]).trim() === '') {
           rowErrors.push(`Missing ${field}`);
         }
       }
-      
+
       // Validate store ID
       if (row.storeId && isNaN(parseInt(row.storeId))) {
         rowErrors.push('Store ID must be a number');
       }
-      
+
       // Validate product ID
       if (row.productId && isNaN(parseInt(row.productId))) {
         rowErrors.push('Product ID must be a number');
       }
-      
+
       // Validate quantity
       if (row.quantity) {
         const quantity = parseInt(row.quantity);
@@ -103,21 +103,21 @@ export async function validateBatchImportFile(filePath: string) {
           rowErrors.push('Quantity must be a positive number');
         }
       }
-      
+
       // Validate dates
       if (row.expiryDate && !isValidDate(row.expiryDate)) {
         rowErrors.push('Expiry date must be in YYYY-MM-DD format');
       }
-      
+
       if (row.manufacturingDate && !isValidDate(row.manufacturingDate)) {
         rowErrors.push('Manufacturing date must be in YYYY-MM-DD format');
       }
-      
+
       // Validate cost per unit
       if (row.costPerUnit && isNaN(parseFloat(row.costPerUnit))) {
         rowErrors.push('Cost per unit must be a number');
       }
-      
+
       if (rowErrors.length > 0) {
         errors.push({
           row: i + 1, // +1 for human readability (1-indexed)
@@ -132,11 +132,11 @@ export async function validateBatchImportFile(filePath: string) {
           quantity: parseInt(row.quantity),
           expiryDate: row.expiryDate || undefined,
           manufacturingDate: row.manufacturingDate || undefined,
-          costPerUnit: row.costPerUnit ? parseFloat(row.costPerUnit) : undefined
+          costPerUnit: row.costPerUnit ? parseFloat(row.costPerUnit) : 0
         });
       }
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,
@@ -168,7 +168,7 @@ export async function importBatchInventory(data: BatchImportRow[]) {
       errors: [] as { row: number; field: string; message: string }[],
       warnings: [] as { row: number; field: string; message: string }[]
     };
-    
+
     let rowIndex = 1;
     for (const row of data) {
       try {
@@ -183,7 +183,7 @@ export async function importBatchInventory(data: BatchImportRow[]) {
             });
           }
         }
-        
+
         // Check if product exists
         const product = await storage.getProductById(row.productId);
         if (!product) {
@@ -196,7 +196,7 @@ export async function importBatchInventory(data: BatchImportRow[]) {
           rowIndex++;
           continue;
         }
-        
+
         // Check if store exists
         const store = await storage.getStoreById(row.storeId);
         if (!store) {
@@ -209,20 +209,20 @@ export async function importBatchInventory(data: BatchImportRow[]) {
           rowIndex++;
           continue;
         }
-        
+
         // Get or create inventory record
         let inventory: schema.SelectInventory | null = (await storage.getInventoryByProduct(row.productId) as schema.SelectInventory[])[0] ?? null;
-        
+
         if (!inventory) {
           // Create new inventory record
           inventory = await storage.createInventoryItem({
             storeId: row.storeId,
             productId: row.productId,
             quantity: 0,
-            minStock: 5, // Default minimum level
+            minStock: 5 // Default minimum level
           });
         }
-        
+
         // Add batch to inventory
         if (!inventory) {
           results.errors.push({
@@ -238,9 +238,9 @@ export async function importBatchInventory(data: BatchImportRow[]) {
           productId: inventory.productId,
           storeId: inventory.storeId,
           quantity: row.quantity,
-          lastRestocked: new Date(),
+          lastRestocked: new Date()
         });
-        
+
         results.successfulRows++;
       } catch (error) {
         console.error(`Error processing row ${rowIndex}:`, error);
@@ -251,10 +251,10 @@ export async function importBatchInventory(data: BatchImportRow[]) {
         });
         results.failedRows++;
       }
-      
+
       rowIndex++;
     }
-    
+
     return results;
   } catch (error) {
     console.error('Error importing batch inventory:', error);
@@ -273,7 +273,7 @@ export async function sellProductFromBatches(storeId: number, productId: number,
   try {
     // Get all non-expired batches for this product, ordered by expiry date (ascending)
     const batches = await storage.getInventoryByProduct(productId);
-    
+
     // Sort batches by expiry date (closest expiry first)
     // Batches without expiry dates will go last
     const sortedBatches = batches.sort((a: any, b: any) => {
@@ -292,20 +292,20 @@ export async function sellProductFromBatches(storeId: number, productId: number,
       if (remainingQty <= 0) break;
 
       const qtyToSell = Math.min(batch.quantity ?? 0, remainingQty);
-      
+
       if (qtyToSell > 0) {
         // Sell from this batch
         const updatedBatch = await storage.updateInventory(batch.id, {
           quantity: (batch.quantity ?? 0) - qtyToSell
         });
-        
+
         // Create audit log
         const auditLog = await storage.createInventoryItem({
           productId: batch.productId,
           storeId: batch.storeId,
           quantity: qtyToSell
         });
-        
+
         updatedBatches.push(updatedBatch);
         auditLogs.push(auditLog);
         remainingQty -= qtyToSell;

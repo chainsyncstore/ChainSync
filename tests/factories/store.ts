@@ -5,6 +5,7 @@ import * as schema from '@shared/schema';
 export function makeMockStore(overrides: Partial<schema.StoreInsert> = {}): schema.StoreInsert {
   return {
     name: 'Test Store',
+    location: 'Test Location',
     address: '123 Test St',
     city: 'Testville',
     state: 'TS',

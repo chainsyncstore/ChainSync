@@ -1,12 +1,12 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+'use strict';
+const __importDefault = (this && this.__importDefault) || function(mod) {
+  return (mod && mod.__esModule) ? mod : { 'default': mod };
 };
-Object.defineProperty(exports, "__esModule", { value: true });
+Object.defineProperty(exports, '__esModule', { value: true });
 exports.validateContentType = exports.validateApiKey = exports.generateCsrfToken = exports.csrfProtection = exports.securityHeaders = void 0;
-const helmet_1 = __importDefault(require("helmet"));
-const index_js_1 = require("../../src/logging/index.js");
-const auth_js_1 = require("../utils/auth.js");
+const helmet_1 = __importDefault(require('helmet'));
+const index_js_1 = require('../../src/logging/index.js');
+const auth_js_1 = require('../utils/auth.js');
 // Get centralized logger for security middleware
 const logger = (0, index_js_1.getLogger)().child({ component: 'security-middleware' });
 /**
@@ -18,72 +18,72 @@ const logger = (0, index_js_1.getLogger)().child({ component: 'security-middlewa
  * - CSP (Content Security Policy)
  */
 exports.securityHeaders = (0, helmet_1.default)({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"], // Add any CDNs you need
-            styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdn.jsdelivr.net"],
-            imgSrc: ["'self'", "data:", "cdn.jsdelivr.net"],
-            connectSrc: ["'self'", "api.chainsync.com", "localhost:*"],
-            fontSrc: ["'self'", "fonts.gstatic.com", "data:"],
-            objectSrc: ["'none'"],
-            baseUri: ["'self'"], // Restricts base URIs that can be used
-            formAction: ["'self'"], // Restricts where forms can submit to
-            frameAncestors: ["'none'"], // Prevents embedding in iframes (alternative to X-Frame-Options)
-            mediaSrc: ["'self'"],
-            workerSrc: ["'self'", "blob:"], // For web workers
-            manifestSrc: ["'self'"],
-            upgradeInsecureRequests: [],
-        },
-        reportOnly: process.env.NODE_ENV === 'development' // Use CSP in report-only mode during development
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'], // Add any CDNs you need
+      styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com', 'cdn.jsdelivr.net'],
+      imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
+      connectSrc: ["'self'", 'api.chainsync.com', 'localhost:*'],
+      fontSrc: ["'self'", 'fonts.gstatic.com', 'data:'],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"], // Restricts base URIs that can be used
+      formAction: ["'self'"], // Restricts where forms can submit to
+      frameAncestors: ["'none'"], // Prevents embedding in iframes (alternative to X-Frame-Options)
+      mediaSrc: ["'self'"],
+      workerSrc: ["'self'", 'blob:'], // For web workers
+      manifestSrc: ["'self'"],
+      upgradeInsecureRequests: []
     },
-    crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production' ? true : false, // Stricter in production
-    crossOriginOpenerPolicy: { policy: 'same-origin' },
-    crossOriginResourcePolicy: { policy: 'same-site' },
-    dnsPrefetchControl: { allow: false },
-    frameguard: { action: 'deny' }, // Prevent clickjacking
-    hsts: {
-        maxAge: 63072000, // 2 years in seconds
-        includeSubDomains: true,
-        preload: true,
-    },
-    ieNoOpen: true,
-    noSniff: true, // Prevent MIME type sniffing
-    originAgentCluster: true, // Improves isolation between sites
-    permittedCrossDomainPolicies: { permittedPolicies: 'none' }, // Restricts Adobe Flash and Acrobat
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // More secure referrer policy
-    xssFilter: true, // Provides basic XSS protection
+    reportOnly: process.env.NODE_ENV === 'development' // Use CSP in report-only mode during development
+  },
+  crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production' ? true : false, // Stricter in production
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'same-site' },
+  dnsPrefetchControl: { allow: false },
+  frameguard: { action: 'deny' }, // Prevent clickjacking
+  hsts: {
+    maxAge: 63072000, // 2 years in seconds
+    includeSubDomains: true,
+    preload: true
+  },
+  ieNoOpen: true,
+  noSniff: true, // Prevent MIME type sniffing
+  originAgentCluster: true, // Improves isolation between sites
+  permittedCrossDomainPolicies: { permittedPolicies: 'none' }, // Restricts Adobe Flash and Acrobat
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // More secure referrer policy
+  xssFilter: true // Provides basic XSS protection
 });
 /**
  * CSRF protection middleware
  * Protects against Cross-Site Request Forgery attacks
  */
 const csrfProtection = (req, res, next) => {
-    const reqLogger = req.logger || logger;
-    // Skip CSRF check for API endpoints that use token auth instead of cookies
-    // or for specific endpoints like webhooks
-    if (req.path.startsWith('/api/public/') ||
+  const reqLogger = req.logger || logger;
+  // Skip CSRF check for API endpoints that use token auth instead of cookies
+  // or for specific endpoints like webhooks
+  if (req.path.startsWith('/api/public/') ||
         req.path.startsWith('/api/webhooks/') ||
         req.method === 'GET') {
-        return next();
-    }
-    // Extract CSRF token from header or request body
-    const csrfToken = req.headers['x-csrf-token'] || req.body._csrf;
-    // Compare with session token
-    if (!csrfToken || csrfToken !== req.session.csrfToken) {
-        reqLogger.warn('CSRF validation failed', {
-            path: req.path,
-            method: req.method,
-            ip: req.ip,
-            hasSessionToken: !!req.session.csrfToken,
-            hasRequestToken: !!csrfToken
-        });
-        return res.status(403).json({
-            message: 'CSRF validation failed. Please refresh the page and try again.',
-            code: 'CSRF_ERROR'
-        });
-    }
-    next();
+    return next();
+  }
+  // Extract CSRF token from header or request body
+  const csrfToken = req.headers['x-csrf-token'] || req.body._csrf;
+  // Compare with session token
+  if (!csrfToken || csrfToken !== req.session.csrfToken) {
+    reqLogger.warn('CSRF validation failed', {
+      path: req.path,
+      method: req.method,
+      ip: req.ip,
+      hasSessionToken: !!req.session.csrfToken,
+      hasRequestToken: !!csrfToken
+    });
+    return res.status(403).json({
+      message: 'CSRF validation failed. Please refresh the page and try again.',
+      code: 'CSRF_ERROR'
+    });
+  }
+  next();
 };
 exports.csrfProtection = csrfProtection;
 /**
@@ -91,18 +91,18 @@ exports.csrfProtection = csrfProtection;
  * This is called on login and when serving the frontend
  */
 const generateCsrfToken = (req, res, next) => {
-    // Generate random token if not already set
-    if (!req.session.csrfToken) {
-        const crypto = require('crypto');
-        req.session.csrfToken = crypto.randomBytes(32).toString('hex');
-    }
-    // Expose CSRF token to frontend via safe response header
-    res.set('X-CSRF-Token', req.session.csrfToken);
-    // Set security-focused headers not covered by helmet
-    res.set('Cache-Control', 'no-store, max-age=0');
-    res.set('Pragma', 'no-cache');
-    res.set('X-Content-Type-Options', 'nosniff');
-    next();
+  // Generate random token if not already set
+  if (!req.session.csrfToken) {
+    const crypto = require('crypto');
+    req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+  }
+  // Expose CSRF token to frontend via safe response header
+  res.set('X-CSRF-Token', req.session.csrfToken);
+  // Set security-focused headers not covered by helmet
+  res.set('Cache-Control', 'no-store, max-age=0');
+  res.set('Pragma', 'no-cache');
+  res.set('X-Content-Type-Options', 'nosniff');
+  next();
 };
 exports.generateCsrfToken = generateCsrfToken;
 /**
@@ -111,48 +111,48 @@ exports.generateCsrfToken = generateCsrfToken;
  * Enhanced with timing-safe comparison to prevent timing attacks
  */
 const validateApiKey = (req, res, next) => {
-    const reqLogger = req.logger || logger;
-    // Extract and validate API key using secure utility
-    const { isValid, keyPrefix, keySource } = (0, auth_js_1.extractAndValidateApiKey)(req);
-    if (!keyPrefix) {
-        reqLogger.warn('API request missing API key', {
-            path: req.path,
-            method: req.method,
-            ip: req.ip
-        });
-        return res.status(401).json({
-            message: 'API key is required',
-            code: 'API_KEY_MISSING'
-        });
-    }
-    if (!isValid) {
-        reqLogger.warn('Invalid API key used', {
-            path: req.path,
-            method: req.method,
-            ip: req.ip,
-            keyPrefix, // Log just prefix for debugging
-            keySource // Log where the key was found (header, query, body)
-        });
-        return res.status(403).json({
-            message: 'Invalid API key',
-            code: 'API_KEY_INVALID'
-        });
-    }
-    // Add API client info to request for downstream use
-    req.apiClient = {
-        keyPrefix,
-        keySource,
-        isAuthorized: true,
-        timestamp: new Date().toISOString()
-    };
-    // Log successful API key validation
-    reqLogger.info('API key validated successfully', {
-        path: req.path,
-        method: req.method,
-        keyPrefix,
-        keySource
+  const reqLogger = req.logger || logger;
+  // Extract and validate API key using secure utility
+  const { isValid, keyPrefix, keySource } = (0, auth_js_1.extractAndValidateApiKey)(req);
+  if (!keyPrefix) {
+    reqLogger.warn('API request missing API key', {
+      path: req.path,
+      method: req.method,
+      ip: req.ip
     });
-    next();
+    return res.status(401).json({
+      message: 'API key is required',
+      code: 'API_KEY_MISSING'
+    });
+  }
+  if (!isValid) {
+    reqLogger.warn('Invalid API key used', {
+      path: req.path,
+      method: req.method,
+      ip: req.ip,
+      keyPrefix, // Log just prefix for debugging
+      keySource // Log where the key was found (header, query, body)
+    });
+    return res.status(403).json({
+      message: 'Invalid API key',
+      code: 'API_KEY_INVALID'
+    });
+  }
+  // Add API client info to request for downstream use
+  req.apiClient = {
+    keyPrefix,
+    keySource,
+    isAuthorized: true,
+    timestamp: new Date().toISOString()
+  };
+  // Log successful API key validation
+  reqLogger.info('API key validated successfully', {
+    path: req.path,
+    method: req.method,
+    keyPrefix,
+    keySource
+  });
+  next();
 };
 exports.validateApiKey = validateApiKey;
 /**
@@ -160,27 +160,27 @@ exports.validateApiKey = validateApiKey;
  * Ensures that requests have the appropriate content type
  */
 const validateContentType = (allowedTypes = ['application/json']) => {
-    return (req, res, next) => {
-        // Skip for GET, HEAD, OPTIONS requests that don't typically have a body
-        if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-            return next();
-        }
-        const contentType = req.headers['content-type'];
-        if (!contentType) {
-            return res.status(415).json({
-                message: 'Content-Type header is missing',
-                code: 'CONTENT_TYPE_MISSING'
-            });
-        }
-        // Check if content type matches any of the allowed types
-        const isValidContentType = allowedTypes.some(type => contentType.toLowerCase().includes(type.toLowerCase()));
-        if (!isValidContentType) {
-            return res.status(415).json({
-                message: `Unsupported Content-Type. Supported types: ${allowedTypes.join(', ')}`,
-                code: 'CONTENT_TYPE_UNSUPPORTED'
-            });
-        }
-        next();
-    };
+  return (req, res, next) => {
+    // Skip for GET, HEAD, OPTIONS requests that don't typically have a body
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      return next();
+    }
+    const contentType = req.headers['content-type'];
+    if (!contentType) {
+      return res.status(415).json({
+        message: 'Content-Type header is missing',
+        code: 'CONTENT_TYPE_MISSING'
+      });
+    }
+    // Check if content type matches any of the allowed types
+    const isValidContentType = allowedTypes.some(type => contentType.toLowerCase().includes(type.toLowerCase()));
+    if (!isValidContentType) {
+      return res.status(415).json({
+        message: `Unsupported Content-Type. Supported types: ${allowedTypes.join(', ')}`,
+        code: 'CONTENT_TYPE_UNSUPPORTED'
+      });
+    }
+    next();
+  };
 };
 exports.validateContentType = validateContentType;

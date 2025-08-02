@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
  * Health Monitoring and Alerting Script
- * 
- * This script performs automated health checks on the ChainSync API 
+ *
+ * This script performs automated health checks on the ChainSync API
  * and sends alerts when issues are detected.
- * 
+ *
  * Features:
  * - Checks API health endpoints
  * - Monitors system metrics
  * - Sends alerts via configurable channels (email, Slack)
  * - Records historical health data for trend analysis
- * 
+ *
  * Usage:
  *   node monitor-health.js --interval=60 --notify=slack,email
  */
@@ -58,10 +58,10 @@ if (options.output) {
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
   }
-  
+
   const logStream = fs.createWriteStream(options.output, { flags: 'a' });
   const origLog = console.log;
-  
+
   logger = {
     log: (message) => {
       const timestamp = new Date().toISOString();
@@ -99,7 +99,7 @@ logger.log(chalk.blue('='.repeat(50)));
 async function checkHealth() {
   try {
     const startTime = Date.now();
-    
+
     // Make the health check request
     const response = await axios.get(HEALTH_ENDPOINT, {
       timeout: REQUEST_TIMEOUT,
@@ -107,11 +107,11 @@ async function checkHealth() {
         'User-Agent': 'ChainSync-Health-Monitor/1.0'
       }
     });
-    
+
     const responseTime = Date.now() - startTime;
     const status = response.status;
     const data = response.data;
-    
+
     // Format the result
     const result = {
       timestamp: new Date().toISOString(),
@@ -120,13 +120,13 @@ async function checkHealth() {
       statusCode: status,
       components: data.components || {}
     };
-    
+
     // Add to history
     addToHistory(result);
-    
+
     // Check if any components are down
     const isHealthy = checkComponentHealth(result);
-    
+
     if (isHealthy) {
       if (consecutiveFailures > 0) {
         // System recovered after failures
@@ -139,17 +139,17 @@ async function checkHealth() {
     } else {
       consecutiveFailures++;
       const severity = consecutiveFailures > 3 ? 'critical' : 'warning';
-      
+
       logger.warn(chalk.yellow(`⚠️ Health check failed - Issues detected (${consecutiveFailures} consecutive failures)`));
-      
+
       sendAlert(severity, `Health check failed - Issues detected (${consecutiveFailures} consecutive failures)`, result);
     }
-    
+
     return result;
   } catch (error) {
     consecutiveFailures++;
     const severity = consecutiveFailures > 3 ? 'critical' : 'warning';
-    
+
     // Format the error result
     const result = {
       timestamp: new Date().toISOString(),
@@ -158,14 +158,14 @@ async function checkHealth() {
       statusCode: error.response?.status || 0,
       error: error.message
     };
-    
+
     // Add to history
     addToHistory(result);
-    
+
     logger.error(chalk.red(`❌ Health check error (${consecutiveFailures} consecutive failures): ${error.message}`));
-    
+
     sendAlert(severity, `Health check error (${consecutiveFailures} consecutive failures): ${error.message}`, result);
-    
+
     return result;
   }
 }
@@ -177,15 +177,15 @@ function checkComponentHealth(result) {
   if (result.status !== 'UP') {
     return false;
   }
-  
+
   if (!result.components) {
     return true;
   }
-  
+
   // Check each component
   const components = result.components;
   const componentStatuses = [];
-  
+
   for (const [name, component] of Object.entries(components)) {
     if (component.status !== 'UP' && component.status !== 'DISABLED') {
       if (VERBOSE) {
@@ -196,7 +196,7 @@ function checkComponentHealth(result) {
       componentStatuses.push(true);
     }
   }
-  
+
   // If any component is down, system is not healthy
   return !componentStatuses.includes(false);
 }
@@ -206,11 +206,11 @@ function checkComponentHealth(result) {
  */
 function addToHistory(result) {
   healthHistory.unshift(result);
-  
+
   if (healthHistory.length > MAX_HISTORY) {
     healthHistory.pop();
   }
-  
+
   // If there's an output file specified, also write the history to a JSON file
   if (options.output) {
     const historyFilePath = options.output.replace(/\.[^.]+$/, '') + '.json';
@@ -227,7 +227,7 @@ async function sendAlert(severity, message, data) {
       case 'console':
         logAlert(severity, message, data);
         break;
-        
+
       case 'slack':
         if (SLACK_WEBHOOK) {
           await sendSlackAlert(severity, message, data);
@@ -235,7 +235,7 @@ async function sendAlert(severity, message, data) {
           logger.warn('Slack webhook URL not configured. Skipping Slack notification.');
         }
         break;
-        
+
       case 'email':
         if (ALERT_EMAIL) {
           await sendEmailAlert(severity, message, data);
@@ -253,25 +253,25 @@ async function sendAlert(severity, message, data) {
 function logAlert(severity, message, data) {
   const timestamp = new Date().toISOString();
   const formattedMessage = `[${severity.toUpperCase()}] ${timestamp} - ${message}`;
-  
+
   switch (severity) {
     case 'critical':
       logger.error(chalk.bgRed.white(formattedMessage));
       break;
-      
+
     case 'warning':
       logger.warn(chalk.yellow(formattedMessage));
       break;
-      
+
     case 'recovery':
       logger.info(chalk.green(formattedMessage));
       break;
-      
+
     default:
       logger.info(formattedMessage);
       break;
   }
-  
+
   if (VERBOSE && data) {
     logger.log(JSON.stringify(data, null, 2));
   }
@@ -283,25 +283,25 @@ function logAlert(severity, message, data) {
 async function sendSlackAlert(severity, message, data) {
   try {
     let color;
-    
+
     switch (severity) {
       case 'critical':
         color = '#FF0000'; // Red
         break;
-        
+
       case 'warning':
         color = '#FFA500'; // Orange
         break;
-        
+
       case 'recovery':
         color = '#36A64F'; // Green
         break;
-        
+
       default:
         color = '#CCCCCC'; // Grey
         break;
     }
-    
+
     const blocks = [
       {
         type: 'section',
@@ -311,75 +311,75 @@ async function sendSlackAlert(severity, message, data) {
         }
       }
     ];
-    
+
     if (data) {
       // Add details as fields
       const fields = [];
-      
+
       if (data.status) {
         fields.push({
           type: 'mrkdwn',
           text: `*Status:* ${data.status}`
         });
       }
-      
+
       if (data.statusCode) {
         fields.push({
           type: 'mrkdwn',
           text: `*Status Code:* ${data.statusCode}`
         });
       }
-      
+
       if (data.responseTime) {
         fields.push({
           type: 'mrkdwn',
           text: `*Response Time:* ${data.responseTime}ms`
         });
       }
-      
+
       if (data.error) {
         fields.push({
           type: 'mrkdwn',
           text: `*Error:* ${data.error}`
         });
       }
-      
+
       // Add component statuses
       if (data.components) {
         const componentFields = [];
-        
+
         for (const [name, component] of Object.entries(data.components)) {
           const status = component.status || 'UNKNOWN';
           let statusEmoji;
-          
+
           switch (status) {
             case 'UP':
               statusEmoji = ':white_check_mark:';
               break;
-              
+
             case 'DOWN':
               statusEmoji = ':x:';
               break;
-              
+
             case 'DEGRADED':
               statusEmoji = ':warning:';
               break;
-              
+
             case 'DISABLED':
               statusEmoji = ':no_entry_sign:';
               break;
-              
+
             default:
               statusEmoji = ':question:';
               break;
           }
-          
+
           componentFields.push({
             type: 'mrkdwn',
             text: `*${name}:* ${statusEmoji} ${status}`
           });
         }
-        
+
         if (componentFields.length > 0) {
           blocks.push({
             type: 'section',
@@ -387,7 +387,7 @@ async function sendSlackAlert(severity, message, data) {
           });
         }
       }
-      
+
       if (fields.length > 0) {
         blocks.push({
           type: 'section',
@@ -395,7 +395,7 @@ async function sendSlackAlert(severity, message, data) {
         });
       }
     }
-    
+
     // Add timestamp
     blocks.push({
       type: 'context',
@@ -406,7 +406,7 @@ async function sendSlackAlert(severity, message, data) {
         }
       ]
     });
-    
+
     // Construct the Slack message
     const slackMessage = {
       blocks,
@@ -417,10 +417,10 @@ async function sendSlackAlert(severity, message, data) {
         }
       ]
     };
-    
+
     // Send the message
     await axios.post(SLACK_WEBHOOK, slackMessage);
-    
+
     if (VERBOSE) {
       logger.info(`Slack alert sent: ${severity} - ${message}`);
     }
@@ -441,7 +441,7 @@ async function sendEmailAlert(severity, message, data) {
       }
       return;
     }
-    
+
     // Create a transporter
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -452,33 +452,33 @@ async function sendEmailAlert(severity, message, data) {
         pass: process.env.SMTP_PASS
       } : undefined
     });
-    
+
     // Construct email content
     let subject;
     let intro;
-    
+
     switch (severity) {
       case 'critical':
         subject = `[CRITICAL] ChainSync Health Alert - ${message}`;
         intro = '<h1 style="color: #cc0000;">CRITICAL ALERT</h1>';
         break;
-        
+
       case 'warning':
         subject = `[WARNING] ChainSync Health Alert - ${message}`;
         intro = '<h1 style="color: #ff9900;">WARNING</h1>';
         break;
-        
+
       case 'recovery':
         subject = `[RECOVERED] ChainSync Health Status - ${message}`;
         intro = '<h1 style="color: #00cc00;">SYSTEM RECOVERED</h1>';
         break;
-        
+
       default:
         subject = `[INFO] ChainSync Health Status - ${message}`;
         intro = '<h1 style="color: #0099cc;">INFORMATION</h1>';
         break;
     }
-    
+
     // Construct the HTML content
     let htmlContent = `
       <!DOCTYPE html>
@@ -507,7 +507,7 @@ async function sendEmailAlert(severity, message, data) {
           </div>
           <div class="details">
     `;
-    
+
     if (data) {
       htmlContent += `
         <h2>Health Check Details</h2>
@@ -517,7 +517,7 @@ async function sendEmailAlert(severity, message, data) {
             <td class="${data.status?.toLowerCase()}">${data.status || 'UNKNOWN'}</td>
           </tr>
       `;
-      
+
       if (data.statusCode) {
         htmlContent += `
           <tr>
@@ -526,7 +526,7 @@ async function sendEmailAlert(severity, message, data) {
           </tr>
         `;
       }
-      
+
       if (data.responseTime) {
         htmlContent += `
           <tr>
@@ -535,7 +535,7 @@ async function sendEmailAlert(severity, message, data) {
           </tr>
         `;
       }
-      
+
       if (data.error) {
         htmlContent += `
           <tr>
@@ -544,9 +544,9 @@ async function sendEmailAlert(severity, message, data) {
           </tr>
         `;
       }
-      
+
       htmlContent += '</table>';
-      
+
       // Add component details if available
       if (data.components && Object.keys(data.components).length > 0) {
         htmlContent += `
@@ -558,7 +558,7 @@ async function sendEmailAlert(severity, message, data) {
               <th>Details</th>
             </tr>
         `;
-        
+
         for (const [name, component] of Object.entries(data.components)) {
           htmlContent += `
             <tr>
@@ -568,11 +568,11 @@ async function sendEmailAlert(severity, message, data) {
             </tr>
           `;
         }
-        
+
         htmlContent += '</table>';
       }
     }
-    
+
     // Close the HTML
     htmlContent += `
           </div>
@@ -584,7 +584,7 @@ async function sendEmailAlert(severity, message, data) {
       </body>
       </html>
     `;
-    
+
     // Send the email
     const mailOptions = {
       from: process.env.SMTP_FROM || 'chainsync-monitor@example.com',
@@ -593,9 +593,9 @@ async function sendEmailAlert(severity, message, data) {
       html: htmlContent,
       text: `${severity.toUpperCase()}: ${message}\n\nDetails: ${JSON.stringify(data, null, 2)}\n\nTime: ${new Date().toISOString()}`
     };
-    
+
     await transporter.sendMail(mailOptions);
-    
+
     if (VERBOSE) {
       logger.info(`Email alert sent to ${ALERT_EMAIL}: ${severity} - ${message}`);
     }
@@ -619,7 +619,7 @@ function startMonitoring() {
       // Schedule recurring checks even if initial check fails
       setInterval(checkHealth, CHECK_INTERVAL);
     });
-    
+
   // Handle termination
   process.on('SIGINT', () => {
     logger.log(chalk.blue('='.repeat(50)));

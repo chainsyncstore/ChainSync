@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Info, AlertCircle, CheckCircle, Calendar, Package, Truck, BarChart4 } from 'lucide-react';
+import { Loader2, Info, Package, Truck, BarChart4 } from 'lucide-react';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import { format, isPast, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { BatchDetails } from '@/components/inventory/batch-details';
 import { BatchImportResult } from '@/components/inventory/batch-import-result';
@@ -26,22 +25,22 @@ const formatDate = (dateString: string | null | undefined) => {
   }
 };
 
-// Helper to determine expiry status
-const getExpiryStatus = (expiryDate: string | null | undefined) => {
-  if (!expiryDate) return { status: 'no-expiry', label: 'No Expiry Date' };
+// Helper to determine expiry status (Unused)
+// const getExpiryStatus = (expiryDate: string | null | undefined) => {
+//   if (!expiryDate) return { status: 'no-expiry', label: 'No Expiry Date' };
   
-  const today = new Date();
-  const expiry = new Date(expiryDate);
-  const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+//   const today = new Date();
+//   const expiry = new Date(expiryDate);
+//   const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   
-  if (diffDays < 0) {
-    return { status: 'expired', label: 'Expired' };
-  } else if (diffDays <= 30) {
-    return { status: 'expiring-soon', label: `Expires in ${diffDays} days` };
-  } else {
-    return { status: 'valid', label: formatDate(expiryDate) };
-  }
-};
+//   if (diffDays < 0) {
+//     return { status: 'expired', label: 'Expired' };
+//   } else if (diffDays <= 30) {
+//     return { status: 'expiring-soon', label: `Expires in ${diffDays} days` };
+//   } else {
+//     return { status: 'valid', label: formatDate(expiryDate) };
+//   }
+// };
 
 interface ImportError {
   row: number;
@@ -116,7 +115,11 @@ export default function BatchInventoryPage() {
   // Import batches mutation
   const importMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      return await apiRequest('POST', '/api/inventory/batches/import', formData) as BatchImportResponse;
+      const response = await fetch('/api/inventory/batches/import', {
+        method: 'POST',
+        body: formData
+      });
+      return await response.json() as BatchImportResponse;
     },
     onSuccess: (data) => {
       if (data.success) {
@@ -145,7 +148,8 @@ export default function BatchInventoryPage() {
   // Add batch mutation
   const addBatchMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('POST', '/api/inventory/batches', data);
+      const response = await apiRequest('POST', '/api/inventory/batches', data);
+      return await response.json();
     },
     onSuccess: () => {
       toast({

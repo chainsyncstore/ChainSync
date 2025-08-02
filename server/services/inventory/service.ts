@@ -12,7 +12,7 @@ import {
   InventoryAdjustmentParams,
   InventoryBatchParams,
   InventorySearchParams,
-  InventoryTransactionType,
+  InventoryTransactionType
 } from './types';
 
 import { db } from '../../../db/index.js';
@@ -25,12 +25,12 @@ import {
   gt,
   sql,
   like,
-  or,
+  or
 } from 'drizzle-orm';
 import {
   inventoryValidation,
   SchemaValidationError,
-  validateEntity,
+  validateEntity
 } from '../../../shared/schema-validation.js';
 
 // Local type aliases from Drizzle tables
@@ -43,17 +43,17 @@ export class InventoryService extends BaseService implements IInventoryService {
   /* ---------------------------------------------------------- CREATE --------------------------------------------------------- */
 
   async createInventory(
-    params: CreateInventoryParams,
+    params: CreateInventoryParams
   ): Promise<schema.Inventory> {
     try {
       // 1. Validate FK existence ------------------------------------------------------------------
       const product = await db.query.products.findFirst({
-        where: eq(schema.products.id, params.productId),
+        where: eq(schema.products.id, params.productId)
       });
       if (!product) throw InventoryServiceErrors.PRODUCT_NOT_FOUND;
 
       const store = await db.query.stores.findFirst({
-        where: eq(schema.stores.id, params.storeId),
+        where: eq(schema.stores.id, params.storeId)
       });
       if (!store) throw InventoryServiceErrors.STORE_NOT_FOUND;
 
@@ -61,8 +61,8 @@ export class InventoryService extends BaseService implements IInventoryService {
       const existing = await db.query.inventory.findFirst({
         where: and(
           eq(schema.inventory.productId, params.productId),
-          eq(schema.inventory.storeId, params.storeId),
-        ),
+          eq(schema.inventory.storeId, params.storeId)
+        )
       });
       if (existing) {
         return this.updateInventory(existing.id, params);
@@ -75,7 +75,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         totalQuantity: params.totalQuantity ?? 0,
         availableQuantity: params.availableQuantity ?? 0,
         minimumLevel: params.minimumLevel ?? 0,
-        batchTracking: params.batchTracking ?? false,
+        batchTracking: params.batchTracking ?? false
       };
 
       // 4. Insert ----------------------------------------------------------------------------------
@@ -83,6 +83,11 @@ export class InventoryService extends BaseService implements IInventoryService {
         .insert(schema.inventory)
         .values(inventoryData)
         .returning();
+      
+      if (!inventory) {
+        throw new Error('Failed to create inventory - no record returned');
+      }
+      
       return inventory;
     } catch (err) {
       if (err instanceof SchemaValidationError) {
@@ -96,17 +101,17 @@ export class InventoryService extends BaseService implements IInventoryService {
 
   async updateInventory(
     inventoryId: number,
-    params: UpdateInventoryParams,
+    params: UpdateInventoryParams
   ): Promise<schema.Inventory> {
     try {
       const existing = await db.query.inventory.findFirst({
-        where: eq(schema.inventory.id, inventoryId),
+        where: eq(schema.inventory.id, inventoryId)
       });
       if (!existing) throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
 
       // Build update data that satisfies the schema
       const updateData: any = {};
-      
+
       // Map valid inventory fields from params
       if (params.availableQuantity !== undefined) updateData.availableQuantity = params.availableQuantity;
       if (params.totalQuantity !== undefined) updateData.totalQuantity = params.totalQuantity;
@@ -121,6 +126,11 @@ export class InventoryService extends BaseService implements IInventoryService {
         .set(updateData)
         .where(eq(schema.inventory.id, inventoryId))
         .returning();
+      
+      if (!updated) {
+        throw new Error('Failed to update inventory - no record returned');
+      }
+      
       return updated;
     } catch (err) {
       if (err instanceof SchemaValidationError) {
@@ -133,11 +143,11 @@ export class InventoryService extends BaseService implements IInventoryService {
   /* ---------------------------------------------------------- READ ----------------------------------------------------------- */
 
   async getInventoryByProduct(
-    productId: number,
+    productId: number
   ): Promise<schema.Inventory | null> {
     try {
       const inventory = await db.query.inventory.findFirst({
-        where: eq(schema.inventory.productId, productId),
+        where: eq(schema.inventory.productId, productId)
       });
       return inventory ?? null;
     } catch (err) {
@@ -148,7 +158,7 @@ export class InventoryService extends BaseService implements IInventoryService {
   async getInventoryByStore(
     storeId: number,
     page = 1,
-    limit = 20,
+    limit = 20
   ): Promise<{
     inventory: schema.Inventory[];
     total: number;
@@ -157,7 +167,7 @@ export class InventoryService extends BaseService implements IInventoryService {
   }> {
     try {
       const store = await db.query.stores.findFirst({
-        where: eq(schema.stores.id, storeId),
+        where: eq(schema.stores.id, storeId)
       });
       if (!store) throw InventoryServiceErrors.STORE_NOT_FOUND;
 
@@ -172,14 +182,14 @@ export class InventoryService extends BaseService implements IInventoryService {
         where: eq(schema.inventory.storeId, storeId),
         offset,
         limit,
-        orderBy: [desc(schema.inventory.updatedAt)],
+        orderBy: [desc(schema.inventory.updatedAt)]
       });
 
       return {
         inventory,
         total: Number(countRow?.count ?? 0),
         page,
-        limit,
+        limit
       };
     } catch (err) {
       return this.handleError(err, 'getInventoryByStore');
@@ -187,7 +197,7 @@ export class InventoryService extends BaseService implements IInventoryService {
   }
 
   async searchInventory(
-    params: InventorySearchParams,
+    params: InventorySearchParams
   ): Promise<{
     inventory: schema.Inventory[];
     total: number;
@@ -229,14 +239,14 @@ export class InventoryService extends BaseService implements IInventoryService {
         where: and(...whereConditions),
         offset,
         limit,
-        orderBy: [orderBy],
+        orderBy: [orderBy]
       });
 
       return {
         inventory,
         total: Number(countRow?.count ?? 0),
         page,
-        limit,
+        limit
       };
     } catch (err) {
       return this.handleError(err, 'searchInventory');
@@ -246,14 +256,14 @@ export class InventoryService extends BaseService implements IInventoryService {
   /* ------------------------------------------------------ ADJUST & BATCH ----------------------------------------------------- */
 
   async adjustInventory(
-    params: InventoryAdjustmentParams,
+    params: InventoryAdjustmentParams
   ): Promise<boolean> {
     try {
-      return await db.transaction(async (tx) => {
+      return await db.transaction(async(tx) => {
         /* ---------- Load & checks ---------- */
-        if (!params.inventoryId) throw new Error("inventoryId is required");
+        if (!params.inventoryId) throw new Error('inventoryId is required');
         const inventory = await tx.query.inventory.findFirst({
-          where: eq(schema.inventory.id, params.inventoryId),
+          where: eq(schema.inventory.id, params.inventoryId)
         });
         if (!inventory) throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
 
@@ -265,7 +275,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         await tx
           .update(schema.inventory)
           .set({
-            availableQuantity: newAvailable,
+            availableQuantity: newAvailable
           } as any)
           .where(eq(schema.inventory.id, params.inventoryId));
 
@@ -273,13 +283,13 @@ export class InventoryService extends BaseService implements IInventoryService {
         await tx.insert(schema.inventoryTransactions).values({
           inventoryId: params.inventoryId,
           quantity: params.quantity,
-          type: params.quantity > 0 ? 'in' : 'out',
+          type: params.quantity > 0 ? 'in' : 'out'
         } as any);
 
         /* ---------- If batch tracking ---------- */
         if (params.batchId) {
           const batch = await tx.query.inventoryBatches.findFirst({
-            where: eq(schema.inventoryBatches.id, params.batchId),
+            where: eq(schema.inventoryBatches.id, params.batchId)
           });
           if (!batch) throw InventoryServiceErrors.BATCH_NOT_FOUND;
 
@@ -290,7 +300,7 @@ export class InventoryService extends BaseService implements IInventoryService {
           await tx
             .update(schema.inventoryBatches)
             .set({
-              quantity: newBatchQty,
+              quantity: newBatchQty
             })
             .where(eq(schema.inventoryBatches.id, params.batchId));
         }
@@ -306,16 +316,16 @@ export class InventoryService extends BaseService implements IInventoryService {
   }
 
   async addInventoryBatch(
-    params: InventoryBatchParams,
+    params: InventoryBatchParams
   ): Promise<any> {
     try {
-      return await db.transaction(async (tx) => {
+      return await db.transaction(async(tx) => {
         /* ---------- Ensure inventory exists / enable tracking ---------- */
         let inventory = await tx.query.inventory.findFirst({
           where: and(
             eq(schema.inventory.productId, params.productId),
-            eq(schema.inventory.storeId, params.storeId),
-          ),
+            eq(schema.inventory.storeId, params.storeId)
+          )
         });
 
         if (!inventory) {
@@ -327,7 +337,7 @@ export class InventoryService extends BaseService implements IInventoryService {
               batchTracking: true,
               totalQuantity: 0,
               availableQuantity: 0,
-              minimumLevel: 0,
+              minimumLevel: 0
             } as any)
             .returning();
           inventory = created;
@@ -342,28 +352,34 @@ export class InventoryService extends BaseService implements IInventoryService {
         const [batch] = await tx
           .insert(schema.inventoryBatches)
           .values({
-            inventoryId: inventory.id,
+            inventoryId: inventory!.id!,
             quantity: params.quantity,
             batchNumber: params.batchNumber,
             expiryDate: params.expiryDate,
             receivedDate: params.purchaseDate,
             manufacturingDate: params.manufactureDate,
-            costPerUnit: params.unitCost,
+            costPerUnit: params.unitCost
           } as any)
           .returning();
 
+        if (!batch) {
+          throw new Error('Failed to create inventory batch - no record returned');
+        }
+
         /* ---------- Adjustment log ---------- */
-        await this.adjustInventory({
-          inventoryId: inventory.id,
-          productId: params.productId,
-          quantity: params.quantity,
-          reason: 'Batch added',
-          transactionType: InventoryTransactionType.RECEIVE,
-          userId: params.performedBy ?? 0,
-          batchId: batch.id,
-          referenceId: params.supplierReference,
-          notes: params.notes,
-        });
+        if (inventory && inventory.id) {
+          await this.adjustInventory({
+            inventoryId: inventory.id,
+            productId: params.productId,
+            quantity: params.quantity,
+            reason: 'Batch added',
+            transactionType: InventoryTransactionType.RECEIVE,
+            userId: params.performedBy ?? 0,
+            batchId: batch.id,
+            referenceId: params.supplierReference || '',
+            notes: params.notes || ''
+          });
+        }
 
         return batch;
       });
@@ -378,7 +394,7 @@ export class InventoryService extends BaseService implements IInventoryService {
   /* ------------------------------------------------------- EXTRA ------------------------------------------------------------ */
 
   async getBatchesByProduct(
-    productId: number,
+    productId: number
   ): Promise<schema.InventoryBatch[]> {
     try {
       const inventory = await this.getInventoryByProduct(productId);
@@ -387,7 +403,7 @@ export class InventoryService extends BaseService implements IInventoryService {
       }
       return await db.query.inventoryBatches.findMany({
         where: eq(schema.inventoryBatches.inventoryId, inventory.id),
-        orderBy: [desc(schema.inventoryBatches.receivedDate)],
+        orderBy: [desc(schema.inventoryBatches.receivedDate)]
       });
     } catch (err) {
       return this.handleError(err, 'getBatchesByProduct');
@@ -397,7 +413,7 @@ export class InventoryService extends BaseService implements IInventoryService {
   async getLowStockItems(storeId: number): Promise<schema.Inventory[]> {
     try {
       const store = await db.query.stores.findFirst({
-        where: eq(schema.stores.id, storeId),
+        where: eq(schema.stores.id, storeId)
       });
       if (!store) throw InventoryServiceErrors.STORE_NOT_FOUND;
 
@@ -405,9 +421,9 @@ export class InventoryService extends BaseService implements IInventoryService {
         where: and(
           eq(schema.inventory.storeId, storeId),
           gt(schema.inventory.availableQuantity, 0),
-          gt(schema.inventory.minimumLevel, schema.inventory.availableQuantity),
+          gt(schema.inventory.minimumLevel, schema.inventory.availableQuantity)
         ),
-        orderBy: [asc(schema.inventory.availableQuantity)],
+        orderBy: [asc(schema.inventory.availableQuantity)]
       });
     } catch (err) {
       return this.handleError(err, 'getLowStockItems');
@@ -427,13 +443,13 @@ export class InventoryService extends BaseService implements IInventoryService {
   }> {
     try {
       const store = await db.query.stores.findFirst({
-        where: eq(schema.stores.id, storeId),
+        where: eq(schema.stores.id, storeId)
       });
       if (!store) throw InventoryServiceErrors.STORE_NOT_FOUND;
 
       const inventory = await db.query.inventory.findMany({
         where: eq(schema.inventory.storeId, storeId),
-        orderBy: [desc(schema.inventory.updatedAt)],
+        orderBy: [desc(schema.inventory.updatedAt)]
       });
 
       /* ---------- Valuation calc ---------- */
@@ -445,7 +461,7 @@ export class InventoryService extends BaseService implements IInventoryService {
 
       for (const inv of inventory) {
         const product = await db.query.products.findFirst({
-          where: eq(schema.products.id, inv.productId),
+          where: eq(schema.products.id, inv.productId)
         });
         if (!product) continue;
 
@@ -453,7 +469,7 @@ export class InventoryService extends BaseService implements IInventoryService {
         totalValue += value;
 
         const catId = product.categoryId?.toString() ?? 'N/A';
-        let catName = catId;
+        const catName = catId;
 
         if (!byCategory.has(catId)) {
           byCategory.set(catId, { value: 0, count: 0, name: catName });
@@ -471,8 +487,8 @@ export class InventoryService extends BaseService implements IInventoryService {
           categoryId: 0, // This is a placeholder, as we don't have a category ID.
           categoryName: data.name,
           value: data.value.toFixed(2),
-          itemCount: data.count,
-        })),
+          itemCount: data.count
+        }))
       };
     } catch (err) {
       return this.handleError(err, 'getInventoryValuation');

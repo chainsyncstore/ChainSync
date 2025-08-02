@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Database Migration Script for ChainSync
- * 
+ *
  * This script manages database migrations for the application.
  * It can create new migrations or run existing ones.
- * 
+ *
  * Usage:
  *   node migrate.js create <name>    Create a new migration
  *   node migrate.js run              Run all pending migrations
@@ -58,7 +58,7 @@ function runMigrations() {
   console.log('Running database migrations...');
 
   // Run drizzle-kit migrations using the npm script
-  const result = spawnSync('npm', ['run', 'db:migrate'], { 
+  const result = spawnSync('npm', ['run', 'db:migrate'], {
     stdio: 'inherit',
     env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'development' }
   });

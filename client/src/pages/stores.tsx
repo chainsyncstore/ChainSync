@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, Store, RefreshCw, Edit, MapPin, Phone, Users, Loader2 } from 'lucide-react';
+import { PlusIcon, Store, RefreshCw, MapPin, Phone, Users, Loader2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -51,7 +51,7 @@ interface AddStoreFormProps {
 function AddStoreForm({ onSuccess }: AddStoreFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(true);
+  const [, setIsOpen] = useState(true); // isOpen was unused
   
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeFormSchema),

@@ -2,5 +2,5 @@
 module.exports = {
   setupVite: () => {},
   serveStatic: () => {},
-  log: () => {},
+  log: () => {}
 };

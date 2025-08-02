@@ -65,7 +65,7 @@ export class IntegrationTestSetup {
       
       logger.info('Test database initialized successfully');
     } catch (error) {
-      logger.error('Failed to initialize test database', error);
+      logger.error('Failed to initialize test database', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -81,11 +81,13 @@ export class IntegrationTestSetup {
       await this.cleanupTestData();
       
       // Close database connection
-      await this.pool.end();
+      if (this.pool) {
+        await this.pool.end();
+      }
       
       logger.info('Test database cleaned up successfully');
     } catch (error) {
-      logger.error('Failed to cleanup test database', error);
+      logger.error('Failed to cleanup test database', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -98,7 +100,7 @@ export class IntegrationTestSetup {
       await this.cleanupTestData();
       await this.seedTestData();
     } catch (error) {
-      logger.error('Failed to reset test database', error);
+      logger.error('Failed to reset test database', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -148,7 +150,7 @@ export class IntegrationTestSetup {
         role: user.role,
         storeId: user.storeId 
       },
-      env.JWT_SECRET,
+      env.JWT_SECRET || 'test-secret',
       { expiresIn: '1h' }
     );
 
@@ -322,7 +324,7 @@ export class IntegrationTestSetup {
 
       logger.info('Test data seeded successfully');
     } catch (error) {
-      logger.error('Failed to seed test data', error);
+      logger.error('Failed to seed test data', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }
@@ -352,7 +354,7 @@ export class IntegrationTestSetup {
 
       logger.info('Test data cleaned up successfully');
     } catch (error) {
-      logger.error('Failed to cleanup test data', error);
+      logger.error('Failed to cleanup test data', error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }

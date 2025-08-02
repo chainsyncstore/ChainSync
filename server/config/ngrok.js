@@ -1,30 +1,30 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
 exports.getWebhookUrls = getWebhookUrls;
 exports.logNgrokInstructions = logNgrokInstructions;
-const vite_1 = require("../vite");
+const vite_1 = require('../vite');
 /**
  * Gets the public URL for webhook testing if using ngrok
  * @param ngrokUrl The URL provided by ngrok (e.g., https://abc123.ngrok.io)
  */
 function getWebhookUrls(ngrokUrl) {
-    if (!ngrokUrl) {
-        return null;
-    }
-    // Normalize the URL - remove trailing slashes
-    const url = ngrokUrl.replace(/\/+$/, '');
-    // Generate URLs for payment processors
-    return {
-        publicUrl: url,
-        paystackWebhookUrl: `${url}/api/webhooks/paystack`,
-        flutterwaveWebhookUrl: `${url}/api/webhooks/flutterwave`
-    };
+  if (!ngrokUrl) {
+    return null;
+  }
+  // Normalize the URL - remove trailing slashes
+  const url = ngrokUrl.replace(/\/+$/, '');
+  // Generate URLs for payment processors
+  return {
+    publicUrl: url,
+    paystackWebhookUrl: `${url}/api/webhooks/paystack`,
+    flutterwaveWebhookUrl: `${url}/api/webhooks/flutterwave`
+  };
 }
 /**
  * Logs setup instructions for ngrok webhook testing
  */
 function logNgrokInstructions() {
-    (0, vite_1.log)(`
+  (0, vite_1.log)(`
 =============== WEBHOOK TESTING INSTRUCTIONS ===============
 
 For local webhook testing with payment processors:

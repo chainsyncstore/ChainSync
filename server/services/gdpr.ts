@@ -14,9 +14,9 @@ const GDPR_CONFIG = {
     auditLogs: 1825, // 5 years for compliance
     sessionData: 30, // 30 days for session data
     backupData: 2555, // 7 years for backups
-    temporaryData: 7, // 7 days for temporary data
+    temporaryData: 7 // 7 days for temporary data
   },
-  
+
   // Data categories for processing
   dataCategories: {
     personal: ['name', 'email', 'phone', 'address', 'date_of_birth'],
@@ -24,7 +24,7 @@ const GDPR_CONFIG = {
     business: ['transaction_history', 'purchase_preferences', 'loyalty_points'],
     technical: ['ip_address', 'user_agent', 'session_id', 'device_id']
   },
-  
+
   // User rights
   userRights: {
     access: 'RIGHT_TO_ACCESS',
@@ -42,11 +42,11 @@ const GDPR_CONFIG = {
  */
 export class GDPRService {
   private db: Pool;
-  
+
   constructor(db: Pool) {
     this.db = db;
   }
-  
+
   /**
    * Process data access request (Right to Access)
    * @param userId - User ID requesting access
@@ -55,16 +55,16 @@ export class GDPRService {
   async processAccessRequest(userId: string): Promise<any> {
     try {
       logger.info('Processing data access request', { userId });
-      
+
       // Collect all user data
       const userData = await this.collectUserData(userId);
-      
+
       // Anonymize sensitive data for export
       const anonymizedData = this.anonymizeData(userData);
-      
+
       // Log the access request
       await this.logDataRequest(userId, 'access', anonymizedData);
-      
+
       return {
         requestId: this.generateRequestId(),
         timestamp: new Date().toISOString(),
@@ -76,7 +76,7 @@ export class GDPRService {
       throw new Error('Failed to process data access request');
     }
   }
-  
+
   /**
    * Process data erasure request (Right to be Forgotten)
    * @param userId - User ID requesting erasure
@@ -86,10 +86,10 @@ export class GDPRService {
   async processErasureRequest(userId: string, reason?: string): Promise<any> {
     try {
       logger.info('Processing data erasure request', { userId, reason });
-      
+
       // Check if erasure is allowed (e.g., no pending transactions)
       const canErase = await this.canEraseUserData(userId);
-      
+
       if (!canErase.allowed) {
         return {
           requestId: this.generateRequestId(),
@@ -98,13 +98,13 @@ export class GDPRService {
           timestamp: new Date().toISOString()
         };
       }
-      
+
       // Anonymize user data instead of complete deletion
       await this.anonymizeUserData(userId);
-      
+
       // Log the erasure request
       await this.logDataRequest(userId, 'erasure', { reason });
-      
+
       return {
         requestId: this.generateRequestId(),
         status: 'completed',
@@ -116,7 +116,7 @@ export class GDPRService {
       throw new Error('Failed to process data erasure request');
     }
   }
-  
+
   /**
    * Process data portability request (Right to Portability)
    * @param userId - User ID requesting portability
@@ -125,16 +125,16 @@ export class GDPRService {
   async processPortabilityRequest(userId: string): Promise<any> {
     try {
       logger.info('Processing data portability request', { userId });
-      
+
       // Collect user data in portable format
       const userData = await this.collectUserData(userId);
-      
+
       // Convert to portable format (JSON)
       const portableData = this.formatForPortability(userData);
-      
+
       // Log the portability request
       await this.logDataRequest(userId, 'portability', portableData);
-      
+
       return {
         requestId: this.generateRequestId(),
         timestamp: new Date().toISOString(),
@@ -147,7 +147,7 @@ export class GDPRService {
       throw new Error('Failed to process data portability request');
     }
   }
-  
+
   /**
    * Clean up expired data based on retention policies
    * @returns Cleanup summary
@@ -155,40 +155,40 @@ export class GDPRService {
   async cleanupExpiredData(): Promise<any> {
     try {
       logger.info('Starting GDPR data cleanup');
-      
+
       const cleanupResults = {
         sessionData: 0,
         auditLogs: 0,
         temporaryData: 0,
         backupData: 0
       };
-      
+
       // Clean up expired session data
       const sessionCutoff = new Date(Date.now() - GDPR_CONFIG.retention.sessionData * 24 * 60 * 60 * 1000);
       const sessionResult = await this.db.query(
         'DELETE FROM sessions WHERE created_at < $1',
         [sessionCutoff]
       );
-      cleanupResults.sessionData = sessionResult.rowCount;
-      
+      cleanupResults.sessionData = sessionResult.rowCount || 0;
+
       // Clean up expired audit logs
       const auditCutoff = new Date(Date.now() - GDPR_CONFIG.retention.auditLogs * 24 * 60 * 60 * 1000);
       const auditResult = await this.db.query(
         'DELETE FROM audit_logs WHERE created_at < $1',
         [auditCutoff]
       );
-      cleanupResults.auditLogs = auditResult.rowCount;
-      
+      cleanupResults.auditLogs = auditResult.rowCount || 0;
+
       // Clean up temporary data
       const tempCutoff = new Date(Date.now() - GDPR_CONFIG.retention.temporaryData * 24 * 60 * 60 * 1000);
       const tempResult = await this.db.query(
         'DELETE FROM temporary_data WHERE created_at < $1',
         [tempCutoff]
       );
-      cleanupResults.temporaryData = tempResult.rowCount;
-      
+      cleanupResults.temporaryData = tempResult.rowCount || 0;
+
       logger.info('GDPR data cleanup completed', cleanupResults);
-      
+
       return {
         timestamp: new Date().toISOString(),
         results: cleanupResults
@@ -198,7 +198,7 @@ export class GDPRService {
       throw new Error('Failed to cleanup expired data');
     }
   }
-  
+
   /**
    * Anonymize user data for privacy protection
    * @param userId - User ID to anonymize
@@ -217,7 +217,7 @@ export class GDPRService {
         WHERE id = $1`,
         [userId]
       );
-      
+
       // Anonymize transaction data
       await this.db.query(
         `UPDATE transactions SET 
@@ -227,14 +227,14 @@ export class GDPRService {
         WHERE user_id = $1`,
         [userId]
       );
-      
+
       logger.info('User data anonymized', { userId });
     } catch (error) {
       logger.error('Failed to anonymize user data', { userId, error });
       throw new Error('Failed to anonymize user data');
     }
   }
-  
+
   /**
    * Check if user data can be erased
    * @param userId - User ID to check
@@ -247,34 +247,34 @@ export class GDPRService {
         'SELECT COUNT(*) FROM transactions WHERE user_id = $1 AND status = $2',
         [userId, 'pending']
       );
-      
+
       if (parseInt(pendingTransactions.rows[0].count) > 0) {
         return {
           allowed: false,
           reason: 'User has pending transactions that must be completed first'
         };
       }
-      
+
       // Check for active subscriptions
       const activeSubscriptions = await this.db.query(
         'SELECT COUNT(*) FROM subscriptions WHERE user_id = $1 AND status = $2',
         [userId, 'active']
       );
-      
+
       if (parseInt(activeSubscriptions.rows[0].count) > 0) {
         return {
           allowed: false,
           reason: 'User has active subscriptions that must be cancelled first'
         };
       }
-      
+
       return { allowed: true };
     } catch (error) {
       logger.error('Failed to check erasure eligibility', { userId, error });
       return { allowed: false, reason: 'Unable to verify erasure eligibility' };
     }
   }
-  
+
   /**
    * Collect all user data for access/portability requests
    * @param userId - User ID
@@ -287,25 +287,25 @@ export class GDPRService {
         'SELECT * FROM users WHERE id = $1',
         [userId]
       );
-      
+
       // Get transaction history
       const transactionResult = await this.db.query(
         'SELECT * FROM transactions WHERE user_id = $1 ORDER BY created_at DESC',
         [userId]
       );
-      
+
       // Get loyalty data
       const loyaltyResult = await this.db.query(
         'SELECT * FROM loyalty_points WHERE user_id = $1',
         [userId]
       );
-      
+
       // Get preferences
       const preferencesResult = await this.db.query(
         'SELECT * FROM user_preferences WHERE user_id = $1',
         [userId]
       );
-      
+
       return {
         profile: userResult.rows[0] || null,
         transactions: transactionResult.rows,
@@ -317,7 +317,7 @@ export class GDPRService {
       throw new Error('Failed to collect user data');
     }
   }
-  
+
   /**
    * Anonymize sensitive data for export
    * @param data - Data to anonymize
@@ -325,14 +325,14 @@ export class GDPRService {
    */
   private anonymizeData(data: any): any {
     const anonymized = JSON.parse(JSON.stringify(data));
-    
+
     // Anonymize sensitive fields
     if (anonymized.profile) {
       anonymized.profile.password = '[REDACTED]';
       anonymized.profile.credit_card = '[REDACTED]';
       anonymized.profile.ssn = '[REDACTED]';
     }
-    
+
     // Anonymize transaction data
     if (anonymized.transactions) {
       anonymized.transactions.forEach((transaction: any) => {
@@ -341,10 +341,10 @@ export class GDPRService {
         transaction.credit_card = '[REDACTED]';
       });
     }
-    
+
     return anonymized;
   }
-  
+
   /**
    * Format data for portability
    * @param data - Data to format
@@ -357,7 +357,7 @@ export class GDPRService {
       data: data
     };
   }
-  
+
   /**
    * Log data request for audit trail
    * @param userId - User ID
@@ -375,7 +375,7 @@ export class GDPRService {
       logger.error('Failed to log GDPR request', { userId, requestType, error });
     }
   }
-  
+
   /**
    * Generate unique request ID
    * @returns Request ID
@@ -386,4 +386,4 @@ export class GDPRService {
 }
 
 // Export utility functions
-export const GDPR_CONFIG_EXPORT = GDPR_CONFIG; 
+export const GDPR_CONFIG_EXPORT = GDPR_CONFIG;

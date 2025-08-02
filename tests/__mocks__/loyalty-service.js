@@ -51,7 +51,7 @@ async function recordPointsEarned(storeId, memberId, points, userId) {
   const newPoints = (customer.loyaltyPoints || 0) + points;
   await db.customer.update({ where: { id: customer.id }, data: { loyaltyPoints: newPoints } });
   await db.loyaltyTransaction.create({
-    data: { memberId, type: 'earn', points, createdAt: new Date() },
+    data: { memberId, type: 'earn', points, createdAt: new Date() }
   });
 
   logger.info?.('Loyalty points accrued', { memberId, points });
@@ -62,5 +62,5 @@ module.exports = {
   recordPointsEarned,
   reverseLoyaltyPoints,
   setLoyaltyLogger,
-  default: { recordPointsEarned, reverseLoyaltyPoints, setLoyaltyLogger },
+  default: { recordPointsEarned, reverseLoyaltyPoints, setLoyaltyLogger }
 };

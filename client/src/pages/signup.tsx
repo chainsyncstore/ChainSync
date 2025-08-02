@@ -100,7 +100,7 @@ const PasswordRequirement = ({ meets, label }: { meets: boolean; label: string }
 );
 
 export default function SignupPage() {
-  const [location, navigate] = useLocation();
+  const [, navigate] = useLocation(); // location was unused
   const { toast } = useToast();
   const { login } = useAuth();
   
@@ -290,7 +290,7 @@ export default function SignupPage() {
       
       return response.json();
     },
-    onSuccess: async (data) => {
+    onSuccess: async () => { // data parameter removed
       toast({
         title: "Account Created!",
         description: "Your account has been created successfully. Redirecting to dashboard...",
@@ -312,12 +312,12 @@ export default function SignupPage() {
         navigate('/login');
       }
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       // Handle field-specific errors
-      if (error.field) {
+      if (error.field && typeof error.field === 'string') { // Ensure error.field is a string
         setErrors(prev => ({
           ...prev,
-          [error.field]: error.message
+          [error.field as string]: error.message
         }));
       } else {
         // General error

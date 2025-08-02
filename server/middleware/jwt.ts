@@ -23,36 +23,39 @@ declare global {
 /**
  * JWT token validation middleware
  */
-export const validateJWT = (req: Request, res: Response, next: NextFunction) => {
+export const validateJWT = (req: Request, res: Response, next: NextFunction): void => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Access token required',
         code: 'MISSING_TOKEN'
       });
+      return;
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
+
     if (!env.JWT_SECRET) {
       logger.error('JWT_SECRET not configured');
-      return res.status(500).json({
+      res.status(500).json({
         error: 'Server configuration error',
         code: 'CONFIG_ERROR'
       });
+      return;
     }
 
     try {
       const decoded = jwt.verify(token, env.JWT_SECRET) as any;
-      
+
       // Validate required claims
       if (!decoded.id || !decoded.role) {
-        return res.status(401).json({
+        res.status(401).json({
           error: 'Invalid token claims',
           code: 'INVALID_TOKEN'
         });
+        return;
       }
 
       // Add user info to request
@@ -67,17 +70,19 @@ export const validateJWT = (req: Request, res: Response, next: NextFunction) => 
       next();
     } catch (jwtError) {
       logger.warn('JWT validation failed', { error: jwtError });
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Invalid or expired token',
         code: 'INVALID_TOKEN'
       });
+      return;
     }
   } catch (error) {
     logger.error('JWT middleware error', { error: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({
+    res.status(500).json({
       error: 'Authentication error',
       code: 'AUTH_ERROR'
     });
+    return;
   }
 };
 
@@ -114,17 +119,19 @@ export const generateJWT = (user: {
 export const requireRole = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Authentication required',
         code: 'UNAUTHORIZED'
       });
+      return;
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
+      res.status(403).json({
         error: `Access denied. Required roles: ${allowedRoles.join(', ')}`,
         code: 'FORBIDDEN'
       });
+      return;
     }
 
     next();
@@ -135,12 +142,12 @@ export const requireRole = (allowedRoles: string[]) => {
  * Admin-only access middleware
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-  return requireRole(['admin'])(req, res, next);
+  requireRole(['admin'])(req, res, next);
 };
 
 /**
  * Manager or Admin access middleware
  */
 export const requireManagerOrAdmin = (req: Request, res: Response, next: NextFunction) => {
-  return requireRole(['admin', 'manager'])(req, res, next);
-}; 
+  requireRole(['admin', 'manager'])(req, res, next);
+};

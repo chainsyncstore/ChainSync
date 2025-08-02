@@ -9,7 +9,7 @@ import { EnhancedBaseService } from '../base/enhanced-service';
 import { SubscriptionFormatter } from './formatter';
 import {
   subscriptionValidation,
-  SchemaValidationError,
+  SchemaValidationError
 } from '@shared/schema-validation';
 import { prepareSubscriptionData } from '@shared/schema-helpers';
 
@@ -22,7 +22,7 @@ import {
   PaymentProvider,
   ProcessWebhookParams,
   ISubscriptionService,
-  SubscriptionServiceErrors,
+  SubscriptionServiceErrors
 } from './types';
 
 import { db } from '@server/db';
@@ -41,7 +41,7 @@ export class EnhancedSubscriptionService
   /* -------------------------------------------------------------------------- */
 
   async createSubscription(
-    params: CreateSubscriptionParams,
+    params: CreateSubscriptionParams
   ): Promise<SelectSubscription> {
     try {
       const validated = subscriptionValidation.insert.parse(params);
@@ -63,7 +63,7 @@ export class EnhancedSubscriptionService
 
   async updateSubscription(
     subscriptionId: number,
-    params: UpdateSubscriptionParams,
+    params: UpdateSubscriptionParams
   ): Promise<SelectSubscription> {
     try {
       const existing = await this.getSubscriptionById(subscriptionId);
@@ -78,7 +78,7 @@ export class EnhancedSubscriptionService
         metadata: params.metadata
           ? JSON.stringify(params.metadata)
           : existing.metadata,
-        updatedAt: new Date(),
+        updatedAt: new Date()
       };
 
       const validated = subscriptionValidation.update.parse(updateData);
@@ -103,7 +103,7 @@ export class EnhancedSubscriptionService
   async getSubscriptionById(id: number): Promise<SelectSubscription | null> {
     try {
       const subscription = await db.query.subscriptions.findFirst({
-        where: eq(schema.subscriptions.id, id),
+        where: eq(schema.subscriptions.id, id)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
@@ -115,7 +115,7 @@ export class EnhancedSubscriptionService
     try {
       const subscription = await db.query.subscriptions.findFirst({
         where: eq(schema.subscriptions.userId, userId),
-        orderBy: desc(schema.subscriptions.createdAt),
+        orderBy: desc(schema.subscriptions.createdAt)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
@@ -128,9 +128,9 @@ export class EnhancedSubscriptionService
       const subscription = await db.query.subscriptions.findFirst({
         where: and(
           eq(schema.subscriptions.userId, userId),
-          eq(schema.subscriptions.status, 'active'),
+          eq(schema.subscriptions.status, 'active')
         ),
-        orderBy: desc(schema.subscriptions.createdAt),
+        orderBy: desc(schema.subscriptions.createdAt)
       });
       return subscription ? this.formatter.formatResult(subscription) : null;
     } catch (err) {
@@ -139,7 +139,7 @@ export class EnhancedSubscriptionService
   }
 
   async searchSubscriptions(
-    params: SubscriptionSearchParams,
+    params: SubscriptionSearchParams
   ): Promise<{
     subscriptions: SelectSubscription[];
     total: number;
@@ -169,7 +169,7 @@ export class EnhancedSubscriptionService
 
       const countResult = await db
         .select({
-          count: sql<number>`count(*)`.mapWith(Number),
+          count: sql<number>`count(*)`.mapWith(Number)
         })
         .from(schema.subscriptions)
         .where(whereClause);
@@ -178,14 +178,14 @@ export class EnhancedSubscriptionService
         where: whereClause,
         limit,
         offset,
-        orderBy: desc(schema.subscriptions.createdAt),
+        orderBy: desc(schema.subscriptions.createdAt)
       });
 
       return {
         subscriptions: records.map((r) => this.formatter.formatResult(r)),
         total: countResult[0]?.count ?? 0,
         page,
-        limit,
+        limit
       };
     } catch (err) {
       throw this.handleError(err as Error, 'searching subscriptions');
@@ -198,7 +198,7 @@ export class EnhancedSubscriptionService
 
   async cancelSubscription(
     subscriptionId: number,
-    reason?: string,
+    reason?: string
   ): Promise<SelectSubscription> {
     try {
       const sub = await this.getSubscriptionById(subscriptionId);
@@ -207,7 +207,7 @@ export class EnhancedSubscriptionService
       this.validateStatusTransition(sub.status as SubscriptionStatus, SubscriptionStatus.CANCELLED);
 
       const updated = await this.updateSubscription(subscriptionId, {
-        status: SubscriptionStatus.CANCELLED,
+        status: SubscriptionStatus.CANCELLED
       });
 
       // TODO: persist `reason` to an audit table if required.
@@ -227,7 +227,7 @@ export class EnhancedSubscriptionService
 
       return await this.updateSubscription(id, {
         endDate: newEnd,
-        status: SubscriptionStatus.ACTIVE,
+        status: SubscriptionStatus.ACTIVE
       });
     } catch (err) {
       throw this.handleError(err as Error, 'renewing subscription');
@@ -245,7 +245,7 @@ export class EnhancedSubscriptionService
 
   async validateSubscriptionAccess(
     userId: number,
-    requiredPlan?: SubscriptionPlan | string,
+    requiredPlan?: SubscriptionPlan | string
   ): Promise<boolean> {
     const sub = await this.getActiveSubscription(userId);
     if (!sub) return false;
@@ -268,13 +268,13 @@ export class EnhancedSubscriptionService
     // These could be optimized into a single SQL query; kept simple for clarity.
     const [totals] = await db
       .select({
-        total: sql<number>`count(*)`.mapWith(Number),
+        total: sql<number>`count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions);
 
     const [active] = await db
       .select({
-        total: sql<number>`count(*)`.mapWith(Number),
+        total: sql<number>`count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions)
       .where(eq(schema.subscriptions.status, 'active'));
@@ -282,7 +282,7 @@ export class EnhancedSubscriptionService
     const plans = await db
       .select({
         plan: schema.subscriptions.planId,
-        total: sql<number>`count(*)`.mapWith(Number),
+        total: sql<number>`count(*)`.mapWith(Number)
       })
       .from(schema.subscriptions)
       .groupBy(schema.subscriptions.planId);
@@ -294,9 +294,9 @@ export class EnhancedSubscriptionService
       revenueThisMonth: '0.00',
       revenueLastMonth: '0.00',
       subscriptionsByPlan: Object.fromEntries(
-        plans.map((p) => [p.plan as string, p.total]),
+        plans.map((p) => [p.plan as string, p.total])
       ),
-      churnRate: '0.00%',
+      churnRate: '0.00%'
     };
   }
 
@@ -306,28 +306,28 @@ export class EnhancedSubscriptionService
 
   private validateStatusTransition(
     current: SubscriptionStatus,
-    next: SubscriptionStatus,
+    next: SubscriptionStatus
   ): void {
     const allowed: Record<SubscriptionStatus, SubscriptionStatus[]> = {
       [SubscriptionStatus.ACTIVE]: [
         SubscriptionStatus.CANCELLED,
         SubscriptionStatus.EXPIRED,
-        SubscriptionStatus.PAST_DUE,
+        SubscriptionStatus.PAST_DUE
       ],
       [SubscriptionStatus.PENDING]: [
         SubscriptionStatus.ACTIVE,
         SubscriptionStatus.CANCELLED,
-        SubscriptionStatus.FAILED,
+        SubscriptionStatus.FAILED
       ],
       [SubscriptionStatus.PAST_DUE]: [
         SubscriptionStatus.ACTIVE,
         SubscriptionStatus.CANCELLED,
-        SubscriptionStatus.EXPIRED,
+        SubscriptionStatus.EXPIRED
       ],
       [SubscriptionStatus.TRIAL]: [
         SubscriptionStatus.ACTIVE,
         SubscriptionStatus.CANCELLED,
-        SubscriptionStatus.EXPIRED,
+        SubscriptionStatus.EXPIRED
       ],
       [SubscriptionStatus.EXPIRED]: [SubscriptionStatus.ACTIVE],
       [SubscriptionStatus.CANCELLED]: [SubscriptionStatus.ACTIVE],
@@ -335,8 +335,8 @@ export class EnhancedSubscriptionService
       [SubscriptionStatus.INACTIVE]: [SubscriptionStatus.ACTIVE],
       [SubscriptionStatus.SUSPENDED]: [
         SubscriptionStatus.ACTIVE,
-        SubscriptionStatus.CANCELLED,
-      ],
+        SubscriptionStatus.CANCELLED
+      ]
     };
 
     if (

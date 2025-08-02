@@ -7,8 +7,8 @@ console.log('🚀 Starting ChainSync Application...');
 const serverProcess = spawn('npx', ['tsx', 'server/integrated-index.ts'], {
   cwd: process.cwd(),
   stdio: 'inherit',
-  env: { 
-    ...process.env, 
+  env: {
+    ...process.env,
     PORT: '5000',
     NODE_ENV: 'development'
   }

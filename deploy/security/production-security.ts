@@ -232,7 +232,7 @@ export class ProductionSecurity extends EventEmitter {
         description: `Brute force attempt detected for ${userId || 'unknown user'} from ${ipAddress}`,
         metadata: { ipAddress, userId, attemptCount: attempt.count },
         ipAddress,
-        userId,
+        userId: userId || '',
       });
     }
   }

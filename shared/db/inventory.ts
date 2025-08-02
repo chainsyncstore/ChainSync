@@ -20,7 +20,7 @@ export const inventory = pgTable("inventory", {
   availableQuantity: integer("available_quantity").notNull().default(0),
   minimumLevel: integer("minimum_level").notNull().default(0),
   batchTracking: boolean("batch_tracking").notNull().default(false),
-  status: text("status", { enum: inventoryStatus.options }).notNull().default("available"),
+  status: text("status", { enum: ["available", "low_stock", "out_of_stock", "reserved"] }).notNull().default("available"),
 }, (table) => ({
   storeProductIndex: index("idx_inventory_store_product").on(table.storeId, table.productId),
   statusIndex: index("idx_inventory_status").on(table.status),

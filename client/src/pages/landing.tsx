@@ -2,14 +2,14 @@ import React from 'react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Check, ShieldCheck, CreditCard, Calendar, Store, LineChart, BarChart, Brain, ArrowRight, Package, Database, Send, Zap } from 'lucide-react';
+import { Check, ShieldCheck, CreditCard, Calendar, Store, LineChart, Brain, ArrowRight, Package, Zap } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { cn, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { useCurrency } from '@/providers/currency-provider';
 import { CurrencySelector } from '@/components/currency-selector';
 
 export default function LandingPage() {
-  const { currency, currencySymbol } = useCurrency();
+  const { currency } = useCurrency();
   
   // Define pricing constants based on the currency - using useMemo to optimize performance
   const pricingData = React.useMemo(() => {

@@ -38,15 +38,15 @@ try {
   console.log('🔍 Verifying build output...');
   const clientBuildPath = path.join(__dirname, '../dist/client');
   const serverBuildPath = path.join(__dirname, '../dist/server');
-  
+
   if (!fs.existsSync(path.join(clientBuildPath, 'index.html'))) {
     throw new Error('Client build failed: index.html not found');
   }
-  
+
   if (!fs.existsSync(path.join(serverBuildPath, 'server/index.js'))) {
     throw new Error('Server build failed: server/index.js not found');
   }
-  
+
   console.log('✅ Build verification passed\n');
 
   // Step 6: Start the application
@@ -54,7 +54,7 @@ try {
   console.log('📝 Application will be available at: http://localhost:3000');
   console.log('📝 API will be available at: http://localhost:3000/api/v1');
   console.log('\n🔄 Starting server...\n');
-  
+
   execSync('npm start', { stdio: 'inherit' });
 
 } catch (error) {
@@ -66,4 +66,4 @@ try {
   console.error('4. Check if database is accessible');
   console.error('5. Ensure all required files exist in the project structure');
   process.exit(1);
-} 
+}

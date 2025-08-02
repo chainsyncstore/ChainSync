@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { AppShell } from '@/components/layout/app-shell';
 import { AffiliateDashboard } from '@/components/affiliate/affiliate-dashboard';
@@ -6,7 +6,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,7 +21,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -31,8 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RefreshCwIcon, ArrowLeftIcon, UserIcon, UsersIcon, DollarSign, Search } from 'lucide-react';
-import type { Affiliate } from '@shared/schema';
+import { RefreshCwIcon, ArrowLeftIcon, UserIcon, UsersIcon, DollarSign } from 'lucide-react';
 
 // Form schemas
 const loginSchema = z.object({
@@ -58,14 +56,9 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 export default function AffiliatePage() {
   const { user, isAuthenticated, login } = useAuth();
   const [isRegistering, setIsRegistering] = useState(false);
+  // const [activeTab, setActiveTab] = useState<string>("login"); // Unused
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [search, setSearch] = useState('');
-
-  const { data: affiliates = [], isLoading: affiliatesLoading } = useQuery<Affiliate[]>({
-    queryKey: search ? [`/api/affiliates?search=${search}`] : ['/api/affiliates'],
-    enabled: isAuthenticated,
-  });
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -91,12 +84,14 @@ export default function AffiliatePage() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormValues) => {
-      return await apiRequest('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('POST', '/api/auth/login', data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => { // data parameter removed
       // Call login with username and password from form data
       const formData = loginForm.getValues();
       login({ username: formData.username, password: formData.password });
@@ -122,16 +117,20 @@ export default function AffiliatePage() {
       const { confirmPassword, ...signupData } = data;
       
       // First attempt signup
-      return await apiRequest('/api/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...signupData,
-          role: "affiliate", // Special role for affiliate-only users
-          becomeAffiliate: true // Flag to automatically register as affiliate
-        }),
+      const response = await apiRequest('POST', '/api/auth/signup', {
+        ...signupData,
+        role: "affiliate", // Special role for affiliate-only users
+        becomeAffiliate: true // Flag to automatically register as affiliate
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+      
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => { // data parameter removed
       // Call login with username and password from form data
       const formData = signupForm.getValues();
       login({ username: formData.username, password: formData.password });
@@ -173,55 +172,6 @@ export default function AffiliatePage() {
         
         {/* Affiliate Dashboard */}
         <AffiliateDashboard />
-
-        <div className="mt-8">
-          <h2 className="text-xl font-bold text-neutral-800 mb-4">Affiliates</h2>
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search affiliates..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          {affiliatesLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-1/2" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : affiliates.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {affiliates.map((affiliate) => (
-                <Card key={affiliate.id}>
-                  <CardHeader>
-                    <CardTitle>{affiliate.userId}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p>Code: {affiliate.code}</p>
-                    <p>Total Referrals: {affiliate.totalReferrals}</p>
-                    <p>Total Earnings: {affiliate.totalEarnings}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <p>No affiliates found.</p>
-          )}
-        </div>
 
         {/* Return to main app link for existing users */}
         {user?.role && user?.role !== 'affiliate' && (

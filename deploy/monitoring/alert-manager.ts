@@ -182,7 +182,10 @@ export class AlertManager extends EventEmitter {
    * Evaluate alert condition
    */
   private evaluateCondition(rule: AlertRule, metrics: Record<string, number>): boolean {
-    const value = metrics[rule.condition.split('>')[0].trim()];
+    const key = rule.condition.split('>')[0]?.trim();
+    if (!key) return false;
+    
+    const value = metrics[key];
     if (value === undefined) {
       return false;
     }
@@ -206,7 +209,7 @@ export class AlertManager extends EventEmitter {
         ruleName: rule.name,
         condition: rule.condition,
         threshold: rule.threshold,
-        currentValue: metrics[rule.condition.split('>')[0].trim()],
+        currentValue: metrics[rule.condition.split('>')[0]?.trim() || ''],
         metrics,
       },
       resolved: false,

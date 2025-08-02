@@ -1,7 +1,7 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { createServer } from "http";
-import { registerRoutes } from "./routes.js";
-import path from "path";
+import express, { type Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
+import { registerRoutes } from './routes.js';
+import path from 'path';
 // Use __dirname directly in CommonJS
 const __dirname = path.dirname(__filename);
 
@@ -10,11 +10,11 @@ const server = createServer(app);
 
 // Request logging middleware
 app.use((req, _res, next) => {
-  const timestamp = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
+  const timestamp = new Date().toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
   });
   console.log(`${timestamp} [express] ${req.method} ${req.url}`);
   next();
@@ -47,13 +47,14 @@ const clientIndexPath = path.resolve(__dirname, '../client/index.html');
 if (process.env.NODE_ENV !== 'production') {
   // Serve static files from client/public
   app.use(express.static(path.resolve(__dirname, '../client/public')));
-  
+
   // For development, serve the client index.html for all non-API routes
-  app.get('*', async (req, res) => {
+  app.get('*', async(req, res): Promise<void> => {
     if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-      return res.status(404).json({ error: 'Not found' });
+      res.status(404).json({ error: 'Not found' });
+      return;
     }
-    
+
     try {
       // In development, serve the index.html directly
       res.sendFile(clientIndexPath);
@@ -77,8 +78,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Health check route
 app.get('/health', (_req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'ChainSync Integrated Server',
     frontend: process.env.NODE_ENV !== 'production' ? 'development' : 'production',
@@ -93,16 +94,16 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   if (process.env.NODE_ENV === 'development') {
     console.error(err.stack);
   }
-  res.status(500).json({ 
-    success: false, 
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' 
+  res.status(500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
 });
 
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-  server.listen(Number(PORT), "0.0.0.0", () => {
+  server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`🚀 ChainSync Integrated Server running on port ${PORT}`);
     console.log(`   Frontend: http://localhost:${PORT}/`);
     console.log(`   API: http://localhost:${PORT}/api/*`);

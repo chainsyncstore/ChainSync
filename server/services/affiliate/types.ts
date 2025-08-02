@@ -95,5 +95,5 @@ export const AffiliateServiceErrors: IAffiliateServiceErrors = {
     ErrorCode.INVALID_FIELD_VALUE,
     'Invalid bank details provided',
     { category: ErrorCategory.VALIDATION }
-  ),
+  )
 };

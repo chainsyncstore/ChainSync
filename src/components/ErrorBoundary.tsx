@@ -20,8 +20,8 @@ interface State {
  * Prevents the entire application from crashing when an error occurs
  */
 class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  constructor(props: Props, context?: any) {
+    super(props, context);
     this.state = {
       hasError: false,
       error: null,
@@ -49,6 +49,7 @@ class ErrorBoundary extends Component<Props, State> {
     
     // Store error info for rendering
     this.setState({
+      hasError: true,
       error,
       errorInfo
     });
@@ -116,15 +117,15 @@ export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
   errorBoundaryProps?: Omit<Props, 'children'>
 ): React.ComponentType<P> {
-  const displayName = Component.displayName || Component.name || 'Component';
+  const displayName = (Component as any).displayName || (Component as any).name || 'Component';
   
-  const WrappedComponent = (props: P): JSX.Element => (
+  const WrappedComponent = (props: P): React.ReactElement => (
     <ErrorBoundary {...errorBoundaryProps}>
       <Component {...props} />
     </ErrorBoundary>
   );
   
-  WrappedComponent.displayName = `withErrorBoundary(${displayName})`;
+  (WrappedComponent as any).displayName = `withErrorBoundary(${displayName})`;
   
   return WrappedComponent;
 }

@@ -16,7 +16,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
+  cyan: '\x1b[36m'
 };
 
 function log(message, color = 'reset') {
@@ -57,7 +57,7 @@ class ProductionReadinessCheck {
       try {
         const result = await check.checkFn();
         logCheck(check.name, result.passed, result.details);
-        
+
         if (!result.passed) {
           this.failedChecks.push({ name: check.name, details: result.details });
         }
@@ -72,7 +72,7 @@ class ProductionReadinessCheck {
 
   printSummary() {
     logSection('SUMMARY');
-    
+
     if (this.failedChecks.length === 0) {
       log('🎉 All checks passed! Production deployment is ready.', 'green');
       process.exit(0);
@@ -91,18 +91,18 @@ class ProductionReadinessCheck {
 const checker = new ProductionReadinessCheck();
 
 // Environment checks
-checker.addCheck('Environment Variables', async () => {
+checker.addCheck('Environment Variables', async() => {
   const requiredEnvVars = [
     'NODE_ENV',
     'DATABASE_URL',
     'REDIS_URL',
     'JWT_SECRET',
     'ENCRYPTION_KEY',
-    'SESSION_SECRET',
+    'SESSION_SECRET'
   ];
 
   const missing = requiredEnvVars.filter(varName => !process.env[varName]);
-  
+
   if (missing.length > 0) {
     return {
       passed: false,
@@ -121,7 +121,7 @@ checker.addCheck('Environment Variables', async () => {
 });
 
 // Security checks
-checker.addCheck('Security Configuration', async () => {
+checker.addCheck('Security Configuration', async() => {
   const jwtSecret = process.env.JWT_SECRET;
   const encryptionKey = process.env.ENCRYPTION_KEY;
   const sessionSecret = process.env.SESSION_SECRET;
@@ -151,7 +151,7 @@ checker.addCheck('Security Configuration', async () => {
 });
 
 // Database checks
-checker.addCheck('Database Connection', async () => {
+checker.addCheck('Database Connection', async() => {
   try {
     // This would actually test the database connection
     // For now, we'll just check if the URL is properly formatted
@@ -173,7 +173,7 @@ checker.addCheck('Database Connection', async () => {
 });
 
 // Redis checks
-checker.addCheck('Redis Connection', async () => {
+checker.addCheck('Redis Connection', async() => {
   try {
     const redisUrl = process.env.REDIS_URL;
     if (!redisUrl || !redisUrl.startsWith('redis://')) {
@@ -193,15 +193,15 @@ checker.addCheck('Redis Connection', async () => {
 });
 
 // Build checks
-checker.addCheck('Build Artifacts', async () => {
+checker.addCheck('Build Artifacts', async() => {
   const requiredFiles = [
     'dist/server/server/index.js',
     'dist/client/index.html',
-    'package.json',
+    'package.json'
   ];
 
   const missing = requiredFiles.filter(file => !fs.existsSync(file));
-  
+
   if (missing.length > 0) {
     return {
       passed: false,
@@ -213,11 +213,11 @@ checker.addCheck('Build Artifacts', async () => {
 });
 
 // Dependencies checks
-checker.addCheck('Dependencies', async () => {
+checker.addCheck('Dependencies', async() => {
   try {
     const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
     const nodeModulesExists = fs.existsSync('node_modules');
-    
+
     if (!nodeModulesExists) {
       return {
         passed: false,
@@ -247,18 +247,18 @@ checker.addCheck('Dependencies', async () => {
 });
 
 // Configuration checks
-checker.addCheck('Configuration Files', async () => {
+checker.addCheck('Configuration Files', async() => {
   const requiredConfigs = [
     'deploy/deployment-config.ts',
     'deploy/blue-green-deployment.ts',
     'deploy/monitoring/production-monitor.ts',
     'deploy/monitoring/alert-manager.ts',
     'deploy/monitoring/log-aggregator.ts',
-    'deploy/monitoring/incident-response.ts',
+    'deploy/monitoring/incident-response.ts'
   ];
 
   const missing = requiredConfigs.filter(file => !fs.existsSync(file));
-  
+
   if (missing.length > 0) {
     return {
       passed: false,
@@ -270,14 +270,14 @@ checker.addCheck('Configuration Files', async () => {
 });
 
 // Docker checks
-checker.addCheck('Docker Configuration', async () => {
+checker.addCheck('Docker Configuration', async() => {
   const dockerFiles = [
     'Dockerfile',
-    'docker-compose.yml',
+    'docker-compose.yml'
   ];
 
   const missing = dockerFiles.filter(file => !fs.existsSync(file));
-  
+
   if (missing.length > 0) {
     return {
       passed: false,
@@ -303,14 +303,14 @@ checker.addCheck('Docker Configuration', async () => {
 });
 
 // CI/CD checks
-checker.addCheck('CI/CD Pipeline', async () => {
+checker.addCheck('CI/CD Pipeline', async() => {
   const ciFiles = [
     '.github/workflows/deploy.yml',
-    '.github/workflows/tests.yml',
+    '.github/workflows/tests.yml'
   ];
 
   const missing = ciFiles.filter(file => !fs.existsSync(file));
-  
+
   if (missing.length > 0) {
     return {
       passed: false,
@@ -322,16 +322,16 @@ checker.addCheck('CI/CD Pipeline', async () => {
 });
 
 // Documentation checks
-checker.addCheck('Documentation', async () => {
+checker.addCheck('Documentation', async() => {
   const docs = [
     'docs/PRODUCTION_READINESS.md',
     'docs/API_DOCUMENTATION.md',
     'docs/DEPLOYMENT.md',
-    'README.md',
+    'README.md'
   ];
 
   const missing = docs.filter(file => !fs.existsSync(file));
-  
+
   if (missing.length > 0) {
     return {
       passed: false,
@@ -343,13 +343,13 @@ checker.addCheck('Documentation', async () => {
 });
 
 // SSL/TLS checks
-checker.addCheck('SSL/TLS Configuration', async () => {
+checker.addCheck('SSL/TLS Configuration', async() => {
   const sslEnabled = process.env.SSL_ENABLED === 'true';
-  
+
   if (sslEnabled) {
     const certPath = process.env.SSL_CERT_PATH;
     const keyPath = process.env.SSL_KEY_PATH;
-    
+
     if (!certPath || !keyPath) {
       return {
         passed: false,
@@ -369,15 +369,15 @@ checker.addCheck('SSL/TLS Configuration', async () => {
 });
 
 // Monitoring checks
-checker.addCheck('Monitoring Configuration', async () => {
+checker.addCheck('Monitoring Configuration', async() => {
   const monitoringConfigs = [
     'deploy/monitoring/production-monitor.ts',
     'deploy/monitoring/alert-manager.ts',
-    'deploy/monitoring/log-aggregator.ts',
+    'deploy/monitoring/log-aggregator.ts'
   ];
 
   const missing = monitoringConfigs.filter(file => !fs.existsSync(file));
-  
+
   if (missing.length > 0) {
     return {
       passed: false,
@@ -389,10 +389,10 @@ checker.addCheck('Monitoring Configuration', async () => {
 });
 
 // Performance checks
-checker.addCheck('Performance Configuration', async () => {
+checker.addCheck('Performance Configuration', async() => {
   const rateLimitWindow = parseInt(process.env.RATE_LIMIT_WINDOW) || 900000;
   const rateLimitMax = parseInt(process.env.RATE_LIMIT_MAX) || 100;
-  
+
   if (rateLimitWindow < 60000) {
     return {
       passed: false,
@@ -425,4 +425,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { ProductionReadinessCheck }; 
+module.exports = { ProductionReadinessCheck };

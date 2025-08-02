@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 /**
  * Transaction utility functions for E2E tests
@@ -21,7 +21,7 @@ export interface TransactionData {
 /**
  * Create a new transaction
  */
-export async function createTransaction(page: Page, data: TransactionData): Promise<string> {
+export async function createTransaction(page: any, data: TransactionData): Promise<string> {
   // Navigate to transactions page
   await page.goto('/transactions/new');
   await page.waitForLoadState('networkidle');
@@ -74,7 +74,7 @@ export async function createTransaction(page: Page, data: TransactionData): Prom
 /**
  * Process a refund for a transaction
  */
-export async function refundTransaction(page: Page, transactionId: string, fullRefund: boolean = true, amount?: number): Promise<void> {
+export async function refundTransaction(page: any, transactionId: string, fullRefund: boolean = true, amount?: number): Promise<void> {
   // Navigate to transaction details
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
@@ -98,7 +98,7 @@ export async function refundTransaction(page: Page, transactionId: string, fullR
 /**
  * Check transaction status
  */
-export async function getTransactionStatus(page: Page, transactionId: string): Promise<string> {
+export async function getTransactionStatus(page: any, transactionId: string): Promise<string> {
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
   
@@ -109,7 +109,7 @@ export async function getTransactionStatus(page: Page, transactionId: string): P
 /**
  * Verify loyalty points for a transaction
  */
-export async function getLoyaltyPointsForTransaction(page: Page, transactionId: string): Promise<number> {
+export async function getLoyaltyPointsForTransaction(page: any, transactionId: string): Promise<number> {
   await page.goto(`/transactions/${transactionId}`);
   await page.waitForLoadState('networkidle');
   

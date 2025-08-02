@@ -81,10 +81,10 @@ export class EnhancedUserService extends EnhancedBaseService implements IUserSer
       if (existingEmail) throw UserServiceErrors.DUPLICATE_EMAIL;
 
       const hashedPassword = await bcrypt.hash(params.password, EnhancedUserService.SALT_ROUNDS);
-      
+
       const userData = { ...params, password: hashedPassword };
       const validatedData = userValidation.insert.parse(userData);
-      
+
       const [user] = await db.insert(schema.users).values(validatedData).returning();
       return user;
     } catch (error) {

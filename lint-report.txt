@@ -1,0 +1,24 @@
+npm warn Unknown project config "strict-peer-dependencies". This will stop working in the next major version of npm.
+npm warn Unknown project config "shamefully-hoist". This will stop working in the next major version of npm.
+
+> chainsync@1.0.0 lint
+> eslint . --ext .ts,.tsx,.js,.jsx
+
+
+Oops! Something went wrong! :(
+
+ESLint: 9.32.0
+
+TypeError: context.getSource is not a function
+Occurred while linting C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\client\src\components\pos\barcode-scanner.tsx:52
+Rule: "react-hooks/exhaustive-deps"
+    at visitFunctionWithDependencies (C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\node_modules\eslint-plugin-react-hooks\cjs\eslint-plugin-react-hooks.development.js:1704:42)
+    at visitCallExpression (C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\node_modules\eslint-plugin-react-hooks\cjs\eslint-plugin-react-hooks.development.js:1759:11)
+    at ruleErrorHandler (C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\node_modules\eslint\lib\linter\linter.js:1174:33)
+    at C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\node_modules\eslint\lib\linter\source-code-visitor.js:76:46
+    at Array.forEach (<anonymous>)
+    at SourceCodeVisitor.callSync (C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\node_modules\eslint\lib\linter\source-code-visitor.js:76:30)
+    at C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\node_modules\eslint\lib\linter\source-code-traverser.js:291:18
+    at Array.forEach (<anonymous>)
+    at SourceCodeTraverser.traverseSync (C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\node_modules\eslint\lib\linter\source-code-traverser.js:290:10)
+    at runRules (C:\Users\USER\Downloads\ChainSync Directory\ChainSyncManager\node_modules\eslint\lib\linter\linter.js:1215:12)

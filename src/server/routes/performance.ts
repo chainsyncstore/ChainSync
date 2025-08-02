@@ -148,8 +148,8 @@ router.get('/database/stats', async (req: Request, res: Response) => {
     const poolStats = await getPoolStats();
     
     // Get additional database stats if available
-    let tableStats = [];
-    let indexStats = [];
+    let tableStats: any[] = [];
+    let indexStats: any[] = [];
     
     try {
       const { DatabaseStats } = await import('../../database/query-optimizer.js');
@@ -175,16 +175,17 @@ router.get('/database/stats', async (req: Request, res: Response) => {
  * GET /api/v1/performance/cache/stats
  * Get cache performance statistics
  */
-router.get('/cache/stats', async (req: Request, res: Response) => {
+router.get('/cache/stats', async (req: Request, res: Response): Promise<void> => {
   try {
     const redis = getRedisClient();
     
     if (!redis) {
-      return res.json({
+      res.json({
         timestamp: new Date().toISOString(),
         available: false,
         message: 'Redis not configured',
       });
+      return;
     }
 
     // Get Redis statistics
@@ -199,7 +200,9 @@ router.get('/cache/stats', async (req: Request, res: Response) => {
     for (const line of infoLines) {
       if (line.includes(':')) {
         const [key, value] = line.split(':');
-        stats[key] = value;
+        if (key && value) {
+          stats[key] = value;
+        }
       }
     }
 

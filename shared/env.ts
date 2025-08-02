@@ -27,7 +27,10 @@ const EnvSchema = z.object({
 const _env = EnvSchema.safeParse(process.env);
 
 if (!_env.success) {
-  console.error('❌ Invalid environment variables:', _env.error.flatten().fieldErrors);
+  // Use process.stderr for critical startup errors before logger is available
+  process.stderr.write(
+    `❌ Invalid environment variables: ${JSON.stringify(_env.error.flatten().fieldErrors)}\n`
+  );
   throw new Error('Invalid environment variables');
 }
 

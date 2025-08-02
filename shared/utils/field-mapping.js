@@ -1,5 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
 exports.toDatabaseFields = toDatabaseFields;
 exports.fromDatabaseFields = fromDatabaseFields;
 exports.pickFields = pickFields;
@@ -17,13 +17,13 @@ exports.hasField = hasField;
  * @returns A new object with snake_case keys
  */
 function toDatabaseFields(data) {
-    if (!data)
-        return {};
-    return Object.entries(data).reduce((acc, [key, value]) => {
-        const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-        acc[dbKey] = value;
-        return acc;
-    }, {});
+  if (!data)
+    return {};
+  return Object.entries(data).reduce((acc, [key, value]) => {
+    const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    acc[dbKey] = value;
+    return acc;
+  }, {});
 }
 /**
  * Converts object keys from snake_case to camelCase for code operations
@@ -32,13 +32,13 @@ function toDatabaseFields(data) {
  * @returns A new object with camelCase keys
  */
 function fromDatabaseFields(data) {
-    if (!data)
-        return {};
-    return Object.entries(data).reduce((acc, [key, value]) => {
-        const codeKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-        acc[codeKey] = value;
-        return acc;
-    }, {});
+  if (!data)
+    return {};
+  return Object.entries(data).reduce((acc, [key, value]) => {
+    const codeKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    acc[codeKey] = value;
+    return acc;
+  }, {});
 }
 /**
  * Creates a new object with only the specified fields
@@ -48,14 +48,14 @@ function fromDatabaseFields(data) {
  * @returns A new object with only the specified fields
  */
 function pickFields(data, fields) {
-    if (!data)
-        return {};
-    return fields.reduce((acc, field) => {
-        if (Object.prototype.hasOwnProperty.call(data, field)) {
-            acc[field] = data[field];
-        }
-        return acc;
-    }, {});
+  if (!data)
+    return {};
+  return fields.reduce((acc, field) => {
+    if (Object.prototype.hasOwnProperty.call(data, field)) {
+      acc[field] = data[field];
+    }
+    return acc;
+  }, {});
 }
 /**
  * Helper to check if a field exists in an object
@@ -65,7 +65,7 @@ function pickFields(data, fields) {
  * @returns True if the field exists and is not undefined
  */
 function hasField(obj, field) {
-    if (obj == null)
-        return false;
-    return obj[field] !== undefined;
+  if (obj == null)
+    return false;
+  return obj[field] !== undefined;
 }

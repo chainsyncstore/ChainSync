@@ -115,7 +115,7 @@ router.use(sensitiveOpRateLimiter);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async(req: Request, res: Response, next: NextFunction) => {
   try {
     const { customerId, storeId, status, from, to } = req.query;
     const page = parseInt(req.query.page as string ?? '1', 10);
@@ -130,13 +130,14 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       storeId ? eq(schema.transactions.storeId, parseInt(storeId as string, 10)) : undefined,
       mappedStatus ? eq(schema.transactions.status, mappedStatus as 'pending' | 'completed' | 'cancelled') : undefined,
       from ? gte(schema.transactions.createdAt, new Date(from as string)) : undefined,
-      to ? lte(schema.transactions.createdAt, new Date(to as string)) : undefined,
+      to ? lte(schema.transactions.createdAt, new Date(to as string)) : undefined
     ].filter((c): c is SQL<unknown> => !!c);
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const totalQuery = db.select({ count: count() }).from(schema.transactions).where(whereClause);
-    const [{ count: total }] = await totalQuery;
+    const result = await totalQuery;
+    const total = result[0]?.count ?? 0;
 
     const transactionsQuery = db.select().from(schema.transactions).where(whereClause)
       .limit(limit)
@@ -151,14 +152,14 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         total,
         pages: Math.ceil(total / limit),
         page,
-        limit,
-      },
+        limit
+      }
     });
   } catch (error) {
     logger.error('Error getting transactions', {
       error: error instanceof Error ? error.message : String(error),
       userId: req.session.userId,
-      query: req.query,
+      query: req.query
     });
     next(error);
   }
@@ -208,9 +209,17 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', async(req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
+    
+    if (!id) {
+      res.status(400).json({
+        error: 'Transaction ID is required',
+        code: 'MISSING_TRANSACTION_ID'
+      });
+      return;
+    }
 
     // Get transaction with customer info
     const transaction = await db.query.transactions.findFirst({
@@ -222,25 +231,26 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     });
 
     if (!transaction) {
-      return res.status(404).json({
+      res.status(404).json({
         error: 'Transaction not found',
         code: 'TRANSACTION_NOT_FOUND'
       });
+      return;
     }
 
     const loyaltyTransactions = await db.query.loyaltyTransactions.findMany({
-      where: eq(schema.loyaltyTransactions.transactionId, parseInt(id, 10)),
+      where: eq(schema.loyaltyTransactions.transactionId, parseInt(id!, 10))
     });
 
     res.json({
       ...transaction,
-      loyaltyTransactions,
+      loyaltyTransactions
     });
   } catch (error) {
     logger.error('Error getting transaction', {
       error: error instanceof Error ? error.message : String(error),
       userId: req.session.userId,
-      transactionId: req.params.id,
+      transactionId: req.params.id
     });
     next(error);
   }
@@ -257,9 +267,9 @@ const createTransactionSchema = z.object({
     name: z.string(),
     quantity: z.number().int().positive(),
     price: z.number().positive(),
-    categoryId: z.string().optional(),
+    categoryId: z.string().optional()
   })).optional(),
-  notes: z.string().optional(),
+  notes: z.string().optional()
 });
 
 /**
@@ -355,7 +365,7 @@ const createTransactionSchema = z.object({
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/', validateBody(createTransactionSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', validateBody(createTransactionSchema), async(req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId, storeId, amount, type, items, notes } = req.body;
 
@@ -363,42 +373,42 @@ router.post('/', validateBody(createTransactionSchema), async (req: Request, res
       userId: parseInt(userId, 10),
       storeId: parseInt(storeId, 10),
       total: amount.toString(), // Use 'total' instead of 'totalAmount'
-      paymentMethod: 'card' as const, //TODO: get from request
-      subtotal: amount.toString(), //TODO: calculate from items
+      paymentMethod: 'card' as const, // TODO: get from request
+      subtotal: amount.toString() // TODO: calculate from items
     }).returning();
 
     // Log transaction creation
     logger.info('Transaction created', {
-      transactionId: transaction.id, // Use transaction.id
+      transactionId: transaction?.id, // Use transaction.id
       userId,
       storeId,
       amount,
       type
     });
 
-    if (items && items.length > 0) {
+    if (items && items.length > 0 && transaction) {
       const transactionItems = items.map((item: any) => ({
         transactionId: transaction.id, // Use transaction.id
         productId: parseInt(item.id, 10), // Parse item.id to integer
         quantity: item.quantity,
-        unitPrice: item.price.toString(),
+        unitPrice: item.price.toString()
       }));
       await db.insert(schema.transactionItems).values(transactionItems);
     }
 
-    if (type === 'purchase') {
+    if (type === 'purchase' && transaction) {
       await queueTransactionForLoyalty({
         transactionId: String(transaction.id), // Use transaction.id
         customerId: userId as string,
         storeId: storeId as string,
         amount: amount,
         transactionDate: transaction.createdAt!.toISOString(),
-        items,
+        items
       });
-      
+
       logger.info('Loyalty processing queued', {
         transactionId: transaction.id, // Use transaction.id
-        customerId: userId,
+        customerId: userId
       });
     }
 
@@ -407,7 +417,7 @@ router.post('/', validateBody(createTransactionSchema), async (req: Request, res
     logger.error('Error creating transaction', {
       error: error instanceof Error ? error.message : String(error),
       userId: req.session.userId,
-      body: req.body,
+      body: req.body
     });
     next(error);
   }
@@ -415,7 +425,7 @@ router.post('/', validateBody(createTransactionSchema), async (req: Request, res
 
 // Transaction update schema validation
 const updateTransactionSchema = z.object({
-  status: z.enum(['pending', 'completed', 'failed', 'canceled']).optional(),
+  status: z.enum(['pending', 'completed', 'failed', 'canceled']).optional()
   // notes: z.string().optional() // Remove notes as it's not in the schema
 });
 
@@ -483,10 +493,18 @@ const updateTransactionSchema = z.object({
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.patch('/:id', validateBody(updateTransactionSchema), async(req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
+    
+    if (!id) {
+      res.status(400).json({
+        error: 'Transaction ID is required',
+        code: 'MISSING_TRANSACTION_ID'
+      });
+      return;
+    }
 
     // Check if transaction exists
     const existingTransaction = await db.query.transactions.findFirst({
@@ -494,23 +512,24 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
     });
 
     if (!existingTransaction) {
-      return res.status(404).json({
+      res.status(404).json({
         error: 'Transaction not found',
         code: 'TRANSACTION_NOT_FOUND'
       });
+      return;
     }
 
     const [updatedTransaction] = await db.update(schema.transactions)
       .set({
-        status: (status ?? existingTransaction.status) as 'pending' | 'completed' | 'cancelled',
+        status: (status ?? existingTransaction.status) as 'pending' | 'completed' | 'cancelled'
       } as any)
-      .where(eq(schema.transactions.id, parseInt(id, 10)))
+      .where(eq(schema.transactions.id, parseInt(id!, 10)))
       .returning();
 
     logger.info('Transaction updated', {
       transactionId: id,
       status,
-      userId: req.session.userId,
+      userId: req.session.userId
     });
 
     res.json(updatedTransaction);
@@ -519,7 +538,7 @@ router.patch('/:id', validateBody(updateTransactionSchema), async (req: Request,
       error: error instanceof Error ? error.message : String(error),
       userId: req.session.userId,
       transactionId: req.params.id,
-      body: req.body,
+      body: req.body
     });
     next(error);
   }

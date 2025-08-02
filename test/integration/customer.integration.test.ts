@@ -9,12 +9,12 @@ import { eq } from 'drizzle-orm';
 describe.integration('Customer Integration', () => {
   // No need for beforeAll/afterAll with Drizzle connection management
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     // Clean the customers table before each test
     await db.delete(schema.customers);
   });
 
-  test.integration('should create and fetch a customer', async () => {
+  test.integration('should create and fetch a customer', async() => {
     const mockData = makeMockCustomer({ fullName: 'Alice', email: 'alice@example.com' });
 
     // Create a customer

@@ -1,7 +1,7 @@
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import csrf from 'csurf';
+import { csrf } from 'express-csrf';
 import { Request, Response, NextFunction, Application } from 'express';
 import { getLogger } from '../../logging/index.js';
 
@@ -59,26 +59,27 @@ export const setupSecurity = (app: Application) => {
   }));
 
   // Add CSRF protection
-  app.use(csrf({ cookie: true, ignoreMethods: ['HEAD', 'OPTIONS'] }));
+  app.use(csrf());
 
   // Add request validation middleware
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  app.use((req: Request, res: Response, next: NextFunction): void => {
     if (req.method === 'POST' || req.method === 'PUT') {
       if (!req.body) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: {
             code: 'INVALID_REQUEST',
             message: 'Request body is required'
           }
         });
+        return;
       }
     }
     next();
   });
 
   // Add error handling for security middleware
-  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  app.use((err: Error, req: Request, res: Response, next: NextFunction): void => {
     logger.error('Security middleware error:', {
       error: err.message,
       method: req.method,
@@ -87,7 +88,7 @@ export const setupSecurity = (app: Application) => {
     });
 
     if (err.message === 'invalid csrf token') {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         error: {
           code: 'INVALID_CSRF_TOKEN',
@@ -95,10 +96,11 @@ export const setupSecurity = (app: Application) => {
           details: 'The CSRF token provided in the request does not match the one stored in the session.'
         }
       });
+      return;
     }
 
     if (err.message === 'Not allowed by CORS') {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         error: {
           code: 'CORS_ERROR',
@@ -106,10 +108,11 @@ export const setupSecurity = (app: Application) => {
           details: 'The request origin is not in the allowed origins list.'
         }
       });
+      return;
     }
 
     if (err instanceof Error) {
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         error: {
           code: 'INTERNAL_ERROR',
@@ -117,6 +120,7 @@ export const setupSecurity = (app: Application) => {
           details: err.message
         }
       });
+      return;
     }
     
     next(err);

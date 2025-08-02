@@ -6,7 +6,7 @@ const path = require('path');
 // Load production environment variables
 function loadProductionEnv() {
   const envPath = path.join(__dirname, '..', 'deploy', 'config', 'production.env');
-  
+
   if (!fs.existsSync(envPath)) {
     console.error('Production environment file not found:', envPath);
     process.exit(1);
@@ -17,7 +17,7 @@ function loadProductionEnv() {
 
   lines.forEach(line => {
     line = line.trim();
-    
+
     // Skip comments and empty lines
     if (line.startsWith('#') || line === '') {
       return;
@@ -28,10 +28,10 @@ function loadProductionEnv() {
     if (equalIndex > 0) {
       const key = line.substring(0, equalIndex);
       const value = line.substring(equalIndex + 1);
-      
+
       // Remove quotes if present
       const cleanValue = value.replace(/^["']|["']$/g, '');
-      
+
       process.env[key] = cleanValue;
     }
   });
@@ -50,4 +50,4 @@ if (typeof module !== 'undefined' && module.exports) {
 // Run if called directly
 if (require.main === module) {
   loadProductionEnv();
-} 
+}

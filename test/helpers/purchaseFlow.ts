@@ -1,8 +1,8 @@
 // test/helpers/purchaseFlow.ts
 import { PrismaClient } from '@prisma/client';
-import { makeMockCustomer } from '../factories/customer';
-import { makeMockStore } from '../factories/store';
-import { makeMockProduct } from '../factories/product';
+import { makeMockCustomer } from '../../tests/factories/customer';
+import { makeMockStore } from '../../tests/factories/store';
+import { makeMockProduct } from '../../tests/factories/product';
 
 export async function setupFullPurchaseFlow(prisma: PrismaClient, amount: number, initialPoints = 0) {
   const store = await prisma.store.create({ data: makeMockStore() });

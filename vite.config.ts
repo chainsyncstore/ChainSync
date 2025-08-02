@@ -68,6 +68,9 @@ export default defineConfig({
             // All other vendor code
             return 'vendor';
           }
+          
+          // Return undefined for non-node_modules files (let Vite handle them)
+          return undefined;
         }
       }
     },

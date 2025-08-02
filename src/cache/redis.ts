@@ -72,7 +72,7 @@ export function initRedis(): Redis | Cluster | null {
         retryDelayOnTryAgain: 100,
         scaleReads: 'slave', // Read from replicas for better performance
         redisOptions: {
-          password: process.env.REDIS_PASSWORD,
+          ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
           db: parseInt(process.env.REDIS_DB || '0'),
           connectTimeout: CACHE_CONFIG.POOL.CONNECTION_TIMEOUT,
           commandTimeout: CACHE_CONFIG.POOL.COMMAND_TIMEOUT,
@@ -100,7 +100,7 @@ export function initRedis(): Redis | Cluster | null {
         lazyConnect: true, // Don't connect immediately
         keepAlive: 30000, // Keep connection alive
         family: 4, // Force IPv4
-        password: process.env.REDIS_PASSWORD,
+        ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
         db: parseInt(process.env.REDIS_DB || '0'),
       });
       

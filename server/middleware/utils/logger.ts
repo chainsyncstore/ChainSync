@@ -90,7 +90,7 @@ export class UploadMetricsTracker {
     logger.info('Upload Metrics Report', {
       uptime,
       ...metrics,
-      successRate: metrics.totalRequests > 0 
+      successRate: metrics.totalRequests > 0
         ? (metrics.successfulUploads / metrics.totalRequests) * 100
         : 0
     });

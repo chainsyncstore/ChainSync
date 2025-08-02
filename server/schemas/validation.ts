@@ -37,7 +37,7 @@ export const userRegistrationSchema = z.object({
   storeId: z.number().int().positive().optional()
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ["confirmPassword"]
+  path: ['confirmPassword']
 });
 
 export const userLoginSchema = z.object({
@@ -63,7 +63,7 @@ export const passwordChangeSchema = z.object({
   confirmNewPassword: z.string()
 }).refine((data) => data.newPassword === data.confirmNewPassword, {
   message: "New passwords don't match",
-  path: ["confirmNewPassword"]
+  path: ['confirmNewPassword']
 });
 
 export const passwordResetRequestSchema = z.object({
@@ -78,7 +78,7 @@ export const passwordResetSchema = z.object({
   confirmNewPassword: z.string()
 }).refine((data) => data.newPassword === data.confirmNewPassword, {
   message: "New passwords don't match",
-  path: ["confirmNewPassword"]
+  path: ['confirmNewPassword']
 });
 
 // Product schemas
@@ -247,7 +247,7 @@ export const inventoryReportSchema = reportDateRangeSchema.extend({
 // Export schemas
 export const exportSchema = z.object({
   format: z.enum(['csv', 'excel', 'pdf']).default('csv'),
-  filters: z.record(z.any()).optional(),
+  filters: z.record(z.string(), z.any()).optional(),
   includeHeaders: z.boolean().default(true)
 });
 
@@ -265,7 +265,7 @@ export const bulkDeleteSchema = z.object({
 
 export const bulkUpdateSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(100),
-  updates: z.record(z.any())
+  updates: z.record(z.string(), z.any())
 });
 
 // File upload schemas
@@ -337,67 +337,67 @@ export const schemas = {
   passwordChange: passwordChangeSchema,
   passwordResetRequest: passwordResetRequestSchema,
   passwordReset: passwordResetSchema,
-  
+
   // Product schemas
   productCreate: productCreateSchema,
   productUpdate: productUpdateSchema,
   productSearch: productSearchSchema,
-  
+
   // Inventory schemas
   inventoryBatch: inventoryBatchSchema,
   inventoryAdjustment: inventoryAdjustmentSchema,
-  
+
   // Transaction schemas
   transactionCreate: transactionCreateSchema,
   transactionUpdate: transactionUpdateSchema,
   transactionSearch: transactionSearchSchema,
-  
+
   // Customer schemas
   customerCreate: customerCreateSchema,
   customerUpdate: customerUpdateSchema,
   customerSearch: customerSearchSchema,
-  
+
   // Store schemas
   storeCreate: storeCreateSchema,
   storeUpdate: storeUpdateSchema,
-  
+
   // Loyalty schemas
   loyaltyEarn: loyaltyEarnSchema,
   loyaltyRedeem: loyaltyRedeemSchema,
-  
+
   // Report schemas
   salesReport: salesReportSchema,
   inventoryReport: inventoryReportSchema,
-  
+
   // Export schemas
   export: exportSchema,
   search: searchSchema,
   bulkDelete: bulkDeleteSchema,
   bulkUpdate: bulkUpdateSchema,
-  
+
   // File upload schemas
   fileUpload: fileUploadSchema,
-  
+
   // Notification schemas
   notificationCreate: notificationCreateSchema,
-  
+
   // Settings schemas
   settingsUpdate: settingsUpdateSchema,
-  
+
   // API key schemas
   apiKeyCreate: apiKeyCreateSchema,
-  
+
   // Webhook schemas
   webhookCreate: webhookCreateSchema,
-  
+
   // Audit log schemas
   auditLogSearch: auditLogSearchSchema,
-  
+
   // Health check schemas
   healthCheck: healthCheckSchema,
-  
+
   // Common schemas
   baseId: baseIdSchema,
   pagination: paginationSchema,
   dateRange: dateRangeSchema
-}; 
+};

@@ -1,49 +1,49 @@
-import { db } from "./index.js";
-import * as schema from "@shared/schema.js";
+import { db } from './index.js';
+import * as schema from '@shared/schema.js';
 
 async function seedReturnReasons() {
   try {
-    console.log("🌱 Starting return reasons seed process...");
+    console.log('🌱 Starting return reasons seed process...');
 
     // Check if return reasons already exist
     const existingReasons = await db.query.returnReasons.findMany({ limit: 1 });
-    
+
     if (existingReasons.length > 0) {
-      console.log("Return reasons already exist, skipping seed.");
+      console.log('Return reasons already exist, skipping seed.');
       return;
     }
 
     // Create return reasons
-    console.log("Creating return reasons...");
+    console.log('Creating return reasons...');
     const returnReasons = [
       {
-        reason: "Damaged Product",
-        description: "Product was damaged or defective",
+        reason: 'Damaged Product',
+        description: 'Product was damaged or defective',
         active: true
       },
       {
-        reason: "Changed Mind",
-        description: "Customer changed their mind about the purchase",
+        reason: 'Changed Mind',
+        description: 'Customer changed their mind about the purchase',
         active: true
       },
       {
-        reason: "Wrong Item",
-        description: "Customer received the wrong item",
+        reason: 'Wrong Item',
+        description: 'Customer received the wrong item',
         active: true
       },
       {
-        reason: "Expired Product",
-        description: "Product was expired or spoiled",
+        reason: 'Expired Product',
+        description: 'Product was expired or spoiled',
         active: true
       },
       {
-        reason: "Incorrect Price",
-        description: "Item was priced incorrectly at time of sale",
+        reason: 'Incorrect Price',
+        description: 'Item was priced incorrectly at time of sale',
         active: true
       },
       {
-        reason: "Quality Issues",
-        description: "Product quality did not meet customer expectations",
+        reason: 'Quality Issues',
+        description: 'Product quality did not meet customer expectations',
         active: true
       }
     ];
@@ -54,7 +54,7 @@ async function seedReturnReasons() {
 
     console.log(`✅ Created ${returnReasons.length} return reasons successfully!`);
   } catch (error) {
-    console.error("❌ Return reasons seed failed:", error);
+    console.error('❌ Return reasons seed failed:', error);
   }
 }
 

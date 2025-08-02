@@ -29,9 +29,7 @@ export const loyaltyMemberSelectSchema = createSelectSchema(loyaltyMembers) as u
 export const loyaltyMemberInsertSchema = (
   createInsertSchema(loyaltyMembers, {
   loyaltyId: z.string().min(1, { message: 'Loyalty ID cannot be empty' }),
-  status: z.enum(['active', 'inactive', 'suspended', 'cancelled'], {
-    errorMap: () => ({ message: 'Invalid status value for loyalty member.' }),
-  }),
+  status: z.enum(['active', 'inactive', 'suspended', 'cancelled']),
   }).omit({
     id: true,
     createdAt: true,

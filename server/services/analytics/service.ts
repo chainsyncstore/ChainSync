@@ -50,7 +50,7 @@ export class AnalyticsService extends BaseService {
       // Process in batches
       for (let i = 0; i < this.aggregationQueue.length; i += this.config.aggregation.batchSize) {
         const batch = this.aggregationQueue.slice(i, i + this.config.aggregation.batchSize);
-        await Promise.all(batch.map(async (item: Record<string, unknown>) => {
+        await Promise.all(batch.map(async(item: Record<string, unknown>) => {
           try {
             await this.processAggregation(item);
           } catch (error) {
@@ -100,8 +100,8 @@ export class AnalyticsService extends BaseService {
       };
 
       // Store in Redis
-      await this.redis.hincrbyfloat(`metrics:transactions:total`, String(data.storeId), data.amount as number);
-      await this.redis.hincrby(`metrics:transactions:count`, String(data.storeId), 1);
+      await this.redis.hincrbyfloat('metrics:transactions:total', String(data.storeId), data.amount as number);
+      await this.redis.hincrby('metrics:transactions:count', String(data.storeId), 1);
 
       // Update cache
       await this.cache.set(`metrics:transactions:${data.storeId}`, metrics, this.config.cache.ttl);
@@ -120,9 +120,9 @@ export class AnalyticsService extends BaseService {
       };
 
       // Store in Redis
-      await this.redis.hincrby(`metrics:users:total`, String(data.storeId), 1);
+      await this.redis.hincrby('metrics:users:total', String(data.storeId), 1);
       if (data.active) {
-        await this.redis.hincrby(`metrics:users:active`, String(data.storeId), 1);
+        await this.redis.hincrby('metrics:users:active', String(data.storeId), 1);
       }
 
       // Update cache
@@ -143,9 +143,9 @@ export class AnalyticsService extends BaseService {
       };
 
       // Store in Redis
-      await this.redis.hincrby(`metrics:products:total`, String(data.storeId), 1);
+      await this.redis.hincrby('metrics:products:total', String(data.storeId), 1);
       if (data.inStock) {
-        await this.redis.hincrby(`metrics:products:in_stock`, String(data.storeId), 1);
+        await this.redis.hincrby('metrics:products:in_stock', String(data.storeId), 1);
       }
 
       // Update cache
@@ -181,7 +181,7 @@ export class AnalyticsService extends BaseService {
 
       // Query database
       const metrics = await this.withRetry(
-        async () => {
+        async() => {
           const query = db
             .select({
               date: sql<string>`DATE(${schema.transactions.createdAt})`.as('date'),
@@ -240,7 +240,7 @@ export class AnalyticsService extends BaseService {
 
       // Query database
       const metrics = await this.withRetry(
-        async () => {
+        async() => {
           const query = db
             .select({
               date: sql<string>`DATE(${schema.users.createdAt})`.as('date'),
@@ -299,7 +299,7 @@ export class AnalyticsService extends BaseService {
 
       // Query database
       const metrics = await this.withRetry(
-        async () => {
+        async() => {
           const query = db
             .select({
               date: sql<string>`DATE(${schema.products.createdAt})`.as('date'),
@@ -359,7 +359,7 @@ export class AnalyticsService extends BaseService {
 
       // Query database
       const metrics = await this.withRetry(
-        async () => {
+        async() => {
           const query = db
             .select({
               date: sql<string>`DATE(${schema.loyaltyTransactions.createdAt})`.as('date'),

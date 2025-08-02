@@ -18,19 +18,19 @@ const swaggerOptions = {
       description: 'API documentation for the ChainSync platform',
       license: {
         name: 'Private',
-        url: 'https://chainsync.com/license',
+        url: 'https://chainsync.com/license'
       },
       contact: {
         name: 'ChainSync Support',
         url: 'https://chainsync.com/support',
-        email: 'support@chainsync.com',
-      },
+        email: 'support@chainsync.com'
+      }
     },
     servers: [
       {
         url: '/api/v1',
-        description: 'ChainSync API v1',
-      },
+        description: 'ChainSync API v1'
+      }
     ],
     components: {
       securitySchemes: {
@@ -343,7 +343,7 @@ const swaggerOptions = {
     './server/routes/*.ts',
     './server/routes/**/*.ts',
     './server/app.ts'
-  ],
+  ]
 };
 
 // Initialize swagger-jsdoc
@@ -363,8 +363,8 @@ export function setupSwagger(app: Express): void {
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: 'ChainSync API Documentation',
     swaggerOptions: {
-      persistAuthorization: true,
-    },
+      persistAuthorization: true
+    }
   }));
 
   // Serve swagger spec as JSON

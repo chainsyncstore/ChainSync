@@ -23,7 +23,8 @@ export enum ErrorCategory {
   PROCESSING = 'PROCESSING',
   INVALID_FORMAT = 'INVALID_FORMAT',
   EXPORT_ERROR = 'EXPORT_ERROR',
-  DATABASE_ERROR = 'DATABASE_ERROR'
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  NOT_FOUND = 'NOT_FOUND'
 }
 
 export enum RetryableError {
@@ -180,20 +181,21 @@ export class AppError extends Error {
     super(message);
     this.code = code as ErrorCode;
     this.category = category as ErrorCategory;
-    this.details = details;
-    this.statusCode = statusCode;
-    this.retryable = retryable;
-    this.retryAfter = retryAfter;
-    this.validationErrors = validationErrors;
+    if (details !== undefined) this.details = details;
+    if (statusCode !== undefined) this.statusCode = statusCode;
+    if (retryable !== undefined) this.retryable = retryable;
+    if (retryAfter !== undefined) this.retryAfter = retryAfter;
+    if (validationErrors !== undefined) this.validationErrors = validationErrors;
   }
 
   static fromZodError(error: ZodError): AppError {
+    const issues = error.issues || [];
     return new AppError(
       'Validation failed',
       ErrorCategory.VALIDATION,
       ErrorCode.VALIDATION_ERROR,
       {
-        validationErrors: error.errors.map((issue: ZodIssue) => ({
+        validationErrors: issues.map((issue: ZodIssue) => ({
           path: issue.path,
           message: issue.message,
           type: issue.code

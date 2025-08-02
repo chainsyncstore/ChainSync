@@ -1,6 +1,6 @@
 /**
  * Transaction Service Types
- * 
+ *
  * This file defines the interfaces and types for the transaction service.
  */
 
@@ -141,16 +141,16 @@ export interface TransactionServiceErrors {
 }
 
 export const TransactionServiceErrors: TransactionServiceErrors = {
-  TRANSACTION_NOT_FOUND: new Error("Transaction not found"),
-  TRANSACTION_ITEM_NOT_FOUND: new Error("Transaction item not found"),
-  STORE_NOT_FOUND: new Error("Store not found"),
-  PRODUCT_NOT_FOUND: new Error("Product not found"),
-  CUSTOMER_NOT_FOUND: new Error("Customer not found"),
-  USER_NOT_FOUND: new Error("User not found"),
-  INVALID_REFUND: new Error("Invalid refund operation"),
-  INSUFFICIENT_STOCK: new Error("Insufficient stock available"),
-  PAYMENT_VALIDATION_FAILED: new Error("Payment validation failed"),
-  INVALID_PAYMENT_AMOUNT: new Error("Invalid payment amount"),
-  INVALID_TRANSACTION_STATUS: new Error("Invalid transaction status"),
-  INVALID_REFUND_AMOUNT: new Error("Invalid refund amount")
+  TRANSACTION_NOT_FOUND: new Error('Transaction not found'),
+  TRANSACTION_ITEM_NOT_FOUND: new Error('Transaction item not found'),
+  STORE_NOT_FOUND: new Error('Store not found'),
+  PRODUCT_NOT_FOUND: new Error('Product not found'),
+  CUSTOMER_NOT_FOUND: new Error('Customer not found'),
+  USER_NOT_FOUND: new Error('User not found'),
+  INVALID_REFUND: new Error('Invalid refund operation'),
+  INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
+  PAYMENT_VALIDATION_FAILED: new Error('Payment validation failed'),
+  INVALID_PAYMENT_AMOUNT: new Error('Invalid payment amount'),
+  INVALID_TRANSACTION_STATUS: new Error('Invalid transaction status'),
+  INVALID_REFUND_AMOUNT: new Error('Invalid refund amount')
 };

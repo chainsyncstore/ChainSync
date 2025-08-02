@@ -32,7 +32,7 @@ export class FileUtils {
   ): Promise<void> {
     try {
       const stats = await fs.promises.stat(filePath);
-      
+
       // Validate file size
       if (stats.size > maxSize) {
         throw new AppError(
@@ -80,7 +80,7 @@ export class FileUtils {
       const buffer = Buffer.alloc(4);
       await fileHandle.read(buffer, 0, 4, 0);
       await fileHandle.close();
-      
+
       switch (buffer.toString('hex', 0, 4)) {
         case '89504e47':
           return 'image/png';
@@ -112,7 +112,7 @@ export class FileUtils {
     try {
       const hash = crypto.createHash('sha256');
       const stream = fs.createReadStream(filePath);
-      
+
       return new Promise((resolve, reject) => {
         stream.on('data', (chunk) => hash.update(chunk));
         stream.on('end', () => resolve(hash.digest('hex')));
@@ -137,11 +137,11 @@ export class FileUtils {
   ): Promise<void> {
     try {
       const files = await fs.promises.readdir(directory);
-      
+
       for (const file of files) {
         const filePath = path.join(directory, file);
         const stats = await fs.promises.stat(filePath);
-        
+
         if (Date.now() - stats.birthtimeMs > maxAge) {
           await fs.promises.unlink(filePath);
         }

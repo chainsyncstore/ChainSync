@@ -8,7 +8,7 @@ import type {
   SelectStore,
   SelectProduct,
   SelectInventory,
-  SelectTransaction,
+  SelectTransaction
 } from '../shared/schema.js';
 
 // Storage interface for ChainSync operations
@@ -75,7 +75,7 @@ class MemStorage implements IStorage {
       storeId: (user.storeId as number) || 1,
       isActive: (user.isActive as boolean) ?? true,
       createdAt: new Date(),
-      updatedAt: new Date(),
+      updatedAt: new Date()
     };
     this.users.set(newUser.id, newUser);
     return newUser;
@@ -101,6 +101,7 @@ class MemStorage implements IStorage {
       ...updates,
       isActive: (updates.isActive as boolean) ?? user.isActive,
       storeId: (updates.storeId as number) ?? user.storeId,
+      role: (updates.role as 'admin' | 'manager' | 'cashier') ?? user.role,
       updatedAt: new Date()
     };
     this.users.set(id, updatedUser);
@@ -132,7 +133,7 @@ class MemStorage implements IStorage {
       state: store.state || '',
       country: store.country || '',
       timezone: store.timezone || '',
-      managerId: (store.managerId as number) || 1,
+      managerId: (store.managerId as number) || 1
     };
     this.stores.set(newStore.id, newStore);
     return newStore;
@@ -155,6 +156,14 @@ class MemStorage implements IStorage {
       ...updates,
       isActive: (updates.isActive as boolean) ?? store.isActive,
       managerId: (updates.managerId as number) ?? store.managerId,
+      address: updates.address ?? store.address,
+      city: updates.city ?? store.city,
+      state: updates.state ?? store.state,
+      country: updates.country ?? store.country,
+      phone: updates.phone ?? store.phone,
+      email: updates.email ?? store.email,
+      timezone: updates.timezone ?? store.timezone,
+      status: updates.status ?? store.status,
       updatedAt: new Date()
     };
     this.stores.set(id, updatedStore);
@@ -184,7 +193,7 @@ class MemStorage implements IStorage {
       isPerishable: (product.isPerishable as boolean) ?? false,
       imageUrl: product.imageUrl || '',
       attributes: product.attributes || {},
-      sku: product.sku || '',
+      sku: product.sku || ''
     };
     this.products.set(newProduct.id, newProduct);
     return newProduct;
@@ -211,7 +220,7 @@ class MemStorage implements IStorage {
   async searchProducts(query: string): Promise<SelectProduct[]> {
     const searchTerm = query.toLowerCase();
     return Array.from(this.products.values()).filter(
-      product => 
+      product =>
         product.name.toLowerCase().includes(searchTerm) ||
         product.description?.toLowerCase().includes(searchTerm) ||
         product.barcode?.includes(searchTerm)
@@ -233,6 +242,11 @@ class MemStorage implements IStorage {
       brandId: (updates.brandId as number) ?? product.brandId,
       isPerishable: (updates.isPerishable as boolean) ?? product.isPerishable,
       attributes: (updates.attributes as any) ?? product.attributes,
+      description: updates.description ?? product.description,
+      barcode: updates.barcode ?? product.barcode,
+      imageUrl: updates.imageUrl ?? product.imageUrl,
+      sku: updates.sku ?? product.sku,
+      unit: updates.unit ?? product.unit,
       updatedAt: new Date()
     };
     this.products.set(id, updatedProduct);
@@ -258,7 +272,7 @@ class MemStorage implements IStorage {
       currentUtilization: (inventory.currentUtilization as number) ?? 0,
       totalQuantity: (inventory.totalQuantity as number) ?? 0,
       availableQuantity: (inventory.availableQuantity as number) ?? 0,
-      minimumLevel: (inventory.minimumLevel as number) ?? 0,
+      minimumLevel: (inventory.minimumLevel as number) ?? 0
     };
     this.inventory.set(newInventory.id, newInventory);
     return newInventory;
@@ -332,7 +346,7 @@ class MemStorage implements IStorage {
       tax: (transaction.tax as string) || '0',
       discount: (transaction.discount as string) || '0',
       paymentMethod: (transaction.paymentMethod as 'card' | 'cash' | 'mobile') || 'cash',
-      items: transaction.items || {},
+      items: transaction.items || {}
     };
     this.transactions.set(newTransaction.id, newTransaction);
     return newTransaction;
@@ -346,7 +360,7 @@ class MemStorage implements IStorage {
     const storeTransactions = Array.from(this.transactions.values())
       .filter(t => t.storeId === storeId)
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
-    
+
     return limit ? storeTransactions.slice(0, limit) : storeTransactions;
   }
 
@@ -354,7 +368,7 @@ class MemStorage implements IStorage {
     const userTransactions = Array.from(this.transactions.values())
       .filter(t => t.userId === userId)
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
-    
+
     return limit ? userTransactions.slice(0, limit) : userTransactions;
   }
 
@@ -374,7 +388,7 @@ class MemStorage implements IStorage {
       if (storeId && transaction.storeId !== storeId) continue;
       if (from && transaction.createdAt && transaction.createdAt < from) continue;
       if (to && transaction.createdAt && transaction.createdAt > to) continue;
-      
+
       total += parseFloat(transaction.total || '0');
     }
     return total;

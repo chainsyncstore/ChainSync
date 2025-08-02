@@ -14,7 +14,7 @@ export const FileUtils = {
         return FileUtils.VALID_FILENAME_REGEX.test(filename);
     },
 
-    validateFileExtension: async (mimeType: string): Promise<boolean> => {
+    validateFileExtension: async(mimeType: string): Promise<boolean> => {
         const allowedMimeTypes = [
             'application/pdf',
             'application/msword',
@@ -41,7 +41,7 @@ export const FileUtils = {
         return buffer.byteLength;
     },
 
-    calculateFileHash: async (buffer: Buffer): Promise<string> => {
+    calculateFileHash: async(buffer: Buffer): Promise<string> => {
         return new Promise((resolve, reject) => {
             const hash = crypto.createHash('sha256');
             hash.update(buffer);

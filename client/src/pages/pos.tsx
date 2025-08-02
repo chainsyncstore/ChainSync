@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { useOfflineMode } from '@/hooks/use-offline-mode';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -21,7 +21,9 @@ export default function PosPage() {
     queryKey: ['/api/stores', user?.storeId],
     queryFn: async () => {
       if (!user?.storeId) return null;
-      return await apiRequest('GET', `/api/stores/${user.storeId}`);
+      const res = await fetch(`/api/stores/${user.storeId}`);
+      if (!res.ok) return null;
+      return res.json();
     },
     enabled: !!user?.storeId && isOnline,
   });
@@ -29,9 +31,10 @@ export default function PosPage() {
   // Mutation for syncing offline transactions
   const syncMutation = useMutation({
     mutationFn: async (transactions: any[]) => {
-      return await apiRequest('POST', '/api/pos/sync-offline-transactions', {
+      const response = await apiRequest('POST', '/api/pos/sync-offline-transactions', {
         transactions
       });
+      return response.json();
     },
     onSuccess: (data) => {
       const syncedIds = data.results

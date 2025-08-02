@@ -86,12 +86,12 @@ export class ImportExportService {
       }
 
       const result = await this.validationService.validate(data, options);
-      
+
       return {
         success: result.invalidCount === 0,
         message: result.invalidCount === 0 ? 'Validation successful' : 'Validation failed',
         data: result.validRecords,
-        errors: result.invalidRecords.map((record, index) => ({ record, errors: result.invalidRecords[index].errors })),
+        errors: result.invalidRecords.map((record, index) => ({ record, errors: result.invalidRecords[index]?.errors || [] })),
         validCount: result.validCount,
         invalidCount: result.invalidCount,
         totalProcessed: result.validCount + result.invalidCount,
@@ -121,7 +121,7 @@ export class ImportExportService {
   }> {
     try {
       const importId = await this.repository.createImport(userId, entityType, options);
-      
+
       return await this.processImport(data, options, importId);
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
@@ -131,7 +131,7 @@ export class ImportExportService {
   async exportData(userId: number, entityType: string, options: ExportOptions): Promise<Buffer> {
     try {
       const data = await this.repository.getExportData(userId, entityType, options);
-      
+
       switch (options.format) {
         case 'csv':
           return await this.generateCSV(data, options);
@@ -204,15 +204,15 @@ export class ImportExportService {
     try {
       const batchSize = options.batchSize || this.config.batchSize;
       const totalBatches = Math.ceil(data.length / batchSize);
-      
+
       let processed = 0;
       let errors = 0;
-      
+
       for (let i = 0; i < totalBatches; i++) {
         const batchStart = i * batchSize;
         const batchEnd = Math.min(batchStart + batchSize, data.length);
         const batch = data.slice(batchStart, batchEnd);
-        
+
         const result = await this.processBatch(batch, importId);
         processed += result.totalProcessed;
         errors += result.totalErrors;
@@ -243,7 +243,7 @@ export class ImportExportService {
   }> {
     try {
       const result = await this.repository.processBatch(data, importId);
-      
+
       return {
         success: result.errors.length === 0,
         message: result.errors.length === 0 ? 'Batch processed successfully' : 'Batch processed with errors',
@@ -265,11 +265,11 @@ export class ImportExportService {
   }): Promise<Buffer> {
     try {
       const config = {
-        fields: options.includeHeaders ? Object.keys(data[0]) : undefined,
+        fields: options.includeHeaders ? Object.keys(data[0] || {}) : undefined,
         delimiter: options.delimiter || ','
       };
 
-      const csv = json2csv(data, config);
+      const csv = json2csv(data, config as any);
       return Buffer.from(csv, 'utf8');
     } catch (error) {
       throw this.errors.PROCESSING_ERROR;
@@ -351,7 +351,7 @@ export class ImportExportService {
       }
       const row1 = worksheet.getRow(1).values as string[];
       const headers = Array.isArray(row1) ? row1.slice(1) : [];
-       
+
       const results: any[] = [];
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;

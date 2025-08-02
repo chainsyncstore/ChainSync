@@ -1,14 +1,14 @@
 /**
  * Transaction Service Tests
- * 
+ *
  * This file contains tests for the refactored transaction service, focusing on
  * validation, error handling, and schema standardization.
  */
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { TransactionService } from './service';
-import { 
-  TransactionServiceErrors, 
+import {
+  TransactionServiceErrors,
   TransactionType,
   TransactionStatus,
   PaymentMethod
@@ -62,7 +62,7 @@ jest.mock('@db', () => ({
   offset: jest.fn().mockReturnThis(),
   leftJoin: jest.fn().mockReturnThis(),
   returning: jest.fn(),
-  transaction: jest.fn().mockImplementation(async (fn) => await fn(db)),
+  transaction: jest.fn().mockImplementation(async(fn) => await fn(db)),
   set: jest.fn().mockReturnThis(),
   values: jest.fn().mockReturnThis()
 }));
@@ -147,16 +147,16 @@ describe('TransactionService', () => {
   const dbMock = db as MockedDB;
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Set up mocked inventory service
     mockInventoryService = new InventoryService() as jest.Mocked<InventoryService>;
     // Type-safe: adjustInventory expects (params: InventoryAdjustmentParams) => Promise<boolean>
-    mockInventoryService.adjustInventory = jest.fn<import('./types').InventoryAdjustmentParams, Promise<boolean>>().mockResolvedValue(true);
+    jest.spyOn(mockInventoryService, 'adjustInventory').mockImplementation().mockResolvedValue(true);
 
     // Set up mocked loyalty service
     mockLoyaltyService = new LoyaltyService() as jest.Mocked<LoyaltyService>;
     // Type-safe: awardPoints expects (params: any) => Promise<boolean>
-    mockLoyaltyService.awardPoints = jest.fn<unknown, Promise<boolean>>().mockResolvedValue(true);
+    jest.spyOn(mockLoyaltyService, 'awardPoints').mockImplementation().mockResolvedValue(true);
 
     // Apply mocks to TransactionService constructor
     (TransactionService.prototype as any).inventoryService = mockInventoryService;
@@ -164,7 +164,7 @@ describe('TransactionService', () => {
 
     transactionService = new TransactionService();
   });
-  
+
   describe('createTransaction', () => {
     const validTransactionData = {
       storeId: 1,
@@ -185,91 +185,91 @@ describe('TransactionService', () => {
         }
       ]
     };
-    
-    it('should create a transaction with validated data', async () => {
+
+    it('should create a transaction with validated data', async() => {
       // Mock dependencies
       dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
       dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
       dbMock.query.customers.findFirst.mockResolvedValue({ id: 1, name: 'Test Customer' });
-      
+
       // Mock product with inventory
       dbMock.query.products.findMany.mockResolvedValue([{
         id: 1,
         name: 'Test Product',
         inventory: [{ availableQuantity: 10 }]
       }]);
-      
+
       // Mock transaction insert
       dbMock.insert().values().returning.mockResolvedValueOnce([{ id: 1, ...validTransactionData }]);
-      
+
       const result = await transactionService.createTransaction(validTransactionData);
-      
+
       // Check that validation was called
       expect(require('@shared/schema-validation').transactionValidation.insert).toHaveBeenCalled();
-      
+
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
         id: 1,
         storeId: validTransactionData.storeId,
         type: validTransactionData.type
       }));
-      
+
       // Check inventory was adjusted
       expect(mockInventoryService.adjustInventory).toHaveBeenCalledWith(expect.objectContaining({
         productId: 1,
         quantity: -2
       }));
     });
-    
-    it('should throw error when store does not exist', async () => {
+
+    it('should throw error when store does not exist', async() => {
       // Mock store not found
       const storesFindFirstMock = dbMock.query.stores.findFirst as jest.Mock<Promise<schema.Store | null>, [any?]>;
       storesFindFirstMock.mockResolvedValue(null);
-      
+
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow(TransactionServiceErrors.STORE_NOT_FOUND.message);
     });
-    
-    it('should throw error when user does not exist', async () => {
+
+    it('should throw error when user does not exist', async() => {
       // Mock store exists but user doesn't
       dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' } as schema.Store);
       const usersFindFirstMock = dbMock.query.users.findFirst as jest.Mock<Promise<schema.User | null>, [any?]>;
       usersFindFirstMock.mockResolvedValue(null);
-      
+
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow(TransactionServiceErrors.USER_NOT_FOUND.message);
     });
-    
-    it('should throw error when customer does not exist', async () => {
+
+    it('should throw error when customer does not exist', async() => {
       // Mock store and user exist but customer doesn't
       dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' } as schema.Store);
       dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' } as schema.User);
       const customersFindFirstMock = dbMock.query.customers.findFirst as jest.Mock<Promise<schema.Customer | null>, [any?]>;
       customersFindFirstMock.mockResolvedValue(null);
-      
+
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow(TransactionServiceErrors.CUSTOMER_NOT_FOUND.message);
     });
-    
-    it('should throw error when product not found', async () => {
+
+    it('should throw error when product not found', async() => {
       // Mock dependencies exist
       dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
       dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
       dbMock.query.customers.findFirst.mockResolvedValue({ id: 1, name: 'Test Customer' });
-      
+
       // Mock product not found (empty array)
       dbMock.query.products.findMany.mockResolvedValue([]);
-      
+
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow(TransactionServiceErrors.PRODUCT_NOT_FOUND.message);
     });
-    
-    it('should throw error when insufficient stock', async () => {
+
+    it('should throw error when insufficient stock', async() => {
       // Mock dependencies exist
       dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
       dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
       dbMock.query.customers.findFirst.mockResolvedValue({ id: 1, name: 'Test Customer' });
-      
+
       // Mock product with insufficient inventory
       const productsFindManyMock = dbMock.query.products.findMany as jest.Mock<Promise<Array<{ id: number; name: string; inventory: Array<{ availableQuantity: number }> }>>, [any?]>;
 productsFindManyMock.mockResolvedValue([
@@ -279,12 +279,12 @@ productsFindManyMock.mockResolvedValue([
           inventory: [{ availableQuantity: 1 }]
         }
       ]);
-      
+
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow(TransactionServiceErrors.INSUFFICIENT_STOCK.message);
     });
-    
-    it('should handle validation errors properly', async () => {
+
+    it('should handle validation errors properly', async() => {
       // Mock dependencies exist
       dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
       dbMock.query.users.findFirst.mockResolvedValue({ id: 1, name: 'Test User' });
@@ -294,25 +294,25 @@ productsFindManyMock.mockResolvedValue([
         name: 'Test Product',
         inventory: [{ availableQuantity: 10 }]
       }]);
-      
+
       // Make validation throw an error
       (require('@shared/schema-validation').transactionValidation.insert as jest.Mock)
         .mockImplementationOnce(() => {
           throw new SchemaValidationError('Invalid transaction data');
         });
-      
+
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      
+
       await expect(transactionService.createTransaction(validTransactionData))
         .rejects.toThrow();
-      
+
       // Check that error was logged
       expect(consoleSpy).toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
     });
   });
-  
+
   describe('processRefund', () => {
     const validRefundParams = {
       transactionId: 1,
@@ -322,7 +322,7 @@ productsFindManyMock.mockResolvedValue([
       fullRefund: true,
       notes: 'Full refund processed'
     };
-    
+
     const mockTransaction = {
       id: 1,
       storeId: 1,
@@ -334,58 +334,58 @@ productsFindManyMock.mockResolvedValue([
         { id: 1, productId: 1, quantity: 2, unitPrice: '50.00' }
       ]
     };
-    
-    it('should process a full refund successfully', async () => {
+
+    it('should process a full refund successfully', async() => {
       // Mock getTransactionById
       jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(mockTransaction as schema.Transaction);
-      
+
       // Mock refund insert
       dbMock.insert().values().returning.mockResolvedValueOnce([{ id: 1, refundId: 'REF-123' }]);
-      
+
       const result = await transactionService.processRefund(validRefundParams);
-      
+
       // Check that validation was called
       expect(require('@shared/schema-validation').transactionValidation.refund.insert).toHaveBeenCalled();
-      
+
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
         id: 1,
         refundId: 'REF-123'
       }));
-      
+
       // Check inventory was adjusted if items were restocked
       expect(mockInventoryService.adjustInventory).toHaveBeenCalled();
-      
+
       // Check original transaction status was updated
       expect(db.update).toHaveBeenCalledWith(schema.transactions);
     });
-    
-    it('should throw error when transaction not found', async () => {
+
+    it('should throw error when transaction not found', async() => {
       // Mock transaction not found
       jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(null);
-      
+
       await expect(transactionService.processRefund(validRefundParams))
         .rejects.toThrow(TransactionServiceErrors.TRANSACTION_NOT_FOUND.message);
     });
-    
-    it('should throw error when transaction already refunded', async () => {
+
+    it('should throw error when transaction already refunded', async() => {
       // Mock transaction already refunded
       jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue({
         ...mockTransaction,
         status: TransactionStatus.REFUNDED
       } as schema.Transaction);
-      
+
       await expect(transactionService.processRefund(validRefundParams))
         .rejects.toThrow(TransactionServiceErrors.INVALID_REFUND.message);
     });
-    
-    it('should handle partial refunds', async () => {
+
+    it('should handle partial refunds', async() => {
       // Mock getTransactionById
       jest.spyOn(transactionService, 'getTransactionById').mockResolvedValue(mockTransaction as schema.Transaction);
-      
+
       // Mock refund insert
       dbMock.insert().values().returning.mockResolvedValueOnce([{ id: 1, refundId: 'REF-123' }]);
-      
+
       // Partial refund params
       const partialRefundParams = {
         ...validRefundParams,
@@ -394,15 +394,15 @@ productsFindManyMock.mockResolvedValue([
           { transactionItemId: 1, quantity: 1, unitPrice: '50.00', isRestocked: true }
         ]
       };
-      
+
       const result = await transactionService.processRefund(partialRefundParams);
-      
+
       // Check result has expected values
       expect(result).toEqual(expect.objectContaining({
         id: 1,
         refundId: 'REF-123'
       }));
-      
+
       // Check original transaction status was updated to partially refunded
       expect(db.update).toHaveBeenCalledWith(schema.transactions);
       expect(db.set).toHaveBeenCalledWith(expect.objectContaining({
@@ -410,12 +410,12 @@ productsFindManyMock.mockResolvedValue([
       }));
     });
   });
-  
+
   describe('getTransactionAnalytics', () => {
-    it('should return analytics data for a store', async () => {
+    it('should return analytics data for a store', async() => {
       // Mock store exists
       dbMock.query.stores.findFirst.mockResolvedValue({ id: 1, name: 'Test Store' });
-      
+
       // Mock analytics queries
       (db.select().from().where as jest.Mock).mockReturnValueOnce({
         // Sales totals
@@ -424,9 +424,9 @@ productsFindManyMock.mockResolvedValue([
         saleCount: 10,
         refundCount: 2
       });
-      
+
       // Mock payment method breakdown
-      db.select = jest.fn().mockReturnValue({
+      jest.spyOn(db, 'select').mockImplementation().mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             groupBy: jest.fn().mockReturnValue([
@@ -436,9 +436,9 @@ productsFindManyMock.mockResolvedValue([
           })
         })
       });
-      
+
       // Mock hour of day breakdown
-      db.select = jest.fn().mockReturnValue({
+      jest.spyOn(db, 'select').mockImplementation().mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             groupBy: jest.fn().mockReturnValue({
@@ -451,9 +451,9 @@ productsFindManyMock.mockResolvedValue([
           })
         })
       });
-      
+
       // Mock day of week breakdown
-      db.select = jest.fn().mockReturnValue({
+      jest.spyOn(db, 'select').mockImplementation().mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             groupBy: jest.fn().mockReturnValue({
@@ -466,9 +466,9 @@ productsFindManyMock.mockResolvedValue([
           })
         })
       });
-      
+
       const result = await transactionService.getTransactionAnalytics(1);
-      
+
       // Since we can't fully mock the complex query chains, we'll just check that the method
       // returns without error and has the expected structure
       expect(result).toHaveProperty('totalSales');
@@ -481,12 +481,12 @@ productsFindManyMock.mockResolvedValue([
       expect(result).toHaveProperty('salesByHourOfDay');
       expect(result).toHaveProperty('salesByDayOfWeek');
     });
-    
-    it('should throw error when store not found', async () => {
+
+    it('should throw error when store not found', async() => {
       // Mock store not found
       const storesFindFirstMock = dbMock.query.stores.findFirst as jest.Mock<Promise<schema.Store | null>, [any?]>;
       storesFindFirstMock.mockResolvedValue(null);
-      
+
       await expect(transactionService.getTransactionAnalytics(1))
         .rejects.toThrow(TransactionServiceErrors.STORE_NOT_FOUND.message);
     });

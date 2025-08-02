@@ -1,6 +1,6 @@
 /**
  * Test Environment Setup
- * 
+ *
  * This file sets up the testing environment with mocked dependencies
  * and test-specific configuration to ensure tests can run without
  * external dependencies like databases.
@@ -90,43 +90,43 @@ jest.mock('../server/database', () => ({
 jest.mock('../shared/schema-validation', () => {
   const actual = jest.requireActual('../shared/schema-validation');
   return {
-  userValidation: {
-    insert: jest.fn().mockImplementation(data => data),
-    update: jest.fn().mockImplementation(data => data)
-  },
-  productValidation: {
-    insert: jest.fn().mockImplementation(data => data),
-    update: jest.fn().mockImplementation(data => data)
-  },
-  storeValidation: {
-    insert: jest.fn().mockImplementation(data => data),
-    update: jest.fn().mockImplementation(data => data)
-  },
-  inventoryValidation: {
-    insert: jest.fn().mockImplementation(data => data),
-    update: jest.fn().mockImplementation(data => data)
-  },
-  subscriptionValidation: {
-    insert: jest.fn().mockImplementation(data => data),
-    update: jest.fn().mockImplementation(data => data)
-  },
-  loyaltyValidation: {
-    insert: jest.fn().mockImplementation(data => data),
-    update: jest.fn().mockImplementation(data => data)
-  },
-  transactionValidation: {
-    insert: jest.fn().mockImplementation(data => data),
-    update: jest.fn().mockImplementation(data => data)
-  },
-  SchemaValidationError: actual.SchemaValidationError,
- }; 
+    userValidation: {
+      insert: jest.fn().mockImplementation(data => data),
+      update: jest.fn().mockImplementation(data => data)
+    },
+    productValidation: {
+      insert: jest.fn().mockImplementation(data => data),
+      update: jest.fn().mockImplementation(data => data)
+    },
+    storeValidation: {
+      insert: jest.fn().mockImplementation(data => data),
+      update: jest.fn().mockImplementation(data => data)
+    },
+    inventoryValidation: {
+      insert: jest.fn().mockImplementation(data => data),
+      update: jest.fn().mockImplementation(data => data)
+    },
+    subscriptionValidation: {
+      insert: jest.fn().mockImplementation(data => data),
+      update: jest.fn().mockImplementation(data => data)
+    },
+    loyaltyValidation: {
+      insert: jest.fn().mockImplementation(data => data),
+      update: jest.fn().mockImplementation(data => data)
+    },
+    transactionValidation: {
+      insert: jest.fn().mockImplementation(data => data),
+      update: jest.fn().mockImplementation(data => data)
+    },
+    SchemaValidationError: actual.SchemaValidationError
+  };
 });
 
 // Fix the ServiceError reference in the loyalty module
 jest.mock('../server/services/loyalty/types', () => {
   const { AppError } = require('../shared/errors');
   const { ErrorCode } = require('../shared/types/errors');
-  
+
   return {
     LoyaltyServiceErrors: {
       CUSTOMER_NOT_FOUND: new AppError(

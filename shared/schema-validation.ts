@@ -26,10 +26,10 @@ export class SchemaValidationError extends Error {
   }) {
     super(message);
     this.name = 'SchemaValidationError';
-    this.field = options?.field;
+    if (options?.field !== undefined) this.field = options.field;
     this.code = options?.code || 'VALIDATION_ERROR';
-    this.path = options?.path;
-    this.issues = options?.issues;
+    if (options?.path !== undefined) this.path = options.path;
+    if (options?.issues !== undefined) this.issues = options.issues;
   }
 
   /**
@@ -59,13 +59,14 @@ export function validateEntity<T>(schema: z.ZodType<T>, data: unknown, entityNam
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      const issues = error.issues || [];
       throw new SchemaValidationError(
         `Invalid ${entityName} data`,
         {
           code: `INVALID_${entityName.toUpperCase()}`,
-          issues: error.errors,
-          path: error.errors[0]?.path as string[],
-          field: error.errors[0]?.path.join('.')
+          issues: issues,
+          path: issues[0]?.path as string[],
+          field: issues[0]?.path?.join('.') || ''
         }
       );
     }

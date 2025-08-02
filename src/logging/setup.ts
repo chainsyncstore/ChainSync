@@ -17,7 +17,7 @@ export function setupLogging(app: express.Application): void {
   // Configure global logger with application context
   const logger = configureLogging({
     useSentry,
-    sentryDsn,
+    ...(sentryDsn && { sentryDsn }),
     environment: nodeEnv,
     release: version,
     level: getLogLevelFromEnv(),

@@ -43,7 +43,7 @@ export class ValidationService implements ValidationServiceInterface {
     const typeMapping: { [key: string]: 'product' | 'order' | 'customer' } = {
       products: 'product',
       users: 'customer',
-      transactions: 'order',
+      transactions: 'order'
     };
     const schemaType = typeMapping[type];
     if (!schemaType) {
@@ -81,7 +81,7 @@ export class ValidationService implements ValidationServiceInterface {
       this.cache.set(cacheKey, {
         timestamp: Date.now(),
         success: true,
-        data: validatedData,
+        data: validatedData
       });
       return validatedData;
     } catch (error) {
@@ -89,7 +89,7 @@ export class ValidationService implements ValidationServiceInterface {
       this.cache.set(cacheKey, {
         timestamp: Date.now(),
         success: false,
-        error,
+        error
       });
       throw new AppError(
         ErrorCategory.IMPORT_EXPORT,
@@ -126,7 +126,7 @@ export class ValidationService implements ValidationServiceInterface {
         } else {
           results.invalid.push({
             index: i,
-            errors: this.extractErrors(cachedResult.error),
+            errors: this.extractErrors(cachedResult.error)
           });
         }
         continue;
@@ -137,7 +137,7 @@ export class ValidationService implements ValidationServiceInterface {
         this.cache.set(cacheKey, {
           timestamp: Date.now(),
           success: true,
-          data: validated,
+          data: validated
         });
         results.valid.push(validated);
       } catch (error) {
@@ -145,11 +145,11 @@ export class ValidationService implements ValidationServiceInterface {
         this.cache.set(cacheKey, {
           timestamp: Date.now(),
           success: false,
-          error,
+          error
         });
         results.invalid.push({
           index: i,
-          errors,
+          errors
         });
         if (this.strictMode) {
           throw new AppError(
@@ -168,9 +168,9 @@ export class ValidationService implements ValidationServiceInterface {
 
   private extractErrors(error: unknown): string[] {
     if (error instanceof z.ZodError) {
-      return error.errors.map((err) => {
-        const path = err.path.join('.');
-        return `${path}: ${err.message}`;
+      return (error as any).errors?.map((err: any) => {
+        const path = err.path?.join('.') || '';
+        return `${path}: ${err.message || 'Unknown error'}`;
       });
     }
     if (error instanceof Error) {

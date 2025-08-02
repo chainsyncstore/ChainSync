@@ -7,6 +7,7 @@ export function makeMockProduct(
 ): schema.ProductInsert {
   return {
     name: 'Test Product',
+    storeId: 1,
     sku: `SKU-${Date.now()}`,
     price: '10.00',
     cost: '5.00',

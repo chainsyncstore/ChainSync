@@ -23,10 +23,10 @@ export async function initializeDatabase() {
     if (!env.DATABASE_URL) {
       throw new Error('DATABASE_URL is not set');
     }
-    
+
     db = await neon(env.DATABASE_URL);
     logger.info('Database connection established');
-    
+
     // Test the connection
     const result = await db.sql`SELECT 1`;
     if (result.rows[0]?.one !== 1) {

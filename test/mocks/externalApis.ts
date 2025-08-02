@@ -11,8 +11,8 @@ export interface MockPaymentProvider {
 // Factory to create a new mock payment provider, allowing overrides
 export function makeMockPaymentProvider(overrides: Partial<MockPaymentProvider> = {}): MockPaymentProvider {
   return {
-    charge: jest.fn(async (amount: number, cardToken: string) => ({ success: true, transactionId: 'txn_mock_123' })),
-    refund: jest.fn(async (transactionId: string, amount?: number) => ({ success: true, refundId: 'refund_mock_456' })),
+    charge: jest.fn(async (amount: number, cardToken: string) => ({ success: true, transactionId: 'txn_mock_123' })) as jest.Mock,
+    refund: jest.fn(async (transactionId: string, amount?: number) => ({ success: true, refundId: 'refund_mock_456' })) as jest.Mock,
     ...overrides,
   };
 }

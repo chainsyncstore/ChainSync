@@ -24,3 +24,18 @@ declare module "@/pages/*" {
   const value: any;
   export default value;
 }
+
+declare module "@/hooks/*" {
+  const value: any;
+  export default value;
+}
+
+declare module "@/utils/*" {
+  const value: any;
+  export default value;
+}
+
+declare module "@/types/*" {
+  const value: any;
+  export default value;
+}

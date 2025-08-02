@@ -7,7 +7,7 @@ const rateLimitOptions = {
     max: 100, // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
-    legacyHeaders: false,
+    legacyHeaders: false
 };
 
 export const applyRateLimiters: RateLimiter = {

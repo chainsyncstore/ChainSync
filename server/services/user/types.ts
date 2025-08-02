@@ -38,13 +38,13 @@ export interface UserServiceErrors {
 }
 
 export const UserServiceErrors: UserServiceErrors = {
-  USER_NOT_FOUND: new Error("User not found"),
-  DUPLICATE_USERNAME: new Error("Username already exists"),
-  DUPLICATE_EMAIL: new Error("Email already exists"),
-  INVALID_CREDENTIALS: new Error("Invalid username or password"),
-  PASSWORD_RESET_EXPIRED: new Error("Password reset token has expired"),
-  PASSWORD_RESET_USED: new Error("Password reset token has already been used"),
-  PASSWORD_RESET_NOT_FOUND: new Error("Password reset token not found")
+  USER_NOT_FOUND: new Error('User not found'),
+  DUPLICATE_USERNAME: new Error('Username already exists'),
+  DUPLICATE_EMAIL: new Error('Email already exists'),
+  INVALID_CREDENTIALS: new Error('Invalid username or password'),
+  PASSWORD_RESET_EXPIRED: new Error('Password reset token has expired'),
+  PASSWORD_RESET_USED: new Error('Password reset token has already been used'),
+  PASSWORD_RESET_NOT_FOUND: new Error('Password reset token not found')
 };
 
 export interface IUserService {

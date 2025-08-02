@@ -23,7 +23,7 @@ export class AIError extends AppError {
     category: ErrorCategory,
     retryable: boolean = false,
     retryAfter?: number,
-    details?: Record<string, unknown>,
+    details?: Record<string, unknown>
   ) {
     super(message, category, code, details, undefined, retryable, retryAfter);
     this.name = 'AIError';

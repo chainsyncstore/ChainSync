@@ -6,11 +6,11 @@ import { test, describe } from '../testTags';
 import { eq } from 'drizzle-orm';
 
 describe.integration('Store Integration', () => {
-  beforeEach(async () => {
+  beforeEach(async() => {
     await db.delete(schema.stores);
   });
 
-  test.integration('should create and fetch a store', async () => {
+  test.integration('should create and fetch a store', async() => {
     const mockStore = makeMockStore({ name: 'Main Store', email: 'main@store.com' });
     const [created] = await db.insert(schema.stores).values(mockStore).returning();
 

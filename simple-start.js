@@ -26,7 +26,7 @@ app.get('/api/health', (req, res) => {
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist/client')));
-  
+
   // Handle SPA routing
   app.get('*', (req, res, next) => {
     if (!req.path.startsWith('/api/')) {
@@ -57,4 +57,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-}); 
+});

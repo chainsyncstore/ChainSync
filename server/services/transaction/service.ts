@@ -1,13 +1,13 @@
 /**
  * Transaction Service Implementation
- * 
+ *
  * This file implements a standardized transaction service with proper schema validation
  * and error handling according to our schema style guide.
  */
 
 import { BaseService } from '../base/service';
-import { 
-  TransactionServiceErrors, 
+import {
+  TransactionServiceErrors,
   CreateTransactionParams,
   UpdateTransactionParams,
   TransactionSearchParams,
@@ -23,6 +23,7 @@ import {
   UpdateTransactionPaymentParams,
   SelectTransaction
 } from './types';
+import { AppError, ErrorCode, ErrorCategory } from '../../../shared/types/errors.js';
 import { ITransactionService } from './interface';
 import { db } from '../../../db/index.js';
 import * as schema from '../../../shared/schema.js';
@@ -41,12 +42,12 @@ export class TransactionService extends BaseService implements ITransactionServi
   private inventoryService: InventoryService;
   private loyaltyService: LoyaltyService;
   private logger: Logger;
-  
+
   constructor() {
     super();
     this.inventoryService = new InventoryService();
     this.loyaltyService = new LoyaltyService();
-    
+
     // Create a logger with service context
     this.logger = createLogger({
       service: 'TransactionService',
@@ -65,14 +66,14 @@ export class TransactionService extends BaseService implements ITransactionServi
   updateTransactionPayment(id: string, params: UpdateTransactionPaymentParams): Promise<TransactionPayment> {
     throw new Error('Method not implemented.');
   }
-  
+
   /**
    * Set a custom logger (useful for testing or external configuration)
    */
   setLogger(logger: Logger): void {
     this.logger = logger;
   }
-  
+
   /**
    * Create a new transaction with validated data
    */
@@ -82,31 +83,31 @@ export class TransactionService extends BaseService implements ITransactionServi
       const store = await db.query.stores.findFirst({
         where: eq(schema.stores.id, params.storeId)
       });
-      
+
       if (!store) {
         throw TransactionServiceErrors.STORE_NOT_FOUND;
       }
-      
+
       // Verify user exists
       const user = await db.query.users.findFirst({
         where: eq(schema.users.id, params.userId)
       });
-      
+
       if (!user) {
         throw TransactionServiceErrors.USER_NOT_FOUND;
       }
-      
+
       // Verify customer exists if provided
       if (params.customerId) {
         const customer = await db.query.users.findFirst({
           where: eq(schema.users.id, params.customerId)
         });
-        
+
         if (!customer) {
           throw TransactionServiceErrors.CUSTOMER_NOT_FOUND;
         }
       }
-      
+
       // Verify products exist and calculate totals
       const productIds = params.items.map(item => item.productId);
       const products = await db.query.products.findMany({
@@ -115,44 +116,48 @@ export class TransactionService extends BaseService implements ITransactionServi
           inventory: true
         }
       });
-      
+
       // Ensure all products exist
       if (products.length !== productIds.length) {
         throw TransactionServiceErrors.PRODUCT_NOT_FOUND;
       }
-      
+
       // Create product lookup map for faster access
       const productMap = new Map<number, schema.SelectProduct & { inventory: schema.SelectInventory | null }>();
       products.forEach(product => productMap.set(product.id, product));
-      
+
       // Validate stock availability if this is a sale
       if (params.type === TransactionType.SALE) {
         for (const item of params.items) {
           const product = productMap.get(item.productId);
           const inventory = (product as any)?.inventory;
-          
+
           if (!inventory || inventory.quantity < item.quantity) {
             throw TransactionServiceErrors.INSUFFICIENT_STOCK;
           }
         }
       }
-      
+
       // Generate transaction reference if not provided
       if (!params.reference) {
         params.reference = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       }
-      
+
       // Start a transaction to ensure data integrity
-      return await db.transaction(async (tx) => {
+      return await db.transaction(async(tx) => {
         const validatedTransactionData = transactionValidation.insert.parse(params) as typeof schema.transactions.$inferInsert;
-        
+
         const [transaction] = await tx.insert(schema.transactions)
           .values(validatedTransactionData)
           .returning();
-        
+
+        if (!transaction) {
+          throw new Error('Failed to create transaction');
+        }
+
         for (const item of params.items) {
           const product = productMap.get(item.productId);
-          
+
           // Prepare item data
           const itemData = {
             transactionId: transaction.id,
@@ -165,12 +170,12 @@ export class TransactionService extends BaseService implements ITransactionServi
             createdAt: new Date(),
             updatedAt: new Date()
           };
-          
+
           const validatedItemData = transactionValidation.item.insert.parse(itemData);
-          
+
           await tx.insert(schema.transactionItems)
             .values(itemData);
-          
+
           if (params.type === TransactionType.SALE) {
             await this.inventoryService.adjustInventory({
               productId: item.productId,
@@ -182,19 +187,19 @@ export class TransactionService extends BaseService implements ITransactionServi
             });
           }
         }
-        
+
         // Process payments if provided
         if (params.payments && params.payments.length > 0) {
           // Verify total payment amount matches transaction total
           const totalPaymentAmount = params.payments.reduce(
-            (sum, payment) => sum + parseFloat(payment.amount), 
+            (sum, payment) => sum + parseFloat(payment.amount),
             0
           );
-          
+
           if (Math.abs(totalPaymentAmount - parseFloat(params.total)) > 0.01) {
             throw TransactionServiceErrors.INVALID_PAYMENT_AMOUNT;
           }
-          
+
           for (const payment of params.payments || []) {
             const paymentData = {
               transactionId: transaction.id,
@@ -205,14 +210,14 @@ export class TransactionService extends BaseService implements ITransactionServi
               createdAt: new Date(),
               updatedAt: new Date()
             };
-            
+
             const validatedPaymentData = transactionValidation.payment.insert.parse(paymentData);
-            
+
             await tx.insert(schema.transactionPayments)
               .values(validatedPaymentData as any);
           }
         }
-        
+
         // Process loyalty points if applicable
         if (params.loyaltyPoints && params.customerId) {
           this.logger.info('Processing loyalty points for transaction', {
@@ -222,12 +227,12 @@ export class TransactionService extends BaseService implements ITransactionServi
             redeemedPoints: params.loyaltyPoints.redeemed,
             total: params.total
           });
-          
+
           // Find loyalty member for this customer
           const loyaltyMember = await tx.query.loyaltyMembers.findFirst({
             where: eq(schema.loyaltyMembers.customerId, params.customerId)
           });
-          
+
           if (loyaltyMember) {
             this.logger.debug('Found loyalty member', {
               loyaltyMemberId: loyaltyMember.id,
@@ -235,7 +240,7 @@ export class TransactionService extends BaseService implements ITransactionServi
               transactionId: transaction.id,
               currentPoints: loyaltyMember.points
             });
-            
+
             // Award points if earned
             if (params.loyaltyPoints.earned > 0) {
               try {
@@ -244,7 +249,7 @@ export class TransactionService extends BaseService implements ITransactionServi
                   points: params.loyaltyPoints.earned,
                   transactionId: transaction.id
                 });
-                
+
                 await this.loyaltyService.addPoints(
                   loyaltyMember.id,
                   params.loyaltyPoints.earned,
@@ -252,7 +257,7 @@ export class TransactionService extends BaseService implements ITransactionServi
                   transaction.id,
                   params.userId
                 );
-                
+
                 this.logger.info('Loyalty points awarded successfully', {
                   loyaltyMemberId: loyaltyMember.id,
                   points: params.loyaltyPoints.earned,
@@ -267,7 +272,7 @@ export class TransactionService extends BaseService implements ITransactionServi
                 });
               }
             }
-            
+
             // Redeem points if specified
             if (params.loyaltyPoints.redeemed > 0) {
               this.logger.info('Redeeming loyalty points', {
@@ -275,7 +280,7 @@ export class TransactionService extends BaseService implements ITransactionServi
                 points: params.loyaltyPoints.redeemed,
                 transactionId: transaction.id
               });
-              
+
               // Implement loyalty point redemption logic
               // This would typically be a call to a loyalty service method
               // Example: await this.loyaltyService.redeemPoints(...)
@@ -293,12 +298,12 @@ export class TransactionService extends BaseService implements ITransactionServi
             loyaltyEnabled: params.customerId ? true : false
           });
         }
-        
+
         return transaction;
       });
     } catch (error) {
       if (error instanceof SchemaValidationError) {
-        this.logger.error(`Validation error creating transaction`, error, {
+        this.logger.error('Validation error creating transaction', error, {
           validationErrors: error.toJSON(),
           params: { customerId: params.customerId, storeId: params.storeId, total: params.total }
         });
@@ -306,7 +311,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       return this.handleError(error as Error, 'Creating transaction');
     }
   }
-  
+
   /**
    * Update a transaction with validated data
    */
@@ -316,58 +321,72 @@ export class TransactionService extends BaseService implements ITransactionServi
       const transaction = await db.query.transactions.findFirst({
         where: eq(schema.transactions.id, transactionId)
       });
-      
+
       if (!transaction) {
         throw TransactionServiceErrors.TRANSACTION_NOT_FOUND;
       }
-      
+
       // Verify user exists
       const user = await db.query.users.findFirst({
         where: eq(schema.users.id, params.userId)
       });
-      
+
       if (!user) {
         throw TransactionServiceErrors.USER_NOT_FOUND;
       }
-      
+
       // Verify customer exists if provided
       if (params.customerId) {
         const customer = await db.query.users.findFirst({
           where: eq(schema.users.id, params.customerId)
         });
-        
+
         if (!customer) {
           throw TransactionServiceErrors.CUSTOMER_NOT_FOUND;
         }
       }
-      
+
       // Validate status transition
       if (params.status) {
-        this.validateStatusTransition(transaction.status ?? "", params.status as string);
+        this.validateStatusTransition(transaction.status ?? '', params.status as string);
       }
-      
+
       // Prepare transaction data with camelCase field names
       const transactionData = {
         ...(params.status ? { status: params.status } : {}),
         notes: params.notes || '',
         updatedAt: new Date()
       };
-      
+
       // Validate transaction data
       const validatedTransactionData = transactionValidation.update.parse(params) as Partial<typeof schema.transactions.$inferInsert>;
-      
+
       // Update transaction
-      const [updatedTransaction] = await db.update(schema.transactions)
+      const updatedTransaction = await db.update(schema.transactions)
         .set(validatedTransactionData)
         .where(eq(schema.transactions.id, transactionId))
         .returning();
+
+      if (!updatedTransaction || updatedTransaction.length === 0) {
+        throw new AppError(
+          'Transaction not found or update failed',
+          ErrorCode.NOT_FOUND,
+          ErrorCategory.NOT_FOUND,
+          undefined,
+          404
+        );
+      }
+
+      if (!updatedTransaction[0]) {
+        throw new Error('Failed to update transaction - no record returned');
+      }
       
-      return updatedTransaction;
+      return updatedTransaction[0];
     } catch (error) {
       return this.handleError(error as Error, 'Updating transaction');
     }
   }
-  
+
   /**
    * Process a refund for a transaction
    */
@@ -377,52 +396,52 @@ export class TransactionService extends BaseService implements ITransactionServi
       const transaction = await db.query.transactions.findFirst({
         where: eq(schema.transactions.id, params.transactionId)
       });
-      
+
       if (!transaction) {
         throw TransactionServiceErrors.TRANSACTION_NOT_FOUND;
       }
-      
+
       // Verify user exists
       const user = await db.query.users.findFirst({
         where: eq(schema.users.id, params.userId)
       });
-      
+
       if (!user) {
         throw TransactionServiceErrors.USER_NOT_FOUND;
       }
-      
+
       // Verify customer exists if provided
       if (params.customerId) {
         const customer = await db.query.users.findFirst({
           where: eq(schema.users.id, params.customerId)
         });
-        
+
         if (!customer) {
           throw TransactionServiceErrors.CUSTOMER_NOT_FOUND;
         }
       }
-      
+
       // Verify refund amount is valid
       if (params.amount !== undefined && (Number(params.amount) < 0)) {
         throw TransactionServiceErrors.INVALID_REFUND_AMOUNT;
       }
-      
+
       // Start a transaction to ensure data integrity
-      return await db.transaction(async (tx) => {
+      const result = await db.transaction(async(tx) => {
         // Prepare refund data with camelCase field names
         const refundData = {
           total: params.amount ?? '0',
-          refundId: `REF-${Date.now()}-${params.transactionId}`,
+          refundId: `REF-${Date.now()}-${params.transactionId}`
         };
-        
+
         // Validate refund data
         const validatedRefundData = transactionValidation.refund.insert.parse(params);
-        
+
         // Insert refund
         const [refund] = await tx.insert(schema.returns)
           .values(refundData)
           .returning();
-        
+
         // Insert refund items
         for (const item of (params.items ?? [])) {
           const originalItem = await tx.query.transactionItems.findFirst({
@@ -431,22 +450,30 @@ export class TransactionService extends BaseService implements ITransactionServi
               eq(schema.transactionItems.productId, item.productId)
             )
           });
-          
+
           if (!originalItem) {
             throw TransactionServiceErrors.TRANSACTION_ITEM_NOT_FOUND;
           }
-          
+
           // Prepare refund item data
+          if (!refund) {
+            throw new AppError(
+              'Failed to create refund',
+              ErrorCode.INTERNAL_SERVER_ERROR,
+              ErrorCategory.SYSTEM
+            );
+          }
+
           const refundItemData = {
             returnId: refund.id,
             productId: item.productId,
             quantity: item.quantity,
             reason: `Refund - Return #${refund.id}`,
-            
+
             userId: params.userId,
             reference: refund.id
           };
-          
+
           // Update inventory
           await this.inventoryService.adjustInventory({
             ...refundItemData,
@@ -454,14 +481,24 @@ export class TransactionService extends BaseService implements ITransactionServi
             referenceId: (refund as any).id || undefined
           });
         }
-        
+
         return refund;
       });
+
+      if (!result) {
+        throw new AppError(
+          'Failed to process refund',
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          ErrorCategory.SYSTEM
+        );
+      }
+
+      return result;
     } catch (error) {
       return this.handleError(error as Error, 'Processing refund');
     }
   }
-  
+
   /**
    * Get transaction analytics for a store
    */
@@ -493,27 +530,27 @@ export class TransactionService extends BaseService implements ITransactionServi
       if (!endDate) {
         endDate = new Date();
       }
-      
+
       if (!startDate) {
         startDate = new Date();
         startDate.setDate(startDate.getDate() - 30); // Default to last 30 days
       }
-      
+
       // Verify store exists
       const store = await db.query.stores.findFirst({
         where: eq(schema.stores.id, storeId)
       });
-      
+
       if (!store) {
         throw TransactionServiceErrors.STORE_NOT_FOUND;
       }
-      
+
       // Build date range filter
       const dateFilter = and(
         eq(schema.transactions.storeId, storeId),
         between(schema.transactions.createdAt, startDate, endDate)
       );
-      
+
       // Get sales totals
       const [salesResult] = await db
         .select({
@@ -524,18 +561,18 @@ export class TransactionService extends BaseService implements ITransactionServi
         })
         .from(schema.transactions)
         .where(dateFilter);
-      
+
       const totalSales = salesResult?.totalSales || '0';
       const totalReturns = salesResult?.totalReturns || '0';
       const saleCount = Number(salesResult?.saleCount || 0);
       const returnCount = Number(salesResult?.returnCount || 0);
-      
+
       // Calculate net sales and average transaction value
       const netSales = (parseFloat(totalSales) - parseFloat(totalReturns)).toFixed(2);
-      const averageTransactionValue = saleCount > 0 
-        ? (parseFloat(totalSales) / saleCount).toFixed(2) 
+      const averageTransactionValue = saleCount > 0
+        ? (parseFloat(totalSales) / saleCount).toFixed(2)
         : '0.00';
-      
+
       // Get sales by payment method
       const salesByPaymentMethod = await db
         .select({
@@ -549,7 +586,7 @@ export class TransactionService extends BaseService implements ITransactionServi
           eq(schema.transactions.status, 'completed')
         ))
         .groupBy(schema.transactions.paymentMethod);
-      
+
       // Get sales by hour of day
       const salesByHourOfDay = await db
         .select({
@@ -564,7 +601,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         ))
         .groupBy(sql`EXTRACT(HOUR FROM ${schema.transactions.createdAt})`)
         .orderBy(sql`EXTRACT(HOUR FROM ${schema.transactions.createdAt})`);
-      
+
       // Get sales by day of week
       const salesByDayOfWeek = await db
         .select({
@@ -579,7 +616,7 @@ export class TransactionService extends BaseService implements ITransactionServi
         ))
         .groupBy(sql`EXTRACT(DOW FROM ${schema.transactions.createdAt})`)
         .orderBy(sql`EXTRACT(DOW FROM ${schema.transactions.createdAt})`);
-      
+
       return {
         totalSales,
         totalReturns,
@@ -595,7 +632,7 @@ export class TransactionService extends BaseService implements ITransactionServi
       return this.handleError(error as Error, 'Getting transaction analytics');
     }
   }
-  
+
   /**
    * Validate that a transaction status transition is allowed
    */
@@ -616,8 +653,9 @@ export class TransactionService extends BaseService implements ITransactionServi
       limit,
       orderBy: [desc(schema.transactions.createdAt)]
     });
-    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(eq(schema.transactions.storeId, storeId));
-    return { transactions, total: Number(count || 0), page, limit };
+    const countResult = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(eq(schema.transactions.storeId, storeId));
+    const count = countResult[0]?.count || 0;
+    return { transactions, total: Number(count), page, limit };
   }
 
   async getTransactionsByCustomer(customerId: number, page = 1, limit = 20): Promise<{ transactions: SelectTransaction[]; total: number; page: number; limit: number }> {
@@ -628,8 +666,9 @@ export class TransactionService extends BaseService implements ITransactionServi
       limit,
       orderBy: [desc(schema.transactions.createdAt)]
     });
-    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(eq(schema.transactions.customerId, customerId));
-    return { transactions, total: Number(count || 0), page, limit };
+    const countResult = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(eq(schema.transactions.customerId, customerId));
+    const count = countResult[0]?.count || 0;
+    return { transactions, total: Number(count), page, limit };
   }
 
   async searchTransactions(params: TransactionSearchParams): Promise<{ transactions: SelectTransaction[]; total: number; page: number; limit: number }> {
@@ -642,9 +681,10 @@ export class TransactionService extends BaseService implements ITransactionServi
       wheres.push(or(like(sql`cast(${schema.transactions.id} as text)`, kw)));
     }
 
-    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(and(...wheres));
+    const countResult = await db.select({ count: sql<number>`count(*)` }).from(schema.transactions).where(and(...wheres));
+    const count = countResult[0]?.count || 0;
     const transactions = await db.query.transactions.findMany({ where: and(...wheres), offset, limit, orderBy: [desc(schema.transactions.createdAt)] });
-    return { transactions, total: Number(count || 0), page, limit };
+    return { transactions, total: Number(count), page, limit };
   }
 
   private validateStatusTransition(currentStatus: string, newStatus: string): void {
@@ -663,10 +703,10 @@ export class TransactionService extends BaseService implements ITransactionServi
         TransactionStatus.REFUNDED
       ]
     };
-    
+
     // Check if transition is allowed
     const allowed = allowedTransitions[currentStatus]?.includes(newStatus);
-    
+
     if (!allowed) {
       throw TransactionServiceErrors.INVALID_TRANSACTION_STATUS;
     }

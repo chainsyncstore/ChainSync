@@ -31,18 +31,18 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
         });
         if (!category) throw ProductServiceErrors.INVALID_CATEGORY;
       }
-      
+
       const productData = { ...params, storeId: params.storeId };
       const validatedData = productValidation.insert.parse(productData);
-      
+
       const [product] = await db.insert(schema.products).values(validatedData).returning();
-      
+
       await db.insert(schema.inventory).values({
         productId: product.id,
         storeId: params.storeId,
         quantity: 0,
         minStock: 10,
-        maxStock: 100,
+        maxStock: 100
       }).execute();
 
       return product;
@@ -74,7 +74,7 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
         const category = await db.query.categories.findFirst({ where: eq(schema.categories.id, params.categoryId) });
         if (!category) throw ProductServiceErrors.INVALID_CATEGORY;
       }
-      
+
       const updateData = { ...params, updatedAt: new Date() };
       const validatedData = productValidation.update.parse(updateData);
       const [updatedProduct] = await db.update(schema.products).set(validatedData).where(eq(schema.products.id, productId)).returning();
@@ -155,7 +155,7 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
         where,
         with: { category: true, brand: true, inventory: true },
         limit,
-        offset,
+        offset
       });
 
       const totalQuery = db.select({ count: sql<number>`count(${schema.products.id})` }).from(schema.products).where(where);
@@ -194,12 +194,12 @@ export class EnhancedProductService extends EnhancedBaseService implements IProd
       if (newQuantity < 0) throw new Error('Insufficient stock');
 
       await db.update(schema.inventory).set({ quantity: newQuantity }).where(eq(schema.inventory.id, inventory.id));
-      
+
       await db.insert(schema.inventoryTransactions).values({
         inventoryId: inventory.id,
         quantity,
         type: quantity > 0 ? 'in' : 'out',
-        reason,
+        reason
       }).execute();
 
       return true;

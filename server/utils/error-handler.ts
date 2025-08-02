@@ -101,7 +101,7 @@ export class ErrorHandler extends EventEmitter {
 
   private handleError(error: unknown, context: ErrorContext): void {
     const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
-    
+
     // If we have an object with a message, use that
     if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
       errorObj.message = (error as { message: string }).message;
@@ -137,15 +137,15 @@ export class ErrorHandler extends EventEmitter {
     }
 
     // Determine error code based on context
-    let errorCode = "PROCESSING_ERROR";
+    let errorCode = 'PROCESSING_ERROR';
     if (error.message.includes('format')) {
-      errorCode = "INVALID_FILE_FORMAT";
+      errorCode = 'INVALID_FILE_FORMAT';
     } else if (error.message.includes('size')) {
-      errorCode = "FILE_TOO_LARGE";
+      errorCode = 'FILE_TOO_LARGE';
     } else if (error.message.includes('validate')) {
-      errorCode = "VALIDATION_ERROR";
+      errorCode = 'VALIDATION_ERROR';
     } else if (error.message.includes('timeout')) {
-      errorCode = "TIMEOUT_ERROR";
+      errorCode = 'TIMEOUT_ERROR';
     }
 
     const enhancedError = new AppError(
@@ -166,7 +166,7 @@ export class ErrorHandler extends EventEmitter {
     );
 
     enhancedError.name = error.name;
-    enhancedError.stack = error.stack;
+    enhancedError.stack = error.stack || '';
 
     return enhancedError;
   }

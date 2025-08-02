@@ -48,7 +48,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
         .insert(schema.subscriptions)
         .values({
           userId: params.userId,
-          planId: params.plan,
+          planId: params.plan
         })
         .returning();
 
@@ -81,14 +81,14 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
 
       // Build update data that satisfies the schema
       const updateData: Partial<typeof schema.subscriptions.$inferSelect> = {};
-      
+
       // Map valid subscription fields from params
       if (params.plan !== undefined) updateData.planId = params.plan;
       if (params.status !== undefined) updateData.status = params.status as 'active' | 'cancelled' | 'expired' | null;
       if (params.amount !== undefined) updateData.amount = params.amount;
       if (params.currency !== undefined) updateData.currency = params.currency;
       if (params.endDate !== undefined) updateData.endDate = params.endDate;
-      
+
       const [updatedSubscription] = await db
         .update(schema.subscriptions)
         .set(updateData)
@@ -264,7 +264,7 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
   async processWebhook(params: ProcessWebhookParams): Promise<boolean> {
     try {
       if (!params.provider || !params.event || !params.data) {
-        throw new Error("Invalid webhook parameters");
+        throw new Error('Invalid webhook parameters');
       }
 
       switch (params.provider) {
@@ -448,10 +448,10 @@ export class SubscriptionService extends BaseService implements ISubscriptionSer
     const activeSubscriptions = Number(activeResult[0]?.count || 0);
 
     const thisMonthRevenueResult = await db.select({ revenue: sql<string>`COALESCE(SUM(${schema.subscriptions.amount}), '0')` }).from(schema.subscriptions).where(gte(schema.subscriptions.createdAt, thisMonthStart));
-    const revenueThisMonth = thisMonthRevenueResult[0].revenue;
+    const revenueThisMonth = thisMonthRevenueResult[0]?.revenue || '0';
 
     const lastMonthRevenueResult = await db.select({ revenue: sql<string>`COALESCE(SUM(${schema.subscriptions.amount}), '0')` }).from(schema.subscriptions).where(and(gte(schema.subscriptions.createdAt, lastMonthStart), lt(schema.subscriptions.createdAt, thisMonthStart)));
-    const revenueLastMonth = lastMonthRevenueResult[0].revenue;
+    const revenueLastMonth = lastMonthRevenueResult[0]?.revenue || '0';
 
     const byPlanResult = await db.select({ plan: schema.subscriptions.planId, count: sql<number>`count(*)` }).from(schema.subscriptions).groupBy(schema.subscriptions.planId);
     const subscriptionsByPlan = byPlanResult.reduce((acc, row) => {

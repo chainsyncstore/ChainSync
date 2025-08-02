@@ -3,28 +3,28 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { getLogger } from '../../shared/logging.js';
-import { 
-  isAuthenticated, 
-  authorizeRoles 
+import {
+  isAuthenticated,
+  authorizeRoles
 } from '../middleware/auth.js';
-import { 
-  validatePassword, 
-  MFAService, 
-  requireMFA, 
+import {
+  validatePassword,
+  MFAService,
+  requireMFA,
   accountLockoutMiddleware,
-  securityEventLogger 
+  securityEventLogger
 } from '../middleware/security.js';
-import { 
-  encryptionService, 
-  hash, 
-  verifyHash, 
-  generateToken 
+import {
+  encryptionService,
+  hash,
+  verifyHash,
+  generateToken
 } from '../services/encryption.js';
 import { GDPRService } from '../services/gdpr.js';
-import { 
-  SecurityMonitoringService, 
-  SecurityEventType, 
-  SecurityRiskLevel 
+import {
+  SecurityMonitoringService,
+  SecurityEventType,
+  SecurityRiskLevel
 } from '../services/security-monitoring.js';
 import { validateBody } from '../middleware/validation.js';
 import { Pool } from 'pg';
@@ -62,27 +62,27 @@ export const initializeSecurityRoutes = (db: Pool) => {
  * GET /api/v1/security/mfa/setup
  * Generate MFA setup QR code and secret
  */
-router.get('/mfa/setup', 
+router.get('/mfa/setup',
   isAuthenticated,
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response) => {
     try {
       const userId = (req.session as any).userId;
       const userEmail = (req.session as any).email || 'user@example.com';
-      
+
       // Generate new MFA secret
       const secret = MFAService.generateSecret();
       const qrUrl = MFAService.generateQRUrl(userEmail, secret);
-      
+
       // Store secret temporarily (in production, store in database)
       (req.session as any).mfaSetupSecret = secret;
-      
+
       // Log MFA setup initiation
       await securityMonitoring.logSecurityEvent(
         SecurityEventType.MFA_ENABLED,
         { userId, setupInitiated: true },
         SecurityRiskLevel.LOW
       );
-      
+
       res.json({
         success: true,
         data: {
@@ -108,47 +108,49 @@ router.get('/mfa/setup',
 router.post('/mfa/verify',
   isAuthenticated,
   validateBody(mfaSetupSchema),
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const { token } = req.body;
       const userId = (req.session as any).userId;
       const secret = (req.session as any).mfaSetupSecret;
-      
+
       if (!secret) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'MFA setup not initiated'
         });
+        return;
       }
-      
+
       // Verify token
       const isValid = MFAService.validateToken(token, secret);
-      
+
       if (!isValid) {
         await securityMonitoring.logSecurityEvent(
           SecurityEventType.LOGIN_FAILURE,
           { userId, reason: 'Invalid MFA token' },
           SecurityRiskLevel.MEDIUM
         );
-        
-        return res.status(400).json({
+
+        res.status(400).json({
           success: false,
           error: 'Invalid MFA token'
         });
+        return;
       }
-      
+
       // Enable MFA for user
       (req.session as any).mfaVerified = true;
       (req.session as any).mfaRequired = true;
       delete (req.session as any).mfaSetupSecret;
-      
+
       // Log successful MFA setup
       await securityMonitoring.logSecurityEvent(
         SecurityEventType.MFA_ENABLED,
         { userId, setupComplete: true },
         SecurityRiskLevel.LOW
       );
-      
+
       res.json({
         success: true,
         message: 'MFA setup completed successfully'
@@ -170,39 +172,41 @@ router.post('/mfa/verify',
 router.post('/password/change',
   isAuthenticated,
   validateBody(passwordChangeSchema),
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const { currentPassword, newPassword, confirmPassword } = req.body;
       const userId = (req.session as any).userId;
-      
+
       // Validate new password
       const passwordValidation = validatePassword(newPassword);
       if (!passwordValidation.isValid) {
-        return res.status(400).json({
-          success: false,
-          error: 'Password does not meet requirements',
-          details: passwordValidation.errors
-        });
+                  res.status(400).json({
+            success: false,
+            error: 'Password does not meet requirements',
+            details: passwordValidation.errors
+          });
+          return;
       }
-      
+
       // Confirm password match
       if (newPassword !== confirmPassword) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'Passwords do not match'
         });
+        return;
       }
-      
+
       // TODO: Verify current password against database
       // For now, just log the change
-      
+
       // Log password change
       await securityMonitoring.logSecurityEvent(
         SecurityEventType.PASSWORD_CHANGE,
         { userId, passwordChanged: true },
         SecurityRiskLevel.MEDIUM
       );
-      
+
       res.json({
         success: true,
         message: 'Password changed successfully'
@@ -223,10 +227,10 @@ router.post('/password/change',
  */
 router.post('/password/generate',
   isAuthenticated,
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const password = generateToken(16); // Generate 16-character password
-      
+
       res.json({
         success: true,
         data: {
@@ -251,13 +255,13 @@ router.post('/password/generate',
 router.post('/gdpr/request',
   isAuthenticated,
   validateBody(gdprRequestSchema),
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const { requestType, reason } = req.body;
       const userId = (req.session as any).userId;
-      
+
       let result;
-      
+
       switch (requestType) {
         case 'access':
           result = await gdprService.processAccessRequest(userId);
@@ -269,19 +273,20 @@ router.post('/gdpr/request',
           result = await gdprService.processPortabilityRequest(userId);
           break;
         default:
-          return res.status(400).json({
+          res.status(400).json({
             success: false,
             error: 'Invalid request type'
           });
+          return;
       }
-      
+
       // Log GDPR request
       await securityMonitoring.logSecurityEvent(
         SecurityEventType.DATA_EXPORT,
         { userId, requestType, reason },
         SecurityRiskLevel.LOW
       );
-      
+
       res.json({
         success: true,
         data: result
@@ -303,14 +308,14 @@ router.post('/gdpr/request',
 router.get('/events',
   isAuthenticated,
   authorizeRoles(['admin']),
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const { timeframe = '24', limit = '50' } = req.query;
-      
+
       const report = await securityMonitoring.generateSecurityReport(
         parseInt(timeframe as string)
       );
-      
+
       res.json({
         success: true,
         data: report
@@ -331,10 +336,10 @@ router.get('/events',
  */
 router.post('/analyze',
   isAuthenticated,
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const analysis = securityMonitoring.analyzeRequest(req);
-      
+
       if (analysis.isThreat) {
         await securityMonitoring.logSecurityEvent(
           SecurityEventType.SUSPICIOUS_ACTIVITY,
@@ -348,7 +353,7 @@ router.post('/analyze',
           analysis.riskLevel
         );
       }
-      
+
       res.json({
         success: true,
         data: analysis
@@ -369,13 +374,13 @@ router.post('/analyze',
  */
 router.get('/status',
   isAuthenticated,
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const userId = (req.session as any).userId;
-      
+
       // Check for suspicious activity
       const suspiciousActivity = await securityMonitoring.detectSuspiciousActivity(userId);
-      
+
       const status = {
         mfaEnabled: !!(req.session as any).mfaRequired,
         mfaVerified: !!(req.session as any).mfaVerified,
@@ -384,7 +389,7 @@ router.get('/status',
         riskScore: suspiciousActivity.riskScore,
         lastLogin: (req.session as any).lastLogin || null
       };
-      
+
       res.json({
         success: true,
         data: status
@@ -406,19 +411,20 @@ router.get('/status',
 router.post('/encrypt',
   isAuthenticated,
   authorizeRoles(['admin']),
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const { data, context } = req.body;
-      
+
       if (!data) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'Data is required'
         });
+        return;
       }
-      
+
       const encrypted = encryptionService.encrypt(data, context);
-      
+
       res.json({
         success: true,
         data: {
@@ -443,19 +449,20 @@ router.post('/encrypt',
 router.post('/decrypt',
   isAuthenticated,
   authorizeRoles(['admin']),
-  async (req: Request, res: Response) => {
+  async(req: Request, res: Response): Promise<void> => {
     try {
       const { encryptedData, context } = req.body;
-      
+
       if (!encryptedData) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'Encrypted data is required'
         });
+        return;
       }
-      
+
       const decrypted = encryptionService.decrypt(encryptedData, context);
-      
+
       res.json({
         success: true,
         data: {
@@ -472,4 +479,4 @@ router.post('/decrypt',
   }
 );
 
-export default router; 
+export default router;

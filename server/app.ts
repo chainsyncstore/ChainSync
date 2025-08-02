@@ -4,7 +4,7 @@ import cors from 'cors';
 import session from 'express-session';
 import { Pool } from 'pg';
 // import { createClient } from 'redis'; // Unused
-import RedisStore from 'connect-redis';
+import { RedisStore } from 'connect-redis';
 import path from 'path';
 import fs from 'fs';
 
@@ -14,18 +14,18 @@ import { getLogger } from '../src/logging/index.js';
 import { requestLogger, errorLogger } from '../src/logging/middleware.js';
 
 // Import security middleware
-import { 
-  securityHeaders, 
-  csrfProtection, 
-  generateCsrfToken, 
+import {
+  securityHeaders,
+  csrfProtection,
+  generateCsrfToken,
   validateContentType,
   accountLockoutMiddleware,
   requireMFA,
   securityEventLogger
 } from './middleware/security.js';
-import { 
-  rateLimitMiddleware, 
-  authRateLimiter, 
+import {
+  rateLimitMiddleware,
+  authRateLimiter,
   sensitiveOpRateLimiter,
   paymentRateLimiter,
   uploadRateLimiter,
@@ -187,7 +187,7 @@ const possiblePaths = [
   path.join(__dirname, '../../client'), // Development build
   path.join(__dirname, '../../dist/client'), // Production build
   path.join(__dirname, '../dist/client'), // Alternative production build
-  path.join(__dirname, '../client'), // Server running from dist/server
+  path.join(__dirname, '../client') // Server running from dist/server
 ];
 
 let staticPath = null;
@@ -246,7 +246,7 @@ app.use((req, res, next) => {
     method: req.method,
     ip: req.ip
   });
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Route not found',
     code: 'NOT_FOUND'
   });
@@ -258,18 +258,18 @@ app.use((req, res, next) => {
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Error is already logged by the errorLogger middleware
   // Just send appropriate response to client
-  
+
   const statusCode = err.status || err.statusCode || 500;
   const errorResponse = {
     error: err.message || 'Internal Server Error',
     code: err.code || 'UNKNOWN_ERROR'
   };
-  
+
   // Add stack trace in development
   if (process.env.NODE_ENV !== 'production' && err.stack) {
     (errorResponse as any).stack = err.stack;
   }
-  
+
   res.status(statusCode).json(errorResponse);
 });
 
@@ -277,16 +277,16 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 if (process.env.NODE_ENV !== 'test') {
   // Initialize Swagger documentation
   setupSwagger(app);
-  
+
   // Initialize monitoring and Sentry integration
   configureSentry(app);
-  
+
   // Initialize distributed tracing with OpenTelemetry
   initializeTracing();
-  
+
   // Initialize health checks
   initializeHealthChecks(app);
-  
+
   // Initialize caching, queues, etc.
   initializeApp(app, dbPool).catch(err => {
     logger.error('Failed to initialize application components', err);

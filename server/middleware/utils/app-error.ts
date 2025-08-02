@@ -3,8 +3,8 @@ import { ErrorCategory, ErrorCode } from '../types/error';
 export class AppError extends Error {
   code: string;
   category: string;
-  details?: Record<string, unknown>;
-  statusCode?: number;
+  details?: Record<string, unknown> | undefined;
+  statusCode?: number | undefined;
 
   constructor(
     category: ErrorCategory | string,
@@ -17,8 +17,8 @@ export class AppError extends Error {
     this.name = 'AppError';
     this.code = code;
     this.category = category;
-    this.details = details;
-    this.statusCode = statusCode;
+    this.details = details as Record<string, unknown> | undefined;
+    this.statusCode = statusCode as number | undefined;
     Object.setPrototypeOf(this, AppError.prototype);
   }
 

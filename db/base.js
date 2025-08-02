@@ -1,25 +1,25 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
 exports.commonValidators = exports.defineRelations = exports.baseRelations = exports.baseSelectSchema = exports.baseInsertSchema = exports.softDeleteSchema = exports.timestampsSchema = exports.baseTable = void 0;
 exports.isSoftDeleted = isSoftDeleted;
 exports.isActive = isActive;
-const pg_core_1 = require("drizzle-orm/pg-core");
-const zod_1 = require("zod");
+const pg_core_1 = require('drizzle-orm/pg-core');
+const zod_1 = require('zod');
 // Base table configuration
 exports.baseTable = {
-    id: (0, pg_core_1.serial)("id").primaryKey(),
-    createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow().notNull(),
-    updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow().notNull(),
-    deletedAt: (0, pg_core_1.timestamp)("deleted_at"),
+  id: (0, pg_core_1.serial)('id').primaryKey(),
+  createdAt: (0, pg_core_1.timestamp)('created_at').defaultNow().notNull(),
+  updatedAt: (0, pg_core_1.timestamp)('updated_at').defaultNow().notNull(),
+  deletedAt: (0, pg_core_1.timestamp)('deleted_at')
 };
 // Timestamps schema
 exports.timestampsSchema = zod_1.z.object({
-    createdAt: zod_1.z.date(),
-    updatedAt: zod_1.z.date(),
+  createdAt: zod_1.z.date(),
+  updatedAt: zod_1.z.date()
 });
 // Soft delete schema
 exports.softDeleteSchema = zod_1.z.object({
-    deletedAt: zod_1.z.date().nullable(),
+  deletedAt: zod_1.z.date().nullable()
 });
 // Base validation schemas
 exports.baseInsertSchema = exports.timestampsSchema.merge(exports.softDeleteSchema);
@@ -30,24 +30,24 @@ const baseRelations = (table) => ({
 });
 exports.baseRelations = baseRelations;
 const defineRelations = (table) => {
-    return (0, exports.baseRelations)(table);
+  return (0, exports.baseRelations)(table);
 };
 exports.defineRelations = defineRelations;
 // Common validation helpers
 exports.commonValidators = {
-    name: (schema) => schema.string().min(1, "Name is required"),
-    description: (schema) => schema.string().optional(),
-    status: (schema) => schema.enum(["active", "inactive", "deleted"]),
-    price: (schema) => schema.number().min(0, "Price must be positive"),
-    quantity: (schema) => schema.number().min(0, "Quantity must be positive"),
-    amount: (schema) => schema.number().min(0, "Amount must be positive"),
-    email: (schema) => schema.string().email("Invalid email"),
-    phone: (schema) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+  name: (schema) => schema.string().min(1, 'Name is required'),
+  description: (schema) => schema.string().optional(),
+  status: (schema) => schema.enum(['active', 'inactive', 'deleted']),
+  price: (schema) => schema.number().min(0, 'Price must be positive'),
+  quantity: (schema) => schema.number().min(0, 'Quantity must be positive'),
+  amount: (schema) => schema.number().min(0, 'Amount must be positive'),
+  email: (schema) => schema.string().email('Invalid email'),
+  phone: (schema) => schema.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number')
 };
 // Type guards
 function isSoftDeleted(record) {
-    return record.deletedAt !== null;
+  return record.deletedAt !== null;
 }
 function isActive(record) {
-    return !isSoftDeleted(record);
+  return !isSoftDeleted(record);
 }

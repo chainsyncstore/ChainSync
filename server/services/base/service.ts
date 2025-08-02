@@ -4,8 +4,8 @@ export interface IServiceError extends Error {
   code: ErrorCode;
   category: ErrorCategory;
   retryable?: boolean;
-  retryAfter?: number;
-  details?: Record<string, unknown>;
+  retryAfter: number;
+  details: Record<string, unknown>;
 }
 
 export class ServiceError extends Error implements IServiceError {
@@ -14,8 +14,8 @@ export class ServiceError extends Error implements IServiceError {
     public code: ErrorCode,
     public category: ErrorCategory,
     public retryable: boolean = false,
-    public retryAfter?: number,
-    public details?: Record<string, unknown>,
+    public retryAfter: number = 0,
+    public details: Record<string, unknown> = {}
   ) {
     super(message);
     this.name = 'ServiceError';
@@ -44,8 +44,8 @@ export abstract class BaseService {
       ErrorCode.INTERNAL_SERVER_ERROR,
       ErrorCategory.SYSTEM,
       false,
-      undefined,
-      { originalError: error },
+      0,
+      { originalError: error }
     );
   }
 
@@ -53,7 +53,7 @@ export abstract class BaseService {
 
   protected async withTransaction<T>(
     operation: () => Promise<T>,
-    context: string,
+    context: string
   ): Promise<T> {
     try {
       return await operation();
@@ -66,7 +66,7 @@ export abstract class BaseService {
     operation: () => Promise<T>,
     context: string,
     maxRetries = 3,
-    baseDelay = 1000,
+    baseDelay = 1000
   ): Promise<T> {
     for (let attempt = 0; attempt < maxRetries; attempt += 1) {
       try {
@@ -82,7 +82,7 @@ export abstract class BaseService {
       'Max retries exceeded',
       ErrorCode.TEMPORARY_UNAVAILABLE,
       ErrorCategory.SYSTEM,
-      true,
+      true
     );
   }
 }

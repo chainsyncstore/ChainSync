@@ -84,12 +84,18 @@ export class EnvironmentParityValidator {
       return { valid: true, differences };
     }
 
-    const baseEnv = environments[0];
-    const baseConfig = this.environments.get(baseEnv)!;
+    const baseEnv = environments[0]!;
+    const baseConfig = this.environments.get(baseEnv);
+    if (!baseConfig) {
+      throw new Error(`Base environment '${baseEnv}' not found`);
+    }
 
     for (let i = 1; i < environments.length; i++) {
-      const envName = environments[i];
-      const envConfig = this.environments.get(envName)!;
+      const envName = environments[i]!;
+      const envConfig = this.environments.get(envName);
+      if (!envConfig) {
+        throw new Error(`Environment '${envName}' not found`);
+      }
       const envDifferences: any[] = [];
 
       // Compare configurations

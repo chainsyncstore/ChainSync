@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 /**
  * Auth utilities for E2E tests
@@ -39,7 +39,7 @@ export const TEST_USERS: Record<UserRole, TestUser> = {
 /**
  * Login with a specific user role
  */
-export async function loginAs(page: Page, role: UserRole): Promise<void> {
+export async function loginAs(page: any, role: UserRole): Promise<void> {
   const user = TEST_USERS[role];
   
   await page.goto('/login');
@@ -59,7 +59,7 @@ export async function loginAs(page: Page, role: UserRole): Promise<void> {
 /**
  * Logout the current user
  */
-export async function logout(page: Page): Promise<void> {
+export async function logout(page: any): Promise<void> {
   // Click on user menu
   await page.click('[data-testid="user-menu"]');
   

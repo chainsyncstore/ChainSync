@@ -11,5 +11,5 @@ module.exports = {
   securityHeaders,
   csrfProtection,
   generateCsrfToken,
-  validateContentType,
+  validateContentType
 };

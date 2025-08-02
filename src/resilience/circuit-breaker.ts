@@ -120,7 +120,7 @@ export class CircuitBreaker extends EventEmitter {
     this.state = CircuitState.CLOSED;
     this.failureCount = 0;
     this.successCount = 0;
-    this.nextAttemptTime = undefined;
+    this.nextAttemptTime = 0;
     this.emit('stateChange', { 
       name: this.name, 
       state: CircuitState.CLOSED, 
@@ -183,9 +183,9 @@ export class CircuitBreaker extends EventEmitter {
       failureCount: this.failureCount,
       successCount: this.successCount,
       totalRequests: this.getTotalRequests(),
-      lastFailureTime: this.lastFailureTime,
-      lastSuccessTime: this.lastSuccessTime,
-      nextAttemptTime: this.nextAttemptTime,
+      ...(this.lastFailureTime !== undefined && { lastFailureTime: this.lastFailureTime }),
+      ...(this.lastSuccessTime !== undefined && { lastSuccessTime: this.lastSuccessTime }),
+      ...(this.nextAttemptTime !== undefined && { nextAttemptTime: this.nextAttemptTime }),
     };
   }
 

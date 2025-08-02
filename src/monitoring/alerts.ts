@@ -93,7 +93,7 @@ export class AlertManager {
       value,
       threshold: alert.threshold,
       severity: alert.severity,
-      metadata,
+      ...(metadata && { metadata }),
     };
 
     // Add to history

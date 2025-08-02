@@ -1,4 +1,3 @@
-import React from 'react';
 import ProductImport from '@/components/import/product-import';
 import { useAuth } from '@/providers/auth-provider';
 

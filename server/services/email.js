@@ -1,35 +1,35 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+'use strict';
+const __importDefault = (this && this.__importDefault) || function(mod) {
+  return (mod && mod.__esModule) ? mod : { 'default': mod };
 };
-Object.defineProperty(exports, "__esModule", { value: true });
+Object.defineProperty(exports, '__esModule', { value: true });
 exports.sendEmail = sendEmail;
 exports.sendPasswordResetEmail = sendPasswordResetEmail;
 exports.verifyEmailConnection = verifyEmailConnection;
-const nodemailer_1 = __importDefault(require("nodemailer"));
+const nodemailer_1 = __importDefault(require('nodemailer'));
 // Email configuration
 const emailConfig = {
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: process.env.EMAIL_SECURE === 'true',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-    },
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.EMAIL_PORT || '587'),
+  secure: process.env.EMAIL_SECURE === 'true',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD
+  }
 };
 // Create a transporter object
 let transporter;
 try {
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
-        transporter = nodemailer_1.default.createTransport(emailConfig);
-        console.log('Email transporter created successfully');
-    }
-    else {
-        console.warn('EMAIL_USER and/or EMAIL_PASSWORD are not set. Email functionality will not work.');
-    }
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+    transporter = nodemailer_1.default.createTransport(emailConfig);
+    console.log('Email transporter created successfully');
+  }
+  else {
+    console.warn('EMAIL_USER and/or EMAIL_PASSWORD are not set. Email functionality will not work.');
+  }
 }
 catch (error) {
-    console.error('Failed to create email transporter:', error);
+  console.error('Failed to create email transporter:', error);
 }
 /**
  * Send an email using Nodemailer
@@ -37,26 +37,26 @@ catch (error) {
  * @returns Promise that resolves to true if email was sent successfully, false otherwise
  */
 async function sendEmail(options) {
-    try {
-        if (!transporter) {
-            console.error('Cannot send email: Email transporter not initialized');
-            return false;
-        }
-        const mailOptions = {
-            from: options.from || `"ChainSync" <${process.env.EMAIL_USER}>`,
-            to: options.to,
-            subject: options.subject,
-            text: options.text || '',
-            html: options.html || ''
-        };
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`Email sent successfully to ${options.to}. Message ID: ${info.messageId}`);
-        return true;
+  try {
+    if (!transporter) {
+      console.error('Cannot send email: Email transporter not initialized');
+      return false;
     }
-    catch (error) {
-        console.error('Error sending email:', error);
-        return false;
-    }
+    const mailOptions = {
+      from: options.from || `"ChainSync" <${process.env.EMAIL_USER}>`,
+      to: options.to,
+      subject: options.subject,
+      text: options.text || '',
+      html: options.html || ''
+    };
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Email sent successfully to ${options.to}. Message ID: ${info.messageId}`);
+    return true;
+  }
+  catch (error) {
+    console.error('Error sending email:', error);
+    return false;
+  }
 }
 /**
  * Send a password reset email
@@ -66,12 +66,12 @@ async function sendEmail(options) {
  * @returns Promise that resolves to true if email was sent successfully, false otherwise
  */
 async function sendPasswordResetEmail(email, resetToken, username) {
-    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-    const emailOptions = {
-        to: email,
-        subject: 'ChainSync Password Reset',
-        text: `Hello ${username},\n\nYou requested a password reset for your ChainSync account. Please click the following link to reset your password: ${resetUrl}\n\nIf you didn't request this, please ignore this email.\n\nRegards,\nChainSync Team`,
-        html: `
+  const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+  const emailOptions = {
+    to: email,
+    subject: 'ChainSync Password Reset',
+    text: `Hello ${username},\n\nYou requested a password reset for your ChainSync account. Please click the following link to reset your password: ${resetUrl}\n\nIf you didn't request this, please ignore this email.\n\nRegards,\nChainSync Team`,
+    html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(120deg, #4f46e5, #8b5cf6); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
           <h1 style="color: white; margin: 0;">ChainSync</h1>
@@ -91,24 +91,24 @@ async function sendPasswordResetEmail(email, resetToken, username) {
         </div>
       </div>
     `
-    };
-    return await sendEmail(emailOptions);
+  };
+  return await sendEmail(emailOptions);
 }
 /**
  * For testing purposes only - verify if the email connection is working
  */
 async function verifyEmailConnection() {
-    try {
-        if (!transporter) {
-            console.error('Cannot verify email connection: Email transporter not initialized');
-            return false;
-        }
-        await transporter.verify();
-        console.log('Email connection verified successfully');
-        return true;
+  try {
+    if (!transporter) {
+      console.error('Cannot verify email connection: Email transporter not initialized');
+      return false;
     }
-    catch (error) {
-        console.error('Email connection verification failed:', error);
-        return false;
-    }
+    await transporter.verify();
+    console.log('Email connection verified successfully');
+    return true;
+  }
+  catch (error) {
+    console.error('Email connection verification failed:', error);
+    return false;
+  }
 }

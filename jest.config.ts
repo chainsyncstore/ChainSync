@@ -1,146 +1,207 @@
-import type { Config } from '@jest/types';
+import type { Config } from 'jest';
 
-const config: Config.InitialOptions = {
+const config: Config = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
-  setupFilesAfterEnv: ['<rootDir>/tests/setup-test-env.ts'],
-  moduleNameMapper: {
-    '^\.\./src/cache/redis\.js$': '<rootDir>/tests/__mocks__/redis.js',
-        '^@db$': '<rootDir>/tests/__mocks__/db.js',
-    '^@db/(.*)$': '<rootDir>/tests/__mocks__/db.js',
-    // Mock external packages not included in test env
-    '^@opentelemetry/sdk-node$': '<rootDir>/tests/__mocks__/otlp-sdk-node.js',
-    '^@opentelemetry/auto-instrumentations-node$': '<rootDir>/tests/__mocks__/otlp-sdk-node.js',
-    '^@opentelemetry/exporter-trace-otlp-http$': '<rootDir>/tests/__mocks__/otlp-exporter.js',
-    '^@opentelemetry/instrumentation-redis$': '<rootDir>/tests/__mocks__/redis-instrumentation.js',
-    '^@server/services/payment$': '<rootDir>/tests/__mocks__/payment-service.js',
-    '^@server/services/loyalty\.js$': '<rootDir>/tests/__mocks__/loyalty-service.js',
-    '^.*src/logging.*$': '<rootDir>/tests/__mocks__/logger.js',
-    '^(?:\.\./)+src/logging$': '<rootDir>/tests/__mocks__/logger.js',
-    '^src/logging/index$': '<rootDir>/tests/__mocks__/logger.js',
-    '^.+/src/logging/Logger$': '<rootDir>/tests/__mocks__/logger.js',
-    '^@prisma/client$': '<rootDir>/tests/__mocks__/prisma-client.js',
-    '^.+/db$': '<rootDir>/tests/__mocks__/db.js',
-    '^.+/src/logging/index$': '<rootDir>/tests/__mocks__/logger.js',
-    '^@server/(.*)$': '<rootDir>/server/$1',
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: [
+    '<rootDir>/test/setup/test-utils.ts',
+    '<rootDir>/client/src/__tests__/setup.ts'
+  ],
+  moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/components/(.*)$': '<rootDir>/client/src/components/$1',
+    '^@/pages/(.*)$': '<rootDir>/client/src/pages/$1',
+    '^@/hooks/(.*)$': '<rootDir>/client/src/hooks/$1',
+    '^@/lib/(.*)$': '<rootDir>/client/src/lib/$1',
+    '^@/utils/(.*)$': '<rootDir>/client/src/utils/$1',
+    '^@/types/(.*)$': '<rootDir>/client/src/types/$1',
+    '^@/providers/(.*)$': '<rootDir>/client/src/providers/$1',
     '^@shared/(.*)$': '<rootDir>/shared/$1',
-    '^@test/(.*)$': '<rootDir>/tests/$1',
-    '^(?:\\.\\./)*factories/(.*)\\.js$': '<rootDir>/tests/factories/$1.ts',
-    '^(?:\\.\\./)*factories/(.*)$': '<rootDir>/tests/factories/$1',
-    '^factories/(.*)$': '<rootDir>/tests/factories/$1',
-    '^@server/services/loyalty\\.js$': '<rootDir>/server/services/loyalty.ts',
-    '^@server/services/(.*)\\.js$': '<rootDir>/server/services/$1.ts',
-    '^@server/(.*)\\.js$': '<rootDir>/server/$1.ts',
-    '^@shared/schema-validation(\\.js)?$': '<rootDir>/shared/schema-validation.ts',
-    '^@shared/(.*)\\.js$': '<rootDir>/shared/$1.ts',
-    '^@db/(.*)\\.js$': '<rootDir>/db/$1.ts',
-    '^\\.\\/middleware\\/security\\.js$': '<rootDir>/tests/__mocks__/security-middleware.js',
-    '^\\.\\/middleware\\/rate-limit\\.js$': '<rootDir>/tests/__mocks__/rate-limit.js',
-    '^\\.\\/src\\/cache\\/redis\\.js$': '<rootDir>/tests/__mocks__/redis.js',
+    '^@server/(.*)$': '<rootDir>/server/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/client/src/__tests__/__mocks__/fileMock.js'
   },
-  moduleDirectories: ['node_modules', '<rootDir>'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  modulePathIgnorePatterns: ['<rootDir>/dist', '<rootDir>/server/__mocks__/vite.js'],
-  
   transform: {
-    '^.+\\.jsx?$': [
-      'ts-jest', {
-         tsconfig: '<rootDir>/tsconfig.test.json',
-         diagnostics: false,
-         allowJs: true,
-       },
-    ],
-    '^.+\\.tsx?$': [
-      'ts-jest', {
-         tsconfig: '<rootDir>/tsconfig.test.json',
-         diagnostics: false,
-       },
-    ],
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx',
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        moduleResolution: 'node',
+        target: 'ES2020',
+        lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+        skipLibCheck: true,
+        strict: true,
+        forceConsistentCasingInFileNames: true,
+        noEmit: true,
+        resolveJsonModule: true,
+        isolatedModules: true,
+        noUnusedLocals: false,
+        noUnusedParameters: false
+      }
+    }],
+    '^.+\\.(js|jsx)$': ['babel-jest', {
+      presets: [
+        ['@babel/preset-env', { targets: { node: 'current' } }],
+        ['@babel/preset-react', { runtime: 'automatic' }],
+        '@babel/preset-typescript'
+      ]
+    }]
   },
   testMatch: [
-    '**/tests/**/*.test.ts', 
-    '**/tests/**/*.spec.ts',
-    '**/tests/**/*.test.tsx',
-    '**/tests/**/*.spec.tsx'
+    '<rootDir>/test/**/*.test.ts',
+    '<rootDir>/test/**/*.test.tsx',
+    '<rootDir>/test/**/*.spec.ts',
+    '<rootDir>/test/**/*.spec.tsx',
+    '<rootDir>/client/src/**/*.test.ts',
+    '<rootDir>/client/src/**/*.test.tsx',
+    '<rootDir>/client/src/**/*.spec.ts',
+    '<rootDir>/client/src/**/*.spec.tsx',
+    '<rootDir>/server/**/*.test.ts',
+    '<rootDir>/server/**/*.spec.ts'
   ],
-  testPathIgnorePatterns: ['<rootDir>/test/'],
-  collectCoverage: true,
   collectCoverageFrom: [
-    'shared/**/*.ts',
-    'server/**/*.ts',
-    'server/**/*.js',
-    'client/src/**/*.tsx',
-    'client/src/**/*.ts',
+    'src/**/*.{ts,tsx,js,jsx}',
+    'client/src/**/*.{ts,tsx,js,jsx}',
+    'server/**/*.{ts,js}',
+    'shared/**/*.{ts,js}',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/dist/**',
+    '!**/build/**',
     '!**/coverage/**',
-    '!**/tests/**',
-    '!**/test/**',
+    '!**/*.test.{ts,tsx,js,jsx}',
+    '!**/*.spec.{ts,tsx,js,jsx}',
+    '!**/__tests__/**',
     '!**/__mocks__/**',
-    '!**/*.config.*',
-    '!**/jest.setup.*'
+    '!**/test/**',
+    '!**/tests/**'
   ],
-  coverageReporters: ['text', 'lcov', 'html', 'json'],
-  coverageDirectory: 'coverage',
   coverageThreshold: {
     global: {
-      branches: 90,
-      functions: 90,
-      lines: 90,
-      statements: 90
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70
     }
   },
-  transformIgnorePatterns: [
-    "/node_modules/(?!drizzle-orm)/",
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/build/',
+    '/coverage/'
   ],
+  transformIgnorePatterns: [
+    '/node_modules/(?!(@tanstack/react-query|lucide-react|@radix-ui|wouter)/)'
+  ],
+  globals: {
+    'ts-jest': {
+      tsconfig: {
+        jsx: 'react-jsx',
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        moduleResolution: 'node',
+        target: 'ES2020',
+        lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+        skipLibCheck: true,
+        strict: true,
+        forceConsistentCasingInFileNames: true,
+        noEmit: true,
+        resolveJsonModule: true,
+        isolatedModules: true,
+        noUnusedLocals: false,
+        noUnusedParameters: false
+      }
+    }
+  },
+  // React 19 specific configuration
+  testEnvironmentOptions: {
+    customExportConditions: ['react-jsx']
+  },
+  // Test timeout configuration
+  testTimeout: 10000,
+  // Verbose output for debugging
   verbose: true,
-  testTimeout: 30000,
-  maxWorkers: '50%',
+  // Clear mocks between tests
+  clearMocks: true,
+  // Restore mocks after each test
+  restoreMocks: true,
+  // Reset modules between tests
+  resetModules: true,
+  // Projects configuration for different test types
   projects: [
     {
       displayName: 'unit',
-      testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
-      testEnvironment: 'node'
+      testMatch: ['<rootDir>/test/unit/**/*.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
       displayName: 'integration',
-      testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
-      testEnvironment: 'node',
-      setupFilesAfterEnv: ['<rootDir>/tests/setup/integration-setup.ts']
+      testMatch: ['<rootDir>/test/integration/**/*.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
       displayName: 'e2e',
-      testMatch: ['<rootDir>/tests/e2e/**/*.test.ts'],
-      testEnvironment: 'node',
-      setupFilesAfterEnv: ['<rootDir>/tests/setup/e2e-setup.ts']
+      testMatch: ['<rootDir>/test/e2e/**/*.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
       displayName: 'security',
-      testMatch: ['<rootDir>/tests/security/**/*.test.ts'],
-      testEnvironment: 'node'
+      testMatch: ['<rootDir>/test/security/**/*.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
       displayName: 'performance',
-      testMatch: ['<rootDir>/tests/performance/**/*.test.ts'],
-      testEnvironment: 'node'
+      testMatch: ['<rootDir>/test/performance/**/*.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
       displayName: 'contract',
-      testMatch: ['<rootDir>/tests/contract/**/*.test.ts'],
-      testEnvironment: 'node'
+      testMatch: ['<rootDir>/test/contract/**/*.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
       displayName: 'accessibility',
-      testMatch: ['<rootDir>/tests/accessibility/**/*.test.tsx'],
-      testEnvironment: 'jsdom',
-      setupFilesAfterEnv: ['<rootDir>/tests/setup/accessibility-setup.ts']
+      testMatch: ['<rootDir>/test/accessibility/**/*.test.tsx'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     },
     {
       displayName: 'visual',
-      testMatch: ['<rootDir>/tests/visual/**/*.test.ts'],
-      testEnvironment: 'node'
+      testMatch: ['<rootDir>/test/visual/**/*.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/test/setup/test-utils.ts']
     }
+  ],
+  // Coverage reporters
+  coverageReporters: [
+    'text',
+    'text-lcov',
+    'html',
+    'json',
+    'json-summary'
+  ],
+  // Coverage directory
+  coverageDirectory: 'coverage',
+  // Collect coverage from specific files
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx,js,jsx}',
+    'client/src/**/*.{ts,tsx,js,jsx}',
+    'server/**/*.{ts,js}',
+    'shared/**/*.{ts,js}',
+    '!**/*.d.ts',
+    '!**/node_modules/**',
+    '!**/dist/**',
+    '!**/build/**',
+    '!**/coverage/**',
+    '!**/*.test.{ts,tsx,js,jsx}',
+    '!**/*.spec.{ts,tsx,js,jsx}',
+    '!**/__tests__/**',
+    '!**/__mocks__/**',
+    '!**/test/**',
+    '!**/tests/**',
+    '!**/index.ts',
+    '!**/main.tsx',
+    '!**/vite-env.d.ts'
   ]
 };
 

@@ -71,10 +71,10 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
   fileFilter: async (req: Request, file: MulterFile, cb: (error: Error | null, acceptFile: boolean) => void) => {
     try {
       UploadMetricsTracker.getInstance().trackRequest();
-      
+
       // Validate file size
       if (file.size > fileUploadConfig.maxFileSize) {
-        logger.warn('File size limit exceeded', { 
+        logger.warn('File size limit exceeded', {
           filename: file.originalname,
           size: file.size,
           maxSize: fileUploadConfig.maxFileSize
@@ -91,7 +91,7 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
       // Check file type
       const fileType = await fileTypeFromBuffer(file.buffer);
       const isValidType = fileType ? await FileUtils.validateFileExtension(fileType.mime) : false;
-      
+
       if (!fileType || !isValidType) {
         logger.warn('Invalid file type', {
           filename: file.originalname,
@@ -109,7 +109,7 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
       // Validate file extension
       const fileExt = path.extname(file.originalname).toLowerCase();
       if (!fileExt || !fileUploadConfig.allowedFileExtensions.includes(fileExt)) {
-        logger.warn('Invalid file extension', { 
+        logger.warn('Invalid file extension', {
           filename: file.originalname,
           extension: fileExt
         });
@@ -118,7 +118,7 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
       }
 
       // Log successful validation
-      logger.info('File validation succeeded', { 
+      logger.info('File validation succeeded', {
         filename: file.originalname,
         size: file.size,
         mimeType: fileType.mime,
@@ -126,7 +126,7 @@ const subscriptionCache = new Map<string, ProgressSubscription[]>();
       });
       cb(null, true);
     } catch (error) {
-      logger.error('File validation failed', { 
+      logger.error('File validation failed', {
         filename: file.originalname,
         error: error instanceof Error ? error.message : String(error)
       });
@@ -183,7 +183,7 @@ export class FileUploadMiddleware {
   private async handleFileUpload(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const startTime = Date.now();
-      
+
       // First validate files synchronously
       if (!req.files) {
         throw new AppError(
@@ -248,7 +248,7 @@ export class FileUploadMiddleware {
       // Track memory usage
       const memoryUsage = process.memoryUsage().heapUsed;
       this.metricsTracker.trackMemoryUsage(memoryUsage);
-      
+
       // Log upload details
       logger.info('File upload started', {
         uploadId,
@@ -347,7 +347,7 @@ export class FileUploadMiddleware {
 
   private cleanupResources(): void {
     const currentTime = Date.now();
-    
+
     // Clean up upload attempts
     this.uploadAttempts.forEach((attempts, userId) => {
       if (currentTime - this.lastUploadTime > this.fileUploadConfig.cleanupInterval) {

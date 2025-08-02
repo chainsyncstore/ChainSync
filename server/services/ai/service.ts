@@ -17,7 +17,7 @@ export class AIService extends BaseService implements IAIService {
   constructor(config: Partial<AIServiceConfig> = {}) {
     super();
     this.config = { ...defaultAIServiceConfig, ...config };
-    
+
     if (!this.config.apiKey) {
       throw new ServiceError(
         'Invalid API Key',
@@ -123,7 +123,7 @@ export class AIService extends BaseService implements IAIService {
 
       const startTime = performance.now();
       const response = await this.withRetry(
-        async () => {
+        async() => {
           return await this.openai.chat.completions.create({
             model: this.config.model,
             messages: [{ role: 'user', content: prompt }],
@@ -140,11 +140,14 @@ export class AIService extends BaseService implements IAIService {
       );
 
       const duration = performance.now() - startTime;
-      await this.cache.set(cacheKey, response.choices[0].message.content, this.config.cache.ttl);
-      await this.logRequest(userId, prompt, options, response.choices[0].message.content, duration);
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        await this.cache.set(cacheKey, content, this.config.cache.ttl);
+        await this.logRequest(userId, prompt, options, content, duration);
+      }
       await this.incrementRateLimit(userId);
 
-      return response.choices[0].message.content || '';
+      return content || '';
     } catch (error) {
       this.handleError(error, 'Generating AI completion');
     }
@@ -168,7 +171,7 @@ export class AIService extends BaseService implements IAIService {
 
       const startTime = performance.now();
       const response = await this.withRetry(
-        async () => {
+        async() => {
           return await this.openai.chat.completions.create({
             model: this.config.model,
             messages,
@@ -185,11 +188,14 @@ export class AIService extends BaseService implements IAIService {
       );
 
       const duration = performance.now() - startTime;
-      await this.cache.set(cacheKey, response.choices[0].message.content, this.config.cache.ttl);
-      await this.logRequest(userId, JSON.stringify(messages), options, response.choices[0].message.content, duration);
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        await this.cache.set(cacheKey, content, this.config.cache.ttl);
+        await this.logRequest(userId, JSON.stringify(messages), options, content, duration);
+      }
       await this.incrementRateLimit(userId);
 
-      return response.choices[0].message.content || '';
+      return content || '';
     } catch (error) {
       this.handleError(error, 'Generating AI chat');
     }
@@ -296,7 +302,7 @@ export class AIService extends BaseService implements IAIService {
       return {
         maxTokens: (response as any).context_window,
         temperatureRange: [0, 2],
-        supportedFeatures: (response as any).capabilities,
+        supportedFeatures: (response as any).capabilities
       };
     } catch (error) {
       this.handleError(error, 'Getting model capabilities');
@@ -349,10 +355,10 @@ export class AIService extends BaseService implements IAIService {
 
       const startTime = performance.now();
       const response = await this.withRetry(
-        async () => {
+        async() => {
           return await this.openai.images.generate({
             prompt,
-            ...options,
+            ...options
           });
         },
         'Generating AI image'
@@ -390,12 +396,12 @@ export class AIService extends BaseService implements IAIService {
 
       const startTime = performance.now();
       const response = await this.withRetry(
-        async () => {
+        async() => {
           return await this.openai.images.edit({
             image: image,
             mask: mask,
             prompt,
-            ...options,
+            ...options
           });
         },
         'Generating AI image edit'
@@ -425,7 +431,7 @@ export class AIService extends BaseService implements IAIService {
         userId,
         [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: code },
+          { role: 'user', content: code }
         ],
         options
       );
@@ -446,7 +452,7 @@ export class AIService extends BaseService implements IAIService {
         userId,
         [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: code },
+          { role: 'user', content: code }
         ],
         options
       );
@@ -462,12 +468,12 @@ export class AIService extends BaseService implements IAIService {
     options?: any
   ): Promise<string> {
     try {
-      const systemPrompt = `You are a data analyst. Analyze the following data and answer the question.`;
+      const systemPrompt = 'You are a data analyst. Analyze the following data and answer the question.';
       return await this.generateChat(
         userId,
         [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Data: ${data}\nQuestion: ${question}` },
+          { role: 'user', content: `Data: ${data}\nQuestion: ${question}` }
         ],
         options
       );
@@ -483,12 +489,12 @@ export class AIService extends BaseService implements IAIService {
     options?: any
   ): Promise<string> {
     try {
-      const systemPrompt = `You are a data visualizer. Generate a visualization for the following data and question.`;
+      const systemPrompt = 'You are a data visualizer. Generate a visualization for the following data and question.';
       return await this.generateChat(
         userId,
         [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Data: ${data}\nQuestion: ${question}` },
+          { role: 'user', content: `Data: ${data}\nQuestion: ${question}` }
         ],
         options
       );
@@ -503,12 +509,12 @@ export class AIService extends BaseService implements IAIService {
     options?: any
   ): Promise<string> {
     try {
-      const systemPrompt = `You are a blog post writer. Write a blog post on the following topic.`;
+      const systemPrompt = 'You are a blog post writer. Write a blog post on the following topic.';
       return await this.generateChat(
         userId,
         [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: topic },
+          { role: 'user', content: topic }
         ],
         options
       );
@@ -529,7 +535,7 @@ export class AIService extends BaseService implements IAIService {
         userId,
         [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: topic },
+          { role: 'user', content: topic }
         ],
         options
       );

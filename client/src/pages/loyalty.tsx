@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +13,6 @@ import { AppShell } from '@/components/layout/app-shell';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -77,16 +76,16 @@ interface LoyaltyReward {
   } | null;
 }
 
-interface LoyaltyProgram {
-  id: number;
-  storeId: number;
-  name: string;
-  pointsPerAmount: string;
-  active: boolean;
-  expiryMonths: number | null;
-  tiers: LoyaltyTier[];
-  rewards: LoyaltyReward[];
-}
+// interface LoyaltyProgram { // Unused
+//   id: number;
+//   storeId: number;
+//   name: string;
+//   pointsPerAmount: string;
+//   active: boolean;
+//   expiryMonths: number | null;
+//   tiers: LoyaltyTier[];
+//   rewards: LoyaltyReward[];
+// }
 
 interface LoyaltyTier {
   id: number;
@@ -102,7 +101,7 @@ function formatNumber(value: string | number): string {
 
 export default function LoyaltyPage() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient(); // Unused
   const [activeTab, setActiveTab] = useState('members');
   const [searchQuery, setSearchQuery] = useState('');
   const [enrollDialog, setEnrollDialog] = useState(false);

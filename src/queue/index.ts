@@ -181,10 +181,10 @@ export async function addJob<T = any>(
     
     const job = await queue.add(jobName, data, {
       priority: options.priority || JobPriority.NORMAL,
-      delay: options.delay,
-      attempts: options.attempts,
-      jobId: options.jobId,
-      removeOnComplete: options.removeOnComplete
+      ...(options.delay !== undefined && { delay: options.delay }),
+      ...(options.attempts !== undefined && { attempts: options.attempts }),
+      ...(options.jobId && { jobId: options.jobId }),
+      ...(options.removeOnComplete !== undefined && { removeOnComplete: options.removeOnComplete })
     });
     
     logger.debug(`Added ${jobName} job to ${queueName} queue`, { 
@@ -224,7 +224,7 @@ export async function addRecurringJob<T = any>(
     
     const job = await queue.add(jobName, data, {
       priority: options.priority || JobPriority.NORMAL,
-      attempts: options.attempts,
+      ...(options.attempts !== undefined && { attempts: options.attempts }),
       jobId: options.jobId || `recurring:${jobName}`,
       repeat: {
         pattern

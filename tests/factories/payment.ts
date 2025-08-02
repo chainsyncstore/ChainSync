@@ -29,21 +29,21 @@ export interface TransactionData {
 export const mockPaymentData = (overrides: Partial<PaymentData> = {}): PaymentData => ({
   id: faker.string.uuid(),
   customerId: faker.string.uuid(),
-  amount: faker.number.float({ min: 1, max: 1000, precision: 0.01 }),
+  amount: faker.number.float({ min: 1, max: 1000 }),
   currency: 'USD',
-  paymentMethod: faker.helpers.arrayElement(['credit_card', 'bank_transfer', 'paypal']),
-  status: faker.helpers.arrayElement(['pending', 'completed', 'failed', 'refunded']),
-  transactionId: faker.string.alphanumeric(16),
-  createdAt: faker.date.recent(),
-  updatedAt: faker.date.recent(),
+  paymentMethod: ['credit_card', 'bank_transfer', 'paypal'][Math.floor(Math.random() * 3)] || 'credit_card',
+  status: ['pending', 'completed', 'failed', 'refunded'][Math.floor(Math.random() * 4)] || 'pending',
+  transactionId: faker.string.uuid().replace(/-/g, '').substring(0, 16),
+  createdAt: faker.date.past(),
+  updatedAt: faker.date.past(),
   refunded: false,
   refundAmount: 0,
-  processingFees: faker.number.float({ min: 0.30, max: 5.00, precision: 0.01 }),
+  processingFees: faker.number.float({ min: 0.30, max: 5.00 }),
   metadata: {
-    cardLast4: faker.string.numeric(4),
-    cardBrand: faker.helpers.arrayElement(['visa', 'mastercard', 'amex']),
+    cardLast4: faker.string.uuid().replace(/-/g, '').substring(0, 4),
+    cardBrand: ['visa', 'mastercard', 'amex'][Math.floor(Math.random() * 3)],
     billingAddress: {
-      line1: faker.location.streetAddress(),
+      line1: faker.location.street(),
       city: faker.location.city(),
       state: faker.location.state(),
       postalCode: faker.location.zipCode(),
@@ -56,12 +56,12 @@ export const mockPaymentData = (overrides: Partial<PaymentData> = {}): PaymentDa
 export const mockTransactionData = (overrides: Partial<TransactionData> = {}): TransactionData => ({
   id: faker.string.uuid(),
   paymentId: faker.string.uuid(),
-  type: faker.helpers.arrayElement(['payment', 'refund', 'chargeback']),
-  amount: faker.number.float({ min: 1, max: 1000, precision: 0.01 }),
-  status: faker.helpers.arrayElement(['pending', 'completed', 'failed']),
-  createdAt: faker.date.recent(),
+  type: ['payment', 'refund', 'chargeback'][Math.floor(Math.random() * 3)] || 'payment',
+  amount: faker.number.float({ min: 1, max: 1000 }),
+  status: ['pending', 'completed', 'failed'][Math.floor(Math.random() * 3)] || 'pending',
+  createdAt: faker.date.past(),
   metadata: {
-    processor: faker.helpers.arrayElement(['stripe', 'paypal', 'square']),
+    processor: ['stripe', 'paypal', 'square'][Math.floor(Math.random() * 3)],
     gatewayResponse: 'approved',
     responseCode: '000'
   },
@@ -69,28 +69,28 @@ export const mockTransactionData = (overrides: Partial<TransactionData> = {}): T
 });
 
 export const mockPaymentMethodData = () => ({
-  type: faker.helpers.arrayElement(['credit_card', 'bank_transfer', 'paypal']),
-  number: faker.helpers.arrayElement([
+  type: ['credit_card', 'bank_transfer', 'paypal'][Math.floor(Math.random() * 3)],
+  number: [
     '4111111111111111', // Visa
     '5555555555554444', // Mastercard
     '378282246310005'   // Amex
-  ]),
+  ][Math.floor(Math.random() * 3)],
   expiryMonth: faker.number.int({ min: 1, max: 12 }).toString().padStart(2, '0'),
   expiryYear: faker.number.int({ min: 2024, max: 2030 }).toString(),
-  cvv: faker.string.numeric(3),
+  cvv: faker.string.uuid().replace(/-/g, '').substring(0, 3),
   cardholderName: faker.person.fullName()
 });
 
 export const mockBankTransferData = () => ({
   type: 'bank_transfer',
-  accountNumber: faker.string.numeric(10),
-  routingNumber: faker.string.numeric(9),
-  accountType: faker.helpers.arrayElement(['checking', 'savings']),
+  accountNumber: faker.string.uuid().replace(/-/g, '').substring(0, 10),
+  routingNumber: faker.string.uuid().replace(/-/g, '').substring(0, 9),
+  accountType: ['checking', 'savings'][Math.floor(Math.random() * 2)],
   accountHolderName: faker.person.fullName()
 });
 
 export const mockPaymentReceiptData = (payment: PaymentData, customer: any) => ({
-  receiptNumber: faker.string.alphanumeric(12).toUpperCase(),
+  receiptNumber: faker.string.uuid().replace(/-/g, '').substring(0, 12).toUpperCase(),
   paymentId: payment.id,
   customerName: customer.name,
   customerEmail: customer.email,
@@ -102,8 +102,8 @@ export const mockPaymentReceiptData = (payment: PaymentData, customer: any) => (
     {
       name: faker.commerce.productName(),
       quantity: faker.number.int({ min: 1, max: 5 }),
-      price: faker.number.float({ min: 10, max: 100, precision: 0.01 }),
-      total: faker.number.float({ min: 10, max: 500, precision: 0.01 })
+      price: faker.number.float({ min: 10, max: 100 }),
+      total: faker.number.float({ min: 10, max: 500 })
     }
   ],
   subtotal: payment.amount - (payment.processingFees || 0),
@@ -112,20 +112,20 @@ export const mockPaymentReceiptData = (payment: PaymentData, customer: any) => (
 });
 
 export const mockPaymentErrorData = () => ({
-  errorCode: faker.helpers.arrayElement([
+  errorCode: [
     'card_declined',
     'insufficient_funds',
     'invalid_card',
     'expired_card',
     'processing_error'
-  ]),
+  ][Math.floor(Math.random() * 5)],
   errorMessage: faker.lorem.sentence(),
-  declineCode: faker.helpers.arrayElement([
+  declineCode: [
     'generic_decline',
     'do_not_honor',
     'insufficient_funds',
     'lost_card',
     'stolen_card'
-  ]),
+  ][Math.floor(Math.random() * 5)],
   processorResponse: faker.lorem.sentence()
 }); 

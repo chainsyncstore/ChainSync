@@ -43,14 +43,14 @@ export async function enhanceValidationWithAI(
     console.log(`Dialogflow session initialized: ${sessionId}`);
 
     // Prepare a sample of validation issues for Dialogflow to analyze
-    const errorSample = result.errors.slice(0, 5).map((err: any) => 
+    const errorSample = result.errors.slice(0, 5).map((err: any) =>
       `Row ${err.row}: ${err.field} = "${err.value}" (${err.reason})`
-    ).join("\n");
-    
-    const missingSample = result.missingFields.slice(0, 5).map((field: any) => 
+    ).join('\n');
+
+    const missingSample = result.missingFields.slice(0, 5).map((field: any) =>
       `Row ${field.row}: ${field.field} is missing ${field.isRequired ? '(required)' : '(optional)'}`
-    ).join("\n");
-    
+    ).join('\n');
+
     // Prepare the prompt for Dialogflow with more context based on data type
     const prompt = `I'm trying to validate imported ${dataType} data and have encountered validation issues.
     
@@ -90,9 +90,9 @@ export async function enhanceValidationWithAI(
       queryInput: {
         text: {
           text: prompt,
-          languageCode: 'en-US',
-        },
-      },
+          languageCode: 'en-US'
+        }
+      }
     };
 
     // Get Dialogflow response
@@ -154,7 +154,7 @@ function applyAISuggestedFixes(
     /replace\s+["']([^"']+)["']\s+with\s+["']([^"']+)["']/gi,
     /update\s+["']([^"']+)["']\s+to\s+["']([^"']+)["']/gi,
     /convert\s+["']([^"']+)["']\s+to\s+["']([^"']+)["']/gi,
-    /correct\s+["']([^"']+)["']\s+to\s+["']([^"']+)["']/gi,
+    /correct\s+["']([^"']+)["']\s+to\s+["']([^"']+)["']/gi
   ];
 
   // Patterns for missing field suggestions
@@ -163,7 +163,7 @@ function applyAISuggestedFixes(
     /set default for ["']?([^"',]+)["']? to ["']([^"']+)["']/gi,
     /default value for ["']?([^"',]+)["']? should be ["']([^"']+)["']/gi,
     /missing ["']?([^"',]+)["']? can be set to ["']([^"']+)["']/gi,
-    /use ["']([^"']+)["'] as the default for ["']?([^"',]+)["']?/gi,
+    /use ["']([^"']+)["'] as the default for ["']?([^"',]+)["']?/gi
   ];
 
   // Create a map to track rows that have been fixed
@@ -178,9 +178,9 @@ function applyAISuggestedFixes(
       if (match.length >= 3) {
         // For the first pattern which includes row numbers
         if (match.length === 4) {
-          const rowNum = parseInt(match[1]);
-          const oldValue = match[2];
-          const newValue = match[3];
+          const rowNum = parseInt(match[1] || '0');
+          const oldValue = match[2] || '';
+          const newValue = match[3] || '';
 
           if (!isNaN(rowNum) && rowNum > 0 && rowNum <= result.totalRows) {
             applyFix(result, rowNum - 1, oldValue, newValue);
@@ -196,8 +196,8 @@ function applyAISuggestedFixes(
         }
         // For patterns that don't include row numbers, try to match to errors
         else {
-          const oldValue = match[1];
-          const newValue = match[2];
+          const oldValue = match[1] || '';
+          const newValue = match[2] || '';
 
           // Try to find errors with this value and fix them
           result.errors.forEach((error: any) => {
@@ -226,18 +226,18 @@ function applyAISuggestedFixes(
 
         // Check if the pattern is reversed (some patterns capture field first, others value first)
         if (pattern.toString().includes('as the default for')) {
-          defaultValue = match[1];
-          fieldName = match[2];
+          defaultValue = match[1] || '';
+          fieldName = match[2] || '';
         } else {
-          fieldName = match[1];
-          defaultValue = match[2];
+          fieldName = match[1] || '';
+          defaultValue = match[2] || '';
         }
 
         // Apply default value to missing fields
         const missingFields = result.missingFields.filter(
           (field: any) => field.field === fieldName
         );
-        
+
         missingFields.forEach((missingField: any) => {
           const rowIndex = missingField.row - 1;
           if (result.mappedData[rowIndex]) {
@@ -250,7 +250,7 @@ function applyAISuggestedFixes(
             if (!fixedMissingFields.has(missingField.row)) {
               fixedMissingFields.set(missingField.row, new Set<string>());
             }
-            fixedMissingFields.get(missingField.row)?.add(fieldName);
+            fixedMissingFields.get(missingField.row)?.add(fieldName || '');
           }
         });
       }
@@ -289,7 +289,7 @@ function applyAISuggestedFixes(
   });
 
   // Remove fixed errors from the error list
-  result.errors = result.errors.filter((error: any) => 
+  result.errors = result.errors.filter((error: any) =>
     !fixedRows.has(error.row) || !fixedRows.get(error.row)?.has(error.field)
   );
 
@@ -304,8 +304,8 @@ function applyAISuggestedFixes(
     result.importedRows = result.totalRows;
   } else {
     result.success = result.errors.length === 0;
-    result.importedRows = result.totalRows - 
-      new Set(result.errors.map((e: any) => e.row)).size - 
+    result.importedRows = result.totalRows -
+      new Set(result.errors.map((e: any) => e.row)).size -
       new Set(result.missingFields.map((m: any) => m.row)).size;
   }
 }
@@ -319,14 +319,14 @@ function getDefaultValuesForDataType(dataType: 'loyalty' | 'inventory'): Record<
       cost: 0,
       price: 0,
       reorderLevel: 5,
-      reorderQuantity: 10,
+      reorderQuantity: 10
     };
   } else if (dataType === 'loyalty') {
     return {
       points: 0,
       tier: 'Bronze',
       status: 'active',
-      enrollmentDate: new Date().toISOString().split('T')[0],
+      enrollmentDate: new Date().toISOString().split('T')[0]
     };
   }
 

@@ -12,11 +12,12 @@ const logger = getLogger().child({ component: 'dashboard' });
  * GET /api/dashboard/quick-stats
  * Get quick statistics for the dashboard
  */
-router.get('/quick-stats', async (req: Request, res: Response) => {
+router.get('/quick-stats', async(req: Request, res: Response): Promise<void> => {
   try {
     const dbPool = getPool();
     if (!dbPool) {
-      return res.status(500).json({ error: 'Database connection not available' });
+      res.status(500).json({ error: 'Database connection not available' });
+      return;
     }
 
     // Mock data for now - in a real application, you would query the database
@@ -34,11 +35,11 @@ router.get('/quick-stats', async (req: Request, res: Response) => {
     res.json(mockData);
   } catch (error: any) {
     logger.error('Error fetching quick stats', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch dashboard statistics',
-      details: error.message 
+      details: error.message
     });
   }
 });
 
-export default router; 
+export default router;

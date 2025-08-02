@@ -70,7 +70,7 @@ export const expectedSchemas = {
 // Validate a data value against expected type
 export function validateDataType(value: any, expectedType: string): boolean {
   if (value === null || value === undefined) return false;
-  
+
   switch (expectedType) {
     case 'string':
       return typeof value === 'string' && value.trim().length > 0;
@@ -107,8 +107,8 @@ export async function processImportFile(
   fileBuffer: Buffer,
   fileType: string,
   dataType: 'loyalty' | 'inventory'
-): Promise<{ 
-  data: any[]; 
+): Promise<{
+  data: any[];
   columnSuggestions: ColumnMapping[];
   sampleData: any[];
   headerValidation: {
@@ -120,46 +120,48 @@ export async function processImportFile(
   // Parse file based on type
   let parsedData: any[] = [];
   let originalHeaders: string[] = [];
-  
+
   try {
     if (fileType.includes('csv')) {
       // First parse with { columns: false } to get the raw headers
       const result = csvParse(fileBuffer.toString(), {
         columns: false,
         skip_empty_lines: true,
-        trim: true,
+        trim: true
       });
-      
+
       if (result.length > 0) {
-        originalHeaders = result[0];
+        originalHeaders = result[0] || [];
       }
-      
+
       // Then parse normally with { columns: true }
       parsedData = csvParse(fileBuffer.toString(), {
         columns: true,
         skip_empty_lines: true,
-        trim: true,
+        trim: true
       });
     } else if (
-      fileType.includes('spreadsheetml') || 
-      fileType.includes('excel') || 
+      fileType.includes('spreadsheetml') ||
+      fileType.includes('excel') ||
       fileType.includes('xls')
     ) {
       const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      
+      const worksheet = workbook.Sheets[sheetName!];
+
       // Get headers from the first row
-      const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1');
-      originalHeaders = [];
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddress = xlsx.utils.encode_cell({ r: range.s.r, c: col });
-        if (worksheet[cellAddress]) {
-          originalHeaders.push(worksheet[cellAddress].v);
+      if (worksheet) {
+        const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1');
+        originalHeaders = [];
+        for (let col = range.s.c; col <= range.e.c; col++) {
+          const cellAddress = xlsx.utils.encode_cell({ r: range.s.r, c: col });
+          if (worksheet[cellAddress]) {
+            originalHeaders.push(worksheet[cellAddress].v);
+          }
         }
+
+        parsedData = xlsx.utils.sheet_to_json(worksheet);
       }
-      
-      parsedData = xlsx.utils.sheet_to_json(worksheet);
     } else {
       throw new Error('Unsupported file type. Please upload a CSV or Excel file.');
     }
@@ -175,24 +177,24 @@ export async function processImportFile(
   // Validate headers against expected schema
   const expectedSchema = expectedSchemas[dataType];
   const expectedHeaders = Object.keys(expectedSchema);
-  const foundHeaders = originalHeaders.filter(header => 
-    expectedHeaders.includes(header) || 
+  const foundHeaders = originalHeaders.filter(header =>
+    expectedHeaders.includes(header) ||
     expectedHeaders.find(eh => eh.toLowerCase() === header.toLowerCase())
   );
-  
+
   // Find required headers that are missing
   const missingRequired = Object.entries(expectedSchema)
-    .filter(([key, value]) => value.required && !foundHeaders.find(h => 
+    .filter(([key, value]) => value.required && !foundHeaders.find(h =>
       h === key || h.toLowerCase() === key.toLowerCase()
     ))
     .map(([key]) => key);
 
   // Get column mapping suggestions based on data type (AI-enhanced)
   const columnSuggestions = await getColumnMappingSuggestions(parsedData[0], dataType);
-  
+
   // Return first 5 rows of data as sample
   const sampleData = parsedData.slice(0, 5);
-  
+
   return {
     data: parsedData,
     columnSuggestions,
@@ -212,14 +214,14 @@ export function applyColumnMapping(
 ): any[] {
   return data.map(row => {
     const mappedRow: Record<string, any> = {};
-    
+
     // Process each field using the provided mapping
     Object.entries(mapping).forEach(([source, target]) => {
       if (target && source in row) {
         mappedRow[target] = row[source];
       }
     });
-    
+
     return mappedRow;
   });
 }
@@ -236,25 +238,25 @@ export async function validateInventoryData(
     mappedData: [],
     missingFields: []
   };
-  
+
   // Perform basic validation
   basicValidateInventoryData(data, result);
-  
+
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'inventory');
   } catch (error: unknown) {
-    console.log("Error enhancing validation with AI:", error);
+    console.log('Error enhancing validation with AI:', error);
     // Continue with basic validation results if AI enhancement fails
   }
-  
+
   return result;
 }
 
 // Basic inventory data validation
 /**
  * Basic validation for inventory data with improved field handling and data type verification
- * 
+ *
  * @param data - The inventory data to validate
  * @param result - The import result object to update with validation results
  * @returns Updated import result
@@ -265,16 +267,16 @@ export function basicValidateInventoryData(
 ): ImportResult {
   const processedBarcodes = new Set<string>();
   const schema = expectedSchemas.inventory;
-  
+
   data.forEach((row, index) => {
     const rowNumber = index + 1;
     const cleanedRow = { ...row };
     let hasErrors = false;
-    
+
     // Validate each field against the expected schema
     Object.entries(schema).forEach(([field, definition]) => {
       const value = cleanedRow[field];
-      
+
       // Check required fields
       if (definition.required && (value === null || value === undefined || value === '')) {
         result.missingFields.push({
@@ -285,12 +287,12 @@ export function basicValidateInventoryData(
         hasErrors = true;
         return; // Skip further validation for this field
       }
-      
+
       // Skip validation for optional empty fields
       if (!definition.required && (value === null || value === undefined || value === '')) {
         return;
       }
-      
+
       // Validate data type
       if (!validateDataType(value, definition.type)) {
         result.errors.push({
@@ -302,7 +304,7 @@ export function basicValidateInventoryData(
         hasErrors = true;
         return;
       }
-      
+
       // Field-specific validation
       switch (field) {
         case 'name':
@@ -316,7 +318,7 @@ export function basicValidateInventoryData(
             hasErrors = true;
           }
           break;
-          
+
         case 'barcode':
           if (typeof value === 'string') {
             if (value.trim().length < 4) {
@@ -340,7 +342,7 @@ export function basicValidateInventoryData(
             }
           }
           break;
-          
+
         case 'price':
           // Ensure price is a valid number
           try {
@@ -372,7 +374,7 @@ export function basicValidateInventoryData(
             hasErrors = true;
           }
           break;
-          
+
         case 'quantity':
           // Ensure quantity is a valid integer
           try {
@@ -403,7 +405,7 @@ export function basicValidateInventoryData(
             hasErrors = true;
           }
           break;
-          
+
         case 'isPerishable':
           // Convert string values to boolean
           if (typeof value === 'string') {
@@ -423,7 +425,7 @@ export function basicValidateInventoryData(
             }
           }
           break;
-          
+
         case 'expiryDate':
           // Validate date format
           try {
@@ -451,7 +453,7 @@ export function basicValidateInventoryData(
           break;
       }
     });
-    
+
     // Extra validation: check if expiryDate is provided for perishable items
     if (cleanedRow.isPerishable === true && !cleanedRow.expiryDate) {
       result.missingFields.push({
@@ -461,14 +463,14 @@ export function basicValidateInventoryData(
       });
       // This is just a warning, not an error
     }
-    
+
     // If no errors, add to mappedData
     if (!hasErrors) {
       result.mappedData.push(cleanedRow);
       result.importedRows++;
     }
   });
-  
+
   result.success = result.errors.length === 0;
   return result;
 }
@@ -485,18 +487,18 @@ export async function validateLoyaltyData(
     mappedData: [],
     missingFields: []
   };
-  
+
   // Perform basic validation
   basicValidateLoyaltyData(data, result);
-  
+
   // Try AI-powered validation enhancement if available
   try {
     await enhanceValidationWithAI(result, 'loyalty');
   } catch (error: unknown) {
-    console.log("Error enhancing validation with AI:", error);
+    console.log('Error enhancing validation with AI:', error);
     // Continue with basic validation results if AI enhancement fails
   }
-  
+
   return result;
 }
 
@@ -507,16 +509,16 @@ export function basicValidateLoyaltyData(
 ): ImportResult {
   const processedLoyaltyIds = new Set<string>();
   const schema = expectedSchemas.loyalty;
-  
+
   data.forEach((row, index) => {
     const rowNumber = index + 1;
     const cleanedRow = { ...row };
     let hasErrors = false;
-    
+
     // Validate each field against the expected schema
     Object.entries(schema).forEach(([field, definition]) => {
       const value = cleanedRow[field];
-      
+
       // Check required fields
       if (definition.required && (value === null || value === undefined || value === '')) {
         result.missingFields.push({
@@ -527,12 +529,12 @@ export function basicValidateLoyaltyData(
         hasErrors = true;
         return; // Skip further validation for this field
       }
-      
+
       // Skip validation for optional empty fields
       if (!definition.required && (value === null || value === undefined || value === '')) {
         return;
       }
-      
+
       // Validate data type
       if (!validateDataType(value, definition.type)) {
         result.errors.push({
@@ -544,7 +546,7 @@ export function basicValidateLoyaltyData(
         hasErrors = true;
         return;
       }
-      
+
       // Field-specific validation
       switch (field) {
         case 'name':
@@ -558,7 +560,7 @@ export function basicValidateLoyaltyData(
             hasErrors = true;
           }
           break;
-          
+
         case 'loyaltyId':
           if (typeof value === 'string') {
             if (value.trim().length < 4) {
@@ -582,7 +584,7 @@ export function basicValidateLoyaltyData(
             }
           }
           break;
-          
+
         case 'email':
           if (value && typeof value === 'string') {
             // Simple email validation using regex
@@ -598,7 +600,7 @@ export function basicValidateLoyaltyData(
             }
           }
           break;
-          
+
         case 'phone':
           if (value && typeof value === 'string') {
             // Simple phone validation - at least 7 digits
@@ -614,7 +616,7 @@ export function basicValidateLoyaltyData(
             }
           }
           break;
-          
+
         case 'points':
           // Ensure points is a valid number
           try {
@@ -645,7 +647,7 @@ export function basicValidateLoyaltyData(
             hasErrors = true;
           }
           break;
-          
+
         case 'enrollmentDate':
           // Validate date format
           try {
@@ -685,14 +687,14 @@ export function basicValidateLoyaltyData(
           break;
       }
     });
-    
+
     // If no errors, add to mappedData
     if (!hasErrors) {
       result.mappedData.push(cleanedRow);
       result.importedRows++;
     }
   });
-  
+
   result.success = result.errors.length === 0;
   return result;
 }
@@ -708,17 +710,17 @@ export async function importInventoryData(data: any[], storeId: number): Promise
     missingFields: [],
     lastUpdated: new Date()
   };
-  
+
   const categories = await db.query.categories.findMany();
   const categoryMap = new Map<string, number>();
   categories.forEach((category: any) => {
     categoryMap.set(category.name.toLowerCase(), category.id);
   });
-  
+
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     const rowNumber = i + 1;
-    
+
     try {
       let categoryId = row.categoryId;
       if (typeof categoryId === 'string' && isNaN(parseInt(categoryId, 10))) {
@@ -728,9 +730,9 @@ export async function importInventoryData(data: any[], storeId: number): Promise
         }
         categoryId = matchedCategoryId;
       }
-      
+
       const existingProduct = await db.query.products.findFirst({ where: eq(schema.products.barcode, row.barcode) });
-      
+
       if (existingProduct) {
         // Build update data that satisfies the schema
         const productUpdateData: UpdateProduct = {
@@ -738,16 +740,16 @@ export async function importInventoryData(data: any[], storeId: number): Promise
           price: row.price.toString(),
           updatedAt: new Date()
         };
-        
+
         // Only update sku if provided
         if (row.sku) {
           productUpdateData.sku = row.sku;
         }
-        
+
         await db.update(schema.products).set(productUpdateData).where(eq(schema.products.id, existingProduct.id));
-        
+
         const inventoryItem = await db.query.inventory.findFirst({ where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, existingProduct.id)) });
-        
+
         if (inventoryItem) {
           // Skip minStock update for now due to schema type inference issues
           // await db.update(schema.inventory).set({
@@ -759,9 +761,9 @@ export async function importInventoryData(data: any[], storeId: number): Promise
             storeId: storeId,
             productId: existingProduct.id,
             quantity: row.quantity || 0,
-            availableQuantity: row.quantity || 0,
+            availableQuantity: row.quantity || 0
           };
-          
+
           await db.insert(schema.inventory).values(inventoryInsertData);
         }
       } else {
@@ -772,17 +774,19 @@ export async function importInventoryData(data: any[], storeId: number): Promise
           storeId: storeId,
           sku: row.sku || row.barcode // Use provided sku or fallback to barcode
         };
-        
+
         const [newProduct] = await db.insert(schema.products).values(productInsertData).returning();
-        
+
         // Build inventory insert data that satisfies the schema
-        await db.insert(schema.inventory).values({
-          storeId: storeId,
-          productId: newProduct.id,
-          availableQuantity: row.quantity || 0,
-        } as any);
+        if (newProduct) {
+          await db.insert(schema.inventory).values({
+            storeId: storeId,
+            productId: newProduct.id,
+            availableQuantity: row.quantity || 0
+          } as any);
+        }
       }
-      
+
       result.importedRows++;
     } catch (error: any) {
       result.errors.push({
@@ -793,7 +797,7 @@ export async function importInventoryData(data: any[], storeId: number): Promise
       });
     }
   }
-  
+
   result.success = result.importedRows > 0;
   return result;
 }
@@ -809,19 +813,19 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
     missingFields: [],
     lastUpdated: new Date()
   };
-  
+
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     const rowNumber = i + 1;
-    
+
     try {
       const existingMember = await db.query.loyaltyMembers.findFirst({ where: eq(schema.loyaltyMembers.loyaltyId, row.loyaltyId) });
-      
+
       if (existingMember) {
         await db.update(schema.loyaltyMembers).set({
           loyaltyId: existingMember.loyaltyId
         }).where(eq(schema.loyaltyMembers.id, existingMember.id));
-        
+
         const user = await db.query.users.findFirst({ where: eq(schema.users.id, existingMember.userId) });
         if (user) {
           await db.update(schema.users)
@@ -835,17 +839,19 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
         const [newUser] = await db.insert(schema.users).values({
           name: row.name,
           email: row.email || null,
-          password: 'password', // Add a default password
+          password: 'password' // Add a default password
         }).returning();
-        
-        await db.insert(schema.loyaltyMembers).values({
-          loyaltyId: row.loyaltyId || `MEMBER_${newUser.id}`,
-          userId: newUser.id,
-          programId: 1,
-          customerId: newUser.id,
-        });
+
+        if (newUser) {
+          await db.insert(schema.loyaltyMembers).values({
+            loyaltyId: row.loyaltyId || `MEMBER_${newUser.id}`,
+            userId: newUser.id,
+            programId: 1,
+            customerId: newUser.id
+          });
+        }
       }
-      
+
       result.importedRows++;
     } catch (error: any) {
       result.errors.push({
@@ -856,7 +862,7 @@ export async function importLoyaltyData(data: any[], storeId: number): Promise<I
       });
     }
   }
-  
+
   result.success = result.importedRows > 0;
   return result;
 }
@@ -873,10 +879,10 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
     [''],
     ['Row', 'Field', 'Value', 'Error Reason']
   ];
-  
+
   // Start with header rows
   const rows = [...headerInfo];
-  
+
   // Add errors to report
   result.errors.forEach(error => {
     rows.push([
@@ -886,7 +892,7 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
       error.reason
     ]);
   });
-  
+
   // Add missing required fields to report
   result.missingFields.filter(field => field.isRequired).forEach(field => {
     rows.push([
@@ -896,7 +902,7 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
       `Required field "${field.field}" is missing`
     ]);
   });
-  
+
   // Sort data rows by row number (preserve header rows)
   const headerRows = rows.slice(0, 7); // First 7 rows are header info
   const dataRows = rows.slice(7).sort((a: any[], b: any[]) => {
@@ -905,10 +911,10 @@ export function generateErrorReport(result: ImportResult, dataType: 'loyalty' | 
     const numB = !isNaN(parseInt(b[0])) ? parseInt(b[0]) : 0;
     return numA - numB;
   });
-  
+
   // Combine header and sorted data rows
   const sortedRows = [...headerRows, ...dataRows];
-  
+
   // Convert to CSV
   return csvStringify(sortedRows);
 }
@@ -920,9 +926,9 @@ async function getColumnMappingSuggestions(
 ): Promise<ColumnMapping[]> {
   const sourceColumns = Object.keys(sampleRow);
   const targetColumns = getTargetColumns(dataType);
-  
+
   const suggestions: ColumnMapping[] = [];
-  
+
   // For each source column, find the best match in target columns
   for (const source of sourceColumns) {
     const matchResult = findBestMatch(source, targetColumns);
@@ -933,13 +939,13 @@ async function getColumnMappingSuggestions(
       required: matchResult.required
     });
   }
-  
+
   // Enhance mappings with AI if available
   try {
     const enhancedSuggestions = await enhanceMappingsWithAI(suggestions, sourceColumns, dataType);
     return enhancedSuggestions;
   } catch (error: unknown) {
-    console.log("Error enhancing mappings with AI:", error);
+    console.log('Error enhancing mappings with AI:', error);
     // If AI enhancement fails, return the basic pattern matching results
     return suggestions;
   }
@@ -953,10 +959,10 @@ async function enhanceMappingsWithAI(
 ): Promise<ColumnMapping[]> {
   // Check if Dialogflow credentials are available
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !process.env.DIALOGFLOW_PROJECT_ID) {
-    console.log("Dialogflow credentials not found. Using basic mapping only.");
+    console.log('Dialogflow credentials not found. Using basic mapping only.');
     return initialSuggestions;
   }
-  
+
   try {
     // Initialize Dialogflow session client
     const sessionClient = new SessionsClient();
@@ -965,19 +971,19 @@ async function enhanceMappingsWithAI(
       process.env.DIALOGFLOW_PROJECT_ID,
       sessionId
     );
-    
+
     // Prepare the prompt for Dialogflow
-    const targetFields = getTargetColumns(dataType).map(col => 
+    const targetFields = getTargetColumns(dataType).map(col =>
       `${col.name}${col.required ? ' (required)' : ''}`
-    ).join(", ");
-    
+    ).join(', ');
+
     const lowConfidenceMappings = initialSuggestions
       .filter(mapping => mapping.confidence < 0.7)
       .map(mapping => `${mapping.source} => ${mapping.target} (confidence: ${mapping.confidence})`)
-      .join("\n");
-    
-    let prompt = `I need to map columns from a CSV file to specific target fields in my database. 
-    The source columns are: ${sourceColumns.join(", ")}
+      .join('\n');
+
+    const prompt = `I need to map columns from a CSV file to specific target fields in my database. 
+    The source columns are: ${sourceColumns.join(', ')}
     The target fields I'm trying to map to are: ${targetFields}
     
     I already have these suggested mappings with low confidence:
@@ -985,33 +991,33 @@ async function enhanceMappingsWithAI(
     
     Based on common naming patterns for ${dataType} data, can you suggest better mappings for these low confidence fields?
     Please respond in a structured format with just the improved mappings as source => target with confidence score (0-1).`;
-    
+
     // Send the request to Dialogflow
     const request = {
       session: sessionPath,
       queryInput: {
         text: {
           text: prompt,
-          languageCode: 'en-US',
-        },
-      },
+          languageCode: 'en-US'
+        }
+      }
     };
-    
+
     // Get Dialogflow response
     const [response] = await sessionClient.detectIntent(request);
-    
+
     if (!response.queryResult) {
-      throw new Error("No query result returned from Dialogflow");
+      throw new Error('No query result returned from Dialogflow');
     }
-    
-    const responseText = response.queryResult.fulfillmentText || "";
-    
+
+    const responseText = response.queryResult.fulfillmentText || '';
+
     // Parse the response to extract improved mappings
     const improvedMappings = parseDialogflowMappingResponse(responseText, initialSuggestions, dataType);
-    
+
     return improvedMappings;
   } catch (error: unknown) {
-    console.error("Error using Dialogflow for column mapping:", error);
+    console.error('Error using Dialogflow for column mapping:', error);
     return initialSuggestions;
   }
 }
@@ -1024,28 +1030,28 @@ function parseDialogflowMappingResponse(
 ): ColumnMapping[] {
   // Make a copy of the initial suggestions
   const enhancedSuggestions = [...initialSuggestions];
-  
+
   // Look for patterns like "source => target (confidence: 0.8)" in the response
   const mappingPattern = /([^=]+)\s*=>\s*([^(]+)\s*\(confidence:\s*([\d.]+)\)/gi;
   const matches = responseText.matchAll(mappingPattern);
-  
+
   for (const match of Array.from(matches)) {
     if (match.length >= 4) {
-      const source = match[1].trim();
-      const target = match[2].trim();
-      const confidence = parseFloat(match[3].trim());
-      
+      const source = match[1]?.trim() || '';
+      const target = match[2]?.trim() || '';
+      const confidence = parseFloat(match[3]?.trim() || '0');
+
       // Find this suggestion in our initial set
       const index = enhancedSuggestions.findIndex(s => s.source === source);
-      
+
       if (index !== -1 && !isNaN(confidence)) {
         // Only update if the AI confidence is higher than our initial confidence
-        if (confidence > enhancedSuggestions[index].confidence) {
+        if (confidence > (enhancedSuggestions[index]?.confidence || 0)) {
           // Find the required flag from the target columns
           const targetColumns = getTargetColumns(dataType);
           const targetColumn = targetColumns.find(t => t.name === target);
           const isRequired = targetColumn?.required || false;
-          
+
           enhancedSuggestions[index] = {
             source,
             target,
@@ -1056,7 +1062,7 @@ function parseDialogflowMappingResponse(
       }
     }
   }
-  
+
   return enhancedSuggestions;
 }
 
@@ -1069,14 +1075,14 @@ function getTargetColumns(dataType: 'loyalty' | 'inventory'): { name: string; re
       { name: 'phone', required: false },
       { name: 'loyaltyId', required: true },
       { name: 'points', required: false },
-      { name: 'enrollmentDate', required: false },
+      { name: 'enrollmentDate', required: false }
     ];
   } else {
     return [
       { name: 'name', required: true },
       { name: 'description', required: false },
       { name: 'barcode', required: true },
-      { name: 'price', required: true }, 
+      { name: 'price', required: true },
       { name: 'categoryId', required: true },
       { name: 'isPerishable', required: false },
       { name: 'quantity', required: true },
@@ -1088,12 +1094,12 @@ function getTargetColumns(dataType: 'loyalty' | 'inventory'): { name: string; re
 
 // Find the best match for a source column in the target columns
 function findBestMatch(
-  source: string, 
+  source: string,
   targets: { name: string; required: boolean }[]
 ): { match: string; confidence: number; required: boolean } {
   // Normalize the source string for comparison
   const normalizedSource = source.toLowerCase().replace(/[^a-z0-9]/g, '');
-  
+
   // Common aliases for fields
   const aliases: Record<string, string[]> = {
     name: ['productname', 'item', 'itemname', 'title', 'product', 'fullname', 'customername'],
@@ -1118,14 +1124,14 @@ function findBestMatch(
 
   for (const target of targets) {
     const normalizedTarget = target.name.toLowerCase();
-    
+
     // Direct match
     if (normalizedSource === normalizedTarget) {
       return { match: target.name, confidence: 1, required: target.required };
     }
-    
+
     // Check if source contains target
-    if (normalizedSource.includes(normalizedTarget) || 
+    if (normalizedSource.includes(normalizedTarget) ||
         normalizedTarget.includes(normalizedSource)) {
       const confidence = 0.8;
       if (confidence > highestConfidence) {
@@ -1134,10 +1140,10 @@ function findBestMatch(
         isRequired = target.required;
       }
     }
-    
+
     // Check aliases
     if (aliases[target.name]) {
-      for (const alias of aliases[target.name]) {
+      for (const alias of aliases[target.name] || []) {
         if (normalizedSource === alias) {
           return { match: target.name, confidence: 0.9, required: target.required };
         }

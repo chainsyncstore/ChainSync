@@ -1,6 +1,6 @@
 /**
  * Loyalty Formatter
- * 
+ *
  * A formatter class for the Loyalty module that standardizes
  * conversion between database rows and domain objects.
  */
@@ -13,7 +13,7 @@ import { LoyaltyProgram, LoyaltyMember, LoyaltyTransaction, LoyaltyProgramStatus
 export class LoyaltyProgramFormatter extends ResultFormatter<LoyaltyProgram> {
   /**
    * Format a single database result row into a LoyaltyProgram domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted LoyaltyProgram object
    */
@@ -21,19 +21,19 @@ export class LoyaltyProgramFormatter extends ResultFormatter<LoyaltyProgram> {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined loyalty program result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
     const withDates = this.formatDates(
-      base, 
+      base,
       ['createdAt', 'updatedAt', 'startDate', 'endDate']
     );
-    
+
     // Format the loyalty program with specific type handling
     return {
       ...withDates,
@@ -41,7 +41,7 @@ export class LoyaltyProgramFormatter extends ResultFormatter<LoyaltyProgram> {
       storeId: Number(withDates.storeId),
       name: String(withDates.name),
       description: withDates.description || '',
-      active: Boolean(withDates.active),
+      active: Boolean(withDates.active)
     } as LoyaltyProgram;
   }
 }
@@ -52,7 +52,7 @@ export class LoyaltyProgramFormatter extends ResultFormatter<LoyaltyProgram> {
 export class LoyaltyMemberFormatter extends ResultFormatter<LoyaltyMember> {
   /**
    * Format a single database result row into a LoyaltyMember domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted LoyaltyMember object
    */
@@ -60,19 +60,19 @@ export class LoyaltyMemberFormatter extends ResultFormatter<LoyaltyMember> {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined loyalty member result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
     const withDates = this.formatDates(
-      base, 
+      base,
       ['createdAt', 'updatedAt', 'enrollmentDate', 'lastActivityDate']
     );
-    
+
     // Format the loyalty member with specific type handling
     return {
       ...withDates,
@@ -82,7 +82,7 @@ export class LoyaltyMemberFormatter extends ResultFormatter<LoyaltyMember> {
       loyaltyId: String(withDates.loyaltyId || ''),
       points: Number(withDates.points || 0),
       currentPoints: String(withDates.currentPoints || '0.00'),
-      customerId: Number(withDates.customerId),
+      customerId: Number(withDates.customerId)
     } as LoyaltyMember;
   }
 }
@@ -93,7 +93,7 @@ export class LoyaltyMemberFormatter extends ResultFormatter<LoyaltyMember> {
 export class LoyaltyTransactionFormatter extends ResultFormatter<LoyaltyTransaction> {
   /**
    * Format a single database result row into a LoyaltyTransaction domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted LoyaltyTransaction object
    */
@@ -101,19 +101,19 @@ export class LoyaltyTransactionFormatter extends ResultFormatter<LoyaltyTransact
     if (!dbResult) {
       throw new Error('Cannot format null or undefined loyalty transaction result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
     const withDates = this.formatDates(
-      base, 
+      base,
       ['createdAt', 'updatedAt', 'transactionDate']
     );
-    
+
     // Format the loyalty transaction with specific type handling
     return {
       ...withDates,
@@ -123,10 +123,10 @@ export class LoyaltyTransactionFormatter extends ResultFormatter<LoyaltyTransact
       pointsEarned: Number(withDates.pointsEarned || 0),
       pointsRedeemed: Number(withDates.pointsRedeemed || 0),
       pointsBalance: Number(withDates.pointsBalance || 0),
-      transactionType: (withDates.transactionType || 'earn') as "earn" | "redeem",
+      transactionType: (withDates.transactionType || 'earn') as 'earn' | 'redeem',
       source: String(withDates.source || ''),
       transactionId: withDates.transactionId || null,
-      description: withDates.description || '',
+      description: withDates.description || ''
     } as LoyaltyTransaction;
   }
 }

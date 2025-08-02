@@ -10,7 +10,7 @@ export function makeMockInventoryItem(
     productId: 1,
     totalQuantity: 100,
     minimumLevel: 10,
-    lastStockUpdate: new Date(),
+    lastRestocked: new Date(),
     ...overrides,
   };
 }

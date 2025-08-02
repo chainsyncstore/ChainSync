@@ -1,6 +1,6 @@
 /**
  * Enhanced Transaction Service
- * 
+ *
  * Refactored to use the enhanced base service, schema validation,
  * and formatter patterns for consistency and type safety.
  */

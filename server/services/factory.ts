@@ -15,8 +15,8 @@ import { CacheService } from './cache';
 export type ServiceConfig = {
   logger: ReturnType<typeof getLogger>;
   db: typeof db;
-  cache?: CacheService;
-  redis?: Redis;
+  cache: CacheService;
+  redis: Redis;
 };
 
 /**
@@ -65,8 +65,8 @@ export class ServiceFactory {
         new serviceClass({
           logger: this.config.logger,
           db: this.config.db,
-          cache: this.config.cache,
-          redis: this.config.redis,
+          cache: this.config.cache!,
+          redis: this.config.redis!
         })
       );
     }
@@ -89,9 +89,9 @@ export class ServiceFactory {
         new serviceClass({
           logger: this.config.logger,
           db: this.config.db,
-          cache: this.config.cache,
-          redis: this.config.redis,
-          ...additionalConfig,
+          cache: this.config.cache!,
+          redis: this.config.redis!,
+          ...additionalConfig
         })
       );
     }
@@ -110,9 +110,9 @@ export class ServiceFactory {
     return new serviceClass({
       logger: this.config.logger,
       db: this.config.db,
-      cache: this.config.cache,
-      redis: this.config.redis,
-      ...additionalConfig,
+      cache: this.config.cache!,
+      redis: this.config.redis!,
+      ...additionalConfig
     });
   }
 

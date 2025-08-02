@@ -81,7 +81,7 @@ export class ProductionMonitor extends EventEmitter {
   private config: MonitoringConfig;
   private alerts: Map<string, Alert> = new Map();
   private healthChecks: Map<string, HealthCheckResult> = new Map();
-  private metrics: {
+  private metrics!: {
     httpRequestDuration: promClient.Histogram;
     httpRequestsTotal: promClient.Counter;
     httpErrorsTotal: promClient.Counter;
@@ -504,7 +504,7 @@ export class ProductionMonitor extends EventEmitter {
   /**
    * Get metrics
    */
-  getMetrics(): string {
-    return promClient.register.metrics();
+  async getMetrics(): Promise<string> {
+    return await promClient.register.metrics();
   }
 } 

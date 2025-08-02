@@ -69,14 +69,14 @@ export async function initializeSubscription(
   plan: string,
   referralCode?: string,
   country: string = 'NG'
-): Promise<{ 
-  authorization_url: string; 
+): Promise<{
+  authorization_url: string;
   reference: string;
   provider: string;
 }> {
   const provider = getPaymentProvider(country);
   let discountedAmount = amount;
-  
+
   // Apply referral discount if applicable
   if (referralCode) {
     try {
@@ -90,16 +90,16 @@ export async function initializeSubscription(
       console.error('Error applying referral discount:', error);
     }
   }
-  
+
   // Format amount as required by payment providers
   // Paystack expects amount in kobo (multiply by 100)
   // Flutterwave accepts amount in main currency units
   const paystackAmount = Math.round(discountedAmount * 100);
   const flutterwaveAmount = discountedAmount;
-  
+
   // Generate a unique reference/transaction ID
   const reference = `sub_${Date.now()}_${userId}`;
-  
+
   try {
     if (provider === 'paystack' && paystack) {
       const response = await paystack.initializeTransaction({
@@ -112,7 +112,7 @@ export async function initializeSubscription(
           referralCode
         }
       });
-      
+
       if (response.status && response.data && response.data.authorization_url) {
         return {
           authorization_url: response.data.authorization_url,
@@ -121,7 +121,7 @@ export async function initializeSubscription(
         };
       }
       throw new Error('Failed to initialize Paystack payment');
-    } 
+    }
     else if (provider === 'flutterwave' && flutterwave) {
       const response = await flutterwave.Charge.card({
         amount: flutterwaveAmount,
@@ -139,7 +139,7 @@ export async function initializeSubscription(
           referralCode
         }
       });
-      
+
       if (response.status === 'success' && response.data && response.data.link) {
         return {
           authorization_url: response.data.link,
@@ -149,7 +149,7 @@ export async function initializeSubscription(
       }
       throw new Error('Failed to initialize Flutterwave payment');
     }
-    
+
     // Simulation mode for development without API keys
     console.log('Using payment simulation mode');
     return {
@@ -176,14 +176,14 @@ export async function verifyPayment(reference: string, provider: string): Promis
     // Special handling for simulation mode
     if (provider === 'simulation') {
       const status = reference.includes('fail') ? 'failed' : 'success';
-      
+
       // Extract plan and amount from reference if available
       const matches = reference.match(/plan_([a-z]+)_(\d+)/i);
       const plan = matches ? matches[1] : 'basic';
-      const amount = matches ? parseInt(matches[2], 10) : 20000;
-      
+      const amount = matches ? parseInt(matches[2] || '20000', 10) : 20000;
+
       console.log(`Simulation payment verification: ${reference}, Status: ${status}`);
-      
+
       return {
         status: status as 'success' | 'failed',
         amount: amount,
@@ -194,10 +194,10 @@ export async function verifyPayment(reference: string, provider: string): Promis
         }
       };
     }
-    
+
     if (provider === 'paystack' && paystack) {
       const response = await paystack.verifyTransaction({ reference });
-      
+
       if (response.status && response.data && response.data.status === 'success') {
         return {
           status: 'success',
@@ -206,10 +206,10 @@ export async function verifyPayment(reference: string, provider: string): Promis
         };
       }
       return { status: 'failed', amount: 0, metadata: {} };
-    } 
+    }
     else if (provider === 'flutterwave' && flutterwave) {
       const response = await flutterwave.Transaction.verify({ id: reference });
-      
+
       if (response.status === 'success' && response.data && response.data.status === 'successful') {
         return {
           status: 'success',
@@ -219,12 +219,12 @@ export async function verifyPayment(reference: string, provider: string): Promis
       }
       return { status: 'failed', amount: 0, metadata: {} };
     }
-    
+
     // Fallback simulation mode for development without API keys
     return {
       status: 'success',
       amount: 20000, // Default to ₦20,000 for basic plan
-      metadata: { 
+      metadata: {
         plan: 'basic',
         reference,
         simulation: true
@@ -240,8 +240,8 @@ export async function verifyPayment(reference: string, provider: string): Promis
  * Process a subscription payment
  */
 export async function processSubscriptionPayment(
-  userId: number, 
-  planId: string, 
+  userId: number,
+  planId: string,
   amount: number,
   reference: string,
   provider: string
@@ -265,15 +265,15 @@ export async function processSubscriptionPayment(
         features: ['All Pro Features', 'Custom Integrations', 'Dedicated Support', 'Unlimited Stores']
       }
     };
-    
+
     // Default to basic plan if invalid plan provided
     const plan = planTiers[planId] || planTiers.basic;
-    
+
     // Calculate next billing date (1 month from now)
     const startDate = new Date();
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 1);
-    
+
     // Create subscription in database
     const subscriptionData = {
       userId,
@@ -286,36 +286,44 @@ export async function processSubscriptionPayment(
       autoRenew: true,
       // Store plan features and store limit in metadata as JSON
       metadata: JSON.stringify({
-        storeLimit: plan.storeLimit,
-        features: plan.features,
+        storeLimit: plan?.storeLimit || 1,
+        features: plan?.features || ['POS System', 'Inventory Management', 'Basic Reports'],
         isAnnual: false
       })
     };
-    
+
     // Find existing subscription to update or create new one
     const existingSubscription = await db.query.subscriptions.findFirst({
       where: eq(schema.subscriptions.userId, userId)
     });
-    
+
     let subscription;
-    
+
     if (existingSubscription) {
       // Update existing subscription
       const [updated] = await db.update(schema.subscriptions)
         .set(subscriptionData)
         .where(eq(schema.subscriptions.id, existingSubscription.id))
         .returning();
-      
+
+      if (!updated) {
+        throw new Error('Failed to update subscription - no record returned');
+      }
+
       subscription = updated;
     } else {
       // Create new subscription
       const [newSubscription] = await db.insert(schema.subscriptions)
         .values(subscriptionData)
         .returning();
-      
+
+      if (!newSubscription) {
+        throw new Error('Failed to create subscription - no record returned');
+      }
+
       subscription = newSubscription;
     }
-    
+
     // Process affiliate commission if applicable
     try {
       const { processAffiliateCommission } = await import('./affiliate');
@@ -323,7 +331,7 @@ export async function processSubscriptionPayment(
     } catch (error) {
       console.error('Error processing affiliate commission:', error);
     }
-    
+
     return subscription;
   } catch (error: unknown) {
     console.error('Error processing subscription payment:', error);

@@ -6,5 +6,5 @@ class RedisInstrumentation {
 
 module.exports = {
   RedisInstrumentation,
-  default: RedisInstrumentation,
+  default: RedisInstrumentation
 };

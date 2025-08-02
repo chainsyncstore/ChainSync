@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // Production-optimized Vite configuration for Render deployment
 export default defineConfig({
@@ -14,7 +14,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-button'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-button']
         }
       }
     }
@@ -29,4 +29,4 @@ export default defineConfig({
   define: {
     'process.env.NODE_ENV': '"production"'
   }
-})
+});

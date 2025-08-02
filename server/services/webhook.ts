@@ -53,18 +53,18 @@ export async function handlePaystackWebhook(
 
   // We're only interested in charge.success events
   if (event.event !== 'charge.success') {
-    return { 
-      success: true, 
-      message: `Ignored event type: ${event.event}` 
+    return {
+      success: true,
+      message: `Ignored event type: ${event.event}`
     };
   }
 
   const { reference, amount } = event.data;
-  
+
   if (!reference) {
-    return { 
-      success: false, 
-      message: 'No reference provided in webhook payload' 
+    return {
+      success: false,
+      message: 'No reference provided in webhook payload'
     };
   }
 
@@ -73,25 +73,25 @@ export async function handlePaystackWebhook(
     const results = await db.select()
       .from(transactions)
       .where(eq(transactions.id, Number(reference)));
-    
+
     const order = results[0];
 
     if (!order) {
       console.error(`No order found with reference: ${reference}`);
-      return { 
-        success: false, 
-        message: 'Order not found', 
-        reference 
+      return {
+        success: false,
+        message: 'Order not found',
+        reference
       };
     }
 
     // If order is already paid, avoid duplicate processing
     if (order.status === 'completed') {
-      return { 
-        success: true, 
-        message: 'Order already marked as paid', 
-        orderId: order.id, 
-        reference 
+      return {
+        success: true,
+        message: 'Order already marked as paid',
+        orderId: order.id,
+        reference
       };
     }
 
@@ -101,19 +101,19 @@ export async function handlePaystackWebhook(
       .where(eq(transactions.id, order.id));
 
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
-    
-    return { 
-      success: true, 
-      message: 'Order payment confirmed', 
-      orderId: order.id, 
-      reference, 
+
+    return {
+      success: true,
+      message: 'Order payment confirmed',
+      orderId: order.id,
+      reference,
       amount: amount / 100 // Paystack amount is in kobo (smallest currency unit)
     };
   } catch (error) {
     console.error('Error processing Paystack webhook:', error);
-    return { 
-      success: false, 
-      message: 'Error processing webhook' 
+    return {
+      success: false,
+      message: 'Error processing webhook'
     };
   }
 }
@@ -150,9 +150,9 @@ export async function handleFlutterwaveWebhook(
 
   // We're only interested in successful charge events
   if (event.event !== 'charge.completed' || event.data.status !== 'successful') {
-    return { 
-      success: true, 
-      message: `Ignored event: ${event.event} with status: ${event.data?.status}` 
+    return {
+      success: true,
+      message: `Ignored event: ${event.event} with status: ${event.data?.status}`
     };
   }
 
@@ -160,9 +160,9 @@ export async function handleFlutterwaveWebhook(
   const reference = tx_ref; // Flutterwave uses tx_ref as reference
 
   if (!reference) {
-    return { 
-      success: false, 
-      message: 'No reference provided in webhook payload' 
+    return {
+      success: false,
+      message: 'No reference provided in webhook payload'
     };
   }
 
@@ -171,25 +171,25 @@ export async function handleFlutterwaveWebhook(
     const results = await db.select()
       .from(transactions)
       .where(eq(transactions.id, Number(reference)));
-    
+
     const order = results[0];
 
     if (!order) {
       console.error(`No order found with reference: ${reference}`);
-      return { 
-        success: false, 
-        message: 'Order not found', 
-        reference 
+      return {
+        success: false,
+        message: 'Order not found',
+        reference
       };
     }
 
     // If order is already paid, avoid duplicate processing
     if (order.status === 'completed') {
-      return { 
-        success: true, 
-        message: 'Order already marked as paid', 
-        orderId: order.id, 
-        reference 
+      return {
+        success: true,
+        message: 'Order already marked as paid',
+        orderId: order.id,
+        reference
       };
     }
 
@@ -199,19 +199,19 @@ export async function handleFlutterwaveWebhook(
       .where(eq(transactions.id, order.id));
 
     console.log(`Order ${order.id} with reference ${reference} marked as paid`);
-    
-    return { 
-      success: true, 
-      message: 'Order payment confirmed', 
-      orderId: order.id, 
-      reference, 
+
+    return {
+      success: true,
+      message: 'Order payment confirmed',
+      orderId: order.id,
+      reference,
       amount
     };
   } catch (error) {
     console.error('Error processing Flutterwave webhook:', error);
-    return { 
-      success: false, 
-      message: 'Error processing webhook' 
+    return {
+      success: false,
+      message: 'Error processing webhook'
     };
   }
 }

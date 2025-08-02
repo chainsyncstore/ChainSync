@@ -2,21 +2,23 @@ import { Request, Response, NextFunction, RequestHandler, ErrorRequestHandler } 
 
 // Wraps a handler to allow for consistent error handling (pass-through for now)
 export function createRequestHandler(fn: RequestHandler): RequestHandler {
-  return function (req, res, next) {
+  return function(req, res, next) {
     try {
       return fn(req, res, next);
     } catch (err) {
       next(err);
+      return;
     }
   };
 }
 
 export function createErrorHandler(fn: ErrorRequestHandler): ErrorRequestHandler {
-  return function (err, req, res, next) {
+  return function(err, req, res, next) {
     try {
       return fn(err, req, res, next);
     } catch (e) {
       next(e);
+      return;
     }
   };
 }

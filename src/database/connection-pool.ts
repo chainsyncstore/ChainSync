@@ -103,7 +103,7 @@ export async function executeQuery<T = any>(
     
     const result = await client.query({
       text: query,
-      values: params,
+      values: params || [],
       ...(options.timeout && { timeout: options.timeout }),
     });
     
@@ -112,10 +112,10 @@ export async function executeQuery<T = any>(
     logger.debug('Query executed', {
       query: query.substring(0, 100) + (query.length > 100 ? '...' : ''),
       duration,
-      rowCount: result.rowCount,
+      rowCount: (result as any).rowCount || 0,
     });
     
-    return result.rows;
+    return (result as any).rows || [];
   } catch (error) {
     logger.error('Query execution failed', error instanceof Error ? error : new Error(String(error)), {
       query: query.substring(0, 100) + (query.length > 100 ? '...' : ''),

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Security Headers Verification Script
- * 
+ *
  * This script verifies that security headers are correctly set on various API endpoints.
  * It checks for essential security headers like Content-Security-Policy, X-Content-Type-Options, etc.
  */
@@ -83,9 +83,9 @@ async function checkEndpoint(endpoint) {
   try {
     console.log(`\nChecking ${endpoint}...`);
     const response = await fetchEndpoint(endpoint);
-    
+
     console.log(`  Status: ${response.statusCode}`);
-    
+
     if (config.verbose) {
       console.log('  All Headers:');
       Object.entries(response.headers).forEach(([key, value]) => {
@@ -100,7 +100,7 @@ async function checkEndpoint(endpoint) {
     REQUIRED_HEADERS.forEach(header => {
       const hasHeader = Object.keys(response.headers)
         .some(key => key.toLowerCase() === header.toLowerCase());
-      
+
       if (hasHeader) {
         const value = Object.entries(response.headers)
           .find(([key]) => key.toLowerCase() === header.toLowerCase())[1];
@@ -115,8 +115,8 @@ async function checkEndpoint(endpoint) {
       endpoint,
       status: response.statusCode,
       securityScore: 100 - (missingHeaders / REQUIRED_HEADERS.length * 100),
-      missing: REQUIRED_HEADERS.filter(header => 
-        !Object.keys(response.headers).some(key => 
+      missing: REQUIRED_HEADERS.filter(header =>
+        !Object.keys(response.headers).some(key =>
           key.toLowerCase() === header.toLowerCase())
       )
     };
@@ -136,9 +136,9 @@ async function checkEndpoint(endpoint) {
  */
 async function main() {
   console.log(`🔒 Checking security headers on ${config.baseUrl}`);
-  
+
   const results = [];
-  
+
   for (const endpoint of ENDPOINTS) {
     const result = await checkEndpoint(endpoint);
     results.push(result);
@@ -147,14 +147,14 @@ async function main() {
   // Summary
   console.log('\n📊 Summary:');
   let totalScore = 0;
-  
+
   results.forEach(result => {
     if (result.status === 'ERROR') {
       console.log(`  ❌ ${result.endpoint}: Error - ${result.error}`);
     } else {
       totalScore += result.securityScore;
       console.log(`  ${result.securityScore === 100 ? '✅' : '⚠️'} ${result.endpoint}: ${result.securityScore.toFixed(1)}% secure`);
-      
+
       if (result.missing && result.missing.length > 0) {
         console.log(`     Missing: ${result.missing.join(', ')}`);
       }
@@ -163,7 +163,7 @@ async function main() {
 
   const averageScore = totalScore / results.length;
   console.log(`\n🔒 Overall Security Score: ${averageScore.toFixed(1)}%`);
-  
+
   if (averageScore < 100) {
     console.log('\n⚠️ Recommendations:');
     console.log('  - Ensure all security middleware is correctly configured');

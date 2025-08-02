@@ -13,7 +13,7 @@ export function log(message: string, source = 'express') {
     hour: 'numeric',
     minute: '2-digit',
     second: '2-digit',
-    hour12: true,
+    hour12: true
   });
 
   console.log(`${formattedTime} [${source}] ${message}`);
@@ -23,10 +23,10 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: {
-      server,
+      server
     },
     // Explicitly set allowedHosts to true as per Vite ServerOptions type
-    allowedHosts: true as const,
+    allowedHosts: true as const
   };
 
   const vite = await createViteServer({
@@ -37,14 +37,14 @@ export async function setupVite(app: Express, server: Server) {
       error: (msg, options) => {
         viteLogger.error(msg, options);
         process.exit(1);
-      },
+      }
     },
     server: serverOptions,
-    appType: 'custom',
+    appType: 'custom'
   });
 
   app.use(vite.middlewares);
-  app.use('*', async (req, res, next) => {
+  app.use('*', async(req, res, next) => {
     const url = req.originalUrl;
 
     try {
@@ -52,7 +52,7 @@ export async function setupVite(app: Express, server: Server) {
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, 'utf-8');
-      template = template.replace(`src="/src/main.tsx"`, `src="/src/main.tsx?v=${nanoid()}"`);
+      template = template.replace('src="/src/main.tsx"', `src="/src/main.tsx?v=${nanoid()}"`);
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ 'Content-Type': 'text/html' }).end(page);
     } catch (e) {

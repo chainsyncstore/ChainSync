@@ -7,7 +7,7 @@ export abstract class BaseService {
   protected async withTransaction<T>(
     callback: (trx: any) => Promise<T>
   ): Promise<T> {
-    return db.transaction(async (trx) => {
+    return db.transaction(async(trx) => {
       return await callback(trx);
     });
   }

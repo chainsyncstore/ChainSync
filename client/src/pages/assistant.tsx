@@ -42,7 +42,8 @@ export default function AssistantPage() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
-      return await apiRequest('POST', '/api/ai/chat', { message });
+      const response = await apiRequest('POST', '/api/ai/chat', { message });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/ai/conversation'] });

@@ -1,8 +1,11 @@
 import { pgTable, text, integer, timestamp, boolean, json, decimal, uuid, serial } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
-import { customers } from './db/customers.js';
+import { customers, customerInsertSchema } from './db/customers.js';
 import { z } from 'zod';
+
+// Re-export customers table for compatibility
+export { customers };
 
 // Users table
 export const users = pgTable('users', {
@@ -372,7 +375,16 @@ export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type InsertReturnReason = z.infer<typeof insertReturnReasonSchema>;
 export type InsertLoyaltyTier = z.infer<typeof insertLoyaltyTierSchema>;
 export type InsertLoyaltyReward = z.infer<typeof insertLoyaltyRewardSchema>;
+export type InsertCustomer = z.infer<typeof customerInsertSchema>;
 export type SubscriptionInsert = InsertSubscription; // Alias for compatibility
+
+// Add missing type exports for test factories
+export type CustomerInsert = InsertCustomer;
+export type ProductInsert = InsertProduct;
+export type StoreInsert = InsertStore;
+export type UserInsert = InsertUser;
+export type TransactionInsert = InsertTransaction;
+export type InventoryInsert = InsertInventory;
 
 export type SelectUser = typeof users.$inferSelect;
 export type SelectStore = typeof stores.$inferSelect;
@@ -388,6 +400,7 @@ export type SelectLoyaltyReward = typeof loyaltyRewards.$inferSelect;
 export type SelectCategory = typeof categories.$inferSelect;
 export type SelectReturnReason = typeof returnReasons.$inferSelect;
 export type SelectReturn = typeof returns.$inferSelect;
+export type SelectCustomer = typeof customers.$inferSelect;
 export type Inventory = typeof inventory.$inferSelect;
 export type InventoryBatch = typeof inventoryBatches.$inferSelect;
 
@@ -398,6 +411,7 @@ export const Inventory = inventory;
 export const InventoryBatch = inventoryBatches;
 export const Transactions = transactions;
 export const Returns = returns;
+export const Customers = customers;
 /* ------------------------------------------------------------------ */
 /*  Affiliates                                                         */
 /* ------------------------------------------------------------------ */

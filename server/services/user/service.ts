@@ -35,9 +35,17 @@ export class UserService extends BaseService implements IUserService {
         .values({
           name: validatedData.fullName,
           email: validatedData.email,
-          password: hashedPassword,
+          password: hashedPassword
         })
         .returning();
+
+      if (!user) {
+        throw new AppError(
+          'Failed to create user',
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          ErrorCategory.SYSTEM
+        );
+      }
 
       return user;
     } catch (error) {
@@ -72,6 +80,14 @@ export class UserService extends BaseService implements IUserService {
         })
         .where(eq(schema.users.id, userId))
         .returning();
+
+      if (!updatedUser) {
+        throw new AppError(
+          'Failed to update user',
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          ErrorCategory.SYSTEM
+        );
+      }
 
       return updatedUser;
     } catch (error) {

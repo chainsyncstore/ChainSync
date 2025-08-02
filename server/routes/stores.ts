@@ -12,14 +12,15 @@ const logger = getLogger().child({ component: 'stores' });
  * GET /api/stores/:id
  * Get store details by ID
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async(req: Request, res: Response): Promise<void> => {
   try {
     const dbPool = getPool();
     if (!dbPool) {
-      return res.status(500).json({ error: 'Database connection not available' });
+      res.status(500).json({ error: 'Database connection not available' });
+      return;
     }
 
-    const storeId = parseInt(req.params.id);
+    const storeId = parseInt(req.params.id || '0');
 
     // Mock store data - in a real application, you would query the database
     const mockStoreData = {
@@ -32,11 +33,11 @@ router.get('/:id', async (req: Request, res: Response) => {
     res.json(mockStoreData);
   } catch (error: any) {
     logger.error('Error fetching store details', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch store details',
-      details: error.message 
+      details: error.message
     });
   }
 });
 
-export default router; 
+export default router;

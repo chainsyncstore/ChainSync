@@ -1,12 +1,16 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateFilename = exports.validateFileExtension = void 0;
+'use strict';
+
 const validateFileExtension = (filename) => {
-    const allowedExtensions = ['.csv', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx', '.xlsx', '.json'];
-    return allowedExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+  const allowedExtensions = [
+    '.csv', '.txt', '.jpg', '.jpeg', '.png', '.gif', 
+    '.pdf', '.doc', '.docx', '.xlsx', '.json'
+  ];
+  return allowedExtensions.some(ext => filename.toLowerCase().endsWith(ext));
 };
-exports.validateFileExtension = validateFileExtension;
+
 const validateFilename = (filename) => {
-    return /^[a-zA-Z0-9_\-\.]+$/.test(filename); // allows alphanumeric, -, _, .
+  // allows alphanumeric, -, _, .
+  return /^[a-zA-Z0-9_\-\.]+$/.test(filename);
 };
-exports.validateFilename = validateFilename;
+
+export { validateFileExtension, validateFilename };

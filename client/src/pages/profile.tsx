@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

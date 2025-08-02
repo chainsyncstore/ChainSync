@@ -12,7 +12,7 @@ const ENCRYPTION_CONFIG = {
   ivLength: 16, // 128 bits
   tagLength: 16, // 128 bits
   saltLength: 32, // 256 bits
-  iterations: 100000, // PBKDF2 iterations
+  iterations: 100000 // PBKDF2 iterations
 };
 
 /**
@@ -21,11 +21,11 @@ const ENCRYPTION_CONFIG = {
  */
 export class EncryptionService {
   private masterKey: Buffer;
-  
+
   constructor(masterKey?: string) {
     // Use environment variable or generate a new key
     const keySource = masterKey || process.env.ENCRYPTION_MASTER_KEY;
-    
+
     if (!keySource) {
       if (process.env.NODE_ENV === 'production') {
         throw new Error('ENCRYPTION_MASTER_KEY environment variable is required in production');
@@ -43,7 +43,7 @@ export class EncryptionService {
       );
     }
   }
-  
+
   /**
    * Encrypt sensitive data
    * @param data - Data to encrypt
@@ -54,32 +54,32 @@ export class EncryptionService {
     try {
       // Generate a random IV
       const iv = crypto.randomBytes(ENCRYPTION_CONFIG.ivLength);
-      
+
       // Derive encryption key from master key and context
       const encryptionKey = this.deriveKey(context);
-      
+
       // Create cipher
-      const cipher = crypto.createCipher(ENCRYPTION_CONFIG.algorithm, encryptionKey);
-      
+      const cipher = crypto.createCipheriv(ENCRYPTION_CONFIG.algorithm, encryptionKey, iv);
+
       // Encrypt data
       let encrypted = cipher.update(data, 'utf8', 'hex');
       encrypted += cipher.final('hex');
-      
+
       // Combine IV and encrypted data
       const result = Buffer.concat([iv, Buffer.from(encrypted, 'hex')]);
-      
+
       logger.debug('Data encrypted successfully', {
         dataLength: data.length,
         context: context || 'default'
       });
-      
+
       return result.toString('base64');
     } catch (error) {
       logger.error('Encryption failed', { error, context });
       throw new Error('Failed to encrypt data');
     }
   }
-  
+
   /**
    * Decrypt sensitive data
    * @param encryptedData - Base64 encoded encrypted data
@@ -90,34 +90,34 @@ export class EncryptionService {
     try {
       // Convert from base64
       const data = Buffer.from(encryptedData, 'base64');
-      
+
       // Extract IV, encrypted data, and tag
       const iv = data.subarray(0, ENCRYPTION_CONFIG.ivLength);
       const tag = data.subarray(data.length - ENCRYPTION_CONFIG.tagLength);
       const encrypted = data.subarray(ENCRYPTION_CONFIG.ivLength, data.length - ENCRYPTION_CONFIG.tagLength);
-      
+
       // Derive decryption key from master key and context
       const decryptionKey = this.deriveKey(context);
-      
+
       // Create decipher
-      const decipher = crypto.createDecipher(ENCRYPTION_CONFIG.algorithm, decryptionKey);
-      
+      const decipher = crypto.createDecipheriv(ENCRYPTION_CONFIG.algorithm, decryptionKey, iv);
+
       // Decrypt data
       let decrypted = decipher.update(encrypted, undefined, 'utf8');
       decrypted += decipher.final('utf8');
-      
+
       logger.debug('Data decrypted successfully', {
         dataLength: decrypted.length,
         context: context || 'default'
       });
-      
+
       return decrypted;
     } catch (error) {
       logger.error('Decryption failed', { error, context });
       throw new Error('Failed to decrypt data');
     }
   }
-  
+
   /**
    * Derive encryption key from master key and context
    * @param context - Optional context for key derivation
@@ -131,7 +131,7 @@ export class EncryptionService {
       ENCRYPTION_CONFIG.keyLength,
       'sha256'
     );
-    
+
     return crypto.pbkdf2Sync(
       this.masterKey,
       salt,
@@ -140,7 +140,7 @@ export class EncryptionService {
       'sha256'
     );
   }
-  
+
   /**
    * Hash sensitive data (one-way encryption)
    * @param data - Data to hash
@@ -150,13 +150,13 @@ export class EncryptionService {
   static hash(data: string, salt?: string): { hash: string; salt: string } {
     const generatedSalt = salt || crypto.randomBytes(ENCRYPTION_CONFIG.saltLength).toString('hex');
     const hash = crypto.pbkdf2Sync(data, generatedSalt, ENCRYPTION_CONFIG.iterations, 64, 'sha512');
-    
+
     return {
       hash: hash.toString('hex'),
       salt: generatedSalt
     };
   }
-  
+
   /**
    * Verify hashed data
    * @param data - Original data
@@ -168,7 +168,7 @@ export class EncryptionService {
     const computedHash = crypto.pbkdf2Sync(data, salt, ENCRYPTION_CONFIG.iterations, 64, 'sha512');
     return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), computedHash);
   }
-  
+
   /**
    * Generate a secure random token
    * @param length - Token length in bytes
@@ -177,7 +177,7 @@ export class EncryptionService {
   static generateToken(length: number = 32): string {
     return crypto.randomBytes(length).toString('hex');
   }
-  
+
   /**
    * Generate a secure random password
    * @param length - Password length
@@ -186,12 +186,12 @@ export class EncryptionService {
   static generatePassword(length: number = 16): string {
     const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let password = '';
-    
+
     for (let i = 0; i < length; i++) {
       const randomIndex = crypto.randomInt(charset.length);
       password += charset[randomIndex];
     }
-    
+
     return password;
   }
 }
@@ -200,4 +200,4 @@ export class EncryptionService {
 export const encryptionService = new EncryptionService();
 
 // Export utility functions
-export const { hash, verifyHash, generateToken, generatePassword } = EncryptionService; 
+export const { hash, verifyHash, generateToken, generatePassword } = EncryptionService;

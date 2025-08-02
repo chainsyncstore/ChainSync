@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -11,7 +11,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -72,7 +71,7 @@ type UserFormValues = z.infer<typeof userFormSchema>;
 
 export default function UsersPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  useAuth(); // user variable was unused
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -96,7 +95,7 @@ export default function UsersPage() {
   });
   
   // Fetch stores for assigning users
-  const { data: stores, isLoading: isLoadingStores } = useQuery({
+  const { data: stores } = useQuery({ // isLoadingStores was unused
     queryKey: ['/api/stores'],
   });
   

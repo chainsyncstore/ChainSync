@@ -14,7 +14,7 @@ if (!RENDER_API_KEY) {
 
 // Check if service ID is provided as command line argument
 const args = process.argv.slice(2);
-let serviceId = args[0];
+const serviceId = args[0];
 
 if (!serviceId) {
   console.error('Usage: node deploy-to-render.js <service-id>');
@@ -57,7 +57,7 @@ async function triggerDeploy() {
 async function checkServiceExists() {
   try {
     console.log(`Checking service ID: ${serviceId}`);
-    
+
     const response = await fetch(`https://api.render.com/v1/services/${serviceId}`, {
       method: 'GET',
       headers: {
@@ -80,7 +80,7 @@ async function checkServiceExists() {
 
     const service = await response.json();
     console.log(`Service found: ${service.name} (${service.type})`);
-    
+
     // Proceed with deployment
     await triggerDeploy();
   } catch (error) {

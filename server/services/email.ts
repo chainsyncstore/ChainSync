@@ -7,8 +7,8 @@ const emailConfig = {
   secure: process.env.EMAIL_SECURE === 'true',
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
+    pass: process.env.EMAIL_PASSWORD
+  }
 };
 
 // Create a transporter object
@@ -44,7 +44,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       console.error('Cannot send email: Email transporter not initialized');
       return false;
     }
-    
+
     const mailOptions = {
       from: options.from || `"ChainSync" <${process.env.EMAIL_USER}>`,
       to: options.to,
@@ -52,9 +52,9 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       text: options.text || '',
       html: options.html || ''
     };
-    
+
     const info = await transporter.sendMail(mailOptions);
-    
+
     console.log(`Email sent successfully to ${options.to}. Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
@@ -76,7 +76,7 @@ export async function sendPasswordResetEmail(
   username: string
 ): Promise<boolean> {
   const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-  
+
   const emailOptions: EmailOptions = {
     to: email,
     subject: 'ChainSync Password Reset',
@@ -102,7 +102,7 @@ export async function sendPasswordResetEmail(
       </div>
     `
   };
-  
+
   return await sendEmail(emailOptions);
 }
 
@@ -115,7 +115,7 @@ export async function verifyEmailConnection(): Promise<boolean> {
       console.error('Cannot verify email connection: Email transporter not initialized');
       return false;
     }
-    
+
     await transporter.verify();
     console.log('Email connection verified successfully');
     return true;

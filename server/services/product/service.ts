@@ -11,7 +11,7 @@ import {
   ProductServiceErrors,
   CreateProductParams,
   UpdateProductParams,
-  ProductSearchParams,
+  ProductSearchParams
 } from './types';
 import { db } from '../../../db/index.js';
 import * as schema from '../../../shared/schema.js';
@@ -27,7 +27,7 @@ export class ProductService extends BaseService implements IProductService {
     try {
       // Check if store exists
       const store = await db.query.stores.findFirst({
-        where: eq(schema.stores.id, params.storeId),
+        where: eq(schema.stores.id, params.storeId)
       });
 
       if (!store) {
@@ -39,7 +39,7 @@ export class ProductService extends BaseService implements IProductService {
         where: and(
           eq(schema.products.sku, params.sku),
           eq(schema.products.storeId, params.storeId)
-        ),
+        )
       });
 
       if (existingSku) {
@@ -52,7 +52,7 @@ export class ProductService extends BaseService implements IProductService {
           where: and(
             eq(schema.products.barcode, params.barcode),
             eq(schema.products.storeId, params.storeId)
-          ),
+          )
         });
 
         if (existingBarcode) {
@@ -63,7 +63,7 @@ export class ProductService extends BaseService implements IProductService {
       // Check if category exists if provided
       if (params.categoryId) {
         const category = await db.query.categories.findFirst({
-          where: eq(schema.categories.id, params.categoryId),
+          where: eq(schema.categories.id, params.categoryId)
         });
 
         if (!category) {
@@ -84,16 +84,20 @@ export class ProductService extends BaseService implements IProductService {
         storeId: params.storeId,
         imageUrl: params.imageUrl,
         barcode: params.barcode,
-        attributes: params.attributes || {},
+        attributes: params.attributes || {}
       };
 
       // Insert validated data
       const [product] = await db.insert(schema.products).values(productData).returning();
 
+      if (!product) {
+        throw new Error('Failed to create product - no record returned');
+      }
+
       // Create initial inventory record with zero quantity
       await db.insert(schema.inventory).values({
         productId: product.id,
-        storeId: params.storeId,
+        storeId: params.storeId
       });
 
       return product as schema.SelectProduct;
@@ -112,7 +116,7 @@ export class ProductService extends BaseService implements IProductService {
     try {
       // Verify product exists
       const existingProduct = await db.query.products.findFirst({
-        where: eq(schema.products.id, productId),
+        where: eq(schema.products.id, productId)
       });
 
       if (!existingProduct) {
@@ -125,7 +129,7 @@ export class ProductService extends BaseService implements IProductService {
           where: and(
             eq(schema.products.sku, params.sku),
             eq(schema.products.storeId, existingProduct.storeId)
-          ),
+          )
         });
 
         if (existingSku) {
@@ -139,7 +143,7 @@ export class ProductService extends BaseService implements IProductService {
           where: and(
             eq(schema.products.barcode, params.barcode),
             eq(schema.products.storeId, existingProduct.storeId)
-          ),
+          )
         });
 
         if (existingBarcode) {
@@ -150,7 +154,7 @@ export class ProductService extends BaseService implements IProductService {
       // Check if category exists if being updated
       if (params.categoryId && params.categoryId !== existingProduct.categoryId) {
         const category = await db.query.categories.findFirst({
-          where: eq(schema.categories.id, params.categoryId),
+          where: eq(schema.categories.id, params.categoryId)
         });
 
         if (!category) {
@@ -161,7 +165,7 @@ export class ProductService extends BaseService implements IProductService {
       // Prepare update data with proper camelCase field names
       const updateData = {
         ...params,
-        updatedAt: new Date(),
+        updatedAt: new Date()
       };
 
       // Update with validated data
@@ -206,7 +210,7 @@ export class ProductService extends BaseService implements IProductService {
   async getProductById(productId: number): Promise<schema.SelectProduct | null> {
     try {
       const product = await db.query.products.findFirst({
-        where: eq(schema.products.id, productId),
+        where: eq(schema.products.id, productId)
       });
 
       return product as schema.SelectProduct | null;
@@ -221,7 +225,7 @@ export class ProductService extends BaseService implements IProductService {
   async getProductBySku(sku: string, storeId: number): Promise<schema.SelectProduct | null> {
     try {
       const product = await db.query.products.findFirst({
-        where: and(eq(schema.products.sku, sku), eq(schema.products.storeId, storeId)),
+        where: and(eq(schema.products.sku, sku), eq(schema.products.storeId, storeId))
       });
 
       return product as schema.SelectProduct | null;
@@ -236,7 +240,7 @@ export class ProductService extends BaseService implements IProductService {
   async getProductByBarcode(barcode: string, storeId: number): Promise<schema.SelectProduct | null> {
     try {
       const product = await db.query.products.findFirst({
-        where: and(eq(schema.products.barcode, barcode), eq(schema.products.storeId, storeId)),
+        where: and(eq(schema.products.barcode, barcode), eq(schema.products.storeId, storeId))
       });
 
       return product as schema.SelectProduct | null;
@@ -268,8 +272,8 @@ export class ProductService extends BaseService implements IProductService {
           or(
             like(schema.products.name, searchQuery) as SQL,
             like(schema.products.sku, searchQuery) as SQL,
-            like(schema.products.barcode, searchQuery) as SQL,
-          ) as SQL,
+            like(schema.products.barcode, searchQuery) as SQL
+          ) as SQL
         );
       }
 
@@ -308,15 +312,14 @@ export class ProductService extends BaseService implements IProductService {
         where: whereClause,
         limit,
         offset,
-        orderBy: [desc(schema.products.updatedAt)],
+        orderBy: [desc(schema.products.updatedAt)]
       });
 
-      
 
       // Filter by stock status if needed
       if (params.inStock !== undefined) {
         products = products.filter(product => {
-          return params.inStock
+          return params.inStock;
         });
       }
 
@@ -324,7 +327,7 @@ export class ProductService extends BaseService implements IProductService {
         products: products as schema.SelectProduct[],
         total,
         page,
-        limit,
+        limit
       };
     } catch (error) {
       return this.handleError(error as Error, 'Searching products');
@@ -338,12 +341,12 @@ export class ProductService extends BaseService implements IProductService {
     try {
       const products = await db.query.products.findMany({
         where: eq(schema.products.storeId, storeId),
-        limit,
+        limit
       });
 
       // Filter products where available quantity is less than minimum level
       return products.filter(product => {
-        return product.isActive
+        return product.isActive;
       }) as schema.SelectProduct[];
     } catch (error) {
       return this.handleError(error as Error, 'Getting low stock products');
@@ -363,7 +366,7 @@ export class ProductService extends BaseService implements IProductService {
       const validatedData = {
         productId,
         quantity,
-        reason,
+        reason
       };
 
       // Check if product exists
@@ -375,7 +378,7 @@ export class ProductService extends BaseService implements IProductService {
 
       // Get current inventory
       const inventory = await db.query.inventory.findFirst({
-        where: eq(schema.inventory.productId, productId),
+        where: eq(schema.inventory.productId, productId)
       });
 
       if (!inventory) {
@@ -384,7 +387,7 @@ export class ProductService extends BaseService implements IProductService {
           productId,
           storeId: product.storeId,
           availableQuantity: quantity > 0 ? quantity : 0,
-          minimumLevel: 10,
+          minimumLevel: 10
         } as any);
       } else {
         // Update existing inventory
@@ -393,7 +396,7 @@ export class ProductService extends BaseService implements IProductService {
         await db
           .update(schema.inventory)
           .set({
-            availableQuantity: newAvailable,
+            availableQuantity: newAvailable
           } as any)
           .where(eq(schema.inventory.productId, productId));
       }
@@ -403,7 +406,7 @@ export class ProductService extends BaseService implements IProductService {
         await db.insert(schema.inventoryTransactions).values({
           inventoryId: inventory.id,
           quantity,
-          type: quantity > 0 ? 'in' : 'out',
+          type: quantity > 0 ? 'in' : 'out'
         });
       }
 

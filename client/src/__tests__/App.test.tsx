@@ -3,6 +3,6 @@ import App from '../App';
 
 test('renders without crashing', () => {
   render(<App />);
-  // Use getAllByText to avoid multiple match error
-  expect(screen.getAllByText(/chainsync/i).length).toBeGreaterThan(0);
+  // Check for loading state since the app shows a loading spinner initially
+  expect(screen.getByText('Loading...')).toBeInTheDocument();
 });

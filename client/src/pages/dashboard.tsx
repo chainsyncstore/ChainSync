@@ -1,4 +1,3 @@
-import React from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { QuickStats } from '@/components/dashboard/quick-stats';
 import { StorePerformance } from '@/components/dashboard/store-performance';

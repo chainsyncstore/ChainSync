@@ -91,7 +91,7 @@ export class CacheService {
       return {
         totalRequests,
         averageDuration,
-        lastRequest,
+        lastRequest
       };
     } catch (error) {
       logger.error('Cache get usage stats error:', error);

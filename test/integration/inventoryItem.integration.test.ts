@@ -6,11 +6,11 @@ import { test, describe } from '../testTags';
 import { eq } from 'drizzle-orm';
 
 describe.integration('InventoryItem Integration', () => {
-  beforeEach(async () => {
+  beforeEach(async() => {
     await db.delete(schema.inventory);
   });
 
-  test.integration('should create and fetch an inventory item', async () => {
+  test.integration('should create and fetch an inventory item', async() => {
     const mockItem = makeMockInventoryItem({ totalQuantity: 42, minimumLevel: 5 });
     const [created] = await db.insert(schema.inventory).values(mockItem).returning();
 

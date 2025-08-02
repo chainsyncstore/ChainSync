@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import { Link } from 'wouter';
 import { useAuth } from '@/providers/auth-provider';
 import { AppShell } from '@/components/layout/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Loader2, FileUp, FileWarning, FileCheck, FileX, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Loader2, FileUp, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -24,10 +23,10 @@ interface ColumnMapping {
   required: boolean;
 }
 
-interface MappedField {
-  sourceColumn: string;
-  targetColumn: string;
-}
+// interface MappedField { // Unused
+//   sourceColumn: string;
+//   targetColumn: string;
+// }
 
 interface ImportError {
   row: number;
@@ -67,7 +66,7 @@ export default function ImportPage() {
   const [dataType, setDataType] = useState<'loyalty' | 'inventory'>('loyalty');
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isMapping, setIsMapping] = useState(false);
+  // const [isMapping, setIsMapping] = useState(false); // Unused
   const [isValidating, setIsValidating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   
@@ -112,9 +111,10 @@ export default function ImportPage() {
     formData.append('dataType', dataType);
     
     try {
-      const response = await apiRequest('/api/import/analyze', {
-        method: 'POST',
-        body: formData,
+      // Assuming apiRequest's 3rd arg can be an options bag including body
+      const response = await apiRequest('POST', '/api/import/analyze', {
+        body: formData
+        // headers: {} // Let browser set Content-Type for FormData
       });
       
       if (!response.ok) {
@@ -142,11 +142,11 @@ export default function ImportPage() {
         title: 'File analyzed successfully',
         description: `Found ${data.data.length} rows of data`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error analyzing file:', error);
       toast({
         title: 'Error analyzing file',
-        description: error.message || 'Failed to analyze file',
+        description: (error as Error).message || 'Failed to analyze file',
         variant: 'destructive',
       });
     } finally {
@@ -167,13 +167,10 @@ export default function ImportPage() {
     setIsValidating(true);
     
     try {
-      const response = await apiRequest('/api/import/validate', {
-        method: 'POST',
-        body: JSON.stringify({
-          data: originalData,
-          mapping: finalMappings,
-          dataType,
-        }),
+      const response = await apiRequest('POST', '/api/import/validate', {
+        data: originalData,
+        mapping: finalMappings,
+        dataType,
       });
       
       if (!response.ok) {
@@ -190,11 +187,11 @@ export default function ImportPage() {
         description: `${result.importedRows} of ${result.totalRows} rows are valid`,
         variant: result.success ? 'default' : 'destructive',
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error validating data:', error);
       toast({
         title: 'Error validating data',
-        description: error.message || 'Failed to validate data',
+        description: (error as Error).message || 'Failed to validate data',
         variant: 'destructive',
       });
     } finally {
@@ -216,13 +213,10 @@ export default function ImportPage() {
     setIsImporting(true);
     
     try {
-      const response = await apiRequest('/api/import/process', {
-        method: 'POST',
-        body: JSON.stringify({
-          data: validationResult?.mappedData,
-          dataType,
-          storeId: selectedStore,
-        }),
+      const response = await apiRequest('POST', '/api/import/process', {
+        data: validationResult?.mappedData,
+        dataType,
+        storeId: selectedStore,
       });
       
       if (!response.ok) {
@@ -246,11 +240,11 @@ export default function ImportPage() {
         title: 'Import completed',
         description: `Successfully imported ${result.importedRows} of ${result.totalRows} rows`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error importing data:', error);
       toast({
         title: 'Error importing data',
-        description: error.message || 'Failed to import data',
+        description: (error as Error).message || 'Failed to import data',
         variant: 'destructive',
       });
     } finally {
@@ -263,16 +257,13 @@ export default function ImportPage() {
     if (!validationResult) return;
     
     try {
-      const response = await apiRequest('/api/import/error-report', {
-        method: 'POST',
-        body: JSON.stringify({
-          validationResult,
-          dataType
-        }),
+      const response = await apiRequest('POST', '/api/import/error-report', {
+        body: { validationResult, dataType },
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'text/csv',
         },
+        responseType: 'blob', // Assuming this is a custom option for apiRequest
       });
       
       if (!response.ok) {
@@ -295,11 +286,11 @@ export default function ImportPage() {
         title: 'Error report downloaded',
         description: 'The error report has been downloaded as a CSV file',
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error downloading error report:', error);
       toast({
         title: 'Error downloading report',
-        description: error.message || 'Failed to download error report',
+        description: (error as Error).message || 'Failed to download error report',
         variant: 'destructive',
       });
     }

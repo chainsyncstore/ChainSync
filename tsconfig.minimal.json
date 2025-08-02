@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "maxNodeModuleJsDepth": 0,
+    "noEmit": true
+  },
+  "include": [
+    "server/app.ts",
+    "server/services/product-import.ts",
+    "shared/schema.ts",
+    "shared/types/errors.ts",
+    "db/index.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**",
+    "**/__mocks__/**",
+    "src/monitoring/tracing.ts"
+  ]
+} 

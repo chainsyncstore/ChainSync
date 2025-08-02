@@ -62,6 +62,14 @@ export class WebhookService extends BaseService implements IWebhookService {
         .values(validatedData as any)
         .returning();
 
+      if (!webhook) {
+        throw new AppError(
+          'Failed to create webhook',
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          ErrorCategory.SYSTEM
+        );
+      }
+
       return webhook;
     } catch (error) {
       if (error instanceof SchemaValidationError) {
@@ -94,6 +102,14 @@ export class WebhookService extends BaseService implements IWebhookService {
         })
         .where(eq(schema.webhooks.id, id))
         .returning();
+
+      if (!updatedWebhook) {
+        throw new AppError(
+          'Failed to update webhook',
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          ErrorCategory.SYSTEM
+        );
+      }
 
       return updatedWebhook;
     } catch (error) {
@@ -172,16 +188,23 @@ export class WebhookService extends BaseService implements IWebhookService {
         )
       });
 
-      const [event] = await db
+      const eventResult = await db
         .insert(schema.webhookEvents)
         .values({
           webhookId: 0,
-          event: eventType,
+          event: eventType
         })
         .returning();
 
+      const event = eventResult[0];
+      if (!event) {
+        throw new Error('Failed to create webhook event');
+      }
+
       for (const webhook of webhooks) {
-        await this.deliverWebhook(webhook, event, data);
+        if (webhook) {
+          await this.deliverWebhook(webhook, event, data);
+        }
       }
     } catch (error) {
       console.error('Error triggering webhook:', error);
@@ -198,9 +221,13 @@ export class WebhookService extends BaseService implements IWebhookService {
           .insert(schema.webhookDeliveries)
           .values({
             webhookId: webhook.id,
-            eventId: event.id,
+            eventId: event.id
           })
           .returning();
+
+        if (!delivery) {
+          throw new Error('Failed to create webhook delivery record');
+        }
 
         const signature = this.generateSignature(JSON.stringify(data), webhook.secret as string);
 
@@ -214,12 +241,14 @@ export class WebhookService extends BaseService implements IWebhookService {
           timeout: 30000
         });
 
-        await db
-          .update(schema.webhookDeliveries)
-          .set({
-            webhookId: delivery.webhookId
-          })
-          .where(eq(schema.webhookDeliveries.id, delivery.id));
+        if (delivery) {
+          await db
+            .update(schema.webhookDeliveries)
+            .set({
+              webhookId: delivery.webhookId
+            })
+            .where(eq(schema.webhookDeliveries.id, delivery.id));
+        }
 
         return;
       } catch (error) {
@@ -264,7 +293,7 @@ export class WebhookService extends BaseService implements IWebhookService {
       const deliveries = await db.query.webhookDeliveries.findMany({
         where: eq(schema.webhookDeliveries.webhookId, webhookId),
         orderBy: [desc(schema.webhookDeliveries.createdAt)],
-        limit,
+        limit
       });
 
       return deliveries as unknown as WebhookDelivery[];
@@ -276,7 +305,7 @@ export class WebhookService extends BaseService implements IWebhookService {
   async retryWebhookDelivery(deliveryId: number): Promise<boolean> {
     try {
       const delivery = await db.query.webhookDeliveries.findFirst({
-        where: eq(schema.webhookDeliveries.id, deliveryId),
+        where: eq(schema.webhookDeliveries.id, deliveryId)
       });
 
       if (!delivery) {

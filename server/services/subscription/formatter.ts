@@ -1,6 +1,6 @@
 /**
  * Subscription Formatter
- * 
+ *
  * A formatter class for the Subscription module that standardizes
  * conversion between database rows and domain objects.
  */
@@ -13,7 +13,7 @@ import { SelectSubscription, SubscriptionStatus } from './types';
 export class SubscriptionFormatter extends ResultFormatter<SelectSubscription> {
   /**
    * Format a single database result row into a Subscription domain object
-   * 
+   *
    * @param dbResult The raw database result row
    * @returns A properly formatted Subscription object
    */
@@ -21,26 +21,26 @@ export class SubscriptionFormatter extends ResultFormatter<SelectSubscription> {
     if (!dbResult) {
       throw new Error('Cannot format null or undefined subscription result');
     }
-    
+
     // First apply base formatting (snake_case to camelCase)
     const base = this.baseFormat(dbResult);
-    
+
     // Parse metadata if present
     const metadata = this.handleMetadata(base.metadata);
-    
+
     // Convert date strings to Date objects
     const withDates = this.formatDates(
-      base, 
+      base,
       ['createdAt', 'updatedAt', 'startDate', 'endDate']
     );
-    
+
     // Format the subscription with specific type handling
     return {
       ...withDates,
       id: Number(withDates.id),
       userId: Number(withDates.userId),
       planId: String(withDates.planId),
-      status: (withDates.status || 'active') as "active" | "cancelled" | "expired" | null,
+      status: (withDates.status || 'active') as 'active' | 'cancelled' | 'expired' | null,
       amount: String(withDates.amount),
       currency: String(withDates.currency || 'NGN'),
       referralCode: withDates.referralCode || '',
@@ -51,7 +51,7 @@ export class SubscriptionFormatter extends ResultFormatter<SelectSubscription> {
       currentPeriodEnd: withDates.currentPeriodEnd,
       endDate: withDates.endDate,
       createdAt: withDates.createdAt,
-      updatedAt: withDates.updatedAt,
+      updatedAt: withDates.updatedAt
     };
   }
 }

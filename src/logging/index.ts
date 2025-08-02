@@ -46,7 +46,7 @@ export function configureLogging(options: {
     baseLogger = createSentryLogger({
       dsn: options.sentryDsn,
       environment: env,
-      release: options.release,
+      ...(options.release && { release: options.release }),
       debug: env !== 'production',
       tracesSampleRate: env === 'production' ? 0.2 : 1.0
     });

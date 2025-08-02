@@ -8,7 +8,7 @@ import type {
   Referral as ReferralRow,
   ReferralInsert,
   ReferralPayment as ReferralPaymentRow,
-  ReferralPaymentInsert,
+  ReferralPaymentInsert
 } from '../../shared/schema';
 
 import { eq, and, gte, desc } from 'drizzle-orm'; // lte removed
@@ -87,7 +87,7 @@ export async function registerAffiliate(userId: number, bankDetails?: any): Prom
       'bankCode',
       'accountNumber',
       'accountName',
-      'paymentMethod',
+      'paymentMethod'
     ] as const;
     const filteredBankDetails = Object.fromEntries(
       Object.entries(bankDetails || {}).filter(([key]) =>
@@ -102,10 +102,14 @@ export async function registerAffiliate(userId: number, bankDetails?: any): Prom
       bankName: filteredBankDetails.bankName,
       bankCode: filteredBankDetails.bankCode,
       accountNumber: filteredBankDetails.accountNumber,
-      accountName: filteredBankDetails.accountName,
+      accountName: filteredBankDetails.accountName
     };
 
     const [newAffiliate] = await db.insert(schema.affiliates).values(affiliateData as any).returning();
+
+    if (!newAffiliate) {
+      throw new Error('Failed to create affiliate');
+    }
 
     return newAffiliate;
   } catch (error) {
@@ -170,10 +174,14 @@ export async function trackReferral(
       status: 'pending' as const,
       discountApplied: false,
       commissionPaid: false,
-      signupDate: new Date(),
+      signupDate: new Date()
     };
 
     const [newReferral] = await db.insert(schema.referrals).values(referralData).returning();
+
+    if (!newReferral) {
+      throw new Error('Failed to create referral');
+    }
 
     // Update the affiliate's total referrals
     await db
@@ -208,7 +216,7 @@ export async function applyReferralDiscount(
     if (!affiliate) {
       return {
         discountedAmount: subscriptionAmount,
-        discountAmount: 0,
+        discountAmount: 0
       };
     }
 
@@ -244,7 +252,7 @@ export async function applyReferralDiscount(
 
     return {
       discountedAmount,
-      discountAmount,
+      discountAmount
     };
   } catch (error) {
     console.error('Error applying referral discount:', error);
@@ -337,11 +345,15 @@ export async function processAffiliatePayout(
         amount: pendingAmount.toString(),
         currency: 'NGN', // Default to NGN
         status: 'pending' as const,
-        paymentMethod: (affiliate.paymentMethod || 'paystack') as 'paystack' | 'flutterwave' | 'manual',
+        paymentMethod: (affiliate.paymentMethod || 'paystack') as 'paystack' | 'flutterwave' | 'manual'
         // createdAt and updatedAt are handled by Drizzle by default for new inserts
       };
 
       const [payment] = await db.insert(schema.referralPayments).values(paymentData).returning();
+
+      if (!payment) {
+        throw new Error('Failed to create payment record');
+      }
 
       // Process the payment using Flutterwave
       let paymentSuccess = false;
@@ -355,7 +367,7 @@ export async function processAffiliatePayout(
             amount: pendingAmount,
             narration: `ChainSync affiliate payout - ${affiliate.code}`,
             currency: 'NGN', // Use different currency if needed
-            reference: `aff-pay-${payment.id}-${Date.now()}`,
+            reference: `aff-pay-${payment.id}-${Date.now()}`
           };
 
           const response = await flwClient.Transfer.initiate(payload);
@@ -393,7 +405,9 @@ export async function processAffiliatePayout(
           .where(eq(schema.affiliates.id, affiliate.id));
       }
 
-      payments.push(updatedPayment[0]);
+      if (updatedPayment[0]) {
+        payments.push(updatedPayment[0]);
+      }
     }
 
     return payments;
@@ -459,20 +473,20 @@ export async function getAffiliateDashboardStats(userId: number): Promise<{
       referrals: {
         total: totalReferrals,
         active: activeReferrals,
-        pending: pendingReferrals,
+        pending: pendingReferrals
       },
       earnings: {
         total: affiliate.totalEarnings?.toString() ?? '0',
         pending: affiliate.pendingEarnings?.toString() ?? '0',
-        lastPayment: lastPayment
-          ? {
-              amount: lastPayment.amount.toString(),
-              date: lastPayment.paymentDate!,
-            }
-          : undefined,
+        ...(lastPayment && {
+          lastPayment: {
+            amount: lastPayment.amount.toString(),
+            date: lastPayment.paymentDate!
+          }
+        })
       },
       clicks: 0, // Would require additional tracking implementation
-      conversions: activeReferrals,
+      conversions: activeReferrals
     };
   } catch (error) {
     console.error('Error getting affiliate dashboard stats:', error);
@@ -498,7 +512,7 @@ export async function getAffiliateReferrals(userId: number): Promise<any[]> {
         activationDate: schema.referrals.activationDate,
         expiryDate: schema.referrals.expiryDate,
         username: schema.users.name, // Assuming 'name' is the correct field
-        fullName: schema.users.name, // Assuming 'name' is the correct field
+        fullName: schema.users.name // Assuming 'name' is the correct field
       })
       .from(schema.referrals)
       .leftJoin(schema.users, eq(schema.referrals.referredUserId, schema.users.id))
@@ -571,15 +585,15 @@ export async function updateAffiliateBankDetails(
 
     // Build update data that satisfies the schema
     const updateData: Partial<AffiliateRow> = {
-      updatedAt: new Date(),
+      updatedAt: new Date()
     };
-    
+
     // Map valid affiliate fields from bankDetails
     if (bankDetails.bankName) updateData.bankName = bankDetails.bankName;
     if (bankDetails.bankCode) updateData.bankCode = bankDetails.bankCode;
     if (bankDetails.accountNumber) updateData.accountNumber = bankDetails.accountNumber;
     if (bankDetails.accountName) updateData.accountName = bankDetails.accountName;
-    
+
     // Ensure paymentMethod is properly typed if provided
     if (bankDetails.paymentMethod && ['paystack', 'flutterwave', 'manual'].includes(bankDetails.paymentMethod)) {
       updateData.paymentMethod = bankDetails.paymentMethod as 'paystack' | 'flutterwave' | 'manual';
@@ -590,6 +604,10 @@ export async function updateAffiliateBankDetails(
       .set(updateData)
       .where(eq(schema.affiliates.id, affiliate.id))
       .returning();
+
+    if (!updatedAffiliate) {
+      throw new Error('Failed to update affiliate');
+    }
 
     return updatedAffiliate;
   } catch (error) {

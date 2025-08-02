@@ -83,15 +83,15 @@ export interface SubscriptionServiceErrors {
 }
 
 export const SubscriptionServiceErrors: SubscriptionServiceErrors = {
-  SUBSCRIPTION_NOT_FOUND: new Error("Subscription not found"),
-  USER_NOT_FOUND: new Error("User not found"),
-  INVALID_PLAN: new Error("Invalid subscription plan"),
-  PAYMENT_FAILED: new Error("Payment processing failed"),
-  WEBHOOK_VALIDATION_FAILED: new Error("Webhook validation failed"),
-  DUPLICATE_SUBSCRIPTION: new Error("User already has an active subscription"),
-  INVALID_STATUS_TRANSITION: new Error("Invalid subscription status transition"),
-  INVALID_RENEWAL: new Error("Subscription renewal failed"),
-  INVALID_CANCELLATION: new Error("Subscription cancellation failed")
+  SUBSCRIPTION_NOT_FOUND: new Error('Subscription not found'),
+  USER_NOT_FOUND: new Error('User not found'),
+  INVALID_PLAN: new Error('Invalid subscription plan'),
+  PAYMENT_FAILED: new Error('Payment processing failed'),
+  WEBHOOK_VALIDATION_FAILED: new Error('Webhook validation failed'),
+  DUPLICATE_SUBSCRIPTION: new Error('User already has an active subscription'),
+  INVALID_STATUS_TRANSITION: new Error('Invalid subscription status transition'),
+  INVALID_RENEWAL: new Error('Subscription renewal failed'),
+  INVALID_CANCELLATION: new Error('Subscription cancellation failed')
 };
 
 export interface ISubscriptionService {

@@ -4,7 +4,7 @@ import { ImportExportErrorCode } from '../../../../shared/types/import-export-er
 export interface ValidationCache {
   [key: string]: {
     timestamp: number;
-    result: z.SafeParseReturnType<any, any>;
+    result: any;
   };
 }
 
@@ -39,7 +39,7 @@ export interface ValidationService {
   clearCacheForData(data: any, type: 'products' | 'users' | 'transactions'): void;
 }
 
-export const validationErrors: Record<z.ZodIssueCode, string> = {
+export const validationErrors: Record<string, string> = {
   invalid_type: 'Invalid type',
   invalid_literal: 'Invalid literal',
   custom: 'Invalid custom',
@@ -55,5 +55,5 @@ export const validationErrors: Record<z.ZodIssueCode, string> = {
   too_big: 'Too big',
   invalid_intersection_types: 'Invalid intersection type',
   not_multiple_of: 'Not multiple of',
-  not_finite: 'Not finite',
+  not_finite: 'Not finite'
 };

@@ -1,11 +1,18 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "CommonJS",
-    "target": "ES2020",
-    "lib": ["ES2020", "DOM"],
+    "moduleResolution": "node",
     "outDir": "dist/server",
     "rootDir": "./",
-    "baseUrl": "./",
+    "noEmit": false,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "paths": {
       "@/": ["src/"],
       "@shared/*": ["shared/*"],
@@ -22,36 +29,26 @@
       "@server/database": ["server/database.ts"],
       "@server/db": ["server/db/index.ts"],
       "@server/services/base/enhanced-service": ["server/services/base/enhanced-service.ts"]
-    },
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "noImplicitReturns": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "allowJs": true,
-    "declaration": false,
-    "types": ["node"],
-    "typeRoots": ["./node_modules/@types"]
+    }
   },
   "include": [
-    "src/**/*.ts",
-    "server/**/*.ts",
-    "shared/**/*.ts",
-    "db/**/*.ts"
+    "server/**/*",
+    "shared/**/*",
+    "db/**/*",
+    "middleware/**/*",
+    "scripts/**/*",
+    "deploy/**/*",
+    "src/**/*"
   ],
   "exclude": [
-    "src/**/*.tsx",
-    "src/App.tsx",
-    "src/components",
     "client/**/*",
+    "node_modules",
+    "dist",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**",
+    "**/__mocks__/**"
   ]
 }

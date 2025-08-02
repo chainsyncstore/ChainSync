@@ -11,7 +11,7 @@ const ConsoleLogger = {
   error: () => {},
   child() {
     return ConsoleLogger;
-  },
+  }
 };
 
 // Active logger reference used by getLogger / createLogger
@@ -45,5 +45,5 @@ module.exports = {
   createLogger,
   getLogger,
   setLogger,
-  default: ConsoleLoggerStub,
+  default: ConsoleLoggerStub
 };

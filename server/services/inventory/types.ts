@@ -1,6 +1,6 @@
 /**
  * Inventory Service Types
- * 
+ *
  * This file defines the interfaces and types for the inventory service.
  */
 
@@ -12,8 +12,8 @@ export type Inventory = schema.SelectInventory & {
   location?: string;
   capacity?: number;
   isActive?: boolean;
-  batchTracking?: boolean; 
-  metadata?: Record<string, unknown> 
+  batchTracking?: boolean;
+  metadata?: Record<string, unknown>
 };
 
 
@@ -161,7 +161,7 @@ export interface InventoryAdjustmentParams {
   metadata?: Record<string, unknown>;
   notes?: string;
 }
-  
+
 
 export interface InventoryBatchParams {
   inventoryId?: number;
@@ -182,7 +182,7 @@ export interface InventoryBatchParams {
   metadata?: Record<string, unknown>;
   notes?: string;
 }
-  
+
 
 export interface InventorySearchParams {
   storeId: number;
@@ -210,13 +210,13 @@ export interface InventoryServiceErrors {
 }
 
 export const InventoryServiceErrors: InventoryServiceErrors = {
-  INVENTORY_NOT_FOUND: new Error("Inventory record not found"),
-  PRODUCT_NOT_FOUND: new Error("Product not found"),
-  STORE_NOT_FOUND: new Error("Store not found"),
-  BATCH_NOT_FOUND: new Error("Inventory batch not found"),
-  INSUFFICIENT_STOCK: new Error("Insufficient stock available"),
-  INVALID_ADJUSTMENT: new Error("Invalid inventory adjustment"),
-  INVALID_BATCH_OPERATION: new Error("Invalid batch operation")
+  INVENTORY_NOT_FOUND: new Error('Inventory record not found'),
+  PRODUCT_NOT_FOUND: new Error('Product not found'),
+  STORE_NOT_FOUND: new Error('Store not found'),
+  BATCH_NOT_FOUND: new Error('Inventory batch not found'),
+  INSUFFICIENT_STOCK: new Error('Insufficient stock available'),
+  INVALID_ADJUSTMENT: new Error('Invalid inventory adjustment'),
+  INVALID_BATCH_OPERATION: new Error('Invalid batch operation')
 };
 
 export interface IInventoryService {

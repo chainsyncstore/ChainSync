@@ -32,7 +32,7 @@ export const FileUploadErrors = {
     status: 400,
     retryable: false,
     retryDelay: undefined
-  } as FileUploadError,
+  } as unknown as FileUploadError,
   INVALID_FILE_TYPE: {
     category: ErrorCategory.VALIDATION,
     code: ErrorCode.INVALID_FILE,
@@ -41,7 +41,7 @@ export const FileUploadErrors = {
     status: 400,
     retryable: false,
     retryDelay: undefined
-  } as FileUploadError,
+  } as unknown as FileUploadError,
   TOO_MANY_FILES: {
     category: ErrorCategory.VALIDATION,
     code: ErrorCode.UPLOAD_LIMIT_EXCEEDED,
@@ -50,7 +50,7 @@ export const FileUploadErrors = {
     status: 400,
     retryable: false,
     retryDelay: undefined
-  } as FileUploadError,
+  } as unknown as FileUploadError,
   UPLOAD_FAILED: {
     category: ErrorCategory.SYSTEM,
     code: ErrorCode.INTERNAL_ERROR,
@@ -59,7 +59,7 @@ export const FileUploadErrors = {
     status: 500,
     retryable: true,
     retryDelay: 5000
-  } as FileUploadError,
+  } as unknown as FileUploadError,
   STORAGE_ERROR: {
     category: ErrorCategory.SYSTEM,
     code: ErrorCode.INTERNAL_ERROR,
@@ -68,7 +68,7 @@ export const FileUploadErrors = {
     status: 500,
     retryable: true,
     retryDelay: 5000
-  } as FileUploadError,
+  } as unknown as FileUploadError,
   INVALID_FILE_NAME: {
     category: ErrorCategory.VALIDATION,
     code: ErrorCode.INVALID_FILE,
@@ -76,9 +76,8 @@ export const FileUploadErrors = {
     data: { fileName: undefined },
     status: 400,
     retryable: false,
-    retryDelay: undefined,
-    description: 'Please use a valid file name'
-  } as FileUploadError
+    retryDelay: undefined
+  } as unknown as FileUploadError
 };
 
 export const defaultFileUploadConfig: FileUploadConfig = {

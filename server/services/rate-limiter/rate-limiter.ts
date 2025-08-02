@@ -16,7 +16,7 @@ export class RateLimiter {
     this.config = {
       window: config.window ?? 60, // 1 minute
       maxRequests: config.maxRequests ?? 60,
-      redisUrl: config.redisUrl ?? (process.env.REDIS_URL || ''),
+      redisUrl: config.redisUrl ?? (process.env.REDIS_URL || '')
     };
 
     if (this.config.redisUrl) {

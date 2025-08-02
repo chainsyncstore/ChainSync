@@ -1,4 +1,3 @@
-import React from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { useAuth } from '@/providers/auth-provider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

@@ -12,7 +12,7 @@ import { log } from '../vite';
  * @returns HTTP or HTTPS server
  */
 export function setupSecureServer(
-  app: express.Express,
+  app: express.Express
 ): { server: http.Server | https.Server; io: SocketIOServer } {
   // Check environment
   const isProduction = process.env.NODE_ENV === 'production';
@@ -22,23 +22,23 @@ export function setupSecureServer(
       // In production, attempt to load SSL certificates
       // These paths would be set up in a production environment
       const sslPath = process.env.SSL_PATH || '/etc/ssl/certs';
-      
+
       // Check if SSL certificates exist
       if (
-        fs.existsSync(path.join(sslPath, 'private-key.pem')) && 
+        fs.existsSync(path.join(sslPath, 'private-key.pem')) &&
         fs.existsSync(path.join(sslPath, 'certificate.pem'))
       ) {
         const privateKey = fs.readFileSync(path.join(sslPath, 'private-key.pem'), 'utf8');
         const certificate = fs.readFileSync(path.join(sslPath, 'certificate.pem'), 'utf8');
-        
+
         // Create HTTPS server
         log('Starting HTTPS server in production mode');
         server = https.createServer(
           {
             key: privateKey,
-            cert: certificate,
+            cert: certificate
           },
-          app,
+          app
         );
       } else {
         log('SSL certificates not found, falling back to HTTP server in production');
@@ -57,8 +57,8 @@ export function setupSecureServer(
   const io = new SocketIOServer(server, {
     cors: {
       origin: '*',
-      methods: ['GET', 'POST'],
-    },
+      methods: ['GET', 'POST']
+    }
   });
 
   return { server, io };
@@ -69,15 +69,15 @@ export function setupSecureServer(
  */
 export function enforceHttpsForPaymentRoutes(req: express.Request, res: express.Response, next: express.NextFunction) {
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   // Check if this is a payment-related route
   const isPaymentRoute = (
-    req.path.includes('/api/payment') || 
+    req.path.includes('/api/payment') ||
     req.path.includes('/api/webhooks') ||
     req.path.includes('/checkout') ||
     req.path.includes('/verify-payment')
   );
-  
+
   if (isProduction && isPaymentRoute) {
     // In production, ensure payment routes use HTTPS
     if (!req.secure && req.headers['x-forwarded-proto'] !== 'https') {
@@ -85,6 +85,6 @@ export function enforceHttpsForPaymentRoutes(req: express.Request, res: express.
       return res.redirect(`https://${req.hostname}${req.url}`);
     }
   }
-  
+
   next();
 }

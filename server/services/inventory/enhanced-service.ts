@@ -10,7 +10,7 @@ import { EnhancedBaseService } from '../base/enhanced-service';
 import {
   InventoryFormatter,
   InventoryItemFormatter,
-  InventoryTransactionFormatter,
+  InventoryTransactionFormatter
 } from './formatter';
 import { inventoryValidation, validateEntity } from '@shared/schema-validation';
 import {
@@ -26,7 +26,7 @@ import {
   InventoryTransactionType,
   IInventoryService,
   InventorySearchParams,
-  InventoryServiceErrors,     // ✅ from types
+  InventoryServiceErrors     // ✅ from types
 } from './types';
 
 import { db } from '@server/db';
@@ -73,7 +73,7 @@ export class EnhancedInventoryService
 
       const existing = await this.getInventoryByProduct(
         params.productId,
-        params.storeId,
+        params.storeId
       );
       if (existing) return this.updateInventory(existing.id, params);
 
@@ -83,14 +83,14 @@ export class EnhancedInventoryService
         lastAuditDate: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null,
+        metadata: params.metadata ? JSON.stringify(params.metadata) : null
       };
 
       // Bypass validation for now due to schema type inference issues
       const insertData = {
         storeId: data.storeId,
         productId: data.productId,
-        quantity: (data as any).quantity || 0,
+        quantity: (data as any).quantity || 0
         // Skip problematic fields for now
       };
 
@@ -103,7 +103,7 @@ export class EnhancedInventoryService
 
   async updateInventory(
     id: number,
-    params: UpdateInventoryParams,
+    params: UpdateInventoryParams
   ): Promise<Inventory> {
     try {
       const existing = await this.getInventoryById(id);
@@ -114,12 +114,12 @@ export class EnhancedInventoryService
         updatedAt: new Date(),
         metadata: params.metadata
           ? JSON.stringify(params.metadata)
-          : existing.metadata,
+          : existing.metadata
       };
 
       // Bypass validation for now due to schema type inference issues
       const updateData = {
-        quantity: (data as any).availableQuantity ?? (data as any).quantity ?? 0,
+        quantity: (data as any).availableQuantity ?? (data as any).quantity ?? 0
       };
 
       const [updated] = await db
@@ -141,7 +141,7 @@ export class EnhancedInventoryService
   async getInventoryById(id: number): Promise<Inventory | null> {
     try {
       const inventory = await db.query.inventory.findFirst({
-        where: eq(schema.inventory.id, id),
+        where: eq(schema.inventory.id, id)
       });
       return inventory ? (inventory as Inventory) : null;
     } catch (err) {
@@ -151,14 +151,14 @@ export class EnhancedInventoryService
 
   async getInventoryByProduct(
     productId: number,
-    storeId?: number,
+    storeId?: number
   ): Promise<Inventory | null> {
     try {
       const inventory = await db.query.inventory.findFirst({
         where: and(
           eq(schema.inventory.productId, productId),
-          storeId ? eq(schema.inventory.storeId, storeId) : undefined,
-        ),
+          storeId ? eq(schema.inventory.storeId, storeId) : undefined
+        )
       });
       return inventory ? (inventory as Inventory) : null;
     } catch (err) {
@@ -171,7 +171,7 @@ export class EnhancedInventoryService
   /* -------------------------------------------------------------------------- */
 
   async createInventoryItem(
-    params: CreateInventoryItemParams,
+    params: CreateInventoryItemParams
   ): Promise<InventoryItem> {
     try {
       const inventory = await this.getInventoryById(params.inventoryId);
@@ -189,13 +189,13 @@ export class EnhancedInventoryService
         receivedDate: params.receivedDate ?? new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-        metadata: params.metadata ? JSON.stringify(params.metadata) : null,
+        metadata: params.metadata ? JSON.stringify(params.metadata) : null
       };
 
       const validated = validateEntity(
         inventoryValidation.itemInsert,
         data,
-        'inventory_item',
+        'inventory_item'
       );
 
       const [item] = await db
@@ -212,7 +212,7 @@ export class EnhancedInventoryService
 
   async updateInventoryItem(
     itemId: number,
-    params: UpdateInventoryItemParams,
+    params: UpdateInventoryItemParams
   ): Promise<InventoryItem> {
     try {
       const existing = await this.getInventoryItemById(itemId);
@@ -226,13 +226,13 @@ export class EnhancedInventoryService
         updatedAt: new Date(),
         metadata: params.metadata
           ? JSON.stringify(params.metadata)
-          : existing.metadata,
+          : existing.metadata
       };
 
       const validated = validateEntity(
         inventoryValidation.itemUpdate,
         data,
-        'inventory_item',
+        'inventory_item'
       );
 
       const [updated] = await db
@@ -257,7 +257,7 @@ export class EnhancedInventoryService
   async getInventoryItemById(id: number): Promise<InventoryItem | null> {
     try {
       const item = await db.query.inventoryItems.findFirst({
-        where: eq(schema.inventoryItems.id, id),
+        where: eq(schema.inventoryItems.id, id)
       });
 
       if (!item) {
@@ -268,7 +268,7 @@ export class EnhancedInventoryService
 
       return {
         ...item,
-        sku: item.sku ?? undefined,
+        sku: item.sku || '',
         name: product?.name || '',
         unit: product?.unit || '',
         unitCost: product?.cost || '0',
@@ -277,7 +277,7 @@ export class EnhancedInventoryService
         reorderQuantity: item.reorderQuantity || 0,
         createdAt: item.createdAt || new Date(),
         updatedAt: item.updatedAt || new Date(),
-        metadata: item.metadata as Record<string, unknown>,
+        metadata: item.metadata as Record<string, unknown>
       };
     } catch (err) {
       return this.handleError(err, 'getting inventory item by ID');
@@ -289,17 +289,17 @@ export class EnhancedInventoryService
   /* -------------------------------------------------------------------------- */
 
   async adjustInventory(
-    params: InventoryAdjustmentParams,
+    params: InventoryAdjustmentParams
   ): Promise<boolean> {
     try {
       if (!params.inventoryId) {
-        throw new Error("inventoryId is required");
+        throw new Error('inventoryId is required');
       }
       const inventory = await this.getInventoryById(params.inventoryId);
       if (!inventory) throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
 
       if (!params.itemId) {
-        throw new Error("itemId is required");
+        throw new Error('itemId is required');
       }
       const item = await this.getInventoryItemById(params.itemId);
       if (!item) throw InventoryServiceErrors.INVENTORY_NOT_FOUND;
@@ -317,7 +317,7 @@ export class EnhancedInventoryService
         itemId: params.itemId,
         type: (params.quantity > 0 ? 'in' : 'out') as 'in' | 'out',
         quantity: params.quantity,
-        createdAt: new Date(),
+        createdAt: new Date()
       };
 
       const [tx] = await db
@@ -326,7 +326,7 @@ export class EnhancedInventoryService
         .returning();
 
       if (!params.inventoryId) {
-        throw new Error("inventoryId is required");
+        throw new Error('inventoryId is required');
       }
       await this.updateInventoryUtilization(params.inventoryId);
       this.ensureExists(tx, 'Inventory Transaction');
@@ -341,19 +341,19 @@ export class EnhancedInventoryService
   /* -------------------------------------------------------------------------- */
 
   private async updateInventoryUtilization(
-    id: number,
+    id: number
   ): Promise<Inventory | null> {
     try {
       const [sumRow] = await db
         .select({
           total: sql<number>`sum(${schema.inventoryItems.quantity})`.mapWith(
-            Number,
-          ),
+            Number
+          )
         })
         .from(schema.inventoryItems)
         .where(eq(schema.inventoryItems.inventoryId, id));
 
-      const total = sumRow.total ?? 0;
+      const total = sumRow?.total ?? 0;
 
       // Skip currentUtilization update for now due to schema type inference issues
       const [updated] = await db
@@ -375,13 +375,13 @@ export class EnhancedInventoryService
 
   private getProductById(productId: number) {
     return db.query.products.findFirst({
-      where: eq(schema.products.id, productId),
+      where: eq(schema.products.id, productId)
     });
   }
 
   private getStoreById(storeId: number) {
     return db.query.stores.findFirst({
-      where: eq(schema.stores.id, storeId),
+      where: eq(schema.stores.id, storeId)
     });
   }
 }

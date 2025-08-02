@@ -130,7 +130,8 @@ async function seed() {
 
     // Create store managers
     await Promise.all(
-      createdStores.map(async (store: { id: number; }, index: number) => {
+      createdStores.map(async (store, index) => {
+        if (!store) return; // Skip if store is undefined
         // Use type assertion to bypass TypeScript schema validation
         const managerUser = {
           name: `manager${index + 1}`,
@@ -145,6 +146,7 @@ async function seed() {
 
     // Create cashiers (2 per store)
     for (const store of createdStores) {
+      if (!store) continue; // Skip if store is undefined
       const storeIndex = createdStores.indexOf(store);
       
       // Create each cashier individually instead of as an array with type assertion
@@ -169,13 +171,23 @@ async function seed() {
 
     // Create products
     console.log("Creating products...");
+    
+    // Helper function to safely find category ID
+    const getCategoryId = (categoryName: string): number => {
+      const category = createdCategories.find((c: any) => c.name === categoryName);
+      if (!category) {
+        throw new Error(`Category '${categoryName}' not found`);
+      }
+      return category.id;
+    };
+    
     const products = [
       {
         name: "Organic Bananas",
         description: "Bunch of fresh organic bananas",
         sku: "SKU-5011001",
         barcode: "5011001",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Produce")!.id,
+        categoryId: getCategoryId("Produce"),
         price: "1.99",
         cost: "0.89",
         isPerishable: true
@@ -185,7 +197,7 @@ async function seed() {
         description: "1 gallon of whole milk",
         sku: "SKU-5011002",
         barcode: "5011002",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Dairy")!.id,
+        categoryId: getCategoryId("Dairy"),
         price: "3.49",
         cost: "2.10",
         isPerishable: true
@@ -195,7 +207,7 @@ async function seed() {
         description: "Fresh baked sourdough bread",
         sku: "SKU-5011003",
         barcode: "5011003",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Bakery")!.id,
+        categoryId: getCategoryId("Bakery"),
         price: "4.99",
         cost: "2.50",
         isPerishable: true
@@ -205,7 +217,7 @@ async function seed() {
         description: "1 pound of 80/20 ground beef",
         sku: "SKU-5011004",
         barcode: "5011004",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Meat & Seafood")!.id,
+        categoryId: getCategoryId("Meat & Seafood"),
         price: "5.99",
         cost: "3.75",
         isPerishable: true
@@ -215,7 +227,7 @@ async function seed() {
         description: "2 liter bottle of cola",
         sku: "SKU-5011005",
         barcode: "5011005",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Beverages")!.id,
+        categoryId: getCategoryId("Beverages"),
         price: "2.49",
         cost: "1.20",
         isPerishable: false
@@ -225,7 +237,7 @@ async function seed() {
         description: "8oz bag of potato chips",
         sku: "SKU-5011006",
         barcode: "5011006",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Snacks")!.id,
+        categoryId: getCategoryId("Snacks"),
         price: "3.99",
         cost: "1.75",
         isPerishable: false
@@ -235,7 +247,7 @@ async function seed() {
         description: "10.5oz can of condensed soup",
         sku: "SKU-5011007",
         barcode: "5011007",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Canned Goods")!.id,
+        categoryId: getCategoryId("Canned Goods"),
         price: "1.79",
         cost: "0.95",
         isPerishable: false
@@ -245,7 +257,7 @@ async function seed() {
         description: "12-inch frozen pepperoni pizza",
         sku: "SKU-5011008",
         barcode: "5011008",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Frozen Foods")!.id,
+        categoryId: getCategoryId("Frozen Foods"),
         price: "6.99",
         cost: "3.50",
         isPerishable: false
@@ -255,7 +267,7 @@ async function seed() {
         description: "Fresh red apples",
         sku: "SKU-5011009",
         barcode: "5011009",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Produce")!.id,
+        categoryId: getCategoryId("Produce"),
         price: "0.79",
         cost: "0.35",
         isPerishable: true
@@ -265,7 +277,7 @@ async function seed() {
         description: "6oz container of Greek yogurt",
         sku: "SKU-5011010",
         barcode: "5011010",
-        categoryId: createdCategories.find((c: { name: string; }) => c.name === "Dairy")!.id,
+        categoryId: getCategoryId("Dairy"),
         price: "1.29",
         cost: "0.70",
         isPerishable: true
@@ -274,6 +286,9 @@ async function seed() {
 
     const createdProducts = await Promise.all(
       products.map(async (product) => {
+        if (!createdStores[0]) {
+          throw new Error('No stores available for product creation');
+        }
         const [created] = await db.insert(schema.products).values({...product, storeId: createdStores[0].id}).returning();
         return created;
       })
@@ -282,7 +297,9 @@ async function seed() {
     // Create inventory for each product in each store
     console.log("Creating inventory...");
     for (const store of createdStores) {
+      if (!store) continue; // Skip if store is undefined
       for (const product of createdProducts) {
+        if (!product) continue; // Skip if product is undefined
         // Random quantity between 20 and 100
         const quantity = Math.floor(Math.random() * 81) + 20;
         
@@ -336,12 +353,13 @@ async function seed() {
     const cashiersByStore = cashiers.reduce((acc: Record<number, typeof cashiers>, cashier) => {
       if (!cashier.storeId) return acc;
       if (!acc[cashier.storeId]) acc[cashier.storeId] = [];
-      acc[cashier.storeId].push(cashier);
+      acc[cashier.storeId]!.push(cashier);
       return acc;
     }, {} as Record<number, typeof cashiers>);
 
     // Create a few transactions for each store
     for (const store of createdStores) {
+      if (!store) continue; // Skip if store is undefined
       const storeCashiers = cashiersByStore[store.id] || [];
       if (storeCashiers.length === 0) continue;
 
@@ -349,6 +367,7 @@ async function seed() {
       for (let i = 0; i < 5; i++) {
         const transactionId = `TRX-${28488 - (createdStores.indexOf(store) * 5 + i)}`;
         const cashier = storeCashiers[Math.floor(Math.random() * storeCashiers.length)];
+        if (!cashier) continue; // Skip if cashier is undefined
         
         // Select 1-5 random products for this transaction
         const numProducts = Math.floor(Math.random() * 5) + 1;
@@ -360,6 +379,7 @@ async function seed() {
         const transactionItems = [];
         
         for (const product of selectedProducts) {
+          if (!product) continue; // Skip if product is undefined
           const quantity = Math.floor(Math.random() * 3) + 1;
           const unitPrice = parseFloat(product.price);
           const itemSubtotal = unitPrice * quantity;
@@ -379,7 +399,7 @@ async function seed() {
         // Insert transaction with type assertion to bypass TypeScript schema validation
         const transactionData = {
           storeId: store.id,
-          userId: cashier.id,
+          userId: cashier.id!, // Assert that id exists since we filtered for cashiers
           subtotal: subtotal.toFixed(2),
           tax: tax.toFixed(2),
           total: total.toFixed(2),
@@ -389,6 +409,10 @@ async function seed() {
           createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000) // Random time in the last 24 hours
         };
         const [transaction] = await db.insert(schema.transactions).values(transactionData as any).returning();
+        if (!transaction) {
+          console.warn('Failed to create transaction');
+          continue;
+        }
         
         // Update inventory
         for (const item of transactionItems) {

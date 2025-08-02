@@ -47,24 +47,24 @@ async function checkDatabase(): Promise<{ status: string; responseTime: number; 
   if (!dbPool) {
     return { status: 'DOWN', responseTime: 0, error: 'Database pool not initialized' };
   }
-  
+
   const startTime = performance.now();
-  
+
   try {
     // Simple query to check database connection
     await dbPool.query('SELECT 1');
     const responseTime = Math.round(performance.now() - startTime);
-    
-    return { 
-      status: 'UP', 
+
+    return {
+      status: 'UP',
       responseTime
     };
   } catch (error: any) {
     const responseTime = Math.round(performance.now() - startTime);
     logger.error('Database health check failed', error);
-    
-    return { 
-      status: 'DOWN', 
+
+    return {
+      status: 'DOWN',
       responseTime,
       error: error instanceof Error ? error.message : String(error)
     };
@@ -76,28 +76,28 @@ async function checkDatabase(): Promise<{ status: string; responseTime: number; 
  */
 async function checkRedis(): Promise<{ status: string; responseTime: number; error?: string }> {
   const redisClient = getRedisClient();
-  
+
   if (!redisClient) {
     return { status: 'DISABLED', responseTime: 0 };
   }
-  
+
   const startTime = performance.now();
-  
+
   try {
     // Ping Redis to check connection
     await redisClient.ping();
     const responseTime = Math.round(performance.now() - startTime);
-    
-    return { 
-      status: 'UP', 
-      responseTime 
+
+    return {
+      status: 'UP',
+      responseTime
     };
   } catch (error: any) {
     const responseTime = Math.round(performance.now() - startTime);
     logger.error('Redis health check failed', error);
-    
-    return { 
-      status: 'DOWN', 
+
+    return {
+      status: 'DOWN',
       responseTime,
       error: error instanceof Error ? error.message : String(error)
     };
@@ -112,24 +112,24 @@ async function checkQueueStatus(): Promise<{ status: string; messageCount: numbe
   try {
     // Fixed: Added explicit empty object parameter to match expected function signature
     const queue = getQueue(QueueType.LOYALTY);
-    
+
     if (!queue) {
       return { status: 'DISABLED', messageCount: 0 };
     }
-    
+
     // Get queue info (this will vary based on your queue implementation)
     const queueInfo = await queue.getJobCounts();
-    const messageCount = queueInfo.waiting + queueInfo.active + queueInfo.delayed;
-    
-    return { 
-      status: 'UP', 
+    const messageCount = (queueInfo.waiting || 0) + (queueInfo.active || 0) + (queueInfo.delayed || 0);
+
+    return {
+      status: 'UP',
       messageCount
     };
   } catch (error: any) {
     logger.error('Queue health check failed', error);
-    
-    return { 
-      status: 'DOWN', 
+
+    return {
+      status: 'DOWN',
       messageCount: 0,
       error: error instanceof Error ? error.message : String(error)
     };
@@ -141,7 +141,7 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
   try {
     // Serve the dashboard HTML page
     const dashboardPath = path.join(__dirname, '../../src/views/admin-dashboard.html');
-    
+
     if (fs.existsSync(dashboardPath)) {
       res.sendFile(dashboardPath);
     } else {
@@ -391,7 +391,7 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
         </body>
         </html>
       `;
-      
+
       res.send(htmlContent);
     }
   } catch (error: any) {
@@ -401,17 +401,17 @@ router.get('/', authenticateUser, authorizeRoles(['admin']), (req: Request, res:
 });
 
 // Current health status API
-router.get('/health', authenticateUser, authorizeRoles(['admin']), async (req: Request, res: Response) => {
+router.get('/health', authenticateUser, authorizeRoles(['admin']), async(req: Request, res: Response) => {
   try {
     const startTime = performance.now();
-    
+
     // Run health checks in parallel
     const [dbStatus, redisStatus, queueStatus] = await Promise.all([
       checkDatabase(),
       checkRedis(),
       checkQueueStatus()
     ]);
-    
+
     // Determine overall status
     let overallStatus = 'UP';
     if (dbStatus.status === 'DOWN') {
@@ -419,9 +419,9 @@ router.get('/health', authenticateUser, authorizeRoles(['admin']), async (req: R
     } else if (redisStatus.status === 'DOWN' || queueStatus.status === 'DOWN') {
       overallStatus = 'DEGRADED'; // Can function but with reduced capability
     }
-    
+
     const responseTime = Math.round(performance.now() - startTime);
-    
+
     const healthResult = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
@@ -432,10 +432,10 @@ router.get('/health', authenticateUser, authorizeRoles(['admin']), async (req: R
       },
       responseTime
     };
-    
+
     // Add to history
     addHealthRecord(healthResult);
-    
+
     res.json(healthResult);
   } catch (error: any) {
     logger.error('Health check error', error);

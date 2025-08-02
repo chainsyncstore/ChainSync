@@ -174,14 +174,14 @@ export class PaymentService extends BaseService {
     try {
       // Generate a unique reference
       const reference = `payment_${Date.now()}_${userId}`;
-      
+
       // Apply referral discount if applicable
       let discountedAmount = amount;
       if (referralCode) {
         // TODO: Implement referral discount logic
         discountedAmount = amount * 0.9; // 10% discount for example
       }
-      
+
       if (provider === 'paystack' && this.paystack) {
         const response = await this.paystack.initializeTransaction({
           reference,
@@ -189,7 +189,7 @@ export class PaymentService extends BaseService {
           email,
           metadata: { userId, plan, referralCode }
         });
-        
+
         if (response.status && response.data) {
           // Record the payment initialization in the database
           // TODO: Ensure schema.payment exists and has the correct structure
@@ -203,7 +203,7 @@ export class PaymentService extends BaseService {
             plan,
             metadata: { referralCode }
           });
-          
+
           return {
             authorization_url: response.data.authorization_url,
             reference,
@@ -222,7 +222,7 @@ export class PaymentService extends BaseService {
           email,
           redirect_url: process.env.FLUTTERWAVE_REDIRECT_URL
         });
-        
+
         if (response.status === 'success' && response.data.link) {
           // Record the payment initialization in the database
           // TODO: Ensure schema.payment exists and has the correct structure
@@ -236,7 +236,7 @@ export class PaymentService extends BaseService {
             plan,
             metadata: { referralCode }
           });
-          
+
           return {
             authorization_url: response.data.link,
             reference,
@@ -254,7 +254,7 @@ export class PaymentService extends BaseService {
 
   async trackPaymentStatus(reference: string, status: PaymentStatus['status']): Promise<void> {
     try {
-      await this.withTransaction(async (trx) => {
+      await this.withTransaction(async(trx) => {
         await db.paymentStatus.upsert({
           where: { reference },
           update: {
@@ -281,7 +281,7 @@ export class PaymentService extends BaseService {
     }
 
     const { provider, reference, status, signature } = body;
-    
+
     // Verify webhook signature
     const expectedKey = WEBHOOK_KEYS[provider as 'paystack' | 'flutterwave'];
     if (!expectedKey || !signature || !verifyWebhookSignature(signature, expectedKey)) {
@@ -290,7 +290,7 @@ export class PaymentService extends BaseService {
 
     // Process the webhook
     await this.trackPaymentStatus(reference, status as PaymentStatus['status']);
-    
+
     // Track analytics
     await this.trackPaymentAnalytics({
       reference,
@@ -330,13 +330,13 @@ export class PaymentService extends BaseService {
   async refundPayment(reference: string, amount?: number): Promise<boolean> {
     try {
       const payment = await this.verifyPayment(reference);
-      
+
       if (!payment.success) {
         throw new AppError('payment', 'INVALID_REFUND', 'Cannot refund unsuccessful payment', { reference });
       }
 
       const provider = payment.provider as 'paystack' | 'flutterwave';
-      
+
       if (provider === 'paystack' && this.paystack) {
         const refundResponse = await this.paystack.refundTransaction(reference, amount);
         if (refundResponse.status && refundResponse.data) {
@@ -349,7 +349,7 @@ export class PaymentService extends BaseService {
         const refundResponse = await this.flutterwave.Transaction.refund({
           id: reference,
           amount: amount ?? payment.amount,
-          currency: payment.currency,
+          currency: payment.currency
         });
         if (refundResponse.status === 'success' && refundResponse.data) {
           await this.trackPaymentStatus(reference, 'refunded');
@@ -358,7 +358,7 @@ export class PaymentService extends BaseService {
           throw new AppError('payment', 'REFUND_FAILED', 'Failed to process refund with Flutterwave', { reference, amount });
         }
       }
-      
+
       throw new AppError('payment', 'NO_PAYMENT_PROVIDER', 'No payment provider available for refund', { provider });
     } catch (error: unknown) {
       this.logger.error('Refund processing error:', error);

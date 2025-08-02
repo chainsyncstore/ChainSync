@@ -12,19 +12,20 @@ const logger = getLogger().child({ component: 'auth-middleware' });
 /**
  * Authentication middleware to verify user is logged in
  */
-export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+export const isAuthenticated = (req: Request, res: Response, next: NextFunction): void => {
   // Get request-scoped logger if available
   const reqLogger = getRequestLogger(req) || logger;
-  
+
   if (!req.session.userId) {
     reqLogger.warn('Unauthorized access attempt', {
       path: req.path,
       method: req.method,
       ip: req.ip
     });
-    return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    return;
   }
-  
+
   next();
 };
 
@@ -38,10 +39,10 @@ export const authenticateUser = isAuthenticated;
  * @param roles Array of allowed roles
  */
 export const authorizeRoles = (allowedRoles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     // Get request-scoped logger if available
     const reqLogger = getRequestLogger(req) || logger;
-    
+
     if (!req.session.userId) {
       reqLogger.warn('Unauthorized access attempt', {
         path: req.path,
@@ -49,9 +50,10 @@ export const authorizeRoles = (allowedRoles: string[]) => {
         ip: req.ip,
         requiredRoles: allowedRoles.join(', ')
       });
-      return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+      res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+      return;
     }
-    
+
     if (!req.session.userRole || !allowedRoles.includes(req.session.userRole)) {
       reqLogger.warn('Forbidden access attempt', {
         path: req.path,
@@ -61,23 +63,24 @@ export const authorizeRoles = (allowedRoles: string[]) => {
         userRole: req.session.userRole,
         requiredRoles: allowedRoles.join(', ')
       });
-      return res.status(403).json({ 
-        message: `Forbidden: Required role not found. Need one of: ${allowedRoles.join(', ')}`, 
+      res.status(403).json({
+        message: `Forbidden: Required role not found. Need one of: ${allowedRoles.join(', ')}`,
         code: 'FORBIDDEN_ROLE'
       });
+      return;
     }
-    
+
     // Set user object for downstream middleware and route handlers
     if (req.session.userRole) {
         req.user = {
           id: String(req.session.userId), // Convert number to string to match interface
           role: req.session.userRole,
           storeId: req.session.storeId,
-          name: req.session.fullName || '',
-          email: '' // Add email property
-        };
+          name: req.session.fullName || undefined,
+          email: undefined // Add email property
+        } as any;
       }
-    
+
     next();
   };
 };
@@ -85,10 +88,10 @@ export const authorizeRoles = (allowedRoles: string[]) => {
 /**
  * Role-based access control for admin-only resources
  */
-export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const isAdmin = (req: Request, res: Response, next: NextFunction): void => {
   // Get request-scoped logger if available
   const reqLogger = getRequestLogger(req) || logger;
-  
+
   if (!req.session.userId) {
     reqLogger.warn('Unauthorized access attempt', {
       path: req.path,
@@ -96,9 +99,10 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
       ip: req.ip,
       requiredRole: 'admin'
     });
-    return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    return;
   }
-  
+
   if (req.session.userRole !== 'admin') {
     reqLogger.warn('Forbidden access attempt', {
       path: req.path,
@@ -108,22 +112,23 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
       userRole: req.session.userRole,
       requiredRole: 'admin'
     });
-    return res.status(403).json({ 
-      message: 'Forbidden: Admin access required', 
+    res.status(403).json({
+      message: 'Forbidden: Admin access required',
       code: 'FORBIDDEN_ROLE'
     });
+    return;
   }
-  
+
   next();
 };
 
 /**
  * Role-based access control for manager/admin resources
  */
-export const isManagerOrAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const isManagerOrAdmin = (req: Request, res: Response, next: NextFunction): void => {
   // Get request-scoped logger if available
   const reqLogger = getRequestLogger(req) || logger;
-  
+
   if (!req.session.userId) {
     reqLogger.warn('Unauthorized access attempt', {
       path: req.path,
@@ -131,9 +136,10 @@ export const isManagerOrAdmin = (req: Request, res: Response, next: NextFunction
       ip: req.ip,
       requiredRole: 'manager or admin'
     });
-    return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    return;
   }
-  
+
   if (req.session.userRole !== 'manager' && req.session.userRole !== 'admin') {
     reqLogger.warn('Forbidden access attempt', {
       path: req.path,
@@ -143,22 +149,23 @@ export const isManagerOrAdmin = (req: Request, res: Response, next: NextFunction
       userRole: req.session.userRole,
       requiredRole: 'manager or admin'
     });
-    return res.status(403).json({ 
-      message: 'Forbidden: Manager or admin access required', 
+    res.status(403).json({
+      message: 'Forbidden: Manager or admin access required',
       code: 'FORBIDDEN_ROLE'
     });
+    return;
   }
-  
+
   next();
 };
 
 /**
  * Role-based access control for cashier/manager/admin resources
  */
-export const isCashierOrAbove = (req: Request, res: Response, next: NextFunction) => {
+export const isCashierOrAbove = (req: Request, res: Response, next: NextFunction): void => {
   // Get request-scoped logger if available
   const reqLogger = getRequestLogger(req) || logger;
-  
+
   if (!req.session.userId) {
     reqLogger.warn('Unauthorized access attempt', {
       path: req.path,
@@ -166,9 +173,10 @@ export const isCashierOrAbove = (req: Request, res: Response, next: NextFunction
       ip: req.ip,
       requiredRole: 'cashier or above'
     });
-    return res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    res.status(401).json({ message: 'Unauthorized: Please log in', code: 'UNAUTHORIZED' });
+    return;
   }
-  
+
   const validRoles = ['cashier', 'manager', 'admin'];
   if (!req.session.userRole || !validRoles.includes(req.session.userRole)) {
     reqLogger.warn('Forbidden access attempt', {
@@ -179,12 +187,13 @@ export const isCashierOrAbove = (req: Request, res: Response, next: NextFunction
       userRole: req.session.userRole,
       requiredRole: 'cashier or above'
     });
-    return res.status(403).json({ 
-      message: 'Forbidden: Staff access required', 
+    res.status(403).json({
+      message: 'Forbidden: Staff access required',
       code: 'FORBIDDEN_ROLE'
     });
+    return;
   }
-  
+
   next();
 };
 
@@ -193,10 +202,10 @@ export const isCashierOrAbove = (req: Request, res: Response, next: NextFunction
  * Verifies that the user has access to the requested store
  */
 export const hasStoreAccess = (storeIdParam = 'storeId') => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     // Get request-scoped logger if available
     const reqLogger = getRequestLogger(req) || logger;
-    
+
     if (!req.session.userId) {
       reqLogger.warn('Unauthorized store access attempt', {
         path: req.path,
@@ -204,15 +213,16 @@ export const hasStoreAccess = (storeIdParam = 'storeId') => {
         ip: req.ip,
         storeIdParam
       });
-      return res.status(401).json({ 
-        message: 'Unauthorized: Please log in', 
-        code: 'UNAUTHORIZED' 
+      res.status(401).json({
+        message: 'Unauthorized: Please log in',
+        code: 'UNAUTHORIZED'
       });
+      return;
     }
-    
+
     // Extract store ID from request (params, query, or body)
     let storeId: number | undefined;
-    
+
     if (req.params[storeIdParam]) {
       storeId = parseInt(req.params[storeIdParam], 10);
     } else if (req.body[storeIdParam]) {
@@ -220,7 +230,7 @@ export const hasStoreAccess = (storeIdParam = 'storeId') => {
     } else if (req.query[storeIdParam]) {
       storeId = parseInt(req.query[storeIdParam] as string, 10);
     }
-    
+
     if (!storeId || isNaN(storeId)) {
       reqLogger.warn('Invalid store ID in request', {
         path: req.path,
@@ -228,21 +238,23 @@ export const hasStoreAccess = (storeIdParam = 'storeId') => {
         storeIdParam,
         providedValue: req.params[storeIdParam] || req.body[storeIdParam] || req.query[storeIdParam]
       });
-      return res.status(400).json({ 
-        message: 'Invalid store ID', 
-        code: 'INVALID_STORE_ID' 
+      res.status(400).json({
+        message: 'Invalid store ID',
+        code: 'INVALID_STORE_ID'
       });
+      return;
     }
-    
+
     // Admins have access to all stores
     if (req.session.userRole === 'admin') {
       reqLogger.debug('Admin access to store granted', {
         userId: req.session.userId,
         storeId
       });
-      return next();
+      next();
+      return;
     }
-    
+
     // Managers and cashiers can only access their assigned store
     if (req.session.storeId !== storeId) {
       reqLogger.warn('Forbidden store access attempt', {
@@ -254,12 +266,13 @@ export const hasStoreAccess = (storeIdParam = 'storeId') => {
         assignedStoreId: req.session.storeId,
         requestedStoreId: storeId
       });
-      return res.status(403).json({ 
-        message: 'Forbidden: You do not have access to this store', 
-        code: 'FORBIDDEN_STORE_ACCESS' 
+      res.status(403).json({
+        message: 'Forbidden: You do not have access to this store',
+        code: 'FORBIDDEN_STORE_ACCESS'
       });
+      return;
     }
-    
+
     next();
   };
 };
@@ -268,17 +281,17 @@ export const hasStoreAccess = (storeIdParam = 'storeId') => {
  * Validate user session before processing requests
  * Checks that user still exists in database and has correct permissions
  */
-export const validateSession = async (req: Request, res: Response, next: NextFunction) => {
+export const validateSession = async(req: Request, res: Response, next: NextFunction): Promise<void> => {
   // Get request-scoped logger if available
   const reqLogger = getRequestLogger(req) || logger;
-  
+
   reqLogger.debug('Validating session', {
     path: req.path,
     method: req.method,
     sessionID: req.sessionID,
     hasUserId: !!req.session.userId
   });
-  
+
   if (req.session.userId) {
     try {
       // Verify user still exists and is valid
@@ -291,13 +304,13 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
           isActive: true
         }
       });
-      
+
       if (!user) {
         reqLogger.warn('Invalid session - user not found', {
           userId: req.session.userId,
           sessionID: req.sessionID
         });
-        
+
         // User no longer exists, destroy session
         await new Promise<void>((resolve) => {
           req.session.destroy((err) => {
@@ -309,18 +322,20 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
             resolve();
           });
         });
-        
+
         // Special case for /me endpoint to handle auth check
         if (req.path.startsWith('/api/auth/me')) {
-          return next(); // Continue to auth/me handler for proper error response
+          next(); // Continue to auth/me handler for proper error response
+          return;
         }
-        
-        return res.status(401).json({ 
-          message: 'Session expired. Please log in again.', 
-          code: 'SESSION_EXPIRED' 
+
+        res.status(401).json({
+          message: 'Session expired. Please log in again.',
+          code: 'SESSION_EXPIRED'
         });
+        return;
       }
-      
+
       // Check if user is active
       if (user.isActive === false) {
         reqLogger.warn('Inactive user attempted access', {
@@ -328,7 +343,7 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
           role: user.role,
           sessionID: req.sessionID
         });
-        
+
         // Destroy session for inactive user
         await new Promise<void>((resolve) => {
           req.session.destroy((err) => {
@@ -338,13 +353,14 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
             resolve();
           });
         });
-        
-        return res.status(403).json({ 
-          message: 'Your account has been deactivated. Please contact an administrator.', 
-          code: 'ACCOUNT_INACTIVE' 
+
+        res.status(403).json({
+          message: 'Your account has been deactivated. Please contact an administrator.',
+          code: 'ACCOUNT_INACTIVE'
         });
+        return;
       }
-      
+
       // Verify session matches current role (prevent stale permissions)
       if (user.role !== req.session.userRole) {
         reqLogger.warn('User role mismatch - updating session', {
@@ -352,30 +368,30 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
           sessionRole: req.session.userRole,
           actualRole: user.role
         });
-        
+
         // Update session with current role
-        req.session.userRole = user.role as typeof req.session.userRole;
+        req.session.userRole = (user.role || 'user') as any;
       }
-      
+
       // Session is valid
       reqLogger.debug('User session validated', {
         userId: user.id,
         role: user.role
       });
-      
+
       // Update user context in request for downstream use
       (req as any).user = {
         id: user.id,
         email: user.email,
         role: user.role
       };
-      
+
     } catch (error) {
       reqLogger.error('Error validating session', error instanceof Error ? error : new Error(String(error)), {
         path: req.path,
         sessionID: req.sessionID
       });
-      
+
       // Continue processing request, but session may be invalid
       // This prevents one DB error from blocking all requests
     }
@@ -387,6 +403,6 @@ export const validateSession = async (req: Request, res: Response, next: NextFun
       isPublicRoute: req.path.startsWith('/api/public/')
     });
   }
-  
+
   next();
 };

@@ -5,7 +5,7 @@ export const baseSchema = z.object({
   id: z.number().int(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED']),
+  status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'])
 });
 
 // Product-specific validation schema
@@ -18,7 +18,7 @@ export const productSchema = baseSchema.extend({
   category: z.string().optional(),
   tags: z.array(z.string()).optional(),
   images: z.array(z.string().url()).optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE']),
+  status: z.enum(['ACTIVE', 'INACTIVE'])
 });
 
 // Order-specific validation schema
@@ -26,7 +26,7 @@ export const orderSchema = baseSchema.extend({
   userId: z.number(),
   items: z.array(z.object({
     productId: z.number(),
-    quantity: z.number().min(1),
+    quantity: z.number().min(1)
   })),
   status: z.enum(['PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
   shippingAddress: z.object({
@@ -34,8 +34,8 @@ export const orderSchema = baseSchema.extend({
     city: z.string().min(1),
     state: z.string().min(1),
     postalCode: z.string().min(1),
-    country: z.string().min(1),
-  }),
+    country: z.string().min(1)
+  })
 });
 
 // Customer-specific validation schema
@@ -49,15 +49,15 @@ export const customerSchema = baseSchema.extend({
     city: z.string().min(1),
     state: z.string().min(1),
     postalCode: z.string().min(1),
-    country: z.string().min(1),
-  }),
+    country: z.string().min(1)
+  })
 });
 
 // Export all schemas
 export const schemas = {
   product: productSchema,
   order: orderSchema,
-  customer: customerSchema,
+  customer: customerSchema
 };
 
 // Custom error messages
@@ -70,5 +70,5 @@ export const validationErrors = {
   MIN_LENGTH: (min: number) => `Minimum length is ${min} characters`,
   MAX_LENGTH: (max: number) => `Maximum length is ${max} characters`,
   MIN_VALUE: (min: number) => `Minimum value is ${min}`,
-  MAX_VALUE: (max: number) => `Maximum value is ${max}`,
+  MAX_VALUE: (max: number) => `Maximum value is ${max}`
 };

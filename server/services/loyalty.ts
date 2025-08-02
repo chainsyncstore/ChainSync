@@ -1,14 +1,14 @@
-import { getDatabase } from "../database";
-import * as schema from "../../shared/schema";
-import { eq, and, gt, lt, desc, sql } from "drizzle-orm";
-import { logger } from "../services/logger";
+import { getDatabase } from '../database';
+import * as schema from '../../shared/schema';
+import { eq, and, gt, lt, desc, sql } from 'drizzle-orm';
+import { logger } from '../services/logger';
 import {
   prepareLoyaltyMemberData
   // prepareLoyaltyTierData, // Unused
   // formatLoyaltyMemberResult, // Unused
   // formatLoyaltyTierResult // Unused
-} from "../../shared/schema-helpers";
-import { LoyaltyTransaction } from "../../shared/types";
+} from '../../shared/schema-helpers';
+import { LoyaltyTransaction } from '../../shared/types';
 
 let db: any;
 getDatabase().then(database => {
@@ -24,7 +24,7 @@ interface LoyaltyProgramWithTiers extends schema.SelectLoyaltyProgram {
 
 export async function getLoyaltyProgram(programId: number): Promise<LoyaltyProgramWithTiers | null> {
   const program = await db.query.loyaltyPrograms.findFirst({
-    where: eq(schema.loyaltyPrograms.id, programId),
+    where: eq(schema.loyaltyPrograms.id, programId)
   }) as LoyaltyProgramWithTiers | null;
 
   return program;
@@ -35,7 +35,7 @@ export async function getLoyaltyProgram(programId: number): Promise<LoyaltyProgr
  */
 async function checkAndUpdateMemberTier(memberId: number, currentPoints: string): Promise<void> {
   const member = await db.query.loyaltyMembers.findFirst({
-    where: eq(schema.loyaltyMembers.id, memberId),
+    where: eq(schema.loyaltyMembers.id, memberId)
   });
 
   if (!member) {
@@ -53,7 +53,7 @@ async function checkAndUpdateMemberTier(memberId: number, currentPoints: string)
     threshold: number;
   }
   const tiers = JSON.parse(program.description) as LoyaltyTier[];
-  
+
   // Find highest tier member qualifies for
   const newTier = tiers
     .sort((a, b) => b.threshold - a.threshold)
@@ -68,17 +68,16 @@ async function checkAndUpdateMemberTier(memberId: number, currentPoints: string)
 }
 
 
-
 // Helper function to generate random strings
 function generateRandomString(length: number): string {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   const charactersLength = characters.length;
-  
+
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
-  
+
   return result;
 }
 
@@ -87,14 +86,14 @@ function generateRandomString(length: number): string {
  */
 export async function generateLoyaltyId(): Promise<string> {
   // Generate a unique ID with format LOY-XXXXX where X is alphanumeric
-  const prefix = "LOY-";
+  const prefix = 'LOY-';
   let loyaltyId = prefix + generateRandomString(5).toUpperCase();
-  
+
   // Check if ID already exists
   let existingMember = await db.query.loyaltyMembers.findFirst({
     where: eq(schema.loyaltyMembers.loyaltyId, loyaltyId)
   });
-  
+
   // Generate new IDs until we find a unique one
   while (existingMember) {
     loyaltyId = prefix + generateRandomString(5).toUpperCase();
@@ -102,7 +101,7 @@ export async function generateLoyaltyId(): Promise<string> {
       where: eq(schema.loyaltyMembers.loyaltyId, loyaltyId)
     });
   }
-  
+
   return loyaltyId;
 }
 
@@ -112,54 +111,54 @@ export async function generateLoyaltyId(): Promise<string> {
 export async function enrollCustomer(customerId: number, storeId: number, userId: number): Promise<schema.SelectLoyaltyMember> {
   // Check if already enrolled
   const existingMember = await db.query.loyaltyMembers.findFirst({
-    where: eq(schema.loyaltyMembers.userId, customerId),
+    where: eq(schema.loyaltyMembers.userId, customerId)
   });
-  
+
   if (existingMember) {
     return existingMember;
   }
-  
+
   // Get loyalty program for the store
   let program = await db.query.loyaltyPrograms.findFirst({
     where: and(
-      eq(schema.loyaltyPrograms.id, storeId),
+      eq(schema.loyaltyPrograms.id, storeId)
     )
   });
-  
+
   // If no program exists for this store, create a default one
   if (!program) {
     const [newProgram] = await db.insert(schema.loyaltyPrograms)
       .values({
-        name: "ChainSync Rewards",
-        description: "Default loyalty program",
+        name: 'ChainSync Rewards',
+        description: 'Default loyalty program'
       })
       .returning();
-    
+
     program = newProgram;
   }
-  
+
   // Generate loyalty ID
   const loyaltyId = await generateLoyaltyId();
-  
+
   // Create a new loyalty member
   const [member] = await db.insert(schema.loyaltyMembers)
       .values({
         userId: customerId,
         loyaltyId,
-        currentPoints: "0",
+        currentPoints: '0',
         createdAt: new Date()
       })
     .returning();
-  
+
   // Record loyalty transaction for enrollment
   await db.insert(schema.loyaltyTransactions)
       .values({
         memberId: member.id,
-        source: "enrollment",
-        points: "0",
-        transactionId: 0,
+        source: 'enrollment',
+        points: '0',
+        transactionId: 0
       });
-  
+
   return member;
 }
 
@@ -175,22 +174,22 @@ export async function calculatePointsForTransaction(
   const program = await db.query.loyaltyPrograms.findFirst({
     where: eq(schema.loyaltyPrograms.id, storeId)
   });
-  
+
   if (!program) {
     return 0; // No active loyalty program
   }
-  
+
   // Convert subtotal to number if it's a string
   const subtotalAmount = typeof subtotal === 'string' ? parseFloat(subtotal) : subtotal;
-  
+
   // Base points from subtotal
-  const pointsPerAmount = parseFloat(program.description || "0");
+  const pointsPerAmount = parseFloat(program.description || '0');
   let totalPoints = subtotalAmount * pointsPerAmount;
-  
+
   // Additional points from product bonuses
   if (items && items.length > 0) {
     const productIds = items.map(item => item.productId);
-    
+
     // Get products to check for bonus points
     interface Product {
       id: number;
@@ -224,7 +223,7 @@ export async function calculatePointsForTransaction(
       }
     }
   }
-  
+
   // Return rounded points (usually we'd round down for points)
   return Math.floor(totalPoints);
 }
@@ -240,12 +239,12 @@ export async function recordPointsEarned(
 ): Promise<{ success: boolean; transaction?: LoyaltyTransaction }> {
   try {
     if (points <= 0) {
-      logger.info("No points to accrue", { transactionId, memberId, points, userId, timestamp: new Date().toISOString() });
+      logger.info('No points to accrue', { transactionId, memberId, points, userId, timestamp: new Date().toISOString() });
       return { success: false };
     }
     // Get the member to check their tier and customer
     const member = await db.query.loyaltyMembers.findFirst({
-      where: eq(schema.loyaltyMembers.id, memberId),
+      where: eq(schema.loyaltyMembers.id, memberId)
     });
 
     if (!member) {
@@ -254,15 +253,15 @@ export async function recordPointsEarned(
     }
 
     // Get member's tier if any
-    let pointsToAdd = points;
-    
+    const pointsToAdd = points;
+
     // Calculate updated points
     const updatedPoints = (parseFloat(member.currentPoints || '0') + pointsToAdd).toFixed(2);
-    const result = await db.transaction(async (tx:any) => {
+    const result = await db.transaction(async(tx:any) => {
       // Add points to member
       await tx
         .update(schema.loyaltyMembers)
-        .set({ 
+        .set({
           currentPoints: updatedPoints,
           updatedAt: new Date()
         })
@@ -275,7 +274,7 @@ export async function recordPointsEarned(
           memberId,
           transactionId,
           source: 'purchase',
-          points: pointsToAdd.toFixed(2),
+          points: pointsToAdd.toFixed(2)
         })
         .returning();
 
@@ -290,9 +289,9 @@ export async function recordPointsEarned(
     await checkAndUpdateMemberTier(memberId, updatedPoints);
 
     logger.info('Points accrued', { memberId, transactionId, points: pointsToAdd, userId, timestamp: new Date().toISOString() });
-    return { 
+    return {
       success: true,
-      transaction: result 
+      transaction: result
     };
   } catch (error) {
     logger.error('Error recording points earned', { error, transactionId, memberId, userId });
@@ -324,7 +323,7 @@ export async function getLoyaltyAnalytics(storeId: number): Promise<{
 }> {
   // Get program for store
   const program = await getLoyaltyProgram(storeId);
-  
+
   // Get members for this store
   interface LoyaltyMemberStats {
     id: number;
@@ -344,7 +343,7 @@ export async function getLoyaltyAnalytics(storeId: number): Promise<{
     columns: {
       id: true,
       currentPoints: true,
-      userId: true,
+      userId: true
     }
   }) as any[];
 
@@ -355,20 +354,20 @@ export async function getLoyaltyAnalytics(storeId: number): Promise<{
   const activeMembers = storeMembers.reduce((acc: number, member: any): number => {
     return acc + (member.isActive ? 1 : 0);
   }, 0);
-  
+
   const totalPointsEarned = storeMembers.reduce((acc: number, member: any): number => {
     return acc + parseFloat(member.totalPointsEarned || '0');
   }, 0).toFixed(2);
-  
+
   const totalPointsRedeemed = storeMembers.reduce((acc: number, member: any): number => {
     return acc + parseFloat(member.totalPointsRedeemed || '0');
   }, 0).toFixed(2);
-  
+
   const averagePoints = (storeMembers.reduce(
-    (sum: number, member: any): number => sum + parseFloat(member.currentPoints || "0"),
+    (sum: number, member: any): number => sum + parseFloat(member.currentPoints || '0'),
     0
   ) / (storeMembers.length || 1)).toFixed(2);
-  
+
   const recentRedemptions: any[] = [];
 
   interface RewardSummary {
@@ -380,7 +379,7 @@ export async function getLoyaltyAnalytics(storeId: number): Promise<{
 
   // Get redemption counts for rewards
   const redemptionCounts = await Promise.all(
-    rewards.map(async (reward) => {
+    rewards.map(async(reward) => {
       const redemptions = await db.query.loyaltyTransactions.findMany({
         where: and(
           eq(schema.loyaltyTransactions.source, 'redeem'),

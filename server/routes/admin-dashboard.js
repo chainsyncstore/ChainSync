@@ -1,18 +1,18 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+'use strict';
+const __importDefault = (this && this.__importDefault) || function(mod) {
+  return (mod && mod.__esModule) ? mod : { 'default': mod };
 };
-Object.defineProperty(exports, "__esModule", { value: true });
+Object.defineProperty(exports, '__esModule', { value: true });
 // server/routes/admin-dashboard.ts
-const express_1 = __importDefault(require("express"));
-const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
-const auth_1 = require("../middleware/auth");
-const pool_1 = require("../../db/pool");
-const redis_1 = require("../../src/cache/redis");
-const logging_1 = require("../../src/logging");
-const queue_1 = require("../../src/queue");
-const perf_hooks_1 = require("perf_hooks");
+const express_1 = __importDefault(require('express'));
+const path_1 = __importDefault(require('path'));
+const fs_1 = __importDefault(require('fs'));
+const auth_1 = require('../middleware/auth');
+const pool_1 = require('../../db/pool');
+const redis_1 = require('../../src/cache/redis');
+const logging_1 = require('../../src/logging');
+const queue_1 = require('../../src/queue');
+const perf_hooks_1 = require('perf_hooks');
 const router = express_1.default.Router();
 const logger = (0, logging_1.getLogger)().child({ component: 'admin-dashboard' });
 const healthHistory = [];
@@ -20,107 +20,107 @@ const healthHistory = [];
 const MAX_HISTORY = 100;
 // Add a health check record
 function addHealthRecord(record) {
-    healthHistory.unshift(record);
-    if (healthHistory.length > MAX_HISTORY) {
-        healthHistory.pop();
-    }
+  healthHistory.unshift(record);
+  if (healthHistory.length > MAX_HISTORY) {
+    healthHistory.pop();
+  }
 }
 /**
  * Database health check
  */
 async function checkDatabase() {
-    const dbPool = (0, pool_1.getPool)();
-    if (!dbPool) {
-        return { status: 'DOWN', responseTime: 0, error: 'Database pool not initialized' };
-    }
-    const startTime = perf_hooks_1.performance.now();
-    try {
-        // Simple query to check database connection
-        await dbPool.query('SELECT 1');
-        const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
-        return {
-            status: 'UP',
-            responseTime
-        };
-    }
-    catch (error) {
-        const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
-        logger.error('Database health check failed', error);
-        return {
-            status: 'DOWN',
-            responseTime,
-            error: error instanceof Error ? error.message : String(error)
-        };
-    }
+  const dbPool = (0, pool_1.getPool)();
+  if (!dbPool) {
+    return { status: 'DOWN', responseTime: 0, error: 'Database pool not initialized' };
+  }
+  const startTime = perf_hooks_1.performance.now();
+  try {
+    // Simple query to check database connection
+    await dbPool.query('SELECT 1');
+    const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
+    return {
+      status: 'UP',
+      responseTime
+    };
+  }
+  catch (error) {
+    const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
+    logger.error('Database health check failed', error);
+    return {
+      status: 'DOWN',
+      responseTime,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 }
 /**
  * Redis health check
  */
 async function checkRedis() {
-    const redisClient = (0, redis_1.getRedisClient)();
-    if (!redisClient) {
-        return { status: 'DISABLED', responseTime: 0 };
-    }
-    const startTime = perf_hooks_1.performance.now();
-    try {
-        // Ping Redis to check connection
-        await redisClient.ping();
-        const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
-        return {
-            status: 'UP',
-            responseTime
-        };
-    }
-    catch (error) {
-        const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
-        logger.error('Redis health check failed', error);
-        return {
-            status: 'DOWN',
-            responseTime,
-            error: error instanceof Error ? error.message : String(error)
-        };
-    }
+  const redisClient = (0, redis_1.getRedisClient)();
+  if (!redisClient) {
+    return { status: 'DISABLED', responseTime: 0 };
+  }
+  const startTime = perf_hooks_1.performance.now();
+  try {
+    // Ping Redis to check connection
+    await redisClient.ping();
+    const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
+    return {
+      status: 'UP',
+      responseTime
+    };
+  }
+  catch (error) {
+    const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
+    logger.error('Redis health check failed', error);
+    return {
+      status: 'DOWN',
+      responseTime,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 }
 /**
  * Queue health check
  */
-const queue_2 = require("../../src/queue");
+const queue_2 = require('../../src/queue');
 async function checkQueueStatus() {
-    try {
-        // Fixed: Added explicit empty object parameter to match expected function signature
-        const queue = (0, queue_1.getQueue)(queue_2.QueueType.LOYALTY);
-        if (!queue) {
-            return { status: 'DISABLED', messageCount: 0 };
-        }
-        // Get queue info (this will vary based on your queue implementation)
-        const queueInfo = await queue.getJobCounts();
-        const messageCount = queueInfo.waiting + queueInfo.active + queueInfo.delayed;
-        return {
-            status: 'UP',
-            messageCount
-        };
+  try {
+    // Fixed: Added explicit empty object parameter to match expected function signature
+    const queue = (0, queue_1.getQueue)(queue_2.QueueType.LOYALTY);
+    if (!queue) {
+      return { status: 'DISABLED', messageCount: 0 };
     }
-    catch (error) {
-        logger.error('Queue health check failed', error);
-        return {
-            status: 'DOWN',
-            messageCount: 0,
-            error: error instanceof Error ? error.message : String(error)
-        };
-    }
+    // Get queue info (this will vary based on your queue implementation)
+    const queueInfo = await queue.getJobCounts();
+    const messageCount = queueInfo.waiting + queueInfo.active + queueInfo.delayed;
+    return {
+      status: 'UP',
+      messageCount
+    };
+  }
+  catch (error) {
+    logger.error('Queue health check failed', error);
+    return {
+      status: 'DOWN',
+      messageCount: 0,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 }
 // Dashboard HTML route - requires admin role
 router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), (req, res) => {
-    try {
-        // Serve the dashboard HTML page
-        const dashboardPath = path_1.default.join(__dirname, '../../src/views/admin-dashboard.html');
-        if (fs_1.default.existsSync(dashboardPath)) {
-            res.sendFile(dashboardPath);
-        }
-        else {
-            // If file doesn't exist, render inline HTML
-            // @ts-ignore - Ignore TypeScript errors in the template string
-            const htmlContent = `
+  try {
+    // Serve the dashboard HTML page
+    const dashboardPath = path_1.default.join(__dirname, '../../src/views/admin-dashboard.html');
+    if (fs_1.default.existsSync(dashboardPath)) {
+      res.sendFile(dashboardPath);
+    }
+    else {
+      // If file doesn't exist, render inline HTML
+      // @ts-ignore - Ignore TypeScript errors in the template string
+      const htmlContent = `
         <!DOCTYPE html>
         <html lang="en">
         <head>
@@ -364,64 +364,64 @@ router.get('/', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), 
         </body>
         </html>
       `;
-            res.send(htmlContent);
-        }
+      res.send(htmlContent);
     }
-    catch (error) {
-        logger.error('Error serving dashboard', error);
-        res.status(500).send('Error loading dashboard');
-    }
+  }
+  catch (error) {
+    logger.error('Error serving dashboard', error);
+    res.status(500).send('Error loading dashboard');
+  }
 });
 // Current health status API
-router.get('/health', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), async (req, res) => {
-    try {
-        const startTime = perf_hooks_1.performance.now();
-        // Run health checks in parallel
-        const [dbStatus, redisStatus, queueStatus] = await Promise.all([
-            checkDatabase(),
-            checkRedis(),
-            checkQueueStatus()
-        ]);
-        // Determine overall status
-        let overallStatus = 'UP';
-        if (dbStatus.status === 'DOWN') {
-            overallStatus = 'DOWN'; // Database is critical
-        }
-        else if (redisStatus.status === 'DOWN' || queueStatus.status === 'DOWN') {
-            overallStatus = 'DEGRADED'; // Can function but with reduced capability
-        }
-        const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
-        const healthResult = {
-            status: overallStatus,
-            timestamp: new Date().toISOString(),
-            components: {
-                database: dbStatus,
-                redis: redisStatus,
-                queue: queueStatus
-            },
-            responseTime
-        };
-        // Add to history
-        addHealthRecord(healthResult);
-        res.json(healthResult);
+router.get('/health', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), async(req, res) => {
+  try {
+    const startTime = perf_hooks_1.performance.now();
+    // Run health checks in parallel
+    const [dbStatus, redisStatus, queueStatus] = await Promise.all([
+      checkDatabase(),
+      checkRedis(),
+      checkQueueStatus()
+    ]);
+    // Determine overall status
+    let overallStatus = 'UP';
+    if (dbStatus.status === 'DOWN') {
+      overallStatus = 'DOWN'; // Database is critical
     }
-    catch (error) {
-        logger.error('Health check error', error);
-        res.status(500).json({
-            status: 'ERROR',
-            timestamp: new Date().toISOString(),
-            error: error instanceof Error ? error.message : String(error)
-        });
+    else if (redisStatus.status === 'DOWN' || queueStatus.status === 'DOWN') {
+      overallStatus = 'DEGRADED'; // Can function but with reduced capability
     }
+    const responseTime = Math.round(perf_hooks_1.performance.now() - startTime);
+    const healthResult = {
+      status: overallStatus,
+      timestamp: new Date().toISOString(),
+      components: {
+        database: dbStatus,
+        redis: redisStatus,
+        queue: queueStatus
+      },
+      responseTime
+    };
+    // Add to history
+    addHealthRecord(healthResult);
+    res.json(healthResult);
+  }
+  catch (error) {
+    logger.error('Health check error', error);
+    res.status(500).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 });
 // Health check history API
 router.get('/health/history', auth_1.authenticateUser, (0, auth_1.authorizeRoles)(['admin']), (req, res) => {
-    try {
-        res.json(healthHistory);
-    }
-    catch (error) {
-        logger.error('Error fetching health history', error);
-        res.status(500).json({ error: 'Failed to retrieve health history' });
-    }
+  try {
+    res.json(healthHistory);
+  }
+  catch (error) {
+    logger.error('Error fetching health history', error);
+    res.status(500).json({ error: 'Failed to retrieve health history' });
+  }
 });
 exports.default = router;

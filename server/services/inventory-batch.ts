@@ -35,14 +35,18 @@ export interface BatchData {
 export async function addBatch(batchData: BatchData) {
   try {
     let inventory = await db.query.inventory.findFirst({
-      where: and(eq(schema.inventory.storeId, batchData.storeId), eq(schema.inventory.productId, batchData.productId)),
+      where: and(eq(schema.inventory.storeId, batchData.storeId), eq(schema.inventory.productId, batchData.productId))
     });
 
     if (!inventory) {
       [inventory] = await db.insert(schema.inventory).values({
         storeId: batchData.storeId,
-        productId: batchData.productId,
+        productId: batchData.productId
       }).returning();
+    }
+
+    if (!inventory) {
+      throw new Error('Inventory not found');
     }
 
     const [batch] = await db.insert(schema.inventoryBatches).values({
@@ -52,11 +56,11 @@ export async function addBatch(batchData: BatchData) {
       expiryDate: batchData.expiryDate ? new Date(batchData.expiryDate) : null,
       receivedDate: new Date(),
       manufacturingDate: batchData.manufacturingDate ? new Date(batchData.manufacturingDate) : null,
-      costPerUnit: batchData.costPerUnit || null,
+      costPerUnit: batchData.costPerUnit || null
     } as any).returning();
 
     await updateInventoryTotalQuantity(inventory.id);
-    
+
     return batch;
   } catch (error) {
     console.error('Error adding batch:', error);
@@ -70,7 +74,7 @@ export async function addBatch(batchData: BatchData) {
 export async function getBatches(storeId: number, productId: number, includeExpired = false) {
   try {
     const inventory = await db.query.inventory.findFirst({
-      where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, productId)),
+      where: and(eq(schema.inventory.storeId, storeId), eq(schema.inventory.productId, productId))
     });
 
     if (!inventory) {
@@ -84,7 +88,7 @@ export async function getBatches(storeId: number, productId: number, includeExpi
 
     return await db.query.inventoryBatches.findMany({
       where: and(...conditions),
-      orderBy: [desc(schema.inventoryBatches.expiryDate)],
+      orderBy: [desc(schema.inventoryBatches.expiryDate)]
     });
   } catch (error) {
     console.error('Error getting batches:', error);
@@ -98,7 +102,7 @@ export async function getBatches(storeId: number, productId: number, includeExpi
 export async function getBatchById(batchId: number) {
   try {
     return await db.query.inventoryBatches.findFirst({
-      where: eq(schema.inventoryBatches.id, batchId),
+      where: eq(schema.inventoryBatches.id, batchId)
     });
   } catch (error) {
     console.error('Error getting batch by ID:', error);
@@ -150,7 +154,7 @@ export async function adjustBatchStock(adjustment: BatchStockAdjustment) {
     }
 
     const newQuantity = currentBatch.quantity + adjustment.quantity;
-    
+
     if (newQuantity < 0) {
       throw new Error('Adjustment would result in negative stock');
     }
@@ -205,7 +209,7 @@ export async function returnToBatch(batchId: number, quantity: number) {
 export async function sellFromBatchesFIFO(storeId: number, productId: number, quantity: number) {
   try {
     const batches = await getBatches(storeId, productId, false);
-    
+
     const sortedBatches = batches.sort((a: any, b: any) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
@@ -220,7 +224,7 @@ export async function sellFromBatchesFIFO(storeId: number, productId: number, qu
       if (remainingQty <= 0) break;
 
       const qtyToSell = Math.min(batch.quantity, remainingQty);
-      
+
       if (qtyToSell > 0) {
         const updatedBatch = await sellFromBatch(batch.id, qtyToSell);
         updatedBatches.push(updatedBatch);
@@ -245,9 +249,9 @@ async function updateInventoryTotalQuantity(inventoryId: number) {
     .from(schema.inventoryBatches)
     .where(eq(schema.inventoryBatches.inventoryId, inventoryId));
 
-  const totalQuantity = Number(result[0].total) || 0;
+  const totalQuantity = Number(result[0]?.total) || 0;
 
-  await db.update(schema.inventory).set({ 
-    totalQuantity: totalQuantity,
+  await db.update(schema.inventory).set({
+    totalQuantity: totalQuantity
   } as any).where(eq(schema.inventory.id, inventoryId));
 }

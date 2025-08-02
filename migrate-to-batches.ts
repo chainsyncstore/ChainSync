@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 
 async function migrateToBatchInventory() {
   console.log('Starting migration to batch-level inventory tracking...');
-  
+
   try {
     // 1. Get all current inventory items
     const currentInventory = await db.query.inventory.findMany();
@@ -19,9 +19,9 @@ async function migrateToBatchInventory() {
       const expiryDate = item.expiryDate || null;
       // @ts-ignore - handling migration from old schema
       const batchNumber = item.batchNumber || `BATCH-INITIAL-${Date.now()}-${item.id}`;
-      
+
       console.log(`Creating batch for product ${item.productId} in store ${item.storeId}`);
-      
+
       try {
         // Create a batch with the current quantity and expiry date if it exists
         await db.insert(schema.inventoryBatches).values({
@@ -33,7 +33,7 @@ async function migrateToBatchInventory() {
           createdAt: new Date(),
           updatedAt: new Date()
         });
-        
+
         // Update the inventory record to use totalQuantity instead of quantity
         await db.update(schema.inventory)
           .set({
@@ -41,13 +41,13 @@ async function migrateToBatchInventory() {
             updatedAt: new Date()
           })
           .where(eq(schema.inventory.id, item.id));
-          
+
         console.log(`Successfully migrated inventory item ${item.id}`);
       } catch (error) {
         console.error(`Error migrating inventory item ${item.id}:`, error);
       }
     }
-    
+
     console.log('Migration completed successfully!');
   } catch (error) {
     console.error('Error during migration:', error);

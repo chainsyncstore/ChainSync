@@ -16,4 +16,4 @@ if (!fs.existsSync(serverDir)) {
 
 // Write package.json
 fs.writeFileSync(serverPackagePath, packageContent);
-console.log('✅ Created package.json in dist/server directory'); 
+console.log('✅ Created package.json in dist/server directory');

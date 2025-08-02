@@ -17,7 +17,7 @@ class PrismaClient {
           {},
           {
             get(_t, method) {
-              return async (...args) => {
+              return async(...args) => {
                 if (method === 'findMany') {
                   const data = _getTable(prop);
                   return data.filter(() => true);
@@ -60,10 +60,10 @@ class PrismaClient {
                 }
                 return undefined;
               };
-            },
+            }
           }
         );
-      },
+      }
     });
   }
   async $connect() {}
@@ -80,7 +80,7 @@ if (!global.__definePrismaGetter) {
     },
     set(val) {
       global.__sharedPrisma = val;
-    },
+    }
   });
   global.__definePrismaGetter = true;
 }
@@ -88,5 +88,5 @@ if (!global.__definePrismaGetter) {
 module.exports = {
   PrismaClient,
   Prisma: {},
-  default: PrismaClient,
+  default: PrismaClient
 };

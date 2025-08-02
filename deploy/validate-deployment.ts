@@ -288,7 +288,7 @@ class DeploymentValidator {
 
       // Check if replicas is set to at least 3
       const replicasMatch = blueDeployment.match(/replicas:\s*(\d+)/);
-      if (replicasMatch && parseInt(replicasMatch[1]) >= 3) {
+      if (replicasMatch && replicasMatch[1] && parseInt(replicasMatch[1]) >= 3) {
         this.results.passed.push('Deployment has sufficient replicas for load handling');
       } else {
         this.results.warnings.push('Deployment may not have enough replicas for high load');
